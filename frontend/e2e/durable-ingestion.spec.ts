@@ -24,6 +24,8 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   const failure = page.locator('.failure-row', { hasText: 'Transfer::duplicate' });
   await expect(failure).toBeVisible();
   await failure.click();
-  await expect(page.locator('.analysis-summary').getByText('Probable product defect')).toBeVisible();
+  await expect(
+    page.locator('.analysis-summary').getByText('Probable product defect', { exact: true })
+  ).toBeVisible();
   await expect(page.locator('.analysis-summary').getByText(/validated current-run observations/i)).toBeVisible();
 });
