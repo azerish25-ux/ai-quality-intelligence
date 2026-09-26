@@ -3,59 +3,51 @@
 
 FailureLens is a self-hosted quality-intelligence platform for turning automated-test artifacts into evidence-linked failure investigations. The mandatory analysis path is deterministic and CPU-only: no paid model API, cloud account, GPU, or runtime model download is required.
 
-> **Current delivery status: executable vertical slice, not the complete master specification.**
-> This revision implements the core run/evidence/failure/analysis workflow, PostgreSQL schema and migrations, JUnit and Playwright JSON ingestion, safe text redaction, durable job primitives, human review events, an API-backed React dashboard, a reusable GitHub Action, and a 200-case synthetic evaluation corpus. Real LedgerGuard execution provenance, every required artifact adapter, browser E2E, live GitHub comment publication, full authorization/isolation, and several hardening milestones remain open. The repository records these gaps explicitly rather than presenting scaffolding as completion.
+> **Current delivery status: durable executable vertical slice, not the complete master specification.**
+> This revision closes the operational M1 path: an actual JUnit XML, Playwright JSON, or bounded FailureLens ZIP upload is persisted as a durable ingestion, claimed by a leased database worker, normalized into runs/evidence/failures, automatically analyzed, and surfaced in the React dashboard. The larger ingestion, clustering, history, impact, corpus, authorization, and GitHub-publication milestones remain open and are recorded explicitly.
 
 ## What works in this revision
 
-- FastAPI API with typed OpenAPI schemas and health/readiness endpoints.
-- SQLAlchemy relational model for projects, runs, test executions, artifacts, evidence, failures, analyses, reviews, and leased jobs.
-- Alembic migration from an empty database.
-- Idempotent normalized-run ingestion with pass/fail/skip/cancel distinctions.
-- Real JUnit XML and Playwright JSON parser paths used by the CLI.
-- DTD/entity rejection, archive-path validation, terminal-control removal, and redaction of declared secret/PII classes.
-- Stable, versioned failure fingerprints that preserve important distinctions such as HTTP status.
+- FastAPI API with typed OpenAPI schemas and separate liveness/readiness endpoints.
+- SQLAlchemy/Alembic relational model for projects, durable ingestions, runs, test executions, artifacts, evidence, failures, analyses, reviews, and leased jobs.
+- Raw streamed uploads with content-addressed restricted storage, digest/size revalidation, bounded files, and safe filenames.
+- Durable ingestion states: `queued`, `running`, `succeeded`, `partial`, `failed`, `cancelled`, and `dead_lettered`.
+- PostgreSQL job claiming with leases, expired-lease recovery, bounded retry, permanent-input failure handling, cancellation safety, and idempotent replay.
+- Automatic deterministic analysis after parsing; the normal path does not require a second API request or dashboard button.
+- JUnit XML and Playwright JSON parsing through raw files or a schema-versioned/bounded ZIP bundle.
+- DTD/entity rejection, archive traversal/symlink/encryption/collision/nesting/compression controls, terminal-control removal, and redaction of declared secret/PII classes.
+- Stable versioned failure fingerprints and idempotent analysis revisions keyed to the effective evidence/history input.
 - Exactly five primary categories: `product_defect`, `test_defect`, `infrastructure_failure`, `known_flake`, and `insufficient_evidence`.
 - Conservative deterministic policy that blocks unsupported flake/infrastructure reassurance when product-risk evidence conflicts.
-- Explicit heuristic-score semantics; heuristic values are never described as calibrated probabilities.
-- Append-only review events with optimistic version checks.
-- Markdown report rendering with scope completeness and advisory—not approval—language.
-- React/Vite dashboard for overview, run selection, failure inspection, persisted analysis, evidence completeness, and evaluation results.
-- Versioned generator for a 200-case synthetic corpus with 100 scenario families and group-preserving 50/25/25 test/calibration/development family splits.
-- Executed frozen-test report containing 100 cases and all five categories.
+- Append-only human review events with optimistic version checks.
+- React/Vite dashboard with upload, live ingestion status, diagnostics, cancellation/retry, run navigation, failure inspection, and evaluation results.
+- Composite GitHub Action that runs the same durable ingestion and deterministic report path.
+- CI jobs for PostgreSQL migrations/tests, deterministic evaluation, frontend tests/build, Chromium upload-to-analysis E2E, and Docker configuration/images.
+- Versioned generator for a 200-case synthetic corpus with 100 scenario families and group-preserving splits.
 
-## Verified local results
-
-The implementation was verified in the delivery environment with Python 3.13:
+## Verified in the implementation environment
 
 ```text
-19 backend/evaluation tests passed
-85.55% measured backend branch-aware coverage
-Alembic upgrade from an empty SQLite verification database passed
-Synthetic frozen test split: 100 cases / 50 families
-Dangerous dismissal: 0/40 product-defect cases
-Product-defect recall: 1.000
-Macro F1: 1.000
-Forbidden published claims: 0
-Sensitive-canary leaks: 0
+27 backend tests passed
+79.63% branch-aware backend coverage (75% gate)
+Python bytecode compilation passed
+Dashboard TypeScript strict check passed against the current source
 ```
 
-These benchmark results apply only to the committed public synthetic corpus. They are not deployment guarantees and do not satisfy the requirement for actual executed LedgerGuard cases.
+The committed GitHub workflow is the authoritative evidence for PostgreSQL migration, npm dependency resolution, frontend build, Chromium E2E, evaluation, and Docker execution for a delivered revision. Synthetic benchmark results apply only to the committed public synthetic corpus; they are not deployment guarantees and do not satisfy the requirement for actual executed LedgerGuard cases.
 
 ## Start the stack
-
-Docker is the primary application path:
 
 ```bash
 docker compose up --build
 ```
 
-Then open:
+Open:
 
 - Dashboard: `http://localhost:8080`
-- API documentation: `http://localhost:8080/api/docs` is not proxied in this revision; use `http://localhost:8000/docs` when running the API directly, or add a local port mapping for the API.
+- API documentation: `http://localhost:8000/docs`
 
-The dashboard includes **Load synthetic demo**, which persists clearly labeled demonstration data and exercises ingestion, classification, and evidence views.
+Use **Load synthetic demo** to create a clearly labeled project, then upload a real JUnit XML, Playwright JSON, or FailureLens ZIP report from the **Durable pipeline** panel. The dashboard polls the persisted ingestion and opens its completed run automatically.
 
 For Python development:
 
@@ -70,53 +62,54 @@ CLI examples:
 ```bash
 failurelens doctor
 failurelens ingest path/to/junit.xml --project my-project --external-id run-123
-failurelens analyze --run <run-id>
+failurelens ingestion-status --ingestion <ingestion-id>
+failurelens ingest path/to/playwright-report.json --project my-project --external-id run-124 --process
 failurelens report --run <run-id> --format markdown
 ```
+
+Raw API upload example:
+
+```bash
+curl --request POST \
+  --header 'Content-Type: application/xml' \
+  --data-binary @junit.xml \
+  'http://localhost:8000/api/v1/projects/<project-id>/ingestions?external_id=run-123&filename=junit.xml&expected_inputs=42'
+```
+
+The response is `202 Accepted` with a stable `ingestion_id`, `job_id`, state, and eventually a `run_id`. Query `GET /api/v1/ingestions/{ingestion_id}` or let the dashboard poll it.
 
 ## Repository map
 
 ```text
-backend/src/failurelens/    API, domain model, ingestion, evidence, rules, jobs, CLI
+backend/src/failurelens/    API, storage, ingestion, evidence, rules, jobs, CLI
 backend/migrations/         Versioned relational schema
 evaluation/                 Corpus generator, labeled corpus, harness, reports
-frontend/                   React/Vite engineering dashboard
+frontend/                   React/Vite dashboard, unit tests, Chromium E2E
 integrations/github-action/ Reusable composite Action and report runner
-.github/workflows/          CI for backend, evaluation, frontend, and Docker model
-docs/                       Architecture, security, compatibility, progress, specification
+.github/workflows/          PostgreSQL, evaluation, frontend, browser, Docker CI
+docs/                       Architecture, security, compatibility, progress, requirements
 ```
 
 ## Safety model
 
-FailureLens treats artifact text, filenames, metadata, logs, and generated analysis as untrusted. Its deterministic analyzer separates observations, inferences, hypotheses, missing evidence, and investigation actions. A retry pass does not prove harmlessness. A timeout alone does not prove a flake. `known_flake` requires reviewed history with independent runs. Product-risk signals are preserved even when infrastructure symptoms also exist.
+All artifact bytes, filenames, report fields, logs, metadata, and generated analysis are untrusted. Uploads are stored under content-addressed project paths with restrictive permissions. Workers re-check size and SHA-256 before parsing. Unsafe XML and ZIP structures fail permanently with inspectable error codes instead of entering retry loops.
 
-The system never approves releases, merges pull requests, deletes tests, quarantines failures, suppresses product-risk flags, or rewrites code.
+The deterministic analyzer separates observations, inferences, hypotheses, missing evidence, and investigation actions. A retry pass does not prove harmlessness. A timeout alone does not prove a flake. `known_flake` requires reviewed history with independent runs. Product-risk signals remain visible even when infrastructure symptoms also exist.
+
+The system never approves releases, merges pull requests, deletes tests, suppresses product-risk flags, or rewrites code.
 
 ## Evaluation truthfulness
 
-The corpus manifest records:
+The corpus manifest currently records 200 synthetic cases, 100 scenario families, and **0 actual LedgerGuard executions**. Labels are agent-reviewed rather than independently expert-adjudicated. See [`evaluation/corpus/manifest.json`](evaluation/corpus/manifest.json) and [`evaluation/reports/latest/report.md`](evaluation/reports/latest/report.md).
 
-- 200 synthetic cases.
-- 80 product defects.
-- 30 test defects.
-- 30 infrastructure/environment failures.
-- 30 reviewed-history known flakes.
-- 30 insufficient-evidence cases.
-- 100 scenario families.
-- 0 actual LedgerGuard executions.
-- Agent-reviewed labels, not independent expert adjudication.
+## Current limitations and next milestone
 
-See [`evaluation/corpus/manifest.json`](evaluation/corpus/manifest.json), the reproducible generator, and [`evaluation/reports/latest/report.md`](evaluation/reports/latest/report.md). The generated case JSONL and per-case predictions are intentionally reproducible build outputs rather than permanent Git payloads.
+The immediate next milestone is **M2 — full ingestion and safe evidence**:
 
-## Current limitations
+1. Add real producer-pinned adapters and fixtures for pytest JSON, REST Assured evidence, k6 summaries, console JSONL, HAR/network JSONL, screenshots, Playwright traces, authenticated GitHub metadata, and changed-file lists.
+2. Add safe derivatives/review-and-mask for binary artifacts, retention and cleanup policy, and stronger project isolation/authorization.
+3. Complete semantic citation validation and attachment correlation across bundle entries.
+4. Commit an npm lockfile after dependency resolution in an environment with registry access; CI currently preserves the generated lockfile as an artifact.
+5. Continue M3+ work: explainable cluster persistence/revisions, history rates, impact selection, performance baselines, complete review roles/views, actual LedgerGuard corpus, and live idempotent GitHub publication.
 
-The master project contract remains larger than this revision. Highest-priority gaps are:
-
-1. Execute and ingest at least 60 controlled LedgerGuard cases across 15 real root-cause families.
-2. Complete HAR, k6, pytest-json-report, REST Assured evidence, screenshot, trace, console JSONL, commit metadata, and changed-file adapters with real producer fixtures.
-3. Implement project-scoped user/session authorization, ingestion-token management, restricted-original artifact storage, retention, backup/restore, and cross-project isolation tests.
-4. Complete clustering revision history, historical rate analysis, change-impact selection, performance baselines, and all required dashboard views.
-5. Add Playwright browser E2E, real PostgreSQL concurrency/recovery suites, live GitHub publication verification, and hardened fork-PR publication.
-6. Commit an npm lockfile after an environment with registry access resolves the dashboard dependencies; the current execution container could not resolve external package registries.
-
-The supplied master contract is summarized by [`docs/requirements-matrix.md`](docs/requirements-matrix.md), and factual progress is tracked in [`docs/PROGRESS.md`](docs/PROGRESS.md).
+Factual progress is tracked in [`docs/PROGRESS.md`](docs/PROGRESS.md), with requirement-level status in [`docs/requirements-matrix.md`](docs/requirements-matrix.md).

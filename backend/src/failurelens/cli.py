@@ -2,40 +2,22 @@ from __future__ import annotations
 
 import argparse
 import json
+import socket
+import time
 from pathlib import Path
 
 from sqlalchemy import select
 
 from .api import app  # noqa: F401
+from .config import get_settings
 from .db import SessionLocal, initialize_database
 from .demo import seed_demo
 from .github_report import render_markdown
-from .ingestion import parse_junit_xml, parse_playwright_json
-from .models import Analysis, Failure, Project, Run
-from .schemas import IngestionRequest, TestObservation
-from .service import analyze_and_persist, create_project, ingest_normalized
-
-
-def _load_report(path: Path) -> list[TestObservation]:
-    content = path.read_bytes()
-    if path.suffix.lower() == ".xml":
-        parsed = parse_junit_xml(content)
-    elif path.suffix.lower() == ".json":
-        parsed = parse_playwright_json(content)
-    else:
-        raise SystemExit("unsupported input: expected .xml or .json")
-    return [TestObservation(
-        test_identity=o.test_identity,
-        suite=o.suite,
-        source_path=o.source_path,
-        browser=o.browser,
-        attempt=o.attempt,
-        outcome=o.outcome,
-        duration_ms=o.duration_ms,
-        message=o.message,
-        exception_type=o.exception_type,
-        details=o.details,
-    ) for o in parsed]
+from .jobs import process_next
+from .models import Analysis, Failure, Ingestion, Project, Run
+from .schemas import RunMetadata
+from .service import analyze_and_persist, create_project, enqueue_artifact_ingestion
+from .storage import store_bytes
 
 
 def main() -> None:
@@ -48,6 +30,21 @@ def main() -> None:
     ingest.add_argument("report", type=Path)
     ingest.add_argument("--project", required=True)
     ingest.add_argument("--external-id", required=True)
+    ingest.add_argument("--attempt", type=int, default=1)
+    ingest.add_argument("--repository")
+    ingest.add_argument("--commit-sha")
+    ingest.add_argument("--base-sha")
+    ingest.add_argument("--branch")
+    ingest.add_argument("--expected-inputs", type=int)
+    ingest.add_argument("--format", default="auto")
+    ingest.add_argument(
+        "--process",
+        action="store_true",
+        help="claim and process the queued ingestion in this invocation",
+    )
+
+    status_parser = sub.add_parser("ingestion-status")
+    status_parser.add_argument("--ingestion", required=True)
 
     analyze = sub.add_parser("analyze")
     analyze.add_argument("--run", required=True)
@@ -58,17 +55,110 @@ def main() -> None:
 
     args = parser.parse_args()
     initialize_database()
+    settings = get_settings()
     with SessionLocal() as session:
         if args.command == "doctor":
             session.execute(select(1))
-            print(json.dumps({"database": "ok", "deterministic_mode": True, "external_model_required": False}))
+            print(
+                json.dumps(
+                    {
+                        "database": "ok",
+                        "artifact_root": str(settings.artifact_root),
+                        "deterministic_mode": True,
+                        "external_model_required": False,
+                    }
+                )
+            )
         elif args.command == "demo":
             print(json.dumps(seed_demo(session), indent=2))
         elif args.command == "ingest":
-            project = session.scalar(select(Project).where(Project.slug == args.project)) or create_project(session, args.project, args.project)
-            request = IngestionRequest(external_id=args.external_id, framework="auto", observations=_load_report(args.report))
-            run = ingest_normalized(session, project, request)
-            print(json.dumps({"run_id": run.id, "status": run.status.value, "received_inputs": run.received_inputs}))
+            if not args.report.is_file():
+                raise SystemExit(f"report not found: {args.report}")
+            project = session.scalar(select(Project).where(Project.slug == args.project)) or create_project(
+                session,
+                args.project,
+                args.project,
+            )
+            max_bytes = settings.max_bundle_bytes if args.report.suffix.lower() == ".zip" else settings.max_file_bytes
+            if args.report.stat().st_size > max_bytes:
+                raise SystemExit(f"report exceeds configured {max_bytes}-byte limit")
+            content = args.report.read_bytes()
+            media_type = {
+                ".xml": "application/xml",
+                ".json": "application/json",
+                ".zip": "application/zip",
+            }.get(args.report.suffix.lower(), "application/octet-stream")
+            stored = store_bytes(
+                content,
+                root=settings.artifact_root,
+                project_id=project.id,
+                filename=args.report.name,
+                media_type=media_type,
+                max_bytes=max_bytes,
+            )
+            metadata = RunMetadata(
+                external_id=args.external_id,
+                attempt=args.attempt,
+                repository=args.repository,
+                commit_sha=args.commit_sha,
+                base_sha=args.base_sha,
+                branch=args.branch,
+                framework=args.format,
+                expected_inputs=args.expected_inputs,
+                source_metadata={"transport": "cli"},
+            )
+            ingestion = enqueue_artifact_ingestion(
+                session,
+                project,
+                metadata,
+                stored,
+                source_format=args.format,
+                settings=settings,
+            )
+            if args.process and ingestion.run_id is None:
+                worker_id = f"cli-{socket.gethostname()}-{int(time.time())}"
+                for _ in range(1000):
+                    ingestion = session.get(Ingestion, ingestion.id) or ingestion
+                    if ingestion.run_id is not None or ingestion.state.value in {
+                        "failed",
+                        "cancelled",
+                        "dead_lettered",
+                    }:
+                        break
+                    if not process_next(session, worker_id, settings=settings):
+                        break
+                    session.expire_all()
+                ingestion = session.get(Ingestion, ingestion.id) or ingestion
+            print(
+                json.dumps(
+                    {
+                        "ingestion_id": ingestion.id,
+                        "job_id": ingestion.job_id,
+                        "state": ingestion.state.value,
+                        "run_id": ingestion.run_id,
+                        "error_code": ingestion.error_code,
+                    }
+                )
+            )
+            if args.process and ingestion.run_id is None:
+                raise SystemExit(2)
+        elif args.command == "ingestion-status":
+            ingestion = session.get(Ingestion, args.ingestion)
+            if not ingestion:
+                raise SystemExit("ingestion not found")
+            print(
+                json.dumps(
+                    {
+                        "ingestion_id": ingestion.id,
+                        "state": ingestion.state.value,
+                        "run_id": ingestion.run_id,
+                        "job_id": ingestion.job_id,
+                        "error_code": ingestion.error_code,
+                        "error_message": ingestion.error_message,
+                    },
+                    indent=2,
+                )
+            )
         elif args.command == "analyze":
             failures = session.scalars(select(Failure).where(Failure.run_id == args.run)).all()
             results = [analyze_and_persist(session, failure) for failure in failures]
@@ -81,7 +171,22 @@ def main() -> None:
             if args.format == "markdown":
                 print(render_markdown(run, list(analyses)), end="")
             else:
-                print(json.dumps({"run_id": run.id, "analyses": [{"id": a.id, "category": a.category.value, "summary": a.summary} for a in analyses]}, indent=2))
+                print(
+                    json.dumps(
+                        {
+                            "run_id": run.id,
+                            "analyses": [
+                                {
+                                    "id": analysis.id,
+                                    "category": analysis.category.value,
+                                    "summary": analysis.summary,
+                                }
+                                for analysis in analyses
+                            ],
+                        },
+                        indent=2,
+                    )
+                )
 
 
 if __name__ == "__main__":

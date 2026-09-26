@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from failurelens.models import Analysis, Failure, Outcome
 from failurelens.schemas import IngestionRequest, TestObservation as Observation
@@ -26,8 +26,10 @@ def test_ingestion_is_idempotent_and_analysis_is_persisted(session) -> None:
     failures = list(session.scalars(select(Failure).where(Failure.run_id == first.id)).all())
     assert len(failures) == 1
     analysis = analyze_and_persist(session, failures[0])
+    duplicate = analyze_and_persist(session, failures[0])
+    assert analysis.id == duplicate.id
     assert analysis.category.value == "product_defect"
-    assert session.get(Analysis, analysis.id) is not None
+    assert session.scalar(select(func.count(Analysis.id))) == 1
 
 
 def test_incomplete_run_is_explicit(session) -> None:

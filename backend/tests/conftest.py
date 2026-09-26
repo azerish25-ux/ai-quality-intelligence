@@ -11,11 +11,14 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session, sessionmaker
 
 from failurelens.api import app
+from failurelens.config import get_settings
 from failurelens.db import Base, create_database_engine, get_session
 
 
 @pytest.fixture
-def session() -> Session:
+def session(tmp_path, monkeypatch) -> Session:
+    monkeypatch.setenv("FAILURELENS_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
+    get_settings.cache_clear()
     engine = create_database_engine("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine, expire_on_commit=False)
@@ -23,6 +26,7 @@ def session() -> Session:
         yield value
     Base.metadata.drop_all(engine)
     engine.dispose()
+    get_settings.cache_clear()
 
 
 @pytest.fixture

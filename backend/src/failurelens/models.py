@@ -53,6 +53,16 @@ class JobState(str, enum.Enum):
     dead_lettered = "dead_lettered"
 
 
+class IngestionState(str, enum.Enum):
+    queued = "queued"
+    running = "running"
+    succeeded = "succeeded"
+    partial = "partial"
+    failed = "failed"
+    cancelled = "cancelled"
+    dead_lettered = "dead_lettered"
+
+
 class Project(Base):
     __tablename__ = "projects"
 
@@ -62,6 +72,7 @@ class Project(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     runs: Mapped[list[Run]] = relationship(back_populates="project", cascade="all, delete-orphan")
+    ingestions: Mapped[list[Ingestion]] = relationship(back_populates="project", cascade="all, delete-orphan")
 
 
 class Run(Base):
@@ -94,6 +105,93 @@ class Run(Base):
     executions: Mapped[list[TestExecution]] = relationship(back_populates="run", cascade="all, delete-orphan")
     artifacts: Mapped[list[Artifact]] = relationship(back_populates="run", cascade="all, delete-orphan")
     failures: Mapped[list[Failure]] = relationship(back_populates="run", cascade="all, delete-orphan")
+    ingestion: Mapped[Ingestion | None] = relationship(back_populates="run", uselist=False)
+
+
+class Job(Base):
+    __tablename__ = "jobs"
+    __table_args__ = (Index("ix_jobs_claim", "state", "available_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(80))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON)
+    state: Mapped[JobState] = mapped_column(Enum(JobState), default=JobState.queued)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, default=3)
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    lease_owner: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    ingestion: Mapped[Ingestion | None] = relationship(
+        back_populates="job",
+        uselist=False,
+        foreign_keys="Ingestion.job_id",
+    )
+
+
+class Ingestion(Base):
+    __tablename__ = "ingestions"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id",
+            "external_id",
+            "attempt",
+            "source_digest",
+            name="uq_ingestion_identity",
+        ),
+        Index("ix_ingestions_project_created", "project_id", "created_at"),
+        Index("ix_ingestions_state_created", "state", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    external_id: Mapped[str] = mapped_column(String(240))
+    attempt: Mapped[int] = mapped_column(Integer, default=1)
+    repository: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    commit_sha: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    base_sha: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    branch: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    source_format: Mapped[str] = mapped_column(String(80), default="auto")
+    source_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    original_name: Mapped[str] = mapped_column(String(1024))
+    media_type: Mapped[str] = mapped_column(String(160), default="application/octet-stream")
+    source_digest: Mapped[str] = mapped_column(String(64))
+    source_size_bytes: Mapped[int] = mapped_column(Integer)
+    storage_path: Mapped[str] = mapped_column(String(2048))
+    expected_inputs: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    received_inputs: Mapped[int] = mapped_column(Integer, default=0)
+    state: Mapped[IngestionState] = mapped_column(Enum(IngestionState), default=IngestionState.queued)
+    run_id: Mapped[str | None] = mapped_column(
+        ForeignKey("runs.id", ondelete="SET NULL"),
+        unique=True,
+        nullable=True,
+    )
+    job_id: Mapped[str | None] = mapped_column(
+        ForeignKey("jobs.id", ondelete="SET NULL"),
+        unique=True,
+        nullable=True,
+    )
+    parser_version: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    policy_version: Mapped[str] = mapped_column(String(80), default="artifact-policy-v1")
+    diagnostics: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    error_code: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    project: Mapped[Project] = relationship(back_populates="ingestions")
+    run: Mapped[Run | None] = relationship(back_populates="ingestion")
+    job: Mapped[Job | None] = relationship(
+        back_populates="ingestion",
+        foreign_keys=[job_id],
+    )
 
 
 class TestExecution(Base):
@@ -148,7 +246,7 @@ class Evidence(Base):
     locator: Mapped[dict[str, Any]] = mapped_column(JSON)
     excerpt: Mapped[str] = mapped_column(Text)
     content_digest: Mapped[str] = mapped_column(String(64))
-    parser_version: Mapped[str] = mapped_column(String(40))
+    parser_version: Mapped[str] = mapped_column(String(80))
     warnings: Mapped[list[str]] = mapped_column(JSON, default=list)
 
     artifact: Mapped[Artifact] = relationship(back_populates="evidence")
@@ -175,12 +273,21 @@ class Failure(Base):
 
 class Analysis(Base):
     __tablename__ = "analyses"
-    __table_args__ = (UniqueConstraint("failure_id", "revision", name="uq_analysis_revision"),)
+    __table_args__ = (
+        UniqueConstraint("failure_id", "revision", name="uq_analysis_revision"),
+        UniqueConstraint(
+            "failure_id",
+            "analysis_version",
+            "input_digest",
+            name="uq_analysis_input",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     failure_id: Mapped[str] = mapped_column(ForeignKey("failures.id", ondelete="CASCADE"), index=True)
     revision: Mapped[int] = mapped_column(Integer, default=1)
     analysis_version: Mapped[str] = mapped_column(String(40), default="deterministic-v1")
+    input_digest: Mapped[str | None] = mapped_column(String(64), nullable=True)
     category: Mapped[Category] = mapped_column(Enum(Category))
     severity: Mapped[str] = mapped_column(String(32), default="medium")
     confidence_value: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -216,22 +323,3 @@ class ReviewEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     analysis: Mapped[Analysis] = relationship(back_populates="reviews")
-
-
-class Job(Base):
-    __tablename__ = "jobs"
-    __table_args__ = (Index("ix_jobs_claim", "state", "available_at"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
-    kind: Mapped[str] = mapped_column(String(80))
-    payload: Mapped[dict[str, Any]] = mapped_column(JSON)
-    state: Mapped[JobState] = mapped_column(Enum(JobState), default=JobState.queued)
-    attempts: Mapped[int] = mapped_column(Integer, default=0)
-    max_attempts: Mapped[int] = mapped_column(Integer, default=3)
-    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    lease_owner: Mapped[str | None] = mapped_column(String(240), nullable=True)
-    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

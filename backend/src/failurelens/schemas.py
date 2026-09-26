@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .models import Category, Outcome, RunStatus
+from .models import Category, IngestionState, Outcome, RunStatus
 
 
 class ProjectCreate(BaseModel):
@@ -32,17 +32,21 @@ class TestObservation(BaseModel):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
-class IngestionRequest(BaseModel):
-    schema_version: Literal["1.0"] = "1.0"
+class RunMetadata(BaseModel):
     external_id: str = Field(min_length=1, max_length=240)
     attempt: int = Field(default=1, ge=1)
-    repository: str | None = None
+    repository: str | None = Field(default=None, max_length=240)
     commit_sha: str | None = Field(default=None, pattern=r"^[0-9a-fA-F]{7,64}$")
     base_sha: str | None = Field(default=None, pattern=r"^[0-9a-fA-F]{7,64}$")
-    branch: str | None = None
-    framework: str = "normalized"
+    branch: str | None = Field(default=None, max_length=240)
+    framework: str = Field(default="auto", min_length=1, max_length=64)
     expected_inputs: int | None = Field(default=None, ge=0)
     source_metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class IngestionRequest(RunMetadata):
+    schema_version: Literal["1.0"] = "1.0"
+    framework: str = "normalized"
     observations: list[TestObservation] = Field(min_length=1, max_length=20_000)
 
 
@@ -62,6 +66,39 @@ class RunRead(BaseModel):
     received_inputs: int
     manifest_digest: str
     created_at: datetime
+
+
+class IngestionRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    project_id: str
+    external_id: str
+    attempt: int
+    repository: str | None
+    commit_sha: str | None
+    base_sha: str | None
+    branch: str | None
+    source_format: str
+    source_metadata: dict[str, Any]
+    original_name: str
+    media_type: str
+    source_digest: str
+    source_size_bytes: int
+    expected_inputs: int | None
+    received_inputs: int
+    state: IngestionState
+    run_id: str | None
+    job_id: str | None
+    parser_version: str | None
+    policy_version: str
+    diagnostics: list[dict[str, Any]]
+    error_code: str | None
+    error_message: str | None
+    retry_count: int
+    started_at: datetime | None
+    completed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
 
 
 class Confidence(BaseModel):
