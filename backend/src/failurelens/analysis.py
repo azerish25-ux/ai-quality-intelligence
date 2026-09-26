@@ -1,0 +1,191 @@
+from __future__ import annotations
+
+import hashlib
+import json
+from dataclasses import dataclass
+from typing import Any, Iterable
+
+from .models import Category
+
+ANALYSIS_VERSION = "deterministic-v1"
+RULES_VERSION = "rules-v1"
+
+
+@dataclass(frozen=True)
+class EvidenceView:
+    id: str
+    kind: str
+    excerpt: str
+    observation: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class DeterministicDecision:
+    category: Category
+    severity: str
+    score: float | None
+    score_kind: str
+    explanation: str
+    summary: str
+    supporting_ids: tuple[str, ...]
+    contradictory_ids: tuple[str, ...]
+    missing: tuple[str, ...]
+    claims: tuple[dict[str, Any], ...]
+    hypotheses: tuple[dict[str, Any], ...]
+    next_steps: tuple[dict[str, Any], ...]
+    abstention_reason: str | None
+    policy_flags: tuple[str, ...]
+
+
+def _has(text: str, terms: Iterable[str]) -> bool:
+    folded = text.casefold()
+    return any(term.casefold() in folded for term in terms)
+
+
+def analyze_failure(
+    *,
+    message: str,
+    exception_type: str | None,
+    details: dict[str, Any],
+    evidence: list[EvidenceView],
+    historical: dict[str, Any] | None = None,
+) -> DeterministicDecision:
+    historical = historical or {}
+    all_text = "\n".join([message, exception_type or "", json.dumps(details, sort_keys=True)] + [e.excerpt for e in evidence])
+    evidence_ids = tuple(e.id for e in evidence)
+    contradictions: list[str] = []
+    missing: list[str] = []
+    flags: list[str] = []
+
+    product_signals = 0
+    test_signals = 0
+    infra_signals = 0
+    flake_signals = 0
+
+    if _has(all_text, ["duplicate committed", "double charge", "ledger unbalanced", "balance invariant", "over-credit", "authorization bypass", "cross-account"]):
+        product_signals += 4
+    if details.get("data_integrity_violation") is True:
+        product_signals += 5
+    if details.get("http_status") in {500, 502, 503} and details.get("service_error_corroborated") is True:
+        product_signals += 2
+    if _has(all_text, ["expected contract", "stale selector", "fixture invalid", "teardown leaked", "mock contract drift"]):
+        test_signals += 3
+    if details.get("contract_mismatch") == "test_expectation_stale":
+        test_signals += 5
+    if _has(all_text, ["runner exited", "connection refused", "dns failure", "no space left", "database unavailable", "browser process crashed"]):
+        infra_signals += 3
+    if details.get("runner_diagnostic") is True:
+        infra_signals += 3
+    if historical.get("reviewed_known_flake") is True and historical.get("independent_runs", 0) >= 5:
+        flake_signals += 5
+    if historical.get("retry_recovery_rate", 0) > 0.2:
+        flake_signals += 1
+
+    if details.get("retry_recovered") is True and not historical.get("reviewed_known_flake"):
+        flags.append("retry_recovered_not_proof_of_flake")
+    if details.get("incomplete_run") is True:
+        missing.append("complete run/shard evidence")
+    if details.get("trace_missing") is True:
+        missing.append("trace attachment")
+    if details.get("contradictory_product_signal") is True:
+        product_signals += 2
+        contradictions.extend(evidence_ids[:1])
+        flags.append("mixed_cause_or_contradictory_evidence")
+
+    scores = {
+        Category.product_defect: product_signals,
+        Category.test_defect: test_signals,
+        Category.infrastructure_failure: infra_signals,
+        Category.known_flake: flake_signals,
+    }
+    ordered = sorted(scores.items(), key=lambda item: (-item[1], item[0].value))
+    winner, winner_score = ordered[0]
+    runner_up_score = ordered[1][1]
+
+    if winner_score < 3 or winner_score == runner_up_score or not evidence_ids:
+        reason = "Available observations do not distinguish the required categories safely."
+        if product_signals >= 2 and max(test_signals, infra_signals, flake_signals) >= 2:
+            flags.append("dangerous_downgrade_blocked")
+        if not evidence_ids:
+            missing.append("resolvable current-run evidence")
+        return DeterministicDecision(
+            category=Category.insufficient_evidence,
+            severity="high" if product_signals else "medium",
+            score=None,
+            score_kind="unavailable",
+            explanation=reason,
+            summary="Failure requires human investigation because the current evidence is insufficient for a safe causal classification.",
+            supporting_ids=evidence_ids,
+            contradictory_ids=tuple(contradictions),
+            missing=tuple(sorted(set(missing))),
+            claims=tuple(),
+            hypotheses=({"description": "Cause remains unresolved", "evidence_ids": list(evidence_ids), "counterevidence_ids": list(contradictions), "status": "unverified"},),
+            next_steps=({"action": "Collect missing current-run artifacts and reproduce under controlled conditions", "rationale": reason, "evidence_ids": list(evidence_ids)},),
+            abstention_reason=reason,
+            policy_flags=tuple(sorted(set(flags + ["safe_abstention"]))),
+        )
+
+    margin = winner_score - runner_up_score
+    heuristic = min(0.95, 0.52 + winner_score * 0.06 + margin * 0.04)
+    category_text = {
+        Category.product_defect: "probable product defect",
+        Category.test_defect: "probable test defect",
+        Category.infrastructure_failure: "probable infrastructure or environment failure",
+        Category.known_flake: "known flaky behavior",
+        Category.insufficient_evidence: "insufficient evidence",
+    }[winner]
+
+    if winner is Category.known_flake and (historical.get("reviewed_known_flake") is not True or historical.get("independent_runs", 0) < 5):
+        flags.append("known_flake_requires_reviewed_history")
+        return analyze_failure(message=message, exception_type=exception_type, details={**details, "retry_recovered": details.get("retry_recovered")}, evidence=evidence, historical={})
+
+    if winner in {Category.infrastructure_failure, Category.known_flake, Category.test_defect} and product_signals >= 2:
+        flags.append("product_risk_preserved")
+        contradictions.extend(evidence_ids[:1])
+        if margin < 3:
+            return DeterministicDecision(
+                category=Category.insufficient_evidence,
+                severity="high",
+                score=None,
+                score_kind="unavailable",
+                explanation="A possible product-risk signal conflicts with the leading non-product explanation.",
+                summary="Failure is not safely dismissible; contradictory product-risk evidence requires review.",
+                supporting_ids=evidence_ids,
+                contradictory_ids=tuple(sorted(set(contradictions))),
+                missing=tuple(sorted(set(missing))),
+                claims=tuple(),
+                hypotheses=({"description": category_text, "evidence_ids": list(evidence_ids), "counterevidence_ids": list(contradictions), "status": "conflicted"},),
+                next_steps=({"action": "Investigate the product-risk signal before considering a non-product disposition", "rationale": "Safety policy prevents unsupported reassurance.", "evidence_ids": list(evidence_ids)},),
+                abstention_reason="Contradictory product-risk evidence prevents a safe classification.",
+                policy_flags=tuple(sorted(set(flags + ["dangerous_downgrade_blocked"]))),
+            )
+
+    severity = "critical" if details.get("data_integrity_violation") or details.get("authorization_violation") else "high" if winner is Category.product_defect else "medium"
+    claim = {
+        "id": "claim-1",
+        "kind": "inference",
+        "text": f"Observed signals support a {category_text} classification.",
+        "evidence_ids": list(evidence_ids),
+        "validation_status": "typed_rule_supported",
+    }
+    return DeterministicDecision(
+        category=winner,
+        severity=severity,
+        score=round(heuristic, 3),
+        score_kind="heuristic_score",
+        explanation=f"Rule signals: product={product_signals}, test={test_signals}, infrastructure={infra_signals}, known-flake={flake_signals}. This is not a calibrated probability.",
+        summary=f"Failure is classified as {category_text} based on validated current-run observations and allowed historical context.",
+        supporting_ids=evidence_ids,
+        contradictory_ids=tuple(sorted(set(contradictions))),
+        missing=tuple(sorted(set(missing))),
+        claims=(claim,),
+        hypotheses=tuple(),
+        next_steps=({"action": "Review the cited evidence and reproduce the leading hypothesis", "rationale": "Classification remains an engineering aid rather than release approval.", "evidence_ids": list(evidence_ids)},),
+        abstention_reason=None,
+        policy_flags=tuple(sorted(set(flags))),
+    )
+
+
+def input_digest(payload: dict[str, Any]) -> str:
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

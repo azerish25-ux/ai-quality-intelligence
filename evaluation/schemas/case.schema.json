@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://failurelens.local/schemas/evaluation-case-v1.json",
+  "title": "FailureLens evaluation case",
+  "type": "object",
+  "required": [
+    "case_id", "schema_version", "source_kind", "source_revision",
+    "scenario_family_id", "incident_id", "artifacts", "expected_category",
+    "root_cause", "required_evidence", "forbidden_claims", "severity",
+    "observability_rationale", "oracle", "adversarial_tags",
+    "label_provenance", "label_review_status", "split", "input"
+  ],
+  "properties": {
+    "case_id": {"type": "string", "minLength": 1},
+    "schema_version": {"const": "1.0"},
+    "source_kind": {"enum": ["ledgerguard_executed", "synthetic", "other_executed"]},
+    "source_revision": {"type": "string"},
+    "scenario_family_id": {"type": "string"},
+    "incident_id": {"type": "string"},
+    "artifacts": {"type": "array", "items": {"type": "string"}},
+    "history_manifest": {"type": ["string", "null"]},
+    "expected_category": {"enum": ["product_defect", "test_defect", "infrastructure_failure", "known_flake", "insufficient_evidence"]},
+    "root_cause": {"type": ["string", "null"]},
+    "required_evidence": {"type": "array", "items": {"type": "string"}},
+    "forbidden_claims": {"type": "array", "items": {"type": "string"}},
+    "severity": {"enum": ["critical", "high", "medium", "low"]},
+    "observability_rationale": {"type": "string"},
+    "oracle": {"type": "string"},
+    "adversarial_tags": {"type": "array", "items": {"type": "string"}},
+    "label_provenance": {"type": "string"},
+    "label_review_status": {"enum": ["automated", "agent-reviewed", "human-reviewed"]},
+    "split": {"enum": ["development", "calibration", "test"]},
+    "input": {
+      "type": "object",
+      "required": ["message", "details", "evidence", "historical"],
+      "properties": {
+        "message": {"type": "string"},
+        "exception_type": {"type": ["string", "null"]},
+        "details": {"type": "object"},
+        "evidence": {"type": "array", "items": {"type": "string"}},
+        "historical": {"type": "object"}
+      }
+    }
+  },
+  "additionalProperties": false
+}

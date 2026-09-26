@@ -1,0 +1,30 @@
+{
+  "case_count": 200,
+  "category_counts": {
+    "infrastructure_failure": 30,
+    "insufficient_evidence": 30,
+    "known_flake": 30,
+    "product_defect": 80,
+    "test_defect": 30
+  },
+  "corpus_sha256": "849452388f260bab8e19769f0edc5bab586b1e0649ff9d4a3637bbd338da81aa",
+  "family_count": 100,
+  "generator_version": "generator-v1",
+  "limitations": [
+    "All committed cases are synthetic; the mandatory executed LedgerGuard provenance gate remains BLOCKED.",
+    "Labels are agent-reviewed, not independently human adjudicated.",
+    "The public test split is a controlled regression benchmark, not an independently blinded generalization study."
+  ],
+  "schema_version": "1.0",
+  "seed": 20260926,
+  "source_counts": {
+    "ledgerguard_executed": 0,
+    "other_executed": 0,
+    "synthetic": 200
+  },
+  "split_counts": {
+    "calibration": 50,
+    "development": 50,
+    "test": 100
+  }
+}

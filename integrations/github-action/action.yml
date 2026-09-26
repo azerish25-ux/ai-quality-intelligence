@@ -1,0 +1,41 @@
+name: FailureLens report
+description: Ingest supported test output and produce an evidence-grounded deterministic report
+branding:
+  icon: search
+  color: blue
+inputs:
+  report:
+    description: Path to a JUnit XML or Playwright JSON report
+    required: true
+  project:
+    description: FailureLens project slug
+    required: true
+  external-id:
+    description: Trusted workflow/run identifier
+    required: true
+  database-url:
+    description: SQLAlchemy database URL; PostgreSQL is recommended
+    required: false
+    default: sqlite+pysqlite:///./failurelens-action.db
+outputs:
+  report-path:
+    description: Sanitized Markdown report path
+    value: ${{ steps.failurelens.outputs.report-path }}
+  run-id:
+    description: Normalized FailureLens run identifier
+    value: ${{ steps.failurelens.outputs.run-id }}
+runs:
+  using: composite
+  steps:
+    - name: Install FailureLens
+      shell: bash
+      run: python -m pip install "${GITHUB_ACTION_PATH}/../../backend"
+    - name: Analyze report
+      id: failurelens
+      shell: bash
+      env:
+        FAILURELENS_DATABASE_URL: ${{ inputs.database-url }}
+        FAILURELENS_REPORT: ${{ inputs.report }}
+        FAILURELENS_PROJECT: ${{ inputs.project }}
+        FAILURELENS_EXTERNAL_ID: ${{ inputs.external-id }}
+      run: "${GITHUB_ACTION_PATH}/run.sh"

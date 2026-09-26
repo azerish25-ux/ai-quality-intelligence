@@ -1,0 +1,112 @@
+{
+  "acceptance": {
+    "dangerous_dismissal_rate_lte_0_05": true,
+    "macro_f1_gte_0_80": true,
+    "non_abstained_coverage_gte_0_75": true,
+    "product_recall_gte_0_90": true,
+    "zero_critical_high_dangerous_dismissals": true,
+    "zero_forbidden_claims": true,
+    "zero_sensitive_canary_leaks": true
+  },
+  "case_count": 100,
+  "confusion_matrix": {
+    "infrastructure_failure": {
+      "infrastructure_failure": 16,
+      "insufficient_evidence": 0,
+      "known_flake": 0,
+      "product_defect": 0,
+      "test_defect": 0
+    },
+    "insufficient_evidence": {
+      "infrastructure_failure": 0,
+      "insufficient_evidence": 14,
+      "known_flake": 0,
+      "product_defect": 0,
+      "test_defect": 0
+    },
+    "known_flake": {
+      "infrastructure_failure": 0,
+      "insufficient_evidence": 0,
+      "known_flake": 14,
+      "product_defect": 0,
+      "test_defect": 0
+    },
+    "product_defect": {
+      "infrastructure_failure": 0,
+      "insufficient_evidence": 0,
+      "known_flake": 0,
+      "product_defect": 40,
+      "test_defect": 0
+    },
+    "test_defect": {
+      "infrastructure_failure": 0,
+      "insufficient_evidence": 0,
+      "known_flake": 0,
+      "product_defect": 0,
+      "test_defect": 16
+    }
+  },
+  "dangerous_dismissal": {
+    "denominator": 40,
+    "numerator": 0,
+    "rate": 0.0,
+    "wilson_95": [
+      0.0,
+      0.08762160119728664
+    ]
+  },
+  "evaluation_version": "harness-v1",
+  "family_count": 50,
+  "forbidden_claim_occurrences": 0,
+  "limitations": [
+    "Metrics are from a synthetic, public, agent-authored controlled corpus.",
+    "No actual LedgerGuard executions are represented in this revision.",
+    "A zero observed dangerous-dismissal count is not proof of zero deployment risk."
+  ],
+  "macro_f1": 1.0,
+  "non_abstained_coverage": 1.0,
+  "per_category": {
+    "infrastructure_failure": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 16
+    },
+    "insufficient_evidence": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 14
+    },
+    "known_flake": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 14
+    },
+    "product_defect": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 40
+    },
+    "test_defect": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 16
+    }
+  },
+  "product_abstentions": 0,
+  "product_defect_recall": 1.0,
+  "product_misrouting": {
+    "denominator": 40,
+    "numerator": 0,
+    "rate": 0.0
+  },
+  "sensitive_canary_leaks": 0,
+  "source_counts": {
+    "synthetic": 100
+  },
+  "split": "test"
+}

@@ -1,0 +1,73 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: failurelens
+      POSTGRES_USER: failurelens
+      POSTGRES_PASSWORD: failurelens
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U failurelens -d failurelens"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - failurelens-db:/var/lib/postgresql/data
+    networks: [failurelens]
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      FAILURELENS_DATABASE_URL: postgresql+psycopg://failurelens:failurelens@db:5432/failurelens
+      FAILURELENS_ARTIFACT_ROOT: /var/lib/failurelens/artifacts
+      FAILURELENS_EVALUATION_METRICS_PATH: /app/evaluation/reports/latest/metrics.json
+      FAILURELENS_DEMO_MODE: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - failurelens-artifacts:/var/lib/failurelens/artifacts
+    networks: [failurelens]
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["failurelens-worker", "--poll-seconds", "1"]
+    environment:
+      FAILURELENS_DATABASE_URL: postgresql+psycopg://failurelens:failurelens@db:5432/failurelens
+      FAILURELENS_ARTIFACT_ROOT: /var/lib/failurelens/artifacts
+      FAILURELENS_DEMO_MODE: "true"
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - failurelens-artifacts:/var/lib/failurelens/artifacts
+    networks: [failurelens]
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [failurelens]
+
+volumes:
+  failurelens-db:
+  failurelens-artifacts:
+
+networks:
+  failurelens:
+    driver: bridge
