@@ -29,11 +29,11 @@
 
 ## Checks executed before publication
 
-- `PYTHONPATH=src pytest -q`: 27 passed.
+- `PYTHONPATH=src pytest -q`: 28 passed.
 - `pytest --cov=failurelens --cov-branch --cov-fail-under=75`: 27 passed, 79.63% measured coverage.
 - `python -m compileall`: passed.
 - Strict TypeScript source check: passed using local declarations because the delivery container cannot resolve the npm registry.
-- PostgreSQL migration/integration, npm test/build, Chromium E2E, evaluation, and Docker checks are delegated to the committed GitHub workflow and must be evaluated against the exact delivered SHA.
+- PostgreSQL migration/integration, locked npm test/build, Chromium E2E, evaluation, and Docker checks are evaluated by the committed GitHub workflow against each delivered SHA.
 
 ## M1 failure perspectives reviewed
 

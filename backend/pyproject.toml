@@ -47,4 +47,4 @@ source = ["failurelens"]
 [tool.coverage.report]
 show_missing = true
 fail_under = 75
-omit = ["src/failurelens/cli.py", "src/failurelens/jobs.py"]
+omit = ["*/failurelens/cli.py", "*/failurelens/jobs.py"]

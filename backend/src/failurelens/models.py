@@ -105,7 +105,11 @@ class Run(Base):
     executions: Mapped[list[TestExecution]] = relationship(back_populates="run", cascade="all, delete-orphan")
     artifacts: Mapped[list[Artifact]] = relationship(back_populates="run", cascade="all, delete-orphan")
     failures: Mapped[list[Failure]] = relationship(back_populates="run", cascade="all, delete-orphan")
-    ingestion: Mapped[Ingestion | None] = relationship(back_populates="run", uselist=False)
+    ingestion: Mapped[Ingestion | None] = relationship(
+        back_populates="run",
+        uselist=False,
+        foreign_keys="Ingestion.run_id",
+    )
 
 
 class Job(Base):
@@ -187,7 +191,10 @@ class Ingestion(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
     project: Mapped[Project] = relationship(back_populates="ingestions")
-    run: Mapped[Run | None] = relationship(back_populates="ingestion")
+    run: Mapped[Run | None] = relationship(
+        back_populates="ingestion",
+        foreign_keys=[run_id],
+    )
     job: Mapped[Job | None] = relationship(
         back_populates="ingestion",
         foreign_keys=[job_id],

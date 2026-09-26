@@ -109,7 +109,6 @@ The immediate next milestone is **M2 — full ingestion and safe evidence**:
 1. Add real producer-pinned adapters and fixtures for pytest JSON, REST Assured evidence, k6 summaries, console JSONL, HAR/network JSONL, screenshots, Playwright traces, authenticated GitHub metadata, and changed-file lists.
 2. Add safe derivatives/review-and-mask for binary artifacts, retention and cleanup policy, and stronger project isolation/authorization.
 3. Complete semantic citation validation and attachment correlation across bundle entries.
-4. Commit an npm lockfile after dependency resolution in an environment with registry access; CI currently preserves the generated lockfile as an artifact.
-5. Continue M3+ work: explainable cluster persistence/revisions, history rates, impact selection, performance baselines, complete review roles/views, actual LedgerGuard corpus, and live idempotent GitHub publication.
+4. Continue M3+ work: explainable cluster persistence/revisions, history rates, impact selection, performance baselines, complete review roles/views, actual LedgerGuard corpus, and live idempotent GitHub publication.
 
 Factual progress is tracked in [`docs/PROGRESS.md`](docs/PROGRESS.md), with requirement-level status in [`docs/requirements-matrix.md`](docs/requirements-matrix.md).
