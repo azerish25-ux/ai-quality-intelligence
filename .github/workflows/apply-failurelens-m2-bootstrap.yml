@@ -1,0 +1,49 @@
+name: Apply verified FailureLens M2 bootstrap
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/apply-failurelens-m2-bootstrap.yml
+      - .failurelens-m2/**
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: failurelens-m2-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.repository == 'azerish25-ux/ai-quality-intelligence'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out bootstrap revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+
+      - name: Apply and publish exact verified tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "azerish25-ux/ai-quality-intelligence"
+          test "$(git rev-parse HEAD^)" = "3ba6cc6a4f6f3f452244e8b010212a0eed14b8ae"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$(git rev-parse HEAD)"
+          cat .failurelens-m2/payload-*.txt > /tmp/failurelens-m2.diff.gz.b64
+          test "$(wc -c < /tmp/failurelens-m2.diff.gz.b64)" = "70964"
+          base64 --decode /tmp/failurelens-m2.diff.gz.b64 | gzip --decompress > /tmp/failurelens-m2.diff
+          echo "b619b16dc36d27c42de94f33e05a06d4ac7849c29cfbc368de58135dbfb13720  /tmp/failurelens-m2.diff" | sha256sum --check -
+          git apply --index --binary /tmp/failurelens-m2.diff
+          git rm -r .failurelens-m2
+          git rm .github/workflows/apply-failurelens-m2-bootstrap.yml
+          git diff --cached --check
+          test "$(git write-tree)" = "00fc4e1481c45d162817941319915b79d8b98e1d"
+          git config user.name "azerish25-ux"
+          git config user.email "azerish25@gmail.com"
+          git commit -m "feat: establish M2 multi-artifact ingestion foundation" -m "Apply the verified M2 manifest, adapter, persistence, API, dashboard, migration, security-test, and documentation foundation."
+          git push origin HEAD:main
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$(git rev-parse HEAD)"
