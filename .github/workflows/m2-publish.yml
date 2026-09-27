@@ -38,7 +38,7 @@ jobs:
             exit 1
           }
 
-      - name: Reassemble and verify payload
+      - name: Reassemble payload
         shell: bash
         run: |
           set -euo pipefail
@@ -49,6 +49,22 @@ jobs:
             git show "origin/m2-publisher-staging:.github/m2-payload/part-${part}" >> /tmp/m2-payload.b64
           done
           base64 --decode /tmp/m2-payload.b64 > /tmp/m2-payload.tgz
+          sha256sum /tmp/m2-payload.tgz
+
+      - name: Upload reconstructed payload diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: m2-reassembled-${{ github.sha }}
+          path: |
+            /tmp/m2-payload.b64
+            /tmp/m2-payload.tgz
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Verify payload checksum
+        shell: bash
+        run: |
+          set -euo pipefail
           echo '3dd3ab5718e399f5ae4fac83fda0a735b197f733652e35a85354e3d543347cb1  /tmp/m2-payload.tgz' | sha256sum --check --strict
 
       - name: Validate and extract ordinary source files
