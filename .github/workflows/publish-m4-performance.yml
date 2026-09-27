@@ -33,7 +33,7 @@ jobs:
           gzip --decompress --stdout /tmp/failurelens-m4-performance.patch.gz > /tmp/failurelens-m4-performance.patch
           git apply --check /tmp/failurelens-m4-performance.patch
           git apply /tmp/failurelens-m4-performance.patch
-      - name: Publish exact verified source tree
+      - name: Verify final tree and publish non-workflow source
         shell: bash
         env:
           EXPECTED_EVENT_SHA: ${{ github.sha }}
@@ -42,9 +42,11 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_EVENT_SHA"
           rm -f .github/workflows/publish-m4-performance.yml
           rm -rf .delivery
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           test "$(git write-tree)" = "2014ffad70ee1a571a815eb255befb71327615bd"
+          git restore --source=HEAD --staged --worktree .github/workflows/ci.yml .github/workflows/publish-m4-performance.yml
+          test -z "$(git diff --cached --name-only -- .github/workflows)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "feat(m4): deliver compatible performance intelligence" -m "Persist normalized evidence-linked performance observations, build immutable prior-only compatible baseline snapshots, expose deterministic regression findings through API, CLI, and dashboard workflows, and add migrations, browser coverage, controlled evaluation, tests, and documentation."
           git push origin HEAD:main
