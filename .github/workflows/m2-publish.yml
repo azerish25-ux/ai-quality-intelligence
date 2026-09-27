@@ -44,7 +44,8 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin m2-publisher-staging
           : > /tmp/m2-payload.b64
-          for part in $(seq -w 0 7); do
+          for index in {0..7}; do
+            part="$(printf '%02d' "$index")"
             git show "origin/m2-publisher-staging:.github/m2-payload/part-${part}" >> /tmp/m2-payload.b64
           done
           base64 --decode /tmp/m2-payload.b64 > /tmp/m2-payload.tgz
