@@ -21,23 +21,27 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          fetch-depth: 4
+          fetch-depth: 5
       - name: Verify staged delivery ancestry
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "fe2dd56acb991823c5775b5605329eabb6220bb3"
-          test "$(git rev-parse HEAD^^)" = "eb0e32f81a5b520824ac6f901f3c281bda4a50e7"
-          test "$(git rev-parse HEAD^^^)" = "76138480b81b4a6611d12043f36297d8bd5c0c8b"
+          test "$(git rev-parse HEAD^)" = "77712b489a500a7b5d6dbbf1045a5e9323b92915"
+          test "$(git rev-parse HEAD^^^^)" = "76138480b81b4a6611d12043f36297d8bd5c0c8b"
       - name: Reconstruct and verify exact patch
         shell: bash
         run: |
           set -euo pipefail
-          {
-            cat .delivery/m4-patch.part-00 .delivery/m4-patch.part-01
-            head -c 18000 .delivery/m4-patch.part-02
-            cat .delivery/m4-patch.part-03
-          } | base64 --decode | gzip --decompress > /tmp/failurelens-m4.patch
+          cat \
+            .delivery/m4-patch.part-00 \
+            .delivery/m4-patch.part-01 \
+            .delivery/m4-patch.part-02a \
+            .delivery/m4-patch.part-02b \
+            .delivery/m4-patch.part-02c \
+            .delivery/m4-patch.part-03 \
+            | base64 --decode \
+            | gzip --decompress \
+            > /tmp/failurelens-m4.patch
           echo "811880ce8f42b4357150dfccd3e8c6d259fa21442ca4e013e7ef3db0e0d44136  /tmp/failurelens-m4.patch" | sha256sum --check --strict
           git apply --check /tmp/failurelens-m4.patch
       - name: Apply verified source and publish
