@@ -101,7 +101,7 @@ test('builds an explainable focused recommendation and records an attributed ove
   await editor.getByLabel('Impact mapping manifest').fill(JSON.stringify(manifest, null, 2));
   await editor.getByRole('button', { name: 'Register mapping snapshot' }).click();
 
-  await expect(page.getByLabel('Impact mapping')).toContainText('mapping-browser-e2e-v1');
+  await expect(page.getByRole('combobox', { name: /Impact mapping/i })).toContainText('mapping-browser-e2e-v1');
   await page.getByRole('button', { name: 'Generate recommendation' }).click();
   await expect(page.locator('.impact-summary')).toContainText('FOCUSED SUBSET');
   await expect(page.getByRole('region', { name: 'Selected impact tests' })).toContainText('submits payment');
