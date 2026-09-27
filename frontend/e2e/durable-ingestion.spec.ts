@@ -11,7 +11,7 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
     name: 'browser-junit.xml',
     mimeType: 'application/xml',
     buffer: Buffer.from(
-      '<testsuite name="payments"><testcase classname="Transfer" name="duplicate"><failure type="LedgerInvariantError" message="duplicate committed transfer">ledger unbalanced after double charge</failure></testcase></testsuite>'
+      '<testsuite name="payments"><testcase classname="Transfer" name="duplicate" time="0.12"><failure type="LedgerInvariantError" message="duplicate committed transfer">ledger unbalanced after double charge</failure></testcase></testsuite>'
     )
   });
   await page.getByRole('button', { name: 'Queue ingestion' }).click();
