@@ -94,6 +94,12 @@ class Project(Base):
     performance_comparisons: Mapped[list[PerformanceComparison]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
+    infrastructure_events: Mapped[list[InfrastructureEvent]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    infrastructure_correlation_snapshots: Mapped[list[InfrastructureCorrelationSnapshot]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
 
 
 class Run(Base):
@@ -154,6 +160,12 @@ class Run(Base):
     )
     performance_comparisons: Mapped[list[PerformanceComparison]] = relationship(
         back_populates="current_run", cascade="all, delete-orphan"
+    )
+    infrastructure_correlation_snapshots: Mapped[list[InfrastructureCorrelationSnapshot]] = relationship(
+        back_populates="selected_run", cascade="all, delete-orphan"
+    )
+    infrastructure_correlation_members: Mapped[list[InfrastructureCorrelationMember]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
     )
 
 
@@ -311,6 +323,9 @@ class TestExecution(Base):
     performance_observations: Mapped[list[PerformanceObservation]] = relationship(
         back_populates="execution"
     )
+    infrastructure_correlation_snapshots: Mapped[list[InfrastructureCorrelationSnapshot]] = relationship(
+        back_populates="selected_execution", cascade="all, delete-orphan"
+    )
 
 
 class Artifact(Base):
@@ -445,6 +460,9 @@ class Evidence(Base):
         back_populates="evidence"
     )
     performance_observations: Mapped[list[PerformanceObservation]] = relationship(
+        back_populates="evidence"
+    )
+    infrastructure_events: Mapped[list[InfrastructureEvent]] = relationship(
         back_populates="evidence"
     )
 
@@ -1157,4 +1175,175 @@ class PerformanceComparison(Base):
     policy: Mapped[PerformancePolicy] = relationship(back_populates="comparisons")
     current_evidence: Mapped[Evidence] = relationship(
         foreign_keys=[current_evidence_id]
+    )
+
+
+class InfrastructureEvent(Base):
+    __tablename__ = "infrastructure_events"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id",
+            "producer",
+            "producer_event_id",
+            name="uq_infrastructure_event_identity",
+        ),
+        Index(
+            "ix_infrastructure_events_project_time",
+            "project_id",
+            "started_at",
+            "ended_at",
+        ),
+        Index(
+            "ix_infrastructure_events_project_kind",
+            "project_id",
+            "event_kind",
+            "started_at",
+        ),
+        Index(
+            "ix_infrastructure_events_project_trust",
+            "project_id",
+            "source_trust",
+            "recorded_at",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    repository: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    environment: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    producer: Mapped[str] = mapped_column(String(120))
+    producer_event_id: Mapped[str] = mapped_column(String(240))
+    event_kind: Mapped[str] = mapped_column(String(80))
+    severity: Mapped[str] = mapped_column(String(40), default="unknown")
+    status: Mapped[str] = mapped_column(String(40), default="observed")
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    ended_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    workflow_name: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    workflow_run_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    workflow_attempt: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    runner_identity: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    runner_group: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    region: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    worker_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    shard_identity: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    source_trust: Mapped[str] = mapped_column(String(40), default="unknown")
+    source_digest: Mapped[str] = mapped_column(String(64))
+    evidence_id: Mapped[str | None] = mapped_column(
+        ForeignKey("evidence.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    project: Mapped[Project] = relationship(back_populates="infrastructure_events")
+    evidence: Mapped[Evidence | None] = relationship(
+        back_populates="infrastructure_events"
+    )
+
+
+class InfrastructureCorrelationSnapshot(Base):
+    __tablename__ = "infrastructure_correlation_snapshots"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id",
+            "input_digest",
+            name="uq_infrastructure_correlation_input",
+        ),
+        Index(
+            "ix_infrastructure_correlations_execution_created",
+            "selected_execution_id",
+            "created_at",
+        ),
+        Index(
+            "ix_infrastructure_correlations_project_status",
+            "project_id",
+            "status",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    selected_run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), index=True
+    )
+    selected_execution_id: Mapped[str] = mapped_column(
+        ForeignKey("test_executions.id", ondelete="CASCADE"), index=True
+    )
+    policy_version: Mapped[str] = mapped_column(String(80))
+    engine_version: Mapped[str] = mapped_column(String(80))
+    history_input_digest: Mapped[str] = mapped_column(String(64))
+    input_digest: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(40))
+    cutoff_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    after_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    window_seconds: Mapped[int] = mapped_column(Integer)
+    event_kind: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    minimum_support: Mapped[int] = mapped_column(Integer)
+    accepted_event_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    rejected_events: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    sample_sizes: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    exposed_outcomes: Mapped[dict[str, int]] = mapped_column(JSON, default=dict)
+    unexposed_outcomes: Mapped[dict[str, int]] = mapped_column(JSON, default=dict)
+    rates: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    associations: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    confounders: Mapped[list[str]] = mapped_column(JSON, default=list)
+    safety: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    project: Mapped[Project] = relationship(
+        back_populates="infrastructure_correlation_snapshots"
+    )
+    selected_run: Mapped[Run] = relationship(
+        back_populates="infrastructure_correlation_snapshots"
+    )
+    selected_execution: Mapped[TestExecution] = relationship(
+        back_populates="infrastructure_correlation_snapshots"
+    )
+    members: Mapped[list[InfrastructureCorrelationMember]] = relationship(
+        back_populates="snapshot", cascade="all, delete-orphan"
+    )
+
+
+class InfrastructureCorrelationMember(Base):
+    __tablename__ = "infrastructure_correlation_members"
+    __table_args__ = (
+        UniqueConstraint(
+            "snapshot_id", "run_id", name="uq_infrastructure_correlation_run"
+        ),
+        Index(
+            "ix_infrastructure_correlation_members_snapshot_exposed",
+            "snapshot_id",
+            "exposed",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    snapshot_id: Mapped[str] = mapped_column(
+        ForeignKey("infrastructure_correlation_snapshots.id", ondelete="CASCADE"),
+        index=True,
+    )
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="RESTRICT"), index=True
+    )
+    execution_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    outcome: Mapped[str] = mapped_column(String(40))
+    exposed: Mapped[bool] = mapped_column(Boolean, default=False)
+    event_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    event_kinds: Mapped[list[str]] = mapped_column(JSON, default=list)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    snapshot: Mapped[InfrastructureCorrelationSnapshot] = relationship(
+        back_populates="members"
+    )
+    run: Mapped[Run] = relationship(
+        back_populates="infrastructure_correlation_members"
     )

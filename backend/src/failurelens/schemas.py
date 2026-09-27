@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -218,6 +218,127 @@ class HistoryObservationRead(BaseModel):
     duplicate_attempt_numbers: bool
 
 
+class InfrastructureEventCreate(BaseModel):
+    repository: str | None = Field(default=None, max_length=240)
+    environment: str | None = Field(default=None, max_length=160)
+    producer: str = Field(min_length=1, max_length=120)
+    producer_event_id: str = Field(min_length=1, max_length=240)
+    event_kind: Literal[
+        "runner_terminated",
+        "runner_unavailable",
+        "service_outage",
+        "database_connection_exhaustion",
+        "dns_failure",
+        "tls_failure",
+        "network_degradation",
+        "storage_exhaustion",
+        "resource_contention",
+        "deployment_event",
+        "dependency_outage",
+        "rate_limit_event",
+        "unknown_infrastructure_event",
+    ]
+    severity: Literal["info", "warning", "error", "critical", "unknown"] = "unknown"
+    status: Literal["observed", "ongoing", "resolved", "unknown"] = "observed"
+    started_at: datetime
+    ended_at: datetime | None = None
+    recorded_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    workflow_name: str | None = Field(default=None, max_length=240)
+    workflow_run_id: str | None = Field(default=None, max_length=120)
+    workflow_attempt: int | None = Field(default=None, ge=1, le=100_000)
+    runner_identity: str | None = Field(default=None, max_length=240)
+    runner_group: str | None = Field(default=None, max_length=240)
+    region: str | None = Field(default=None, max_length=120)
+    worker_count: int | None = Field(default=None, ge=1, le=100_000)
+    shard_identity: str | None = Field(default=None, max_length=120)
+    source_trust: Literal[
+        "authenticated_lookup",
+        "trusted_workflow",
+        "verified_monitor",
+        "self_reported",
+        "artifact_derived",
+        "unknown",
+    ] = "unknown"
+    evidence_id: str | None = Field(default=None, min_length=1, max_length=36)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class InfrastructureEventRead(InfrastructureEventCreate):
+    id: str
+    project_id: str
+    trusted_for_correlation: bool
+    source_digest: str
+    created_at: datetime
+
+
+class InfrastructureCorrelationCreate(BaseModel):
+    after: datetime | None = None
+    before: datetime | None = None
+    browser: str | None = Field(default=None, max_length=80)
+    branch: str | None = Field(default=None, max_length=240)
+    environment: str | None = Field(default=None, max_length=160)
+    run_scope: Literal["full_suite", "impact_selected", "unknown"] | None = None
+    timezone: str | None = Field(default=None, max_length=80)
+    worker_count: int | None = Field(default=None, ge=1, le=100_000)
+    shard_count: int | None = Field(default=None, ge=1, le=100_000)
+    event_kind: Literal[
+        "runner_terminated",
+        "runner_unavailable",
+        "service_outage",
+        "database_connection_exhaustion",
+        "dns_failure",
+        "tls_failure",
+        "network_degradation",
+        "storage_exhaustion",
+        "resource_contention",
+        "deployment_event",
+        "dependency_outage",
+        "rate_limit_event",
+        "unknown_infrastructure_event",
+    ] | None = None
+    window_seconds: int = Field(default=900, ge=0, le=86_400)
+    minimum_support: int = Field(default=3, ge=1, le=10_000)
+
+
+class InfrastructureCorrelationMemberRead(BaseModel):
+    run_id: str
+    execution_ids: list[str]
+    outcome: str
+    exposed: bool
+    event_ids: list[str]
+    event_kinds: list[str]
+    observed_at: datetime
+
+
+class InfrastructureCorrelationRead(BaseModel):
+    snapshot_id: str | None
+    project_id: str
+    selected_run_id: str
+    selected_execution_id: str
+    policy_version: str
+    engine_version: str
+    history_input_digest: str
+    input_digest: str
+    status: str
+    cutoff_at: datetime
+    after_at: datetime | None
+    window_seconds: int
+    event_kind: str | None
+    minimum_support: int
+    accepted_event_ids: list[str]
+    accepted_events: list[InfrastructureEventRead]
+    rejected_events: list[dict[str, Any]]
+    sample_sizes: dict[str, int]
+    exposed_outcomes: dict[str, int]
+    unexposed_outcomes: dict[str, int]
+    rates: dict[str, Any]
+    associations: list[dict[str, Any]]
+    confounders: list[str]
+    safety: dict[str, Any]
+    members: list[InfrastructureCorrelationMemberRead]
+    created_at: datetime | None
+
+
 class TestHistoryRead(BaseModel):
     policy_version: str
     history_input_digest: str
@@ -234,6 +355,7 @@ class TestHistoryRead(BaseModel):
     safety: dict[str, Any]
     pagination: dict[str, int]
     observations: list[HistoryObservationRead]
+    infrastructure_correlations: InfrastructureCorrelationRead | None = None
 
 
 class ImpactTestCreate(BaseModel):

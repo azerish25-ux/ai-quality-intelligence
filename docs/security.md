@@ -23,6 +23,8 @@ Every artifact field is untrusted: filenames, manifests, XML/JSON/JSONL, test na
 - Keep the deterministic analyzer incapable of shell, network, GitHub-write, test-deletion, quarantine, merge or release actions.
 - Prevent non-product classifications from overriding conflicting product-risk evidence without abstention.
 - Separate artifact-declared comparison trust from transport-bound effective trust; uploaded changed-file bytes cannot mark themselves as an authenticated or trusted workflow comparison.
+- Persist infrastructure events outside test artifacts with stable producer identities and canonical digests; only operator-authorized `authenticated_lookup`, `trusted_workflow`, or `verified_monitor` records may enter correlation cohorts.
+- Exclude infrastructure events recorded at/after the analysis cutoff and reject cross-project, repository/environment/worker/workflow/runner/region-incompatible context; correlations remain association-only and cannot independently authorize a classification.
 - Require matching project, run, base/head values and immutable mapping versions before impact selection; incomplete, truncated, untrusted, unmapped or critical changes fail closed to full-suite execution.
 - Keep impact recommendations advisory and incapable of executing/skipping tests; preserve mandatory critical tests and reject their exclusion through reviewer overrides.
 - Record impact overrides append-only with actor, reason, timestamp and optimistic revision checks.

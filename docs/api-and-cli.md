@@ -87,6 +87,20 @@ The selected execution defines the exact logical test identity and maximum cutof
 
 The response contains explicit first/final outcome counts, pass/fail and retry-recovery numerators/denominators, 95% Wilson intervals, sample-size status, browser/branch/environment/scope/worker/shard/time-bucket breakdowns, sequences, recurrence intervals, qualifying prior review events, safety reasons, a deterministic history digest and exact contributing run/execution IDs. Runs where the test was absent are reported separately and are not counted as passes. See `docs/history.md` for definitions and known-flake safety policy.
 
+## Infrastructure events and prior-only correlations
+
+Infrastructure events are independently persisted project records. A test artifact cannot self-promote its own infrastructure claim into trusted corroboration.
+
+- `POST /api/v1/projects/{project_id}/infrastructure-events` validates and idempotently records an event.
+- `GET /api/v1/projects/{project_id}/infrastructure-events` lists project events with optional `event_kind`, `before`, `after`, `limit`, and `offset`.
+- `GET /api/v1/infrastructure-events/{event_id}` returns one event and its trust/digest provenance.
+- `POST /api/v1/tests/{execution_id}/infrastructure-correlations` creates an immutable prior-only snapshot.
+- `GET /api/v1/infrastructure-correlations/{snapshot_id}` returns the persisted snapshot and exact run members.
+
+The history endpoint also returns a non-persisted `infrastructure_correlations` section calculated with the same cohort filters. Correlation requests accept optional `after`, `before`, browser, branch, environment, run scope, timezone, worker/shard counts, event kind, overlap window and minimum support. `before` is clamped to the selected run.
+
+Responses disclose accepted events, rejected events and reasons, exposed/unexposed outcomes, exact denominators, Wilson intervals, absolute rate difference, relative risk where defined, per-kind associations, confounders and immutable provenance. Statuses are `AVAILABLE`, `INSUFFICIENT_DATA`, `NO_MATCHING_EVENTS`, `INCOMPATIBLE_CONTEXT`, `UNTRUSTED_EVENT_SOURCE`, `CONFOUNDED`, or `TRUNCATED`. Every response explicitly denies causal or independent classification authority. See `docs/infrastructure.md`.
+
 ## Explainable change impact
 
 Impact analysis is deterministic and advisory. It never executes or skips tests. A project first registers an immutable mapping snapshot, then requests a recommendation for a completed run containing changed-file evidence.
@@ -220,6 +234,11 @@ Schema `1.0` bundles with a single `report` path remain readable. A ZIP without 
 - `POST /api/v1/clusters/{cluster_id}/reviews`
 - `GET /api/v1/runs/{run_id}/failures`
 - `GET /api/v1/tests/{execution_id}/history`
+- `POST /api/v1/projects/{project_id}/infrastructure-events`
+- `GET /api/v1/projects/{project_id}/infrastructure-events`
+- `GET /api/v1/infrastructure-events/{event_id}`
+- `POST /api/v1/tests/{execution_id}/infrastructure-correlations`
+- `GET /api/v1/infrastructure-correlations/{snapshot_id}`
 - `POST /api/v1/failures/{failure_id}/analyses`
 - `GET /api/v1/analyses/{analysis_id}`
 - `POST /api/v1/analyses/{analysis_id}/reviews`
@@ -240,6 +259,8 @@ failurelens report --run <run-id> --format markdown
 failurelens impact --project checkout --run <run-id> --mapping-snapshot <snapshot-id>
 failurelens performance --run <run-id>
 failurelens performance --run <run-id> --policy <policy-id> --observation <observation-id>
+failurelens infrastructure-event infrastructure-event.json --project checkout
+failurelens infrastructure-correlate --execution <execution-id> --event-kind service_outage --window-seconds 900 --minimum-support 3
 ```
 
 Without `--process`, `ingest` queues work for `failurelens-worker`. `--process` claims one job using the same worker implementation and exits nonzero when no run is published. The complete differentiated quality-gate/operational exit-code contract remains future work.

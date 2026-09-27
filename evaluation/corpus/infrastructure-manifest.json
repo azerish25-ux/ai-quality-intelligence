@@ -1,0 +1,32 @@
+{
+  "case_count": 18,
+  "case_ids": [
+    "infra-001-available-clear-association",
+    "infra-002-insufficient-exposed-support",
+    "infra-003-no-events",
+    "infra-004-untrusted-artifact-claim",
+    "infra-005-cross-repository",
+    "infra-006-environment-mismatch",
+    "infra-007-future-record-excluded",
+    "infra-008-event-outside-window",
+    "infra-009-multiple-event-kinds-confounded",
+    "infra-010-event-kind-filter-removes-confounding",
+    "infra-011-retries-not-independent",
+    "infra-012-skipped-cancelled-visible",
+    "infra-013-cross-project-event-excluded",
+    "infra-014-future-start-excluded",
+    "infra-015-trusted-event-survives-untrusted-noise",
+    "infra-016-product-defect-preserved",
+    "infra-017-no-prior-runs",
+    "infra-018-worker-context-mismatch"
+  ],
+  "corpus_sha256": "21e07411cabe85044d6faf85d465c2ace91ac2de4f3c15929f091183bfd9c06b",
+  "limitations": [
+    "Cases are controlled, synthetic, and agent-authored; they do not estimate production prevalence.",
+    "The fixture evaluates deterministic compatibility, leakage, accounting, and dangerous-downgrade boundaries rather than causal attribution.",
+    "A temporal association is never treated as proof that infrastructure caused a test outcome."
+  ],
+  "scenario_family_count": 23,
+  "schema_version": "infrastructure-evaluation-v1",
+  "source_kind": "controlled_synthetic"
+}

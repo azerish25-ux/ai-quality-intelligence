@@ -14,21 +14,25 @@ flowchart LR
     P --> Q[bounded candidates + explainable complete-link clustering]
     Q --> R[(cluster identities + append-only revisions)]
     F --> S[prior-only history aggregation]
+    Z[independently recorded infrastructure events] --> AA[trust/context/time compatibility]
+    S --> AA
+    AA --> AB[(immutable correlation snapshots + members)]
     F --> U[validated changed-file evidence]
     F --> O[normalized evidence-linked performance observations]
-    O --> B[prior-only compatibility-gated baseline snapshots]
-    B --> C[deterministic performance comparisons]
+    O --> PB[prior-only compatibility-gated baseline snapshots]
+    PB --> PC[deterministic performance comparisons]
     W[immutable mapping snapshot] --> X[deterministic impact selector]
     U --> X
     X --> Y[(recommendation + ranked items + overrides)]
     S --> T[traceable rates + history digest]
+    AB --> J
     P --> H[deterministic rule engine]
     T --> H
     H --> V[independent publication validator]
     V --> I[evidence-linked analysis revision]
     R --> J[React dashboard]
     Y --> J
-    C --> J
+    PC --> J
     I --> J
     I --> N[Markdown / GitHub Action summary]
     K[synthetic evaluation corpus] --> L[evaluation harness]
@@ -70,6 +74,7 @@ The migrations define explicit tables for:
 - immutable impact mapping snapshots, test definitions and typed mapping edges;
 - deterministic impact recommendations, ranked selected/excluded items and append-only optimistic overrides;
 - normalized performance observations, immutable policies, prior-only baseline snapshots/members and evidence-linked comparisons;
+- independently recorded infrastructure events plus immutable prior-only correlation snapshots and run members;
 - validated analysis revisions and validation audits; and
 - append-only review events.
 
@@ -88,9 +93,10 @@ Important invariants are represented directly: a retry is not an independent run
 9. Build clusters conservatively: a candidate must satisfy both the representative threshold and the complete-link floor against every existing member. This prevents weak transitive A–B–C bridge merges.
 10. Persist deterministic cluster identities, representative failures, uncertainty flags, member scores and append-only revisions. Reviewed confirm/split/merge corrections create new revisions rather than rewriting history.
 11. Retrieve prior executions for the exact project/repository/framework/test/suite/path/parameter identity. Collapse retries per run/browser cohort; expose explicit outcome counts, denominators, uncertainty intervals, sequences and cohort breakdowns; exclude current/future data and later reviews; and persist the versioned history digest/cutoff in analysis provenance. Known-flake support requires compatible full-suite passes and failures plus a qualifying prior reviewed matching fingerprint. Cluster similarity does not prove causality and cannot override contradictory current-run evidence.
-12. Persist final-attempt test durations and bounded k6 summary statistics as evidence-linked performance observations. For each current metric, build an immutable prior-only baseline from independent runs that match policy-required project/repository/workload/environment/producer/unit/statistic/run-scope and execution dimensions; reject stale, incomplete, untrusted or future observations. Classify only against available compatible baselines and preserve every accepted member, rejected reason, tolerance, confounder and evidence ID.
-13. Independently validate each typed claim's evidence references and semantic support; withhold invalid claims and safely degrade unsupported classifications.
-14. Persist confidence, supporting/contradictory evidence, missing evidence, hypotheses, validation audit, investigation steps, policy flags and reproducibility provenance.
+12. Correlate the same prior-only independent-run history with separately persisted trusted infrastructure events. Reject untrusted, future, cross-project, repository/environment/runner-context-incompatible and out-of-window events; expose exact exposed/unexposed denominators, event-kind confounders and immutable snapshot provenance. Correlation remains association-only and cannot change a classification independently.
+13. Persist final-attempt test durations and bounded k6 summary statistics as evidence-linked performance observations. For each current metric, build an immutable prior-only baseline from independent runs that match policy-required project/repository/workload/environment/producer/unit/statistic/run-scope and execution dimensions; reject stale, incomplete, untrusted or future observations. Classify only against available compatible baselines and preserve every accepted member, rejected reason, tolerance, confounder and evidence ID.
+14. Independently validate each typed claim's evidence references and semantic support; withhold invalid claims and safely degrade unsupported classifications.
+15. Persist confidence, supporting/contradictory evidence, missing evidence, hypotheses, validation audit, investigation steps, policy flags and reproducibility provenance.
 
 The score is a `heuristic_score`, not a calibrated probability.
 
@@ -101,6 +107,12 @@ History is computed from persisted observations rather than a failure-only table
 
 The API may explore browser, branch, environment, run-scope, worker, shard and timezone-aware time buckets, but the analyzer uses the same browser/environment and full-suite history only. Every calculation is bounded by an immutable cutoff and produces a canonical digest over policy, filters, observations and prior review IDs. Human review annotates observed outcomes; it does not rewrite them.
 
+
+## Infrastructure-correlation boundary
+
+Infrastructure events are independent project records with stable producer identities, canonical digests, explicit trust and timing/context fields. Only authenticated lookup, trusted workflow and verified monitor sources may enter an exposed cohort. Self-reported and artifact-derived records remain visible but cannot corroborate themselves. Events starting or recorded at or after the selected cutoff are excluded.
+
+The engine reuses the exact test-history run cohort, then applies repository, environment, worker, workflow, runner-group, runner and region compatibility plus a bounded overlap window. It emits exposed and unexposed outcome counts/rates, Wilson intervals, per-event-kind associations, rejected-event reasons, confounders and a canonical digest. Snapshot members retain exact run/execution and accepted-event IDs. Multiple event kinds produce an explicit confounded state unless filtered. No result claims causation or independently authorizes an infrastructure classification. See `docs/infrastructure.md`.
 
 ## Change-impact boundary
 

@@ -18,6 +18,14 @@ from .db import get_session, initialize_database
 from .demo import seed_demo
 from .evidence_validation import persisted_analysis_is_publication_validated
 from .history import build_test_history
+from .infrastructure import (
+    build_infrastructure_correlation,
+    create_infrastructure_event,
+    get_infrastructure_correlation,
+    infrastructure_correlation_to_schema,
+    infrastructure_event_to_schema,
+    list_infrastructure_events,
+)
 from .impact import (
     apply_impact_override,
     create_impact_recommendation,
@@ -55,6 +63,8 @@ from .models import (
     Ingestion,
     IngestionState,
     ImpactRecommendation,
+    InfrastructureCorrelationSnapshot,
+    InfrastructureEvent,
     PerformanceComparison,
     PerformanceObservation,
     PerformancePolicy,
@@ -80,6 +90,10 @@ from .schemas import (
     ImpactOverrideCreate,
     ImpactRecommendationCreate,
     ImpactRecommendationRead,
+    InfrastructureCorrelationCreate,
+    InfrastructureCorrelationRead,
+    InfrastructureEventCreate,
+    InfrastructureEventRead,
     PerformanceBaselineCreate,
     PerformanceBaselineRead,
     PerformanceComparisonCreate,
@@ -116,7 +130,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="FailureLens API",
-    version="0.7.0",
+    version="0.8.0",
     description="Evidence-grounded automated test failure triage",
     lifespan=lifespan,
 )
@@ -301,6 +315,14 @@ def overview(session: Session = Depends(get_session)) -> dict:
         or 0,
         "performance_comparisons": session.scalar(
             select(func.count(PerformanceComparison.id))
+        )
+        or 0,
+        "infrastructure_events": session.scalar(
+            select(func.count(InfrastructureEvent.id))
+        )
+        or 0,
+        "infrastructure_correlations": session.scalar(
+            select(func.count(InfrastructureCorrelationSnapshot.id))
         )
         or 0,
         "analyses": len(analyses),
@@ -854,6 +876,157 @@ def performance_comparisons_get(
     return performance_comparison_to_schema(row)
 
 
+@app.post(
+    "/api/v1/projects/{project_id}/infrastructure-events",
+    response_model=InfrastructureEventRead,
+    status_code=201,
+    dependencies=[Depends(authorized)],
+)
+def infrastructure_events_create(
+    project_id: str,
+    request: InfrastructureEventCreate,
+    session: Session = Depends(get_session),
+) -> InfrastructureEventRead:
+    project = session.get(Project, project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    try:
+        event = create_infrastructure_event(session, project, request)
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 409 if "already exists" in detail else 422
+        raise HTTPException(status_code, detail) from exc
+    return InfrastructureEventRead.model_validate(
+        infrastructure_event_to_schema(event)
+    )
+
+
+@app.get(
+    "/api/v1/projects/{project_id}/infrastructure-events",
+    response_model=list[InfrastructureEventRead],
+)
+def infrastructure_events_list(
+    project_id: str,
+    event_kind: str | None = Query(default=None, max_length=80),
+    before: datetime | None = None,
+    after: datetime | None = None,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 200,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    session: Session = Depends(get_session),
+) -> list[InfrastructureEventRead]:
+    if session.get(Project, project_id) is None:
+        raise HTTPException(404, "project not found")
+    try:
+        events = list_infrastructure_events(
+            session,
+            project_id,
+            event_kind=event_kind,
+            before=before,
+            after=after,
+            limit=limit,
+            offset=offset,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return [
+        InfrastructureEventRead.model_validate(infrastructure_event_to_schema(item))
+        for item in events
+    ]
+
+
+@app.get(
+    "/api/v1/infrastructure-events/{event_id}",
+    response_model=InfrastructureEventRead,
+)
+def infrastructure_events_get(
+    event_id: str,
+    session: Session = Depends(get_session),
+) -> InfrastructureEventRead:
+    event = session.get(InfrastructureEvent, event_id)
+    if event is None:
+        raise HTTPException(404, "infrastructure event not found")
+    return InfrastructureEventRead.model_validate(infrastructure_event_to_schema(event))
+
+
+@app.post(
+    "/api/v1/tests/{execution_id}/infrastructure-correlations",
+    response_model=InfrastructureCorrelationRead,
+    status_code=201,
+    dependencies=[Depends(authorized)],
+)
+def infrastructure_correlations_create(
+    execution_id: str,
+    request: InfrastructureCorrelationCreate,
+    session: Session = Depends(get_session),
+) -> InfrastructureCorrelationRead:
+    execution = session.scalar(
+        select(TestExecution)
+        .where(TestExecution.id == execution_id)
+        .options(
+            selectinload(TestExecution.run),
+            selectinload(TestExecution.failure),
+        )
+    )
+    if execution is None:
+        raise HTTPException(404, "test execution not found")
+    reference_cutoff = _utc_datetime(execution.run.started_at or execution.run.created_at)
+    requested_cutoff = (
+        _utc_datetime(request.before) if request.before is not None else reference_cutoff
+    )
+    effective_cutoff = min(reference_cutoff, requested_cutoff)
+    if request.after is not None and _utc_datetime(request.after) >= effective_cutoff:
+        raise HTTPException(422, "after must be earlier than the prior-only cutoff")
+    try:
+        report = build_infrastructure_correlation(
+            session,
+            selected_execution=execution,
+            selected_run=execution.run,
+            cutoff=effective_cutoff,
+            after=request.after,
+            browser=request.browser,
+            match_browser=request.browser is not None,
+            branch=request.branch,
+            match_branch=request.branch is not None,
+            environment=request.environment,
+            match_environment=request.environment is not None,
+            run_scope=request.run_scope,
+            worker_count=request.worker_count,
+            match_worker_count=request.worker_count is not None,
+            shard_count=request.shard_count,
+            match_shard_count=request.shard_count is not None,
+            timezone_name=request.timezone or execution.run.timezone or "UTC",
+            exclude_run_id=execution.run_id,
+            strict_fingerprint=(
+                execution.failure.strict_fingerprint
+                if execution.failure is not None
+                else None
+            ),
+            event_kind=request.event_kind,
+            window_seconds=request.window_seconds,
+            minimum_support=request.minimum_support,
+            persist=True,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return InfrastructureCorrelationRead.model_validate(report)
+
+
+@app.get(
+    "/api/v1/infrastructure-correlations/{snapshot_id}",
+    response_model=InfrastructureCorrelationRead,
+)
+def infrastructure_correlations_get(
+    snapshot_id: str,
+    session: Session = Depends(get_session),
+) -> InfrastructureCorrelationRead:
+    snapshot = get_infrastructure_correlation(session, snapshot_id)
+    if snapshot is None:
+        raise HTTPException(404, "infrastructure correlation snapshot not found")
+    return InfrastructureCorrelationRead.model_validate(
+        infrastructure_correlation_to_schema(session, snapshot)
+    )
+
+
 @app.get(
     "/api/v1/projects/{project_id}/clusters",
     response_model=list[ClusterSummary],
@@ -1088,6 +1261,35 @@ def test_history_get(
             ),
             observation_limit=limit,
             observation_offset=offset,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    try:
+        report["infrastructure_correlations"] = build_infrastructure_correlation(
+            session,
+            selected_execution=execution,
+            selected_run=execution.run,
+            cutoff=effective_cutoff,
+            after=after,
+            browser=browser,
+            match_browser=browser is not None,
+            branch=branch,
+            match_branch=branch is not None,
+            environment=environment,
+            match_environment=environment is not None,
+            run_scope=run_scope,
+            worker_count=worker_count,
+            match_worker_count=worker_count is not None,
+            shard_count=shard_count,
+            match_shard_count=shard_count is not None,
+            timezone_name=timezone_name or execution.run.timezone or "UTC",
+            exclude_run_id=execution.run_id,
+            strict_fingerprint=(
+                execution.failure.strict_fingerprint
+                if execution.failure is not None
+                else None
+            ),
+            persist=False,
         )
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc

@@ -43,6 +43,10 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   await expect(page.locator('.history-context')).toContainText('Current run is excluded');
   await expect(page.locator('.history-panel')).toContainText('No prior matching observations');
   await expect(page.locator('.history-warning')).toContainText('no prior matching observations');
+  await expect(page.getByRole('heading', { name: 'Infrastructure context' })).toBeVisible();
+  await expect(page.getByRole('note')).toContainText('associations, not proof of cause');
+  await page.getByRole('button', { name: 'Persist immutable correlation snapshot' }).click();
+  await expect(page.getByRole('button', { name: 'Snapshot persisted' })).toBeVisible();
 
   await expect(page.getByRole('heading', { name: 'Performance regression analysis' })).toBeVisible();
   await expect(page.locator('.performance-observation-row')).toContainText('test.duration');

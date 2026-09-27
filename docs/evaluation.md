@@ -93,3 +93,21 @@ The committed result under `evaluation/reports/latest/performance-*` is:
 - Non-median baseline aggregations: 0.
 
 The baseline aggregation check means the harness observed only `median_of_run_level_observations`; it does not imply that exported p95 values form an aggregate p95. The fixture is generator-owned and agent-authored. It validates deterministic policy boundaries and leakage protections, not production latency distributions, causal attribution or population-level detection accuracy.
+
+## Infrastructure-event correlation fixture
+
+`evaluation/generate_infrastructure_corpus.py` produces 18 controlled synthetic cases that execute the real SQLAlchemy models, normalized ingestion service, deterministic analyzer, and infrastructure-correlation engine. The fixture covers trusted and untrusted event provenance, repository/environment/worker isolation, future-event exclusion, bounded overlap windows, multiple-event confounding, event-kind filtering, retry collapse, skipped/cancelled/unknown accounting, cross-project isolation, immutable snapshot replay, and preservation of product-defect classifications.
+
+The committed result under `evaluation/reports/latest/infrastructure-*` is:
+
+- Status accuracy: 1.000.
+- Compatibility-selection accuracy: 1.000.
+- Event-provenance validity: 1.000.
+- Deterministic-repeat agreement: 1.000.
+- Future-event leakage: 0.
+- Cross-project leakage: 0.
+- Dangerous product-defect downgrades: 0/1.
+- Unsupported causality claims: 0.
+- Persisted-snapshot and digest-reuse gates: passed for all cases.
+
+The fixture tests deterministic compatibility, leakage, accounting, and dangerous-downgrade boundaries; it does not establish causal attribution. Every case is generator-owned and agent-authored, and no actual companion-project infrastructure telemetry appears in this revision. An `AVAILABLE` association therefore means only that trusted exposed and unexposed cohorts met the configured support/compatibility policy—not that infrastructure caused an observed failure.

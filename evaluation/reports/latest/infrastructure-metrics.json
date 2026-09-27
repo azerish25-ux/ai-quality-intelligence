@@ -1,0 +1,48 @@
+{
+  "acceptance": {
+    "all_snapshot_digests_reused": true,
+    "all_snapshots_persisted": true,
+    "compatibility_selection_accuracy_eq_1": true,
+    "deterministic_repeat_agreement_eq_1": true,
+    "event_provenance_validity_eq_1": true,
+    "status_accuracy_eq_1": true,
+    "zero_cross_project_leakage": true,
+    "zero_dangerous_product_defect_downgrades": true,
+    "zero_future_event_leakage": true,
+    "zero_unsupported_causality_claims": true
+  },
+  "case_count": 18,
+  "compatibility_selection_accuracy": 1.0,
+  "cross_project_leakage": 0,
+  "dangerous_product_defect_downgrades": {
+    "case_ids": [],
+    "denominator": 1,
+    "numerator": 0
+  },
+  "deterministic_repeat_agreement": 1.0,
+  "engine_version": "infrastructure-correlation-v1",
+  "event_provenance_validity": 1.0,
+  "future_event_leakage": 0,
+  "limitations": [
+    "Cases are controlled, synthetic, and agent-authored; they do not estimate production prevalence.",
+    "The fixture evaluates deterministic compatibility, leakage, accounting, and dangerous-downgrade boundaries rather than causal attribution.",
+    "A temporal association is never treated as proof that infrastructure caused a test outcome.",
+    "The harness uses the real SQLAlchemy models, ingestion service, deterministic analyzer, and infrastructure-correlation engine against isolated SQLite databases.",
+    "The fixture does not establish causality or independently blinded production generalization."
+  ],
+  "policy_version": "infrastructure-correlation-policy-v1",
+  "schema_version": "infrastructure-evaluation-result-v1",
+  "status_accuracy": 1.0,
+  "status_counts": {
+    "AVAILABLE": 6,
+    "CONFOUNDED": 1,
+    "INCOMPATIBLE_CONTEXT": 3,
+    "INSUFFICIENT_DATA": 2,
+    "NO_MATCHING_EVENTS": 5,
+    "UNTRUSTED_EVENT_SOURCE": 1
+  },
+  "unsupported_causality_claims": {
+    "case_ids": [],
+    "count": 0
+  }
+}

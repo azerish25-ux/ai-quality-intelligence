@@ -10,6 +10,7 @@ import {
   type ImpactMappingSnapshot,
   type ImpactRecommendation,
   type ImpactRecommendationItem,
+  type InfrastructureCorrelation,
   type Overview,
   type PerformanceComparison,
   type PerformanceObservation,
@@ -144,6 +145,8 @@ function App() {
   const [mergeTargetId, setMergeTargetId] = useState('');
   const [selectedFailure, setSelectedFailure] = useState<Failure | null>(null);
   const [testHistory, setTestHistory] = useState<TestHistory | null>(null);
+  const [infrastructureSnapshot, setInfrastructureSnapshot] = useState<InfrastructureCorrelation | null>(null);
+  const [infrastructureLoading, setInfrastructureLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyRunScope, setHistoryRunScope] = useState(
     () => new URLSearchParams(window.location.search).get('history_scope') ?? ''
@@ -337,6 +340,8 @@ function App() {
     [runs, runId]
   );
 
+  const infrastructureCorrelation = infrastructureSnapshot ?? testHistory?.infrastructure_correlations ?? null;
+
   useEffect(() => {
     const url = new URL(window.location.href);
     const values: Record<string, string> = {
@@ -368,10 +373,12 @@ function App() {
   useEffect(() => {
     if (!selectedFailure) {
       setTestHistory(null);
+      setInfrastructureSnapshot(null);
       setHistoryLoading(false);
       return;
     }
     let cancelled = false;
+    setInfrastructureSnapshot(null);
     setHistoryLoading(true);
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     const workerCount = historyWorkerCount.trim()
@@ -572,6 +579,43 @@ function App() {
       setError(String(reason));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const persistInfrastructureCorrelation = async () => {
+    if (!selectedFailure) {
+      setError('Select a failure before creating an infrastructure-correlation snapshot.');
+      return;
+    }
+    setBusy(true);
+    setInfrastructureLoading(true);
+    setError(null);
+    try {
+      const workerCount = historyWorkerCount.trim() ? Number(historyWorkerCount) : undefined;
+      const shardCount = historyShardCount.trim() ? Number(historyShardCount) : undefined;
+      const snapshot = await api.createInfrastructureCorrelation(
+        selectedFailure.execution_id,
+        {
+          browser: historyBrowser.trim() || undefined,
+          branch: historyBranch.trim() || undefined,
+          environment: historyEnvironment.trim() || undefined,
+          run_scope: historyRunScope === ''
+            ? undefined
+            : historyRunScope as 'full_suite' | 'impact_selected' | 'unknown',
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+          worker_count: workerCount && workerCount > 0 ? workerCount : undefined,
+          shard_count: shardCount && shardCount > 0 ? shardCount : undefined,
+          window_seconds: 900,
+          minimum_support: 3
+        }
+      );
+      setInfrastructureSnapshot(snapshot);
+      await refreshRoot();
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+      setInfrastructureLoading(false);
     }
   };
 
@@ -805,6 +849,8 @@ function App() {
             ['Clusters', overview?.clusters ?? '—'],
             ['Impact plans', overview?.impact_recommendations ?? '—'],
             ['Performance findings', overview?.performance_comparisons ?? '—'],
+            ['Infrastructure events', overview?.infrastructure_events ?? '—'],
+            ['Correlation snapshots', overview?.infrastructure_correlations ?? '—'],
             ['Analyses', overview?.analyses ?? '—']
           ].map(([label, value]) => <article className="metric" key={label}><span>{label}</span><strong>{value}</strong></article>)}
         </section>
@@ -1234,6 +1280,66 @@ function App() {
                       <div>{testHistory.safety.insufficient_data_reasons.map((reason) => <code key={reason}>{readableValue(reason)}</code>)}</div>
                     </div>
                   )}
+
+                  <section className="infrastructure-context" aria-label="Infrastructure event correlations">
+                    <div className="history-section-heading">
+                      <div><h3>Infrastructure context</h3><small>Independently recorded events aligned to prior test executions.</small></div>
+                      <span className={`state ${performanceStatusClass(infrastructureCorrelation?.status ?? 'NO_MATCHING_EVENTS')}`}>
+                        {infrastructureLoading ? 'Persisting' : readableValue(infrastructureCorrelation?.status ?? 'NO_MATCHING_EVENTS')}
+                      </span>
+                    </div>
+                    <div className="infrastructure-advisory" role="note">
+                      Temporal overlap and rate differences are associations, not proof of cause. This result cannot independently label a failure as infrastructural or remove product-risk evidence.
+                    </div>
+                    {!infrastructureCorrelation ? (
+                      <div className="empty">No infrastructure-correlation result is available for this cohort.</div>
+                    ) : (
+                      <>
+                        <div className="infrastructure-metrics">
+                          <article><span>Trusted events</span><strong>{infrastructureCorrelation.sample_sizes.accepted_events ?? 0}</strong><small>{infrastructureCorrelation.sample_sizes.rejected_events ?? 0} rejected by trust, cutoff, time, or context.</small></article>
+                          <article><span>Exposed runs</span><strong>{infrastructureCorrelation.sample_sizes.exposed_runs ?? 0}</strong><small>{infrastructureCorrelation.sample_sizes.exposed_pass_fail_denominator ?? 0} pass/fail denominator.</small></article>
+                          <article><span>Unexposed runs</span><strong>{infrastructureCorrelation.sample_sizes.unexposed_runs ?? 0}</strong><small>{infrastructureCorrelation.sample_sizes.unexposed_pass_fail_denominator ?? 0} pass/fail denominator.</small></article>
+                          <article><span>Exposed failure rate</span><strong>{formatRate(infrastructureCorrelation.rates.exposed_failure_rate)}</strong><small>One conservative outcome per independent run.</small></article>
+                          <article><span>Unexposed failure rate</span><strong>{formatRate(infrastructureCorrelation.rates.unexposed_failure_rate)}</strong><small>Missing tests are never counted as passes.</small></article>
+                          <article><span>Rate difference</span><strong>{infrastructureCorrelation.rates.absolute_failure_rate_difference == null ? 'Unavailable' : `${(infrastructureCorrelation.rates.absolute_failure_rate_difference * 100).toFixed(1)} pp`}</strong><small>Exploratory association only.</small></article>
+                        </div>
+                        <div className="infrastructure-columns">
+                          <div>
+                            <div className="history-section-heading"><h4>Accepted event evidence</h4><span>{infrastructureCorrelation.accepted_events.length}</span></div>
+                            {infrastructureCorrelation.accepted_events.length === 0 && <div className="empty">No trusted compatible event overlaps a prior run.</div>}
+                            {infrastructureCorrelation.accepted_events.map((event) => (
+                              <article className="infrastructure-event-row" key={event.id}>
+                                <span className={`state ${event.trusted_for_correlation ? 'succeeded' : 'partial'}`}>{readableValue(event.source_trust)}</span>
+                                <div><strong>{readableValue(event.event_kind)}</strong><small>{new Date(event.started_at).toLocaleString()} · {event.producer}</small><small>{event.repository ?? 'repository unknown'} · {event.environment ?? 'environment unknown'}{event.evidence_id ? ` · evidence ${event.evidence_id.slice(0, 8)}` : ''}</small></div>
+                              </article>
+                            ))}
+                          </div>
+                          <div>
+                            <div className="history-section-heading"><h4>Exposed versus unexposed</h4><span>{infrastructureCorrelation.associations.length} event kind{infrastructureCorrelation.associations.length === 1 ? '' : 's'}</span></div>
+                            {infrastructureCorrelation.associations.length === 0 && <div className="empty">No event kind has a compatible exposed cohort.</div>}
+                            {infrastructureCorrelation.associations.map((association) => (
+                              <article className="infrastructure-association" key={association.event_kind}>
+                                <div><strong>{readableValue(association.event_kind)}</strong><span className={`state ${performanceStatusClass(association.status)}`}>{readableValue(association.status)}</span></div>
+                                <p>Exposed {formatRate(association.exposed_failure_rate)} · unexposed {formatRate(association.unexposed_failure_rate)}</p>
+                                <small>{association.exposed_run_count} exposed / {association.unexposed_run_count} unexposed runs · {association.confounded_run_count} confounded.</small>
+                              </article>
+                            ))}
+                          </div>
+                        </div>
+                        {(infrastructureCorrelation.confounders.length > 0 || infrastructureCorrelation.rejected_events.length > 0) && (
+                          <div className="infrastructure-rejections">
+                            <strong>Limitations and rejected context</strong>
+                            <div>{infrastructureCorrelation.confounders.map((reason) => <code key={`confounder-${reason}`}>{readableValue(reason)}</code>)}</div>
+                            <div>{infrastructureCorrelation.rejected_events.slice(0, 12).flatMap((event) => event.reasons.map((reason) => <code key={`${event.event_id}-${reason}`}>{readableValue(event.event_kind)} · {readableValue(reason)}</code>))}</div>
+                          </div>
+                        )}
+                        <p className="history-provenance mono">Infrastructure policy {infrastructureCorrelation.policy_version} · engine {infrastructureCorrelation.engine_version} · window ±{infrastructureCorrelation.window_seconds}s · input {infrastructureCorrelation.input_digest.slice(0, 16)}.</p>
+                      </>
+                    )}
+                    <button className="secondary" type="button" onClick={persistInfrastructureCorrelation} disabled={busy || infrastructureLoading || !selectedFailure}>
+                      {infrastructureSnapshot?.snapshot_id ? 'Snapshot persisted' : 'Persist immutable correlation snapshot'}
+                    </button>
+                  </section>
 
                   <div className="history-grid">
                     <section className="history-timeline" aria-label="Historical observations">

@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from .api import app  # noqa: F401
 from .config import get_settings
@@ -14,14 +15,31 @@ from .db import SessionLocal, initialize_database
 from .demo import seed_demo
 from .github_report import render_markdown
 from .impact import create_impact_recommendation, impact_recommendation_to_schema
+from .infrastructure import (
+    build_infrastructure_correlation,
+    create_infrastructure_event,
+    infrastructure_event_to_schema,
+)
 from .jobs import process_next
-from .models import Analysis, Failure, Ingestion, PerformancePolicy, Project, Run
+from .models import (
+    Analysis,
+    Failure,
+    Ingestion,
+    PerformancePolicy,
+    Project,
+    Run,
+    TestExecution,
+)
 from .performance import (
     create_run_performance_comparisons,
     ensure_default_performance_policy,
     performance_comparison_to_schema,
 )
-from .schemas import ImpactRecommendationCreate, RunMetadata
+from .schemas import (
+    ImpactRecommendationCreate,
+    InfrastructureEventCreate,
+    RunMetadata,
+)
 from .service import analyze_and_persist, create_project, enqueue_artifact_ingestion
 from .storage import store_bytes
 
@@ -95,6 +113,22 @@ def main() -> None:
         default=[],
         help="optional performance observation ID; repeat to compare a subset",
     )
+
+    infrastructure_event = sub.add_parser(
+        "infrastructure-event",
+        help="ingest one independently recorded infrastructure event from JSON",
+    )
+    infrastructure_event.add_argument("event", type=Path)
+    infrastructure_event.add_argument("--project", required=True, help="project slug")
+
+    infrastructure_correlation = sub.add_parser(
+        "infrastructure-correlate",
+        help="persist a prior-only exposed-versus-unexposed correlation snapshot",
+    )
+    infrastructure_correlation.add_argument("--execution", required=True)
+    infrastructure_correlation.add_argument("--event-kind")
+    infrastructure_correlation.add_argument("--window-seconds", type=int, default=900)
+    infrastructure_correlation.add_argument("--minimum-support", type=int, default=3)
 
     args = parser.parse_args()
     initialize_database()
@@ -233,6 +267,59 @@ def main() -> None:
                     indent=2
                 )
             )
+        elif args.command == "infrastructure-event":
+            project = session.scalar(select(Project).where(Project.slug == args.project))
+            if project is None:
+                raise SystemExit("project not found")
+            if not args.event.is_file():
+                raise SystemExit(f"event file not found: {args.event}")
+            try:
+                request = InfrastructureEventCreate.model_validate_json(
+                    args.event.read_text(encoding="utf-8")
+                )
+                event = create_infrastructure_event(session, project, request)
+            except (OSError, ValueError) as exc:
+                raise SystemExit(str(exc)) from exc
+            print(
+                json.dumps(
+                    infrastructure_event_to_schema(event),
+                    indent=2,
+                    default=str,
+                )
+            )
+        elif args.command == "infrastructure-correlate":
+            execution = session.scalar(
+                select(TestExecution)
+                .where(TestExecution.id == args.execution)
+                .options(
+                    selectinload(TestExecution.run),
+                    selectinload(TestExecution.failure),
+                )
+            )
+            if execution is None:
+                raise SystemExit("test execution not found")
+            run = execution.run
+            try:
+                result = build_infrastructure_correlation(
+                    session,
+                    selected_execution=execution,
+                    selected_run=run,
+                    cutoff=run.started_at or run.created_at,
+                    timezone_name=run.timezone or "UTC",
+                    exclude_run_id=run.id,
+                    strict_fingerprint=(
+                        execution.failure.strict_fingerprint
+                        if execution.failure is not None
+                        else None
+                    ),
+                    event_kind=args.event_kind,
+                    window_seconds=args.window_seconds,
+                    minimum_support=args.minimum_support,
+                    persist=True,
+                )
+            except ValueError as exc:
+                raise SystemExit(str(exc)) from exc
+            print(json.dumps(result, indent=2, default=str))
         elif args.command == "performance":
             run = session.get(Run, args.run)
             if run is None:

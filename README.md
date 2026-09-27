@@ -3,9 +3,9 @@
 
 FailureLens is a self-hosted quality-intelligence platform that turns automated-test artifacts into evidence-linked failure investigations. Its mandatory analysis path is deterministic and CPU-only: no paid model API, cloud account, GPU, or runtime model download is required.
 
-> **Current delivery status: M1 and the M3 deterministic analytical core are complete; M2 remains partial; M4 now has working prior-only historical intelligence, explainable change-impact recommendations, and compatibility-gated performance regression analysis. Separately modeled infrastructure-event correlation remains open. The full master specification is incomplete.**
+> **Current delivery status: M1, M3, and M4 are complete; M2 remains partial. FailureLens now provides prior-only historical intelligence, evidence-grounded infrastructure-event correlations, explainable change-impact recommendations, and compatibility-gated performance-regression analysis. The full master specification remains incomplete.**
 >
-> This revision adds normalized evidence-linked performance observations, immutable versioned policies and prior-only baseline snapshots, strict workload/environment/unit/trust compatibility, conservative regression classification, typed API/CLI operations, an API-backed dashboard workflow, Chromium coverage and a controlled 20-case performance safety benchmark. Safe binary derivatives, producer-pinned integration fixtures, project-scoped roles, infrastructure-event correlation, actual LedgerGuard evaluation cases, and live idempotent PR publication remain open.
+> This revision closes M4 by adding first-class independently recorded infrastructure events, strict trust/context/time compatibility, deterministic exposed-versus-unexposed cohorts, immutable correlation snapshots, typed API/CLI operations, a real dashboard workflow, Chromium coverage, and an 18-case adversarial safety benchmark. Safe binary derivatives, producer-pinned integration fixtures, project-scoped roles, actual LedgerGuard evaluation cases, and live idempotent PR publication remain open.
 
 ## What works
 
@@ -64,6 +64,9 @@ Support depth and known limits are documented in [`docs/input-compatibility.md`]
 - Prior-only historical aggregation that collapses retries per run/browser cohort, preserves skipped/cancelled/unknown outcomes, exposes exact denominators and Wilson intervals, and never counts an absent test as a pass.
 - Versioned known-flake safety policy requiring compatible same-browser/branch/environment/parallelism full-suite history, observed passes and failures, minimum support, a qualifying prior review decision, and no contradictory current-run product-risk signal.
 - Traceable test-history API and dashboard with branch/browser/environment/scope/time-bucket breakdowns, sequences, recurrence intervals, calculation definitions, contributing execution IDs and explicit insufficient-data states.
+- First-class project-scoped infrastructure events with stable producer identity, source digests, explicit trust, bounded timing, repository/environment scope and optional workflow/runner/region context.
+- Prior-only infrastructure correlation that reuses the exact independent-run history cohort, rejects future, untrusted and context-incompatible events, exposes exact exposed/unexposed denominators and Wilson intervals, and persists immutable event/member provenance.
+- Every infrastructure result is explicitly association-only: it cannot establish causation, erase product-risk evidence, or independently authorize an `infrastructure_failure` classification.
 - Immutable, project-scoped impact mapping snapshots with explicit test catalogues, coverage/ownership/history edges and bounded reverse dependencies.
 - Deterministic change-impact recommendations that validate base/head provenance, support renamed/deleted paths, rank every selected test with inspectable reasons and retain explicit exclusions.
 - Safety policy that forces full-suite execution for untrusted, incomplete, truncated, critical or unmapped comparisons; artifact bytes cannot self-elevate their own trust.
@@ -77,25 +80,27 @@ Support depth and known limits are documented in [`docs/input-compatibility.md`]
 - Persisted cluster identities, representative failures, score components, matching/conflicting signals and append-only revision history.
 - Human-reviewed cluster confirmation, split and merge decisions with optimistic revision checks; prior memberships are never overwritten.
 - Append-only human review events with optimistic version checks.
-- React/Vite dashboard with uploads, live ingestion status, cancellation/retry, run navigation, per-input completeness diagnostics, explainable impact selection/overrides, compatible performance baselines/findings, cluster inspection/correction, failure inspection, prior-only historical intelligence and evaluation results.
+- React/Vite dashboard with uploads, live ingestion status, cancellation/retry, run navigation, per-input completeness diagnostics, explainable impact selection/overrides, compatible performance baselines/findings, infrastructure-event context and snapshot persistence, cluster inspection/correction, failure inspection, prior-only historical intelligence and evaluation results.
 - Composite GitHub Action using the same durable ingestion and deterministic report path.
 - Versioned 200-case synthetic corpus with group-preserving splits and explicit limitations.
 - Separate 24-case/13-incident clustering fixture measuring pairwise precision/recall, false merges, false splits and adjusted Rand index.
 - Separate 12-case/11-family impact fixture measuring defect-revealing and mandatory-critical recall, fallback correctness, selected proportion and deterministic repeatability.
 - Separate 20-case performance fixture measuring regression recall, compatibility-selection accuracy, evidence linkage, future-data isolation, percentile anti-aggregation and deterministic repeatability.
+- Separate 18-case infrastructure fixture measuring status/compatibility accuracy, provenance, cutoff and project isolation, deterministic snapshot replay, unsupported-causality prevention and dangerous product-defect downgrade safety.
 
 ## Verification for this checkpoint
 
 ```text
-156 backend tests passed
-85.26% branch-aware backend coverage (75% gate)
-Python source, tests and evaluation harnesses compile successfully
-SQLite migration upgrade/downgrade/re-upgrade passed through the performance-intelligence head
+163 backend tests passed
+85.10% branch-aware backend coverage (75% gate)
+Python source, tests and all deterministic evaluation harnesses compile successfully
+SQLite migration upgrade/downgrade/re-upgrade passed through `c7a9e2f4b610`
 Impact benchmark: 12/12 status decisions correct, 1.000 defect-revealing and mandatory-critical recall
 Performance benchmark: 20/20 status decisions correct, 1.000 regression recall and compatibility-selection accuracy, 0/5 dangerous false negatives
+Infrastructure benchmark: 18/18 status decisions correct, 1.000 compatibility/provenance accuracy, 0 future/cross-project leaks, 0 unsupported causality claims and 0/1 product-defect downgrades
 ```
 
-The frontend source was updated and strict TypeScript source checking completed with the available local compiler, but the isolated implementation container could not restore the locked npm dependency graph because registry DNS failed (`EAI_AGAIN`). The committed GitHub workflow remains the required evidence for locked dependency resolution, frontend unit/build checks, PostgreSQL migration integration, Chromium E2E, evaluation and Docker execution on the exact delivered SHA. Do not treat workflow source alone as a pass.
+The isolated implementation container could not restore the locked npm dependency graph because registry DNS was unavailable, so frontend unit/build and Chromium results must be taken from the committed GitHub workflow on the exact delivered SHA. PostgreSQL migration integration and Docker image execution are likewise verified in CI rather than inferred from workflow source.
 
 Synthetic benchmark results apply only to the committed public synthetic corpus; they are not deployment guarantees and do not satisfy the requirement for actual executed LedgerGuard cases.
 
@@ -130,6 +135,8 @@ failurelens ingestion-status --ingestion <ingestion-id>
 failurelens ingest path/to/failurelens-bundle.zip --project my-project --external-id run-124 --expected-inputs 3 --process
 failurelens impact --project my-project --run <run-id> --mapping-snapshot <snapshot-id>
 failurelens performance --run <run-id> --policy <performance-policy-id>
+failurelens infrastructure-event infrastructure-event.json --project my-project
+failurelens infrastructure-correlate --execution <execution-id> --event-kind service_outage --window-seconds 900 --minimum-support 3
 failurelens report --run <run-id> --format markdown
 ```
 
@@ -142,7 +149,7 @@ curl --request POST \
   'http://localhost:8000/api/v1/projects/<project-id>/ingestions?external_id=run-123&filename=failurelens-bundle.zip&expected_inputs=3&run_scope=full_suite&comparison_trust=self_reported&environment=ci-linux&timezone=America%2FHalifax'
 ```
 
-The response is `202 Accepted` with stable ingestion/job IDs and eventually a `run_id`. Query `GET /api/v1/ingestions/{ingestion_id}` or let the dashboard poll it. Inspect persisted scope with `GET /api/v1/runs/{run_id}/inputs`, generate an impact plan with `POST /api/v1/projects/{project_id}/impact-recommendations`, inspect run-scoped clusters with `GET /api/v1/runs/{run_id}/clusters`, and inspect cutoff-safe history for an execution with `GET /api/v1/tests/{execution_id}/history`, and create compatible performance findings with `POST /api/v1/runs/{run_id}/performance-comparisons`. Artifact-declared trust is retained only for audit; effective comparison trust comes from validated transport metadata.
+The response is `202 Accepted` with stable ingestion/job IDs and eventually a `run_id`. Query `GET /api/v1/ingestions/{ingestion_id}` or let the dashboard poll it. Inspect persisted scope with `GET /api/v1/runs/{run_id}/inputs`, generate an impact plan with `POST /api/v1/projects/{project_id}/impact-recommendations`, inspect run-scoped clusters with `GET /api/v1/runs/{run_id}/clusters`, inspect cutoff-safe history and live infrastructure context with `GET /api/v1/tests/{execution_id}/history`, persist infrastructure context with `POST /api/v1/tests/{execution_id}/infrastructure-correlations`, and create compatible performance findings with `POST /api/v1/runs/{run_id}/performance-comparisons`. Artifact-declared trust is retained only for audit; effective comparison trust comes from validated transport metadata.
 
 ## Manifest `2.0` example
 
@@ -175,7 +182,7 @@ The response is `202 Accepted` with stable ingestion/job IDs and eventually a `r
 ## Repository map
 
 ```text
-backend/src/failurelens/    API, storage, adapters, evidence, rules, clustering, history, impact, performance, jobs, CLI
+backend/src/failurelens/    API, storage, adapters, evidence, rules, clustering, history, infrastructure, impact, performance, jobs, CLI
 backend/migrations/         Versioned relational schema
 backend/tests/              Unit, adversarial, API and durable integration tests
 evaluation/                 Corpus generator, labeled corpus, harness, reports
@@ -193,11 +200,11 @@ The deterministic analyzer separates observations, inferences, hypotheses, missi
 
 The system never approves releases, merges pull requests, deletes tests, suppresses product-risk flags or rewrites code.
 
-Historical definitions and safety rules are documented in [`docs/history.md`](docs/history.md). Change-impact trust, mapping, fallback and override semantics are documented in [`docs/impact.md`](docs/impact.md). Compatible baseline, unit, percentile and uncertainty semantics are documented in [`docs/performance.md`](docs/performance.md).
+Historical definitions and safety rules are documented in [`docs/history.md`](docs/history.md). Infrastructure trust, compatibility, cutoff and association semantics are documented in [`docs/infrastructure.md`](docs/infrastructure.md). Change-impact trust, mapping, fallback and override semantics are documented in [`docs/impact.md`](docs/impact.md). Compatible baseline, unit, percentile and uncertainty semantics are documented in [`docs/performance.md`](docs/performance.md).
 
 ## Evaluation truthfulness
 
-The classification corpus manifest currently records 200 synthetic cases, 100 scenario families and **0 actual LedgerGuard executions**. The clustering fixture records 24 synthetic observations across 13 independently stored incident labels; its controlled result is 1.000 pairwise precision, 1.000 pairwise recall, 0 false merges, 0 false splits and 1.000 adjusted Rand index. The impact fixture records 12 synthetic cases across 11 scenario families and reports 1.000 defect-revealing-test recall, 1.000 mandatory-critical-test recall and correct focused/fallback status for every controlled case. The performance fixture records 20 synthetic compatibility/regression cases and reports 1.000 status accuracy, regression recall, compatibility-selection accuracy, evidence-citation validity and deterministic repeat agreement, with zero dangerous false negatives across five regression cases. All four datasets are agent-authored regression fixtures, not deployment guarantees, observed runtime-savings evidence or independently blinded studies. See [`evaluation/corpus/manifest.json`](evaluation/corpus/manifest.json), [`evaluation/corpus/clustering-manifest.json`](evaluation/corpus/clustering-manifest.json), [`evaluation/corpus/impact-manifest.json`](evaluation/corpus/impact-manifest.json), [`evaluation/corpus/performance-manifest.json`](evaluation/corpus/performance-manifest.json), and [`evaluation/reports/latest/performance-report.md`](evaluation/reports/latest/performance-report.md).
+The classification corpus manifest currently records 200 synthetic cases, 100 scenario families and **0 actual LedgerGuard executions**. The clustering fixture records 24 synthetic observations across 13 independently stored incident labels; its controlled result is 1.000 pairwise precision, 1.000 pairwise recall, 0 false merges, 0 false splits and 1.000 adjusted Rand index. The impact fixture records 12 synthetic cases across 11 scenario families and reports 1.000 defect-revealing-test recall, 1.000 mandatory-critical-test recall and correct focused/fallback status for every controlled case. The performance fixture records 20 synthetic compatibility/regression cases and reports 1.000 status accuracy, regression recall, compatibility-selection accuracy, evidence-citation validity and deterministic repeat agreement, with zero dangerous false negatives across five regression cases. The infrastructure fixture records 18 synthetic cases and reports 1.000 status accuracy, compatibility-selection accuracy, provenance validity and deterministic repeat agreement, with zero future-event leakage, cross-project leakage, unsupported causality claims, or product-defect downgrades. All five datasets are agent-authored regression fixtures, not deployment guarantees, causal evidence, observed runtime-savings evidence or independently blinded studies. See the manifests and reports under [`evaluation/corpus/`](evaluation/corpus/) and [`evaluation/reports/latest/`](evaluation/reports/latest/).
 
 ## Remaining M2 closure work
 
@@ -205,6 +212,6 @@ The classification corpus manifest currently records 200 synthetic cases, 100 sc
 2. Create immutable reviewed/masked screenshot derivatives and richer safe trace derivatives with image/trace-specific source maps and retention controls.
 3. Add project-scoped authorization/isolation and authorized bounded artifact preview/download endpoints.
 4. Expand claim predicates and validation metrics beyond the deterministic classification rules implemented here.
-5. Complete M4 with separately modeled infrastructure-event correlation, then complete review roles/views, actual LedgerGuard corpus and live idempotent GitHub publication.
+5. Complete M5 review roles/audit/settings views, M6 actual LedgerGuard corpus execution, M7 optional provider boundary, and M8 live idempotent GitHub publication.
 
 Factual progress is tracked in [`docs/PROGRESS.md`](docs/PROGRESS.md), with requirement status in [`docs/requirements-matrix.md`](docs/requirements-matrix.md).

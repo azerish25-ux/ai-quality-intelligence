@@ -75,6 +75,12 @@ Every report includes:
 
 The history digest is included in the deterministic analysis input and provenance. When eligible prior data or review state changes, FailureLens creates a new analysis revision rather than silently changing an earlier result.
 
+## Independently recorded infrastructure context
+
+The history response now includes deterministic infrastructure-event correlation for the same prior-only cohort. Infrastructure events are separately persisted records with stable producer identities, source digests, trust provenance, timing, repository/environment scope and optional workflow/runner/region context. Artifact-derived and self-reported claims remain auditable but cannot enter the trusted exposed cohort.
+
+FailureLens compares one conservative outcome per independent run for runs exposed to a compatible event versus runs not exposed to one. Both rates expose exact pass/fail denominators and 95% Wilson intervals. Event-kind rows disclose confounded runs, and rejected events retain trust, cutoff, window and context reasons. Results are associations only: they never prove causality, remove product-risk evidence, or independently authorize an `infrastructure_failure` classification. See `docs/infrastructure.md`.
+
 ## API
 
 ```http
@@ -83,8 +89,8 @@ GET /api/v1/tests/{execution_id}/history
 
 Optional query parameters are `after`, `before`, `browser`, `branch`, `environment`, `run_scope`, `worker_count`, `shard_count`, `timezone`, `limit` and `offset`. `before` is clamped to the selected execution's run time. Invalid timezones or a window whose `after` is not earlier than the effective cutoff return `422`.
 
-The dashboard uses this endpoint for a prior-only history workspace with exact counts, cohort filters, observation navigation and safety explanations.
+The dashboard uses this endpoint for a prior-only history workspace with exact counts, cohort filters, observation navigation, infrastructure context and safety explanations.
 
 ## Current limitation
 
-This checkpoint does not yet correlate history with a separately modeled infrastructure-event stream. Reviewer writes still use the repository's existing token boundary rather than project-scoped verified reviewer identities; role enforcement remains M5 work. Change-impact selection and performance-baseline comparison are also separate remaining M4 work.
+Infrastructure correlation is implemented, but it remains observational rather than causal and the committed evaluation fixture is synthetic. Reviewer writes still use the repository's existing token boundary rather than project-scoped verified reviewer identities; role enforcement remains M5 work. Actual companion-project infrastructure telemetry remains M6 work.

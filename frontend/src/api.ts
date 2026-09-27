@@ -159,6 +159,120 @@ export interface HistoryObservation {
   duplicate_attempt_numbers: boolean;
 }
 
+export interface InfrastructureEvent {
+  id: string;
+  project_id: string;
+  repository: string | null;
+  environment: string | null;
+  producer: string;
+  producer_event_id: string;
+  event_kind: string;
+  severity: string;
+  status: string;
+  started_at: string;
+  ended_at: string | null;
+  recorded_at: string;
+  workflow_name: string | null;
+  workflow_run_id: string | null;
+  workflow_attempt: number | null;
+  runner_identity: string | null;
+  runner_group: string | null;
+  region: string | null;
+  worker_count: number | null;
+  shard_identity: string | null;
+  source_trust: string;
+  trusted_for_correlation: boolean;
+  source_digest: string;
+  evidence_id: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface InfrastructureCorrelationMember {
+  run_id: string;
+  execution_ids: string[];
+  outcome: string;
+  exposed: boolean;
+  event_ids: string[];
+  event_kinds: string[];
+  observed_at: string;
+}
+
+export interface InfrastructureCorrelation {
+  snapshot_id: string | null;
+  project_id: string;
+  selected_run_id: string;
+  selected_execution_id: string;
+  policy_version: string;
+  engine_version: string;
+  history_input_digest: string;
+  input_digest: string;
+  status: string;
+  cutoff_at: string;
+  after_at: string | null;
+  window_seconds: number;
+  event_kind: string | null;
+  minimum_support: number;
+  accepted_event_ids: string[];
+  accepted_events: InfrastructureEvent[];
+  rejected_events: Array<{
+    event_id: string;
+    event_kind: string;
+    source_trust: string;
+    reasons: string[];
+  }>;
+  sample_sizes: Record<string, number>;
+  exposed_outcomes: Record<string, number>;
+  unexposed_outcomes: Record<string, number>;
+  rates: {
+    exposed_failure_rate?: HistoryRate;
+    unexposed_failure_rate?: HistoryRate;
+    absolute_failure_rate_difference?: number | null;
+    relative_risk?: number | null;
+  };
+  associations: Array<{
+    event_kind: string;
+    status: string;
+    exposed_run_count: number;
+    unexposed_run_count: number;
+    exposed_failure_rate: HistoryRate;
+    unexposed_failure_rate: HistoryRate;
+    absolute_failure_rate_difference: number | null;
+    relative_risk: number | null;
+    confounded_run_count: number;
+    interpretation: string;
+  }>;
+  confounders: string[];
+  safety: {
+    association_only: boolean;
+    causality_claimed: boolean;
+    can_support_infrastructure_association: boolean;
+    can_independently_authorize_infrastructure_classification: boolean;
+    trusted_sources_only: boolean;
+    prior_only: boolean;
+    current_run_excluded: boolean;
+    truncated: boolean;
+    notes: string[];
+  };
+  members: InfrastructureCorrelationMember[];
+  created_at: string | null;
+}
+
+export interface InfrastructureCorrelationInput {
+  after?: string;
+  before?: string;
+  browser?: string;
+  branch?: string;
+  environment?: string;
+  run_scope?: 'full_suite' | 'impact_selected' | 'unknown';
+  timezone?: string;
+  worker_count?: number;
+  shard_count?: number;
+  event_kind?: string;
+  window_seconds?: number;
+  minimum_support?: number;
+}
+
 export interface TestHistory {
   policy_version: string;
   history_input_digest: string;
@@ -186,6 +300,7 @@ export interface TestHistory {
   };
   pagination: { offset: number; limit: number; returned: number; total: number };
   observations: HistoryObservation[];
+  infrastructure_correlations: InfrastructureCorrelation | null;
 }
 
 export interface HistoryFilters {
@@ -209,6 +324,8 @@ export interface Overview {
   clusters: number;
   impact_recommendations: number;
   performance_comparisons: number;
+  infrastructure_events: number;
+  infrastructure_correlations: number;
   analyses: number;
   categories: Record<Category, number>;
 }
@@ -697,6 +814,24 @@ export const api = {
         expected_revision: override.expectedRevision
       })
     }),
+  infrastructureEvents: (projectId: string) =>
+    json<InfrastructureEvent[]>(`/api/v1/projects/${projectId}/infrastructure-events`),
+  createInfrastructureEvent: (
+    projectId: string,
+    event: Omit<InfrastructureEvent, 'id' | 'project_id' | 'trusted_for_correlation' | 'source_digest' | 'created_at'>
+  ) => json<InfrastructureEvent>(`/api/v1/projects/${projectId}/infrastructure-events`, {
+    method: 'POST',
+    body: JSON.stringify(event)
+  }),
+  createInfrastructureCorrelation: (
+    executionId: string,
+    input: InfrastructureCorrelationInput = {}
+  ) => json<InfrastructureCorrelation>(`/api/v1/tests/${executionId}/infrastructure-correlations`, {
+    method: 'POST',
+    body: JSON.stringify(input)
+  }),
+  infrastructureCorrelation: (snapshotId: string) =>
+    json<InfrastructureCorrelation>(`/api/v1/infrastructure-correlations/${snapshotId}`),
   analyze: (failureId: string) => json<Analysis>(`/api/v1/failures/${failureId}/analyses`, { method: 'POST' }),
   seedDemo: () => json<{ project_id: string; run_id: string }>('/api/v1/demo/seed', { method: 'POST' }),
   evaluation: () => json<{ status: string; metrics?: Record<string, unknown>; message?: string }>('/api/v1/evaluations/latest')

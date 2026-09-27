@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { api, type ClusterDetail, type ClusterSummary, type ImpactMappingSnapshot, type ImpactRecommendation, type Ingestion, type PerformanceComparison, type PerformanceObservation, type PerformancePolicy, type RunInput, type TestHistory } from './api';
+import { api, type ClusterDetail, type ClusterSummary, type ImpactMappingSnapshot, type ImpactRecommendation, type Ingestion, type InfrastructureCorrelation, type InfrastructureEvent, type PerformanceComparison, type PerformanceObservation, type PerformancePolicy, type RunInput, type TestHistory } from './api';
 
 const ingestion: Ingestion = {
   id: 'ing-1',
@@ -217,6 +217,87 @@ const clusterSummary: ClusterSummary = {
 };
 
 
+const infrastructureEvent: InfrastructureEvent = {
+  id: 'infrastructure-event-1',
+  project_id: 'project-1',
+  repository: 'owner/repo',
+  environment: 'ci-linux',
+  producer: 'status-monitor',
+  producer_event_id: 'monitor-event-1',
+  event_kind: 'service_outage',
+  severity: 'error',
+  status: 'resolved',
+  started_at: '2026-09-26T10:00:00Z',
+  ended_at: '2026-09-26T10:10:00Z',
+  recorded_at: '2026-09-26T10:11:00Z',
+  workflow_name: 'ci',
+  workflow_run_id: '1234',
+  workflow_attempt: 1,
+  runner_identity: 'runner-1',
+  runner_group: 'hosted',
+  region: 'ca-east',
+  worker_count: 4,
+  shard_identity: null,
+  source_trust: 'verified_monitor',
+  trusted_for_correlation: true,
+  source_digest: '6'.repeat(64),
+  evidence_id: null,
+  metadata: { monitor: 'checkout-gateway' },
+  created_at: '2026-09-26T10:11:00Z'
+};
+
+const infrastructureCorrelation: InfrastructureCorrelation = {
+  snapshot_id: 'infrastructure-snapshot-1',
+  project_id: 'project-1',
+  selected_run_id: 'run-1',
+  selected_execution_id: 'execution-1',
+  policy_version: 'infrastructure-correlation-policy-v1',
+  engine_version: 'infrastructure-correlation-v1',
+  history_input_digest: 'd'.repeat(64),
+  input_digest: '7'.repeat(64),
+  status: 'AVAILABLE',
+  cutoff_at: '2026-09-27T00:00:00Z',
+  after_at: null,
+  window_seconds: 900,
+  event_kind: null,
+  minimum_support: 3,
+  accepted_event_ids: [infrastructureEvent.id],
+  accepted_events: [infrastructureEvent],
+  rejected_events: [],
+  sample_sizes: {
+    independent_runs: 6,
+    exposed_runs: 3,
+    unexposed_runs: 3,
+    exposed_pass_fail_denominator: 3,
+    unexposed_pass_fail_denominator: 3,
+    accepted_events: 1,
+    rejected_events: 0
+  },
+  exposed_outcomes: { passed: 0, failed: 3, skipped: 0, cancelled: 0, unknown: 0 },
+  unexposed_outcomes: { passed: 3, failed: 0, skipped: 0, cancelled: 0, unknown: 0 },
+  rates: {
+    exposed_failure_rate: { numerator: 3, denominator: 3, value: 1, interval_95: [0.4385, 1], status: 'available', minimum_support: 3, definition: 'Failure rate.' },
+    unexposed_failure_rate: { numerator: 0, denominator: 3, value: 0, interval_95: [0, 0.5615], status: 'available', minimum_support: 3, definition: 'Failure rate.' },
+    absolute_failure_rate_difference: 1,
+    relative_risk: null
+  },
+  associations: [],
+  confounders: [],
+  safety: {
+    association_only: true,
+    causality_claimed: false,
+    can_support_infrastructure_association: true,
+    can_independently_authorize_infrastructure_classification: false,
+    trusted_sources_only: true,
+    prior_only: true,
+    current_run_excluded: true,
+    truncated: false,
+    notes: []
+  },
+  members: [],
+  created_at: '2026-09-27T00:00:00Z'
+};
+
 const testHistory: TestHistory = {
   policy_version: 'history-v1',
   history_input_digest: 'd'.repeat(64),
@@ -240,7 +321,8 @@ const testHistory: TestHistory = {
   review: { reviewed_known_flake: true, events: [] },
   safety: { history_eligible_for_reassurance: true, insufficient_data_reasons: [], selection_bias_present: false, truncated: false, notes: [] },
   pagination: { offset: 0, limit: 100, returned: 0, total: 0 },
-  observations: []
+  observations: [],
+  infrastructure_correlations: null
 };
 
 const clusterDetail: ClusterDetail = {
@@ -412,6 +494,71 @@ describe('prior-only history client', () => {
   });
 });
 
+
+
+describe('infrastructure event correlation client', () => {
+  it('lists independently recorded events and creates an immutable correlation snapshot', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify([infrastructureEvent]), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(infrastructureCorrelation), {
+        status: 201, headers: { 'Content-Type': 'application/json' }
+      }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await api.infrastructureEvents('project-1')).toEqual([infrastructureEvent]);
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/projects/project-1/infrastructure-events', {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const snapshot = await api.createInfrastructureCorrelation('execution-1', {
+      environment: 'ci-linux',
+      run_scope: 'full_suite',
+      timezone: 'America/Halifax',
+      worker_count: 4,
+      shard_count: 2,
+      event_kind: 'service_outage',
+      window_seconds: 900,
+      minimum_support: 3
+    });
+    expect(snapshot.safety.association_only).toBe(true);
+    expect(snapshot.safety.can_independently_authorize_infrastructure_classification).toBe(false);
+    const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(url).toBe('/api/v1/tests/execution-1/infrastructure-correlations');
+    expect(JSON.parse(String(init.body))).toEqual({
+      environment: 'ci-linux',
+      run_scope: 'full_suite',
+      timezone: 'America/Halifax',
+      worker_count: 4,
+      shard_count: 2,
+      event_kind: 'service_outage',
+      window_seconds: 900,
+      minimum_support: 3
+    });
+  });
+
+  it('serializes a trusted event without generated server fields', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(infrastructureEvent), {
+        status: 201, headers: { 'Content-Type': 'application/json' }
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { id: _id, project_id: _projectId, trusted_for_correlation: _trusted, source_digest: _digest, created_at: _created, ...input } = infrastructureEvent;
+    const created = await api.createInfrastructureEvent('project-1', input);
+    expect(created.source_digest).toBe('6'.repeat(64));
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/v1/projects/project-1/infrastructure-events');
+    expect(JSON.parse(String(init.body))).not.toHaveProperty('trusted_for_correlation');
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      producer_event_id: 'monitor-event-1',
+      source_trust: 'verified_monitor',
+      event_kind: 'service_outage'
+    });
+  });
+});
 
 describe('change-impact client', () => {
   it('registers an immutable mapping and creates an explainable recommendation', async () => {
