@@ -14,15 +14,16 @@ test:
 	cd backend && PYTHONPATH=src pytest --cov=failurelens --cov-report=term-missing
 
 test-e2e:
-	@echo "Browser E2E requires the Docker stack and is not implemented in this initial vertical slice." >&2
-	@exit 2
+	cd frontend && npm run test:e2e
 
 evaluate:
 	$(PYTHON) evaluation/generate_corpus.py
+	$(PYTHON) evaluation/generate_clustering_corpus.py
 	PYTHONPATH=backend/src $(PYTHON) evaluation/harness.py --split test --output evaluation/reports/latest
+	PYTHONPATH=backend/src $(PYTHON) evaluation/clustering_harness.py --output evaluation/reports/latest
 
 security-test:
-	cd backend && PYTHONPATH=src pytest -q tests/test_redaction.py tests/test_ingestion.py tests/test_analysis.py
+	cd backend && PYTHONPATH=src pytest -q tests/test_redaction.py tests/test_ingestion.py tests/test_analysis.py tests/test_clustering.py
 
 verify:
 	./scripts/verify.sh

@@ -42,3 +42,20 @@ The result is deliberately not described as independent model evaluation or real
 - The Wilson interval does not account for family dependence; family-level uncertainty analysis remains pending.
 
 The harness preserves the confusion matrix, per-case predictions, exact numerator/denominator, acceptance gates, and limitations rather than publishing only a headline score.
+
+## Explainable clustering fixture
+
+`evaluation/generate_clustering_corpus.py` separately produces 24 synthetic failure observations across 13 evaluation-only incident labels. Runtime clustering receives only the observable failure view; `incident_id`, oracle rationale and label provenance are withheld until scoring.
+
+The fixture exercises dynamic UUID/timestamp/line-number normalization, cross-browser positives, HTTP authorization-versus-server collisions, different selectors behind generic timeout text, assertion direction/negation, a transitive A–B–C bridge and singleton outliers.
+
+The committed controlled result under `evaluation/reports/latest/clustering-*` is:
+
+- Pairwise precision: 1.000.
+- Pairwise recall: 1.000.
+- False merges: 0.
+- False splits: 0.
+- Adjusted Rand index: 1.000.
+- Predicted clusters: 13 for 13 labeled incidents.
+
+These values demonstrate the intended regression boundaries on this compact generator-owned fixture. They do not estimate production incident prevalence, screenshot-similarity quality, causal-edge accuracy or performance on independently labeled external projects.

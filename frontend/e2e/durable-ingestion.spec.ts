@@ -24,6 +24,14 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   await expect(page.locator('.input-row', { hasText: 'browser-junit.xml' })).toContainText('accepted');
   await expect(page.locator('.input-summary')).toContainText('1');
 
+  await expect(page.getByRole('heading', { name: 'Failure clusters' })).toBeVisible();
+  const cluster = page.locator('.cluster-row', { hasText: 'Transfer::duplicate' });
+  await expect(cluster).toBeVisible();
+  await cluster.click();
+  await expect(page.locator('.cluster-detail')).toContainText('explainable-complete-link-v1');
+  await expect(page.locator('.cluster-detail').getByText('Candidate-generation reasons')).toBeVisible();
+  await expect(page.locator('.cluster-workspace')).toContainText('Similarity groups investigation signals');
+
   const failure = page.locator('.failure-row', { hasText: 'Transfer::duplicate' });
   await expect(failure).toBeVisible();
   await failure.click();

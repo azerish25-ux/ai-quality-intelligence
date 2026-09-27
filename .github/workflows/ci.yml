@@ -62,7 +62,9 @@ jobs:
       - name: Regenerate corpus and evaluate frozen test split
         run: |
           python evaluation/generate_corpus.py
+          python evaluation/generate_clustering_corpus.py
           PYTHONPATH=backend/src python evaluation/harness.py --split test --output evaluation/reports/ci
+          PYTHONPATH=backend/src python evaluation/clustering_harness.py --output evaluation/reports/ci
 
   frontend:
     runs-on: ubuntu-latest

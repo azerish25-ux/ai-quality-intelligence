@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import {
   api,
+  type ClusterDetail,
+  type ClusterRevision,
+  type ClusterSummary,
   type Failure,
   type Ingestion,
   type Overview,
@@ -42,6 +45,15 @@ function App() {
   const [watchedIngestionId, setWatchedIngestionId] = useState<string | null>(null);
   const [failures, setFailures] = useState<Failure[]>([]);
   const [runInputs, setRunInputs] = useState<RunInput[]>([]);
+  const [clusters, setClusters] = useState<ClusterSummary[]>([]);
+  const [runClusters, setRunClusters] = useState<ClusterSummary[]>([]);
+  const [selectedClusterId, setSelectedClusterId] = useState('');
+  const [selectedCluster, setSelectedCluster] = useState<ClusterDetail | null>(null);
+  const [clusterRevisions, setClusterRevisions] = useState<ClusterRevision[]>([]);
+  const [selectedClusterMembers, setSelectedClusterMembers] = useState<string[]>([]);
+  const [clusterReviewActor, setClusterReviewActor] = useState('reviewer@example.test');
+  const [clusterReviewReason, setClusterReviewReason] = useState('');
+  const [mergeTargetId, setMergeTargetId] = useState('');
   const [selectedFailure, setSelectedFailure] = useState<Failure | null>(null);
   const [evaluation, setEvaluation] = useState<Record<string, unknown> | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -67,15 +79,25 @@ function App() {
     if (!nextProjectId) {
       setRuns([]);
       setIngestions([]);
+      setClusters([]);
+      setRunClusters([]);
+      setSelectedClusterId('');
+      setSelectedCluster(null);
       setRunId('');
       return;
     }
-    const [nextRuns, nextIngestions] = await Promise.all([
+    const [nextRuns, nextIngestions, nextClusters] = await Promise.all([
       api.runs(nextProjectId),
-      api.ingestions(nextProjectId)
+      api.ingestions(nextProjectId),
+      api.clusters(nextProjectId)
     ]);
     setRuns(nextRuns);
     setIngestions(nextIngestions);
+    setClusters(nextClusters);
+    setSelectedClusterId((current) => {
+      if (current && nextClusters.some((cluster) => cluster.id === current)) return current;
+      return nextClusters[0]?.id ?? '';
+    });
     setRunId((current) => {
       if (preferredRunId && nextRuns.some((run) => run.id === preferredRunId)) return preferredRunId;
       if (current && nextRuns.some((run) => run.id === current)) return current;
@@ -95,13 +117,19 @@ function App() {
     if (!runId) {
       setFailures([]);
       setRunInputs([]);
+      setRunClusters([]);
       setSelectedFailure(null);
       return;
     }
-    Promise.all([api.failures(runId), api.runInputs(runId)])
-      .then(([nextFailures, nextInputs]) => {
+    Promise.all([api.failures(runId), api.runInputs(runId), api.runClusters(runId)])
+      .then(([nextFailures, nextInputs, nextRunClusters]) => {
         setFailures(nextFailures);
         setRunInputs(nextInputs);
+        setRunClusters(nextRunClusters);
+        setSelectedClusterId((current) => {
+          if (current && nextRunClusters.some((cluster) => cluster.id === current)) return current;
+          return nextRunClusters[0]?.id ?? current;
+        });
         setSelectedFailure((current) => {
           if (current) return nextFailures.find((item) => item.id === current.id) ?? nextFailures[0] ?? null;
           return nextFailures[0] ?? null;
@@ -151,6 +179,45 @@ function App() {
     () => runs.find((run) => run.id === runId) ?? null,
     [runs, runId]
   );
+
+  const visibleClusters = useMemo(
+    () => runId ? runClusters : clusters,
+    [clusters, runClusters, runId]
+  );
+
+  useEffect(() => {
+    if (!selectedClusterId) {
+      setSelectedCluster(null);
+      setClusterRevisions([]);
+      setSelectedClusterMembers([]);
+      return;
+    }
+    let cancelled = false;
+    Promise.all([api.cluster(selectedClusterId), api.clusterRevisions(selectedClusterId)])
+      .then(([detail, revisions]) => {
+        if (cancelled) return;
+        setSelectedCluster(detail);
+        setClusterRevisions(revisions);
+        const currentIds = new Set(detail.current?.memberships.map((member) => member.failure_id) ?? []);
+        setSelectedClusterMembers((selected) => selected.filter((failureId) => currentIds.has(failureId)));
+      })
+      .catch((reason: unknown) => {
+        if (!cancelled) setError(String(reason));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedClusterId]);
+
+  useEffect(() => {
+    const validTargets = clusters.filter(
+      (cluster) => cluster.status === 'active' && cluster.id !== selectedClusterId
+    );
+    setMergeTargetId((current) => {
+      if (current && validTargets.some((cluster) => cluster.id === current)) return current;
+      return validTargets[0]?.id ?? '';
+    });
+  }, [clusters, selectedClusterId]);
 
   const seedDemo = async () => {
     setBusy(true);
@@ -248,6 +315,60 @@ function App() {
     }
   };
 
+  const toggleClusterMember = (failureId: string) => {
+    setSelectedClusterMembers((current) => (
+      current.includes(failureId)
+        ? current.filter((item) => item !== failureId)
+        : [...current, failureId]
+    ));
+  };
+
+  const submitClusterReview = async (decision: 'confirm' | 'split' | 'merge') => {
+    if (!selectedCluster) return;
+    const reason = clusterReviewReason.trim();
+    const actor = clusterReviewActor.trim();
+    if (!actor || !reason) {
+      setError('Cluster reviews require an actor and a concrete engineering reason.');
+      return;
+    }
+    if (decision === 'split' && selectedClusterMembers.length === 0) {
+      setError('Select at least one member to move into the reviewed split cluster.');
+      return;
+    }
+    if (decision === 'merge' && !mergeTargetId) {
+      setError('Select an active target cluster before recording a merge.');
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      const detail = await api.reviewCluster(selectedCluster.id, {
+        actor,
+        decision,
+        reason,
+        expectedRevision: selectedCluster.current_revision,
+        failureIds: decision === 'split' ? selectedClusterMembers : undefined,
+        targetClusterId: decision === 'merge' ? mergeTargetId : undefined
+      });
+      const nextClusterId = decision === 'merge' ? mergeTargetId : detail.id;
+      const nextCluster = nextClusterId === detail.id
+        ? detail
+        : await api.cluster(nextClusterId);
+      setSelectedCluster(nextCluster);
+      setSelectedClusterId(nextCluster.id);
+      setClusterRevisions(await api.clusterRevisions(nextCluster.id));
+      setSelectedClusterMembers([]);
+      setClusterReviewReason('');
+      await Promise.all([refreshRoot(), refreshProject(projectId, runId)]);
+      if (runId) setRunClusters(await api.runClusters(runId));
+    } catch (reasonValue) {
+      setError(String(reasonValue));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -256,6 +377,7 @@ function App() {
           <a href="#overview">Overview</a>
           <a href="#ingestion">Ingestion</a>
           <a href="#runs">Runs</a>
+          <a href="#clusters">Clusters</a>
           <a href="#workspace">Failure workspace</a>
           <a href="#evaluation">Evaluation</a>
         </nav>
@@ -277,6 +399,7 @@ function App() {
             ['Active jobs', overview?.active_ingestions ?? '—'],
             ['Runs', overview?.runs ?? '—'],
             ['Failures', overview?.failures ?? '—'],
+            ['Clusters', overview?.clusters ?? '—'],
             ['Analyses', overview?.analyses ?? '—']
           ].map(([label, value]) => <article className="metric" key={label}><span>{label}</span><strong>{value}</strong></article>)}
         </section>
@@ -357,6 +480,128 @@ function App() {
               </div>
             </>
           )}
+        </section>
+
+        <section id="clusters" className="cluster-workspace">
+          <article className="panel cluster-list">
+            <div className="panel-heading">
+              <div><p className="eyebrow">EXPLAINABLE GROUPING</p><h2>Failure clusters</h2></div>
+              <span className="count">{visibleClusters.length}</span>
+            </div>
+            <p className="cluster-safety-note">Similarity groups investigation signals; it does not prove a shared root cause.</p>
+            {visibleClusters.length === 0 && <div className="empty">No persisted clusters are available for the selected scope.</div>}
+            {visibleClusters.map((cluster) => (
+              <button
+                type="button"
+                className={`cluster-row ${selectedClusterId === cluster.id ? 'active' : ''}`}
+                key={cluster.id}
+                onClick={() => setSelectedClusterId(cluster.id)}
+              >
+                <span>
+                  <strong>{cluster.representative_test_identity ?? 'Unresolved representative'}</strong>
+                  <small>{cluster.member_count} member{cluster.member_count === 1 ? '' : 's'} · revision {cluster.current_revision}</small>
+                </span>
+                <span className={`cluster-uncertainty ${statusClass(cluster.uncertainty)}`}>{cluster.uncertainty}</span>
+                <code>{cluster.cluster_key.slice(0, 10)}</code>
+              </button>
+            ))}
+          </article>
+
+          <article className="panel cluster-detail">
+            {!selectedCluster || !selectedCluster.current ? <div className="empty">Select a cluster to inspect its explainable membership.</div> : (
+              <>
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">CLUSTER REVISION {selectedCluster.current_revision}</p>
+                    <h2>{selectedCluster.representative_test_identity ?? 'Failure cluster'}</h2>
+                  </div>
+                  <span className={`state ${statusClass(selectedCluster.status)}`}>{selectedCluster.status}</span>
+                </div>
+                <div className="cluster-meta">
+                  <span>Algorithm<strong>{selectedCluster.algorithm_version}</strong></span>
+                  <span>Features<strong>{selectedCluster.feature_version}</strong></span>
+                  <span>Uncertainty<strong>{selectedCluster.uncertainty}</strong></span>
+                  <span>Members<strong>{selectedCluster.current.member_count}</strong></span>
+                </div>
+
+                <div className="cluster-members" aria-label="Current cluster memberships">
+                  {selectedCluster.current.memberships.map((member) => (
+                    <article className="cluster-member" key={member.failure_id}>
+                      <label className="member-select">
+                        <input
+                          type="checkbox"
+                          checked={selectedClusterMembers.includes(member.failure_id)}
+                          onChange={() => toggleClusterMember(member.failure_id)}
+                          disabled={selectedCluster.status !== 'active'}
+                        />
+                        <span className="sr-only">Select {member.test_identity} for a reviewed split</span>
+                      </label>
+                      <div className="member-main">
+                        <div className="member-heading">
+                          <strong>{member.test_identity}</strong>
+                          <span>{member.role}</span>
+                          <em>{member.similarity_score === null ? 'representative' : member.similarity_score.toFixed(3)}</em>
+                        </div>
+                        <p>{member.message}</p>
+                        <div className="signal-group">
+                          {member.matching_signals.map((signal) => <code className="match" key={`${member.failure_id}-match-${signal}`}>{signal}</code>)}
+                          {member.conflicting_signals.map((signal) => <code className="conflict" key={`${member.failure_id}-conflict-${signal}`}>{signal}</code>)}
+                          {member.matching_signals.length === 0 && member.conflicting_signals.length === 0 && <small>Representative membership establishes the comparison anchor.</small>}
+                        </div>
+                        {member.candidate_reasons.length > 0 && (
+                          <details className="candidate-reasons">
+                            <summary>Candidate-generation reasons</summary>
+                            <div>{member.candidate_reasons.map((candidate) => <code key={`${member.failure_id}-candidate-${candidate}`}>{candidate}</code>)}</div>
+                          </details>
+                        )}
+                        {Object.keys(member.score_components).length > 0 && (
+                          <dl className="score-components">
+                            {Object.entries(member.score_components).map(([component, value]) => (
+                              <div key={`${member.failure_id}-${component}`}><dt>{component}</dt><dd>{value.toFixed(3)}</dd></div>
+                            ))}
+                          </dl>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="cluster-lower-grid">
+                  <section className="cluster-history" aria-label="Cluster revision history">
+                    <h3>Revision history</h3>
+                    {clusterRevisions.map((revision) => (
+                      <article key={revision.id}>
+                        <strong>Revision {revision.revision}</strong>
+                        <span>{revision.reason.replaceAll('_', ' ')}</span>
+                        <small>{revision.member_count} members · {revision.uncertainty_flags.length > 0 ? revision.uncertainty_flags.join(' · ') : 'low uncertainty'}</small>
+                      </article>
+                    ))}
+                    {selectedCluster.decisions.length > 0 && <h3 className="decision-heading">Reviewed decisions</h3>}
+                    {selectedCluster.decisions.map((decision) => (
+                      <article className="cluster-decision" key={decision.id}>
+                        <strong>{decision.decision.replaceAll('_', ' ')}</strong>
+                        <span>{decision.reason}</span>
+                        <small>{decision.actor} · revision {decision.revision_before} → {decision.revision_after}{decision.cluster_id !== selectedCluster.id ? ' · incoming merge' : ''}</small>
+                      </article>
+                    ))}
+                  </section>
+
+                  <section className="cluster-review" aria-label="Human cluster correction">
+                    <h3>Record a reviewed correction</h3>
+                    <label>Actor<input value={clusterReviewActor} onChange={(event: ChangeEvent<HTMLInputElement>) => setClusterReviewActor(event.target.value)} /></label>
+                    <label>Engineering reason<textarea rows={3} value={clusterReviewReason} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setClusterReviewReason(event.target.value)} placeholder="State the evidence supporting this correction." /></label>
+                    <label>Merge target<select value={mergeTargetId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setMergeTargetId(event.target.value)}><option value="">Select another active cluster</option>{clusters.filter((cluster) => cluster.status === 'active' && cluster.id !== selectedCluster.id).map((cluster) => <option key={cluster.id} value={cluster.id}>{cluster.representative_test_identity ?? cluster.cluster_key.slice(0, 10)} · {cluster.member_count} members</option>)}</select></label>
+                    <p>{selectedClusterMembers.length} member{selectedClusterMembers.length === 1 ? '' : 's'} selected for split.</p>
+                    <div className="cluster-review-actions">
+                      <button type="button" onClick={() => submitClusterReview('confirm')} disabled={busy || selectedCluster.status !== 'active'}>Confirm grouping</button>
+                      <button type="button" onClick={() => submitClusterReview('split')} disabled={busy || selectedCluster.status !== 'active' || selectedClusterMembers.length === 0}>Split selected</button>
+                      <button type="button" onClick={() => submitClusterReview('merge')} disabled={busy || selectedCluster.status !== 'active' || !mergeTargetId}>Merge into target</button>
+                    </div>
+                  </section>
+                </div>
+              </>
+            )}
+          </article>
         </section>
 
         <section id="workspace" className="workspace">

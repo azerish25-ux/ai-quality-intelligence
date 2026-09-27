@@ -1,0 +1,26 @@
+{
+  "case_count": 24,
+  "corpus_sha256": "4fbf372ae714ebdcf76d11d461ca934f43f3c9ae5ea0cda3911006462453f1d1",
+  "family_counts": {
+    "assertion-direction": 4,
+    "bridge-prevention": 3,
+    "data-integrity": 3,
+    "dynamic-cross-browser": 3,
+    "http-status-boundary": 4,
+    "outliers": 3,
+    "selector-collision": 4
+  },
+  "generator_version": "clustering-generator-v1",
+  "incident_count": 13,
+  "label_boundary": "incident_id and oracle fields are evaluation-only and are never passed to feature extraction or clustering",
+  "limitations": [
+    "All clustering cases are synthetic and agent-authored.",
+    "The fixture is a regression benchmark, not an independently blinded generalization study.",
+    "Screenshot similarity and causal upstream/downstream edge evaluation are not represented in this slice."
+  ],
+  "schema_version": "1.0",
+  "source_counts": {
+    "executed": 0,
+    "synthetic": 24
+  }
+}

@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from .analysis import ANALYSIS_VERSION, RULES_VERSION, analyze_failure, input_digest
+from .clustering import cluster_project_failures
 from .config import Settings, get_settings
 from .evidence_validation import (
     VALIDATION_VERSION,
@@ -319,6 +320,7 @@ def ingest_parsed_report(
         )
     )
     if existing:
+        cluster_project_failures(session, project.id)
         return existing
 
     input_summary = [
@@ -571,9 +573,11 @@ def ingest_parsed_report(
             )
         )
         if existing:
+            cluster_project_failures(session, project.id)
             return existing
         raise
     session.refresh(run)
+    cluster_project_failures(session, project.id)
     return run
 
 

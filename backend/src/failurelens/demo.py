@@ -16,12 +16,57 @@ def seed_demo(session: Session) -> dict[str, str]:
         commit_sha="0000000",
         branch="demo",
         framework="normalized",
-        expected_inputs=3,
+        expected_inputs=1,
         source_metadata={"synthetic": True, "notice": "No claim of actual LedgerGuard execution"},
         observations=[
-            TestObservation(test_identity="payments::duplicate-idempotency", outcome="failed", message="balance invariant violated: duplicate committed transfer produced double charge", exception_type="LedgerInvariantError", details={"data_integrity_violation": True}),
-            TestObservation(test_identity="ui::checkout-selector", outcome="failed", message="Timeout waiting for selector [data-testid=pay-now]", exception_type="TimeoutError", details={"trace_missing": True}),
-            TestObservation(test_identity="api::health", outcome="passed", duration_ms=42),
+            TestObservation(
+                test_identity="payments::duplicate-idempotency",
+                source_path="tests/payments.spec.ts",
+                browser="chromium",
+                outcome="failed",
+                message=(
+                    "balance invariant violated at src/ledger.py:114: "
+                    "duplicate committed transfer produced double charge"
+                ),
+                exception_type="LedgerInvariantError",
+                details={
+                    "data_integrity_violation": True,
+                    "route": "/api/transfers/48122",
+                    "method": "POST",
+                    "assertion": "expected committed effect count == 1",
+                    "stack_frames": ["src/ledger.py:114", "src/transfers.py:71"],
+                },
+            ),
+            TestObservation(
+                test_identity="payments::duplicate-idempotency",
+                source_path="tests/payments.spec.ts",
+                browser="firefox",
+                outcome="failed",
+                message=(
+                    "balance invariant violated at src/ledger.py:992: "
+                    "duplicate committed transfer produced double charge"
+                ),
+                exception_type="LedgerInvariantError",
+                details={
+                    "data_integrity_violation": True,
+                    "route": "/api/transfers/99147",
+                    "method": "POST",
+                    "assertion": "expected committed effect count == 1",
+                    "stack_frames": ["src/ledger.py:992", "src/transfers.py:88"],
+                },
+            ),
+            TestObservation(
+                test_identity="ui::checkout-selector",
+                outcome="failed",
+                message="Timeout waiting for selector [data-testid=pay-now]",
+                exception_type="TimeoutError",
+                details={"trace_missing": True},
+            ),
+            TestObservation(
+                test_identity="api::health",
+                outcome="passed",
+                duration_ms=42,
+            ),
         ],
     )
     run = ingest_normalized(session, project, request)

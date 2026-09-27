@@ -194,3 +194,77 @@ class ReviewCreate(BaseModel):
     proposed_category: Category | None = None
     reason: str = Field(min_length=3, max_length=5000)
     expected_version: int = Field(ge=0)
+
+
+class ClusterMemberRead(BaseModel):
+    failure_id: str
+    run_id: str
+    test_identity: str
+    message: str
+    exception_type: str | None
+    role: str
+    similarity_score: float | None
+    score_components: dict[str, float]
+    matching_signals: list[str]
+    conflicting_signals: list[str]
+    candidate_reasons: list[str]
+    assignment_kind: str
+
+
+class ClusterRevisionRead(BaseModel):
+    id: str
+    cluster_id: str
+    revision: int
+    reason: str
+    algorithm_version: str
+    feature_version: str
+    representative_failure_id: str | None
+    member_count: int
+    score_summary: dict[str, Any]
+    uncertainty_flags: list[str]
+    created_at: datetime
+    memberships: list[ClusterMemberRead] = Field(default_factory=list)
+
+
+class ClusterDecisionRead(BaseModel):
+    id: str
+    cluster_id: str
+    actor: str
+    decision: str
+    reason: str
+    failure_ids: list[str]
+    target_cluster_id: str | None
+    revision_before: int
+    revision_after: int
+    created_at: datetime
+
+
+class ClusterSummary(BaseModel):
+    id: str
+    project_id: str
+    cluster_key: str
+    algorithm_version: str
+    feature_version: str
+    current_revision: int
+    representative_failure_id: str | None
+    representative_test_identity: str | None
+    member_count: int
+    uncertainty: str
+    status: str
+    superseded_by_cluster_id: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ClusterDetail(ClusterSummary):
+    current: ClusterRevisionRead | None
+    decisions: list[ClusterDecisionRead] = Field(default_factory=list)
+
+
+class ClusterReviewCreate(BaseModel):
+    actor: str = Field(min_length=1, max_length=240)
+    decision: Literal["confirm", "split", "merge"]
+    reason: str = Field(min_length=3, max_length=5000)
+    expected_revision: int = Field(ge=1)
+    failure_ids: list[str] = Field(default_factory=list, max_length=1000)
+    target_cluster_id: str | None = None

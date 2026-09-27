@@ -73,6 +73,9 @@ class Project(Base):
 
     runs: Mapped[list[Run]] = relationship(back_populates="project", cascade="all, delete-orphan")
     ingestions: Mapped[list[Ingestion]] = relationship(back_populates="project", cascade="all, delete-orphan")
+    clusters: Mapped[list[FailureCluster]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
 
 
 class Run(Base):
@@ -412,6 +415,153 @@ class Failure(Base):
     run: Mapped[Run] = relationship(back_populates="failures")
     execution: Mapped[TestExecution] = relationship(back_populates="failure")
     analyses: Mapped[list[Analysis]] = relationship(back_populates="failure", cascade="all, delete-orphan")
+    cluster_memberships: Mapped[list[ClusterMembership]] = relationship(
+        back_populates="failure", cascade="all, delete-orphan"
+    )
+
+
+class FailureCluster(Base):
+    __tablename__ = "failure_clusters"
+    __table_args__ = (
+        UniqueConstraint("project_id", "cluster_key", name="uq_failure_cluster_key"),
+        Index("ix_failure_clusters_project_status", "project_id", "status"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    cluster_key: Mapped[str] = mapped_column(String(64))
+    algorithm_version: Mapped[str] = mapped_column(String(80))
+    feature_version: Mapped[str] = mapped_column(String(80))
+    current_revision: Mapped[int] = mapped_column(Integer, default=0)
+    representative_failure_id: Mapped[str | None] = mapped_column(
+        ForeignKey("failures.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    member_count: Mapped[int] = mapped_column(Integer, default=0)
+    uncertainty: Mapped[str] = mapped_column(String(40), default="none")
+    status: Mapped[str] = mapped_column(String(40), default="active")
+    superseded_by_cluster_id: Mapped[str | None] = mapped_column(
+        ForeignKey("failure_clusters.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+    project: Mapped[Project] = relationship(back_populates="clusters")
+    representative_failure: Mapped[Failure | None] = relationship(
+        foreign_keys=[representative_failure_id]
+    )
+    superseded_by: Mapped[FailureCluster | None] = relationship(
+        remote_side=[id], foreign_keys=[superseded_by_cluster_id]
+    )
+    revisions: Mapped[list[ClusterRevision]] = relationship(
+        back_populates="cluster", cascade="all, delete-orphan"
+    )
+    memberships: Mapped[list[ClusterMembership]] = relationship(
+        back_populates="cluster", cascade="all, delete-orphan"
+    )
+    decisions: Mapped[list[ClusterMembershipDecision]] = relationship(
+        back_populates="cluster",
+        cascade="all, delete-orphan",
+        foreign_keys="ClusterMembershipDecision.cluster_id",
+    )
+
+
+class ClusterRevision(Base):
+    __tablename__ = "cluster_revisions"
+    __table_args__ = (
+        UniqueConstraint("cluster_id", "revision", name="uq_cluster_revision"),
+        Index("ix_cluster_revisions_cluster_created", "cluster_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    cluster_id: Mapped[str] = mapped_column(
+        ForeignKey("failure_clusters.id", ondelete="CASCADE"), index=True
+    )
+    revision: Mapped[int] = mapped_column(Integer)
+    reason: Mapped[str] = mapped_column(String(80))
+    algorithm_version: Mapped[str] = mapped_column(String(80))
+    feature_version: Mapped[str] = mapped_column(String(80))
+    representative_failure_id: Mapped[str | None] = mapped_column(
+        ForeignKey("failures.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    member_count: Mapped[int] = mapped_column(Integer)
+    score_summary: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    uncertainty_flags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    cluster: Mapped[FailureCluster] = relationship(back_populates="revisions")
+    representative_failure: Mapped[Failure | None] = relationship(
+        foreign_keys=[representative_failure_id]
+    )
+    memberships: Mapped[list[ClusterMembership]] = relationship(
+        back_populates="revision", cascade="all, delete-orphan"
+    )
+
+
+class ClusterMembership(Base):
+    __tablename__ = "cluster_memberships"
+    __table_args__ = (
+        UniqueConstraint("revision_id", "failure_id", name="uq_cluster_revision_failure"),
+        Index("ix_cluster_memberships_cluster_revision", "cluster_id", "revision_id"),
+        Index("ix_cluster_memberships_failure_revision", "failure_id", "revision_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    cluster_id: Mapped[str] = mapped_column(
+        ForeignKey("failure_clusters.id", ondelete="CASCADE"), index=True
+    )
+    revision_id: Mapped[str] = mapped_column(
+        ForeignKey("cluster_revisions.id", ondelete="CASCADE"), index=True
+    )
+    failure_id: Mapped[str] = mapped_column(
+        ForeignKey("failures.id", ondelete="CASCADE"), index=True
+    )
+    role: Mapped[str] = mapped_column(String(40), default="member")
+    similarity_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    score_components: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    matching_signals: Mapped[list[str]] = mapped_column(JSON, default=list)
+    conflicting_signals: Mapped[list[str]] = mapped_column(JSON, default=list)
+    candidate_reasons: Mapped[list[str]] = mapped_column(JSON, default=list)
+    assignment_kind: Mapped[str] = mapped_column(String(40), default="automatic")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    cluster: Mapped[FailureCluster] = relationship(back_populates="memberships")
+    revision: Mapped[ClusterRevision] = relationship(back_populates="memberships")
+    failure: Mapped[Failure] = relationship(back_populates="cluster_memberships")
+
+
+class ClusterMembershipDecision(Base):
+    __tablename__ = "cluster_membership_decisions"
+    __table_args__ = (
+        Index("ix_cluster_decisions_cluster_created", "cluster_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    cluster_id: Mapped[str] = mapped_column(
+        ForeignKey("failure_clusters.id", ondelete="CASCADE"), index=True
+    )
+    target_cluster_id: Mapped[str | None] = mapped_column(
+        ForeignKey("failure_clusters.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    actor: Mapped[str] = mapped_column(String(240))
+    decision: Mapped[str] = mapped_column(String(40))
+    reason: Mapped[str] = mapped_column(Text)
+    failure_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    revision_before: Mapped[int] = mapped_column(Integer)
+    revision_after: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    cluster: Mapped[FailureCluster] = relationship(
+        back_populates="decisions", foreign_keys=[cluster_id]
+    )
+    target_cluster: Mapped[FailureCluster | None] = relationship(
+        foreign_keys=[target_cluster_id]
+    )
 
 
 class Analysis(Base):

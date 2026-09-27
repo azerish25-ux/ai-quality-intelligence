@@ -3,9 +3,9 @@
 
 FailureLens is a self-hosted quality-intelligence platform that turns automated-test artifacts into evidence-linked failure investigations. Its mandatory analysis path is deterministic and CPU-only: no paid model API, cloud account, GPU, or runtime model download is required.
 
-> **Current delivery status: M1 complete; M2 ingestion plus the execution-scoped evidence-integrity boundary implemented; full master specification remains incomplete.**
+> **Current delivery status: M1 and the M3 deterministic analytical core are complete; M2 ingestion/evidence hardening remains partial; the full master specification remains incomplete.**
 >
-> This revision adds immutable content-addressed safe text derivatives, exact execution/input evidence scope, independent digest/locator/quotation/typed-observation validation, semantic claim validation, safe degradation, and dashboard validation diagnostics. Safe binary derivatives, producer-pinned integration fixtures, project-scoped authorization, clustering, history/impact analysis, actual LedgerGuard evaluation cases, and live idempotent PR publication remain open.
+> This revision adds persisted explainable clustering with conservative complete-link grouping, explicit score components and conflicts, deterministic identities, append-only membership revisions, reviewed confirm/split/merge corrections, typed cluster APIs, a real dashboard workspace, and a labeled clustering benchmark. Safe binary derivatives, producer-pinned integration fixtures, project-scoped authorization, full history/impact analysis, actual LedgerGuard evaluation cases, and live idempotent PR publication remain open.
 
 ## What works
 
@@ -61,16 +61,21 @@ Support depth and known limits are documented in [`docs/input-compatibility.md`]
 - Invalid or irrelevant citations are withheld; unsupported classifications safely degrade to `insufficient_evidence` and retain an audit result.
 - Exactly five categories: `product_defect`, `test_defect`, `infrastructure_failure`, `known_flake`, and `insufficient_evidence`.
 - Conservative policy that blocks unsupported flake/infrastructure reassurance when product-risk evidence conflicts or required scope is incomplete.
+- A two-stage deterministic clustering engine: bounded candidate generation followed by explainable multi-signal scoring.
+- Conservative complete-link membership checks that prevent transitive A–B–C bridge merges and retain singleton outliers, mixed signals and uncertainty.
+- Persisted cluster identities, representative failures, score components, matching/conflicting signals and append-only revision history.
+- Human-reviewed cluster confirmation, split and merge decisions with optimistic revision checks; prior memberships are never overwritten.
 - Append-only human review events with optimistic version checks.
-- React/Vite dashboard with uploads, live ingestion status, cancellation/retry, run navigation, per-input completeness diagnostics, failure inspection and evaluation results.
+- React/Vite dashboard with uploads, live ingestion status, cancellation/retry, run navigation, per-input completeness diagnostics, explainable cluster inspection/correction, failure inspection and evaluation results.
 - Composite GitHub Action using the same durable ingestion and deterministic report path.
 - Versioned 200-case synthetic corpus with group-preserving splits and explicit limitations.
+- Separate 24-case/13-incident clustering fixture measuring pairwise precision/recall, false merges, false splits and adjusted Rand index.
 
 ## Verification for this checkpoint
 
 ```text
-100 backend tests passed
-87.38% branch-aware backend coverage (75% gate)
+115 backend tests passed
+87.99% branch-aware backend coverage (75% gate)
 Python source and tests compile successfully
 SQLite migration upgrade/downgrade/re-upgrade passed
 ```
@@ -119,7 +124,7 @@ curl --request POST \
   'http://localhost:8000/api/v1/projects/<project-id>/ingestions?external_id=run-123&filename=failurelens-bundle.zip&expected_inputs=3'
 ```
 
-The response is `202 Accepted` with stable ingestion/job IDs and eventually a `run_id`. Query `GET /api/v1/ingestions/{ingestion_id}` or let the dashboard poll it. Inspect persisted scope with `GET /api/v1/runs/{run_id}/inputs`.
+The response is `202 Accepted` with stable ingestion/job IDs and eventually a `run_id`. Query `GET /api/v1/ingestions/{ingestion_id}` or let the dashboard poll it. Inspect persisted scope with `GET /api/v1/runs/{run_id}/inputs`, then inspect run-scoped clusters with `GET /api/v1/runs/{run_id}/clusters`.
 
 ## Manifest `2.0` example
 
@@ -152,7 +157,7 @@ The response is `202 Accepted` with stable ingestion/job IDs and eventually a `r
 ## Repository map
 
 ```text
-backend/src/failurelens/    API, storage, adapters, evidence, rules, jobs, CLI
+backend/src/failurelens/    API, storage, adapters, evidence, rules, clustering, jobs, CLI
 backend/migrations/         Versioned relational schema
 backend/tests/              Unit, adversarial, API and durable integration tests
 evaluation/                 Corpus generator, labeled corpus, harness, reports
@@ -172,7 +177,7 @@ The system never approves releases, merges pull requests, deletes tests, suppres
 
 ## Evaluation truthfulness
 
-The corpus manifest currently records 200 synthetic cases, 100 scenario families and **0 actual LedgerGuard executions**. Labels are agent-reviewed rather than independently expert-adjudicated. See [`evaluation/corpus/manifest.json`](evaluation/corpus/manifest.json) and [`evaluation/reports/latest/report.md`](evaluation/reports/latest/report.md).
+The classification corpus manifest currently records 200 synthetic cases, 100 scenario families and **0 actual LedgerGuard executions**. The clustering fixture records 24 synthetic observations across 13 independently stored incident labels; its controlled result is 1.000 pairwise precision, 1.000 pairwise recall, 0 false merges, 0 false splits and 1.000 adjusted Rand index. Both datasets are agent-authored regression fixtures, not deployment guarantees or independently blinded studies. See [`evaluation/corpus/manifest.json`](evaluation/corpus/manifest.json), [`evaluation/corpus/clustering-manifest.json`](evaluation/corpus/clustering-manifest.json), and [`evaluation/reports/latest/clustering-report.md`](evaluation/reports/latest/clustering-report.md).
 
 ## Remaining M2 closure work
 

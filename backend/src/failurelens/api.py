@@ -8,18 +8,23 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from .config import get_settings
+from .clustering import review_cluster
 from .db import get_session, initialize_database
 from .demo import seed_demo
 from .evidence_validation import persisted_analysis_is_publication_validated
 from .models import (
     Analysis,
     Category,
+    ClusterMembership,
+    ClusterMembershipDecision,
+    ClusterRevision,
     Evidence,
     Failure,
+    FailureCluster,
     Ingestion,
     IngestionState,
     Project,
@@ -29,6 +34,12 @@ from .models import (
 from .schemas import (
     AnalysisResult,
     ArtifactDerivativeSummary,
+    ClusterDecisionRead,
+    ClusterDetail,
+    ClusterMemberRead,
+    ClusterReviewCreate,
+    ClusterRevisionRead,
+    ClusterSummary,
     EvidenceRead,
     IngestionRead,
     IngestionRequest,
@@ -60,7 +71,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="FailureLens API",
-    version="0.3.0",
+    version="0.4.0",
     description="Evidence-grounded automated test failure triage",
     lifespan=lifespan,
 )
@@ -78,6 +89,126 @@ def authorized(x_failurelens_token: str | None = Header(default=None)) -> None:
         return
     if not settings.ingestion_token or x_failurelens_token != settings.ingestion_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid ingestion token")
+
+
+def _cluster_summary(cluster: FailureCluster) -> ClusterSummary:
+    representative = cluster.representative_failure
+    return ClusterSummary(
+        id=cluster.id,
+        project_id=cluster.project_id,
+        cluster_key=cluster.cluster_key,
+        algorithm_version=cluster.algorithm_version,
+        feature_version=cluster.feature_version,
+        current_revision=cluster.current_revision,
+        representative_failure_id=cluster.representative_failure_id,
+        representative_test_identity=(
+            representative.execution.test_identity if representative is not None else None
+        ),
+        member_count=cluster.member_count,
+        uncertainty=cluster.uncertainty,
+        status=cluster.status,
+        superseded_by_cluster_id=cluster.superseded_by_cluster_id,
+        created_at=cluster.created_at,
+        updated_at=cluster.updated_at,
+    )
+
+
+def _cluster_revision_read(
+    session: Session, revision: ClusterRevision
+) -> ClusterRevisionRead:
+    memberships = list(
+        session.scalars(
+            select(ClusterMembership)
+            .where(ClusterMembership.revision_id == revision.id)
+            .options(
+                selectinload(ClusterMembership.failure).selectinload(
+                    Failure.execution
+                )
+            )
+            .order_by(
+                ClusterMembership.role.desc(),
+                ClusterMembership.similarity_score.desc(),
+                ClusterMembership.failure_id,
+            )
+        ).all()
+    )
+    return ClusterRevisionRead(
+        id=revision.id,
+        cluster_id=revision.cluster_id,
+        revision=revision.revision,
+        reason=revision.reason,
+        algorithm_version=revision.algorithm_version,
+        feature_version=revision.feature_version,
+        representative_failure_id=revision.representative_failure_id,
+        member_count=revision.member_count,
+        score_summary=revision.score_summary,
+        uncertainty_flags=revision.uncertainty_flags,
+        created_at=revision.created_at,
+        memberships=[
+            ClusterMemberRead(
+                failure_id=item.failure_id,
+                run_id=item.failure.run_id,
+                test_identity=item.failure.execution.test_identity,
+                message=item.failure.message,
+                exception_type=item.failure.exception_type,
+                role=item.role,
+                similarity_score=item.similarity_score,
+                score_components={
+                    str(key): float(value)
+                    for key, value in item.score_components.items()
+                    if isinstance(value, (int, float))
+                },
+                matching_signals=item.matching_signals,
+                conflicting_signals=item.conflicting_signals,
+                candidate_reasons=item.candidate_reasons,
+                assignment_kind=item.assignment_kind,
+            )
+            for item in memberships
+        ],
+    )
+
+
+def _cluster_detail(session: Session, cluster: FailureCluster) -> ClusterDetail:
+    revision = session.scalar(
+        select(ClusterRevision).where(
+            ClusterRevision.cluster_id == cluster.id,
+            ClusterRevision.revision == cluster.current_revision,
+        )
+    )
+    decisions = list(
+        session.scalars(
+            select(ClusterMembershipDecision)
+            .where(
+                or_(
+                    ClusterMembershipDecision.cluster_id == cluster.id,
+                    ClusterMembershipDecision.target_cluster_id == cluster.id,
+                )
+            )
+            .order_by(ClusterMembershipDecision.created_at.desc())
+        ).all()
+    )
+    summary = _cluster_summary(cluster)
+    return ClusterDetail(
+        **summary.model_dump(),
+        current=(
+            _cluster_revision_read(session, revision) if revision is not None else None
+        ),
+        decisions=[
+            ClusterDecisionRead(
+                id=item.id,
+                cluster_id=item.cluster_id,
+                actor=item.actor,
+                decision=item.decision,
+                reason=item.reason,
+                failure_ids=item.failure_ids,
+                target_cluster_id=item.target_cluster_id,
+                revision_before=item.revision_before,
+                revision_after=item.revision_after,
+                created_at=item.created_at,
+            )
+            for item in decisions
+        ],
+    )
 
 
 @app.get("/health/live")
@@ -113,6 +244,12 @@ def overview(session: Session = Depends(get_session)) -> dict:
         )
         or 0,
         "failures": session.scalar(select(func.count(Failure.id))) or 0,
+        "clusters": session.scalar(
+            select(func.count(FailureCluster.id)).where(
+                FailureCluster.status == "active"
+            )
+        )
+        or 0,
         "analyses": len(analyses),
         "categories": {
             category.value: publication_categories.get(category.value, 0)
@@ -346,6 +483,172 @@ def run_inputs_list(run_id: str, session: Session = Depends(get_session)) -> lis
             .order_by(RunInput.required.desc(), RunInput.input_id.asc())
         ).all()
     )
+
+
+@app.get(
+    "/api/v1/projects/{project_id}/clusters",
+    response_model=list[ClusterSummary],
+)
+def clusters_list(
+    project_id: str,
+    include_superseded: bool = False,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    session: Session = Depends(get_session),
+) -> list[ClusterSummary]:
+    if session.get(Project, project_id) is None:
+        raise HTTPException(404, "project not found")
+    query = (
+        select(FailureCluster)
+        .where(FailureCluster.project_id == project_id)
+        .options(
+            selectinload(FailureCluster.representative_failure).selectinload(
+                Failure.execution
+            )
+        )
+        .order_by(
+            FailureCluster.status,
+            FailureCluster.member_count.desc(),
+            FailureCluster.updated_at.desc(),
+            FailureCluster.cluster_key,
+        )
+        .offset(offset)
+        .limit(limit)
+    )
+    if not include_superseded:
+        query = query.where(FailureCluster.status == "active")
+    return [_cluster_summary(cluster) for cluster in session.scalars(query).all()]
+
+
+@app.get(
+    "/api/v1/runs/{run_id}/clusters",
+    response_model=list[ClusterSummary],
+)
+def run_clusters_list(
+    run_id: str,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    session: Session = Depends(get_session),
+) -> list[ClusterSummary]:
+    if session.get(Run, run_id) is None:
+        raise HTTPException(404, "run not found")
+    clusters = list(
+        session.scalars(
+            select(FailureCluster)
+            .join(
+                ClusterRevision,
+                ClusterRevision.cluster_id == FailureCluster.id,
+            )
+            .join(
+                ClusterMembership,
+                ClusterMembership.revision_id == ClusterRevision.id,
+            )
+            .join(Failure, Failure.id == ClusterMembership.failure_id)
+            .where(
+                Failure.run_id == run_id,
+                FailureCluster.status == "active",
+                ClusterRevision.revision == FailureCluster.current_revision,
+            )
+            .options(
+                selectinload(FailureCluster.representative_failure).selectinload(
+                    Failure.execution
+                )
+            )
+            .order_by(
+                FailureCluster.member_count.desc(),
+                FailureCluster.updated_at.desc(),
+                FailureCluster.cluster_key,
+            )
+            .offset(offset)
+            .limit(limit)
+            .distinct()
+        ).all()
+    )
+    return [_cluster_summary(cluster) for cluster in clusters]
+
+
+@app.get("/api/v1/clusters/{cluster_id}", response_model=ClusterDetail)
+def clusters_get(
+    cluster_id: str,
+    session: Session = Depends(get_session),
+) -> ClusterDetail:
+    cluster = session.scalar(
+        select(FailureCluster)
+        .where(FailureCluster.id == cluster_id)
+        .options(
+            selectinload(FailureCluster.representative_failure).selectinload(
+                Failure.execution
+            )
+        )
+    )
+    if cluster is None:
+        raise HTTPException(404, "cluster not found")
+    return _cluster_detail(session, cluster)
+
+
+@app.get(
+    "/api/v1/clusters/{cluster_id}/revisions",
+    response_model=list[ClusterRevisionRead],
+)
+def cluster_revisions_list(
+    cluster_id: str,
+    limit: Annotated[int, Query(ge=1, le=200)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    session: Session = Depends(get_session),
+) -> list[ClusterRevisionRead]:
+    if session.get(FailureCluster, cluster_id) is None:
+        raise HTTPException(404, "cluster not found")
+    revisions = list(
+        session.scalars(
+            select(ClusterRevision)
+            .where(ClusterRevision.cluster_id == cluster_id)
+            .order_by(ClusterRevision.revision.desc())
+            .offset(offset)
+            .limit(limit)
+        ).all()
+    )
+    return [_cluster_revision_read(session, revision) for revision in revisions]
+
+
+@app.post(
+    "/api/v1/clusters/{cluster_id}/reviews",
+    response_model=ClusterDetail,
+    status_code=201,
+    dependencies=[Depends(authorized)],
+)
+def cluster_reviews_create(
+    cluster_id: str,
+    request: ClusterReviewCreate,
+    session: Session = Depends(get_session),
+) -> ClusterDetail:
+    cluster = session.get(FailureCluster, cluster_id)
+    if cluster is None:
+        raise HTTPException(404, "cluster not found")
+    try:
+        review_cluster(
+            session,
+            cluster,
+            actor=request.actor,
+            decision=request.decision,
+            reason=request.reason,
+            expected_revision=request.expected_revision,
+            failure_ids=request.failure_ids,
+            target_cluster_id=request.target_cluster_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    refreshed = session.scalar(
+        select(FailureCluster)
+        .where(FailureCluster.id == cluster_id)
+        .options(
+            selectinload(FailureCluster.representative_failure).selectinload(
+                Failure.execution
+            )
+        )
+    )
+    if refreshed is None:
+        raise HTTPException(404, "cluster not found after review")
+    return _cluster_detail(session, refreshed)
 
 
 @app.get("/api/v1/runs/{run_id}/failures")

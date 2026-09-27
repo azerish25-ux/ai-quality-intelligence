@@ -123,8 +123,83 @@ export interface Overview {
   ingestions: number;
   active_ingestions: number;
   failures: number;
+  clusters: number;
   analyses: number;
   categories: Record<Category, number>;
+}
+
+export interface ClusterSummary {
+  id: string;
+  project_id: string;
+  cluster_key: string;
+  algorithm_version: string;
+  feature_version: string;
+  current_revision: number;
+  representative_failure_id: string | null;
+  representative_test_identity: string | null;
+  member_count: number;
+  uncertainty: string;
+  status: string;
+  superseded_by_cluster_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClusterMember {
+  failure_id: string;
+  run_id: string;
+  test_identity: string;
+  message: string;
+  exception_type: string | null;
+  role: string;
+  similarity_score: number | null;
+  score_components: Record<string, number>;
+  matching_signals: string[];
+  conflicting_signals: string[];
+  candidate_reasons: string[];
+  assignment_kind: string;
+}
+
+export interface ClusterRevision {
+  id: string;
+  cluster_id: string;
+  revision: number;
+  reason: string;
+  algorithm_version: string;
+  feature_version: string;
+  representative_failure_id: string | null;
+  member_count: number;
+  score_summary: Record<string, unknown>;
+  uncertainty_flags: string[];
+  created_at: string;
+  memberships: ClusterMember[];
+}
+
+export interface ClusterDecision {
+  id: string;
+  cluster_id: string;
+  actor: string;
+  decision: string;
+  reason: string;
+  failure_ids: string[];
+  target_cluster_id: string | null;
+  revision_before: number;
+  revision_after: number;
+  created_at: string;
+}
+
+export interface ClusterDetail extends ClusterSummary {
+  current: ClusterRevision | null;
+  decisions: ClusterDecision[];
+}
+
+export interface ClusterReview {
+  actor: string;
+  decision: 'confirm' | 'split' | 'merge';
+  reason: string;
+  expectedRevision: number;
+  failureIds?: string[];
+  targetClusterId?: string;
 }
 
 export interface UploadMetadata {
@@ -185,6 +260,24 @@ export const api = {
   retryIngestion: (ingestionId: string) => json<Ingestion>(`/api/v1/ingestions/${ingestionId}/retry`, { method: 'POST' }),
   cancelIngestion: (ingestionId: string) => json<Ingestion>(`/api/v1/ingestions/${ingestionId}/cancel`, { method: 'POST' }),
   failures: (runId: string) => json<Failure[]>(`/api/v1/runs/${runId}/failures`),
+  clusters: (projectId: string) => json<ClusterSummary[]>(`/api/v1/projects/${projectId}/clusters`),
+  runClusters: (runId: string) => json<ClusterSummary[]>(`/api/v1/runs/${runId}/clusters`),
+  cluster: (clusterId: string) => json<ClusterDetail>(`/api/v1/clusters/${clusterId}`),
+  clusterRevisions: (clusterId: string) => json<ClusterRevision[]>(`/api/v1/clusters/${clusterId}/revisions`),
+  reviewCluster: (clusterId: string, review: ClusterReview) => json<ClusterDetail>(
+    `/api/v1/clusters/${clusterId}/reviews`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        actor: review.actor,
+        decision: review.decision,
+        reason: review.reason,
+        expected_revision: review.expectedRevision,
+        failure_ids: review.failureIds ?? [],
+        target_cluster_id: review.targetClusterId ?? null
+      })
+    }
+  ),
   runInputs: (runId: string) => json<RunInput[]>(`/api/v1/runs/${runId}/inputs`),
   analyze: (failureId: string) => json<Analysis>(`/api/v1/failures/${failureId}/analyses`, { method: 'POST' }),
   seedDemo: () => json<{ project_id: string; run_id: string }>('/api/v1/demo/seed', { method: 'POST' }),

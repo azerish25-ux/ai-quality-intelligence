@@ -10,10 +10,14 @@ flowchart LR
     D --> E[adapter registry and bounded validation]
     E --> F[(PostgreSQL run + run_inputs + executions)]
     F --> G[immutable safe derivatives + scoped evidence]
-    G --> H[deterministic rule engine]
+    G --> P[versioned fingerprints + clustering features]
+    P --> Q[bounded candidates + explainable complete-link clustering]
+    Q --> R[(cluster identities + append-only revisions)]
+    P --> H[deterministic rule engine]
     H --> V[independent publication validator]
     V --> I[evidence-linked analysis revision]
-    I --> J[React dashboard]
+    R --> J[React dashboard]
+    I --> J
     I --> N[Markdown / GitHub Action summary]
     K[synthetic evaluation corpus] --> L[evaluation harness]
     L --> G
@@ -49,6 +53,8 @@ The migrations define explicit tables for:
 - immutable safe artifact derivatives and source maps;
 - execution/input-scoped evidence observations and locators;
 - failures and versioned fingerprints;
+- failure clusters, append-only cluster revisions and revision-scoped memberships;
+- reviewed cluster confirm/split/merge decisions with optimistic revision checks;
 - validated analysis revisions and validation audits; and
 - append-only review events.
 
@@ -62,12 +68,28 @@ Important invariants are represented directly: a retry is not an independent run
 4. Normalize test observations, create immutable content-addressed safe derivatives, and persist exact execution/input scope plus versioned locators/source maps.
 5. Select only evidence authorized for the current failure; never use every evidence row in the run.
 6. Re-read and validate derivative bytes, source/derivative digests, locator bounds, exact excerpt, typed observation and approval state.
-7. Create strict fingerprints from normalized exception/message/status/route/selector/assertion features and retrieve only prior history for the same project/fingerprint.
-8. Apply versioned deterministic rules and contradiction policy to validated evidence only.
-9. Independently validate each typed claim's evidence references and semantic support; withhold invalid claims and safely degrade unsupported classifications.
-10. Persist confidence, supporting/contradictory evidence, missing evidence, hypotheses, validation audit, investigation steps, policy flags and reproducibility provenance.
+7. Create strict fingerprints and a separate loose clustering view from normalized exception/message/status/route/selector/assertion/stack/browser features.
+8. Generate bounded candidates from stable blocking signals, then calculate explicit matching, conflicting and weighted score components.
+9. Build clusters conservatively: a candidate must satisfy both the representative threshold and the complete-link floor against every existing member. This prevents weak transitive A–B–C bridge merges.
+10. Persist deterministic cluster identities, representative failures, uncertainty flags, member scores and append-only revisions. Reviewed confirm/split/merge corrections create new revisions rather than rewriting history.
+11. Retrieve only prior history for the same project/fingerprint and apply versioned deterministic rules and contradiction policy to validated evidence only. Cluster similarity does not prove causality and cannot override contradictory current-run evidence.
+12. Independently validate each typed claim's evidence references and semantic support; withhold invalid claims and safely degrade unsupported classifications.
+13. Persist confidence, supporting/contradictory evidence, missing evidence, hypotheses, validation audit, investigation steps, policy flags and reproducibility provenance.
 
 The score is a `heuristic_score`, not a calibrated probability.
+
+## Explainable clustering boundary
+
+Clustering has two separate identities:
+
+- a strict fingerprint for highly similar observations and deduplication; and
+- a loose, readable feature view for candidate generation and similarity scoring.
+
+Candidate generation uses bounded blocks such as strict fingerprint, exception family, canonical route, selector, assertion, leading stack frame and selected normalized message tokens. Common exception/token blocks are capped so the runtime does not silently become an all-pairs comparison.
+
+Scoring retains both positive and negative evidence. HTTP authorization failures cannot merge with server failures merely because they share a route; generic timeouts cannot bridge different selectors; assertion direction and negation remain causally material. Cross-browser reproduction contributes only after stronger non-browser evidence exists. Singleton and uncertain clusters remain visible.
+
+The cluster tables record the algorithm and feature versions, representative failure, score summary, uncertainty flags, revision-scoped memberships, score components, candidate reasons, matching/conflicting signals and human decision history. A cluster means “joint investigation candidate,” not “proven shared root cause.” No upstream/downstream causal edge is inferred from timing alone.
 
 ## Durable jobs
 

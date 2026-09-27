@@ -50,6 +50,33 @@ Before an analysis revision is visible, the publication validator re-reads the d
 
 `GET /api/v1/evidence/{evidence_id}` returns only approved safe evidence metadata and sanitized content. It includes execution/input scope, locator and derivative digest/provenance, but never returns a filesystem path or restricted source bytes. Restricted, unapproved or expired derivatives return `403`.
 
+## Explainable failure clusters
+
+Clustering runs after normalized failures are persisted. It is deterministic and project-scoped; replaying the same inputs with the same algorithm/feature versions does not duplicate clusters or memberships.
+
+- `GET /api/v1/projects/{project_id}/clusters?limit=50&offset=0` lists active project clusters. Add `include_superseded=true` to audit historical identities.
+- `GET /api/v1/runs/{run_id}/clusters?limit=50&offset=0` lists active clusters containing a current member from the run.
+- `GET /api/v1/clusters/{cluster_id}` returns the current revision, representative failure, member scores, component weights, matching/conflicting signals, candidate reasons, uncertainty and reviewed decisions.
+- `GET /api/v1/clusters/{cluster_id}/revisions?limit=100&offset=0` returns revisions newest first; prior memberships remain immutable.
+- `POST /api/v1/clusters/{cluster_id}/reviews` records a reviewed `confirm`, `split`, or `merge` with `expected_revision` optimistic concurrency.
+
+Example reviewed split:
+
+```json
+{
+  "actor": "reviewer@example.test",
+  "decision": "split",
+  "reason": "The selector and endpoint evidence identify a separate incident.",
+  "expected_revision": 2,
+  "failure_ids": ["<failure-id>"],
+  "target_cluster_id": null
+}
+```
+
+A split requires a non-empty proper subset of the current members. A merge requires another active cluster in the same project. Stale revisions, cross-project targets and attempts to review a superseded cluster return `409`. Human decisions create append-only revisions and never erase an earlier automatic grouping.
+
+Cluster similarity is not a causal claim. The API exposes negative/conflicting signals and singleton/mixed uncertainty rather than hiding them, and cluster membership is not accepted as evidence for dismissing product risk.
+
 ## Manifest `2.0` ZIP contract
 
 A root `manifest.json` declares every artifact:
@@ -95,6 +122,11 @@ Schema `1.0` bundles with a single `report` path remain readable. A ZIP without 
 - `GET /api/v1/projects/{project_id}/runs`
 - `GET /api/v1/runs/{run_id}`
 - `GET /api/v1/runs/{run_id}/inputs`
+- `GET /api/v1/projects/{project_id}/clusters`
+- `GET /api/v1/runs/{run_id}/clusters`
+- `GET /api/v1/clusters/{cluster_id}`
+- `GET /api/v1/clusters/{cluster_id}/revisions`
+- `POST /api/v1/clusters/{cluster_id}/reviews`
 - `GET /api/v1/runs/{run_id}/failures`
 - `POST /api/v1/failures/{failure_id}/analyses`
 - `GET /api/v1/analyses/{analysis_id}`

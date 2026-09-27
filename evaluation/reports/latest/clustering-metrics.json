@@ -1,0 +1,32 @@
+{
+  "acceptance": {
+    "adjusted_rand_index_gte_0_90": true,
+    "false_splits_lte_1": true,
+    "pairwise_precision_gte_0_95": true,
+    "pairwise_recall_gte_0_90": true,
+    "zero_false_merges": true,
+    "zero_missing_predictions": true,
+    "zero_unexpected_predictions": true
+  },
+  "adjusted_rand_index": 1.0,
+  "algorithm_version": "explainable-complete-link-v1",
+  "case_count": 24,
+  "evaluation_version": "clustering-harness-v1",
+  "false_merges": 0,
+  "false_splits": 0,
+  "feature_version": "cluster-features-v1:fingerprint-v1",
+  "incident_count": 13,
+  "limitations": [
+    "All cases are synthetic and agent-authored.",
+    "Incident labels are evaluation-only and are excluded from runtime clustering features.",
+    "The fixture emphasizes collision boundaries and bridge prevention rather than production prevalence.",
+    "Screenshot similarity and causal edge quality are not measured in this milestone."
+  ],
+  "missing_predictions": 0,
+  "pairwise_precision": 1.0,
+  "pairwise_recall": 1.0,
+  "predicted_cluster_count": 13,
+  "singleton_cluster_count": 4,
+  "true_negative_pairs": 263,
+  "unexpected_predictions": 0
+}
