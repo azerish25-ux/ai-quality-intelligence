@@ -23,7 +23,7 @@ evaluate:
 	PYTHONPATH=backend/src $(PYTHON) evaluation/clustering_harness.py --output evaluation/reports/latest
 
 security-test:
-	cd backend && PYTHONPATH=src pytest -q tests/test_redaction.py tests/test_ingestion.py tests/test_analysis.py tests/test_clustering.py
+	cd backend && PYTHONPATH=src pytest -q tests/test_redaction.py tests/test_ingestion.py tests/test_analysis.py tests/test_clustering.py tests/test_history.py
 
 verify:
 	./scripts/verify.sh

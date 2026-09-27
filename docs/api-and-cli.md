@@ -77,6 +77,16 @@ A split requires a non-empty proper subset of the current members. A merge requi
 
 Cluster similarity is not a causal claim. The API exposes negative/conflicting signals and singleton/mixed uncertainty rather than hiding them, and cluster membership is not accepted as evidence for dismissing product risk.
 
+## Prior-only test history
+
+```http
+GET /api/v1/tests/{execution_id}/history
+```
+
+The selected execution defines the exact logical test identity and maximum cutoff. Optional filters are `after`, `before`, `browser`, `branch`, `environment`, `run_scope`, `worker_count`, `shard_count`, `timezone`, `limit`, and `offset`. `before` may narrow the history window but cannot expose runs at or after the selected execution.
+
+The response contains explicit first/final outcome counts, pass/fail and retry-recovery numerators/denominators, 95% Wilson intervals, sample-size status, browser/branch/environment/scope/worker/shard/time-bucket breakdowns, sequences, recurrence intervals, qualifying prior review events, safety reasons, a deterministic history digest and exact contributing run/execution IDs. Runs where the test was absent are reported separately and are not counted as passes. See `docs/history.md` for definitions and known-flake safety policy.
+
 ## Manifest `2.0` ZIP contract
 
 A root `manifest.json` declares every artifact:
@@ -128,6 +138,7 @@ Schema `1.0` bundles with a single `report` path remain readable. A ZIP without 
 - `GET /api/v1/clusters/{cluster_id}/revisions`
 - `POST /api/v1/clusters/{cluster_id}/reviews`
 - `GET /api/v1/runs/{run_id}/failures`
+- `GET /api/v1/tests/{execution_id}/history`
 - `POST /api/v1/failures/{failure_id}/analyses`
 - `GET /api/v1/analyses/{analysis_id}`
 - `POST /api/v1/analyses/{analysis_id}/reviews`
@@ -141,7 +152,7 @@ FastAPI generates the authoritative OpenAPI schema at runtime.
 
 ```bash
 failurelens doctor
-failurelens ingest report.xml --project checkout --external-id gha-901
+failurelens ingest report.xml --project checkout --external-id gha-901 --run-scope full_suite --environment ci-linux --timezone America/Halifax --worker-count 4 --shard-count 2
 failurelens ingestion-status --ingestion <ingestion-id>
 failurelens ingest failurelens-bundle.zip --project checkout --external-id gha-902 --expected-inputs 3 --process
 failurelens report --run <run-id> --format markdown

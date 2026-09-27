@@ -13,7 +13,10 @@ flowchart LR
     G --> P[versioned fingerprints + clustering features]
     P --> Q[bounded candidates + explainable complete-link clustering]
     Q --> R[(cluster identities + append-only revisions)]
+    F --> S[prior-only history aggregation]
+    S --> T[traceable rates + history digest]
     P --> H[deterministic rule engine]
+    T --> H
     H --> V[independent publication validator]
     V --> I[evidence-linked analysis revision]
     R --> J[React dashboard]
@@ -48,7 +51,7 @@ The migrations define explicit tables for:
 - durable ingestions and leased jobs;
 - runs and run completeness;
 - persisted per-run input scope/diagnostics (`run_inputs`);
-- logical test executions/attempts;
+- logical test executions/attempts plus run scope, environment, timezone, worker and shard cohort metadata;
 - restricted artifact descriptors;
 - immutable safe artifact derivatives and source maps;
 - execution/input-scoped evidence observations and locators;
@@ -72,11 +75,18 @@ Important invariants are represented directly: a retry is not an independent run
 8. Generate bounded candidates from stable blocking signals, then calculate explicit matching, conflicting and weighted score components.
 9. Build clusters conservatively: a candidate must satisfy both the representative threshold and the complete-link floor against every existing member. This prevents weak transitive A–B–C bridge merges.
 10. Persist deterministic cluster identities, representative failures, uncertainty flags, member scores and append-only revisions. Reviewed confirm/split/merge corrections create new revisions rather than rewriting history.
-11. Retrieve only prior history for the same project/fingerprint and apply versioned deterministic rules and contradiction policy to validated evidence only. Cluster similarity does not prove causality and cannot override contradictory current-run evidence.
+11. Retrieve prior executions for the exact project/repository/framework/test/suite/path/parameter identity. Collapse retries per run/browser cohort; expose explicit outcome counts, denominators, uncertainty intervals, sequences and cohort breakdowns; exclude current/future data and later reviews; and persist the versioned history digest/cutoff in analysis provenance. Known-flake support requires compatible full-suite passes and failures plus a qualifying prior reviewed matching fingerprint. Cluster similarity does not prove causality and cannot override contradictory current-run evidence.
 12. Independently validate each typed claim's evidence references and semantic support; withhold invalid claims and safely degrade unsupported classifications.
 13. Persist confidence, supporting/contradictory evidence, missing evidence, hypotheses, validation audit, investigation steps, policy flags and reproducibility provenance.
 
 The score is a `heuristic_score`, not a calibrated probability.
+
+
+## Historical intelligence boundary
+
+History is computed from persisted observations rather than a failure-only table. One run/browser cohort contributes one independent first/final outcome. Retries are never counted as separate runs, absent tests are not passes, and skipped/cancelled/unknown outcomes remain explicit. Run scope (`full_suite`, `impact_selected`, `unknown`) is part of the cohort contract so selected-subset evidence cannot silently create reassuring population rates.
+
+The API may explore browser, branch, environment, run-scope, worker, shard and timezone-aware time buckets, but the analyzer uses the same browser/environment and full-suite history only. Every calculation is bounded by an immutable cutoff and produces a canonical digest over policy, filters, observations and prior review IDs. Human review annotates observed outcomes; it does not rewrite them.
 
 ## Explainable clustering boundary
 

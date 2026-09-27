@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections import Counter
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
@@ -16,6 +17,7 @@ from .clustering import review_cluster
 from .db import get_session, initialize_database
 from .demo import seed_demo
 from .evidence_validation import persisted_analysis_is_publication_validated
+from .history import build_test_history
 from .models import (
     Analysis,
     Category,
@@ -30,6 +32,7 @@ from .models import (
     Project,
     Run,
     RunInput,
+    TestExecution,
 )
 from .schemas import (
     AnalysisResult,
@@ -49,6 +52,7 @@ from .schemas import (
     RunInputRead,
     RunMetadata,
     RunRead,
+    TestHistoryRead,
 )
 from .service import (
     add_review,
@@ -71,7 +75,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="FailureLens API",
-    version="0.4.0",
+    version="0.5.0",
     description="Evidence-grounded automated test failure triage",
     lifespan=lifespan,
 )
@@ -310,6 +314,13 @@ async def ingestions_create(
     commit_sha: str | None = Query(default=None, pattern=r"^[0-9a-fA-F]{7,64}$"),
     base_sha: str | None = Query(default=None, pattern=r"^[0-9a-fA-F]{7,64}$"),
     branch: str | None = Query(default=None, max_length=240),
+    run_scope: str = Query(
+        default="unknown", pattern=r"^(full_suite|impact_selected|unknown)$"
+    ),
+    environment: str | None = Query(default=None, max_length=160),
+    timezone: str | None = Query(default=None, max_length=80),
+    worker_count: int | None = Query(default=None, ge=1, le=100_000),
+    shard_count: int | None = Query(default=None, ge=1, le=100_000),
     expected_inputs: int | None = Query(default=None, ge=0),
     source_format: str = Query(default="auto", min_length=1, max_length=80),
     session: Session = Depends(get_session),
@@ -341,6 +352,11 @@ async def ingestions_create(
             base_sha=base_sha,
             branch=branch,
             framework=source_format,
+            run_scope=run_scope,
+            environment=environment,
+            timezone=timezone,
+            worker_count=worker_count,
+            shard_count=shard_count,
             expected_inputs=expected_inputs,
             source_metadata={"transport": "raw-http"},
         )
@@ -651,6 +667,80 @@ def cluster_reviews_create(
     return _cluster_detail(session, refreshed)
 
 
+def _utc_datetime(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+@app.get("/api/v1/tests/{execution_id}/history", response_model=TestHistoryRead)
+def test_history_get(
+    execution_id: str,
+    after: datetime | None = None,
+    before: datetime | None = None,
+    browser: str | None = Query(default=None, max_length=80),
+    branch: str | None = Query(default=None, max_length=240),
+    environment: str | None = Query(default=None, max_length=160),
+    run_scope: str | None = Query(
+        default=None, pattern=r"^(full_suite|impact_selected|unknown)$"
+    ),
+    timezone_name: str | None = Query(default=None, alias="timezone", max_length=80),
+    worker_count: int | None = Query(default=None, ge=1, le=100_000),
+    shard_count: int | None = Query(default=None, ge=1, le=100_000),
+    limit: Annotated[int, Query(ge=1, le=200)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    session: Session = Depends(get_session),
+) -> TestHistoryRead:
+    execution = session.scalar(
+        select(TestExecution)
+        .where(TestExecution.id == execution_id)
+        .options(
+            selectinload(TestExecution.run),
+            selectinload(TestExecution.failure),
+        )
+    )
+    if execution is None:
+        raise HTTPException(404, "test execution not found")
+
+    reference_cutoff = _utc_datetime(execution.run.started_at or execution.run.created_at)
+    requested_cutoff = _utc_datetime(before) if before is not None else reference_cutoff
+    effective_cutoff = min(reference_cutoff, requested_cutoff)
+    if after is not None and _utc_datetime(after) >= effective_cutoff:
+        raise HTTPException(422, "after must be earlier than the prior-only cutoff")
+
+    try:
+        report = build_test_history(
+            session,
+            selected_execution=execution,
+            selected_run=execution.run,
+            cutoff=effective_cutoff,
+            after=after,
+            browser=browser,
+            match_browser=browser is not None,
+            branch=branch,
+            match_branch=branch is not None,
+            environment=environment,
+            match_environment=environment is not None,
+            run_scope=run_scope,
+            worker_count=worker_count,
+            match_worker_count=worker_count is not None,
+            shard_count=shard_count,
+            match_shard_count=shard_count is not None,
+            timezone_name=timezone_name or execution.run.timezone or "UTC",
+            exclude_run_id=execution.run_id,
+            strict_fingerprint=(
+                execution.failure.strict_fingerprint
+                if execution.failure is not None
+                else None
+            ),
+            observation_limit=limit,
+            observation_offset=offset,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return TestHistoryRead.model_validate(report)
+
+
 @app.get("/api/v1/runs/{run_id}/failures")
 def failures_list(run_id: str, session: Session = Depends(get_session)) -> list[dict]:
     failures = session.scalars(
@@ -665,6 +755,7 @@ def failures_list(run_id: str, session: Session = Depends(get_session)) -> list[
         result.append(
             {
                 "id": failure.id,
+                "execution_id": failure.execution_id,
                 "test_identity": failure.execution.test_identity,
                 "message": failure.message,
                 "fingerprint": failure.strict_fingerprint,

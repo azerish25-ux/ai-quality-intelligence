@@ -347,3 +347,36 @@ def test_manifest_v2_persists_input_scope_and_missing_required_artifacts(client,
     assert by_id["expected-screenshot"]["status"] == "missing"
     assert by_id["expected-screenshot"]["warnings"] == ["missing_attachment"]
     assert session.scalar(select(func.count(RunInput.id))) == 3
+
+
+def test_legacy_ingestion_without_cohort_metadata_replays_idempotently(session) -> None:
+    settings = get_settings()
+    project = create_project(session, "legacy-cohort", "Legacy Cohort")
+    stored = store_bytes(
+        b'<testsuite><testcase name="ok"/></testsuite>',
+        root=settings.artifact_root,
+        project_id=project.id,
+        filename="legacy.xml",
+        media_type="application/xml",
+        max_bytes=settings.max_file_bytes,
+    )
+    metadata = RunMetadata(external_id="legacy-1")
+    original = enqueue_artifact_ingestion(
+        session,
+        project,
+        metadata,
+        stored,
+        settings=settings,
+    )
+    original.source_metadata = {}
+    session.commit()
+
+    replay = enqueue_artifact_ingestion(
+        session,
+        project,
+        metadata,
+        stored,
+        settings=settings,
+    )
+
+    assert replay.id == original.id

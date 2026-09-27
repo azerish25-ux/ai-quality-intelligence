@@ -9,7 +9,8 @@ import {
   type Overview,
   type Project,
   type Run,
-  type RunInput
+  type RunInput,
+  type TestHistory
 } from './api';
 
 const categoryLabel: Record<string, string> = {
@@ -33,6 +34,13 @@ const ingestionLabel: Record<string, string> = {
 const statusClass = (value: string): string => value.replaceAll('_', '-');
 const terminalIngestionStates = new Set(['succeeded', 'partial', 'failed', 'cancelled', 'dead_lettered']);
 
+const formatRate = (rate: TestHistory['rates'][string] | undefined): string => {
+  if (!rate || rate.value === null) return `Unavailable (${rate?.numerator ?? 0}/${rate?.denominator ?? 0})`;
+  return `${(rate.value * 100).toFixed(1)}% (${rate.numerator}/${rate.denominator})`;
+};
+
+const readableValue = (value: string): string => value.replaceAll('_', ' ');
+
 const newExternalId = (): string => `manual-${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}`;
 
 function App() {
@@ -55,9 +63,31 @@ function App() {
   const [clusterReviewReason, setClusterReviewReason] = useState('');
   const [mergeTargetId, setMergeTargetId] = useState('');
   const [selectedFailure, setSelectedFailure] = useState<Failure | null>(null);
+  const [testHistory, setTestHistory] = useState<TestHistory | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyRunScope, setHistoryRunScope] = useState(
+    () => new URLSearchParams(window.location.search).get('history_scope') ?? ''
+  );
+  const [historyBrowser, setHistoryBrowser] = useState(
+    () => new URLSearchParams(window.location.search).get('history_browser') ?? ''
+  );
+  const [historyBranch, setHistoryBranch] = useState(
+    () => new URLSearchParams(window.location.search).get('history_branch') ?? ''
+  );
+  const [historyEnvironment, setHistoryEnvironment] = useState(
+    () => new URLSearchParams(window.location.search).get('history_environment') ?? ''
+  );
+  const [historyWorkerCount, setHistoryWorkerCount] = useState(
+    () => new URLSearchParams(window.location.search).get('history_workers') ?? ''
+  );
+  const [historyShardCount, setHistoryShardCount] = useState(
+    () => new URLSearchParams(window.location.search).get('history_shards') ?? ''
+  );
   const [evaluation, setEvaluation] = useState<Record<string, unknown> | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [externalId, setExternalId] = useState(newExternalId);
+  const [uploadRunScope, setUploadRunScope] = useState<'full_suite' | 'impact_selected' | 'unknown'>('unknown');
+  const [uploadEnvironment, setUploadEnvironment] = useState('');
   const [expectedInputs, setExpectedInputs] = useState('');
   const [fileInputKey, setFileInputKey] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -180,6 +210,86 @@ function App() {
     [runs, runId]
   );
 
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const values: Record<string, string> = {
+      history_scope: historyRunScope,
+      history_browser: historyBrowser,
+      history_branch: historyBranch,
+      history_environment: historyEnvironment,
+      history_workers: historyWorkerCount,
+      history_shards: historyShardCount
+    };
+    Object.entries(values).forEach(([key, value]) => {
+      if (value.trim()) url.searchParams.set(key, value.trim());
+      else url.searchParams.delete(key);
+    });
+    window.history.replaceState(
+      null,
+      '',
+      `${url.pathname}${url.search}${url.hash}`
+    );
+  }, [
+    historyBranch,
+    historyBrowser,
+    historyEnvironment,
+    historyRunScope,
+    historyShardCount,
+    historyWorkerCount
+  ]);
+
+  useEffect(() => {
+    if (!selectedFailure) {
+      setTestHistory(null);
+      setHistoryLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setHistoryLoading(true);
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    const workerCount = historyWorkerCount.trim()
+      ? Number(historyWorkerCount)
+      : undefined;
+    const shardCount = historyShardCount.trim()
+      ? Number(historyShardCount)
+      : undefined;
+    api.testHistory(selectedFailure.execution_id, {
+      browser: historyBrowser.trim() || undefined,
+      branch: historyBranch.trim() || undefined,
+      environment: historyEnvironment.trim() || undefined,
+      runScope: historyRunScope === ''
+        ? undefined
+        : historyRunScope as 'full_suite' | 'impact_selected' | 'unknown',
+      workerCount: workerCount && workerCount > 0 ? workerCount : undefined,
+      shardCount: shardCount && shardCount > 0 ? shardCount : undefined,
+      timezone,
+      limit: 100
+    })
+      .then((history) => {
+        if (!cancelled) setTestHistory(history);
+      })
+      .catch((reason: unknown) => {
+        if (!cancelled) {
+          setTestHistory(null);
+          setError(String(reason));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    historyBranch,
+    historyBrowser,
+    historyEnvironment,
+    historyRunScope,
+    historyShardCount,
+    historyWorkerCount,
+    selectedFailure
+  ]);
+
   const visibleClusters = useMemo(
     () => runId ? runClusters : clusters,
     [clusters, runClusters, runId]
@@ -253,13 +363,18 @@ function App() {
       }
       const queued = await api.upload(projectId, selectedFile, {
         externalId: externalId.trim(),
-        expectedInputs: expected
+        expectedInputs: expected,
+        runScope: uploadRunScope,
+        environment: uploadEnvironment.trim() || undefined,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
       });
       setIngestions((current) => [queued, ...current.filter((item) => item.id !== queued.id)]);
       setWatchedIngestionId(queued.id);
       setSelectedFile(null);
       setExternalId(newExternalId());
       setExpectedInputs('');
+      setUploadRunScope('unknown');
+      setUploadEnvironment('');
       setFileInputKey((value) => value + 1);
       await refreshRoot();
     } catch (reason) {
@@ -379,6 +494,7 @@ function App() {
           <a href="#runs">Runs</a>
           <a href="#clusters">Clusters</a>
           <a href="#workspace">Failure workspace</a>
+          <a href="#history">Test history</a>
           <a href="#evaluation">Evaluation</a>
         </nav>
         <div className="sidebar-note">Durable deterministic mode<br/><span>No model API required</span></div>
@@ -418,6 +534,8 @@ function App() {
           <form className="upload-form" onSubmit={uploadArtifact}>
             <label>Project<select value={projectId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setProjectId(event.target.value)} required><option value="">Select project</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
             <label>External run ID<input value={externalId} onChange={(event: ChangeEvent<HTMLInputElement>) => setExternalId(event.target.value)} minLength={1} maxLength={240} required/></label>
+            <label>Run scope<select value={uploadRunScope} onChange={(event: ChangeEvent<HTMLSelectElement>) => setUploadRunScope(event.target.value as 'full_suite' | 'impact_selected' | 'unknown')}><option value="unknown">Unknown</option><option value="full_suite">Full suite</option><option value="impact_selected">Impact selected</option></select></label>
+            <label>Environment<input placeholder="Optional, e.g. CI Linux" value={uploadEnvironment} onChange={(event: ChangeEvent<HTMLInputElement>) => setUploadEnvironment(event.target.value)}/></label>
             <label>Expected required inputs<input inputMode="numeric" min="0" step="1" placeholder="Optional" value={expectedInputs} onChange={(event: ChangeEvent<HTMLInputElement>) => setExpectedInputs(event.target.value)}/></label>
             <label className="file-field">Report file<input key={fileInputKey} type="file" accept=".xml,.json,.jsonl,.har,.log,.txt,.zip,.png,.jpg,.jpeg,application/xml,application/json,application/zip,text/plain,image/png,image/jpeg" onChange={(event: ChangeEvent<HTMLInputElement>) => setSelectedFile(event.target.files?.[0] ?? null)} required/><small>{selectedFile ? `${selectedFile.name} · ${Math.ceil(selectedFile.size / 1024)} KiB` : 'Supported report, evidence file, or manifest v2 ZIP'}</small></label>
             <button className="primary" type="submit" disabled={busy || !projectId || !selectedFile}>{busy ? 'Working…' : 'Queue ingestion'}</button>
@@ -450,7 +568,8 @@ function App() {
         <section id="runs" className="panel filters">
           <label>Project<select value={projectId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setProjectId(event.target.value)}><option value="">Select project</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
           <label>Run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setRunId(event.target.value)}><option value="">Select run</option>{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.status}</option>)}</select></label>
-          <div className="scope"><span>Scope</span><strong>{selectedRun ? `${selectedRun.received_inputs}/${selectedRun.expected_inputs ?? 'unspecified'}` : '—'}</strong><small>{selectedRun?.completeness ?? 'no run selected'}</small></div>
+          <div className="scope"><span>Input scope</span><strong>{selectedRun ? `${selectedRun.received_inputs}/${selectedRun.expected_inputs ?? 'unspecified'}` : '—'}</strong><small>{selectedRun?.completeness ?? 'no run selected'}</small></div>
+          <div className="scope"><span>Execution cohort</span><strong>{selectedRun ? readableValue(selectedRun.run_scope) : '—'}</strong><small>{selectedRun?.environment ?? 'environment unknown'}</small></div>
           <div className="scope"><span>Revision</span><strong className="mono">{selectedRun?.commit_sha?.slice(0, 10) ?? 'unknown'}</strong><small>{selectedRun?.branch ?? 'branch unknown'}</small></div>
         </section>
 
@@ -648,6 +767,75 @@ function App() {
               </>
             )}
           </article>
+        </section>
+
+        <section id="history" className="panel history-panel">
+          <div className="panel-heading">
+            <div><p className="eyebrow">PRIOR-ONLY OUTCOME INTELLIGENCE</p><h2>Historical test intelligence</h2></div>
+            <span className={`state ${testHistory?.safety.history_eligible_for_reassurance ? 'succeeded' : 'partial'}`}>
+              {historyLoading ? 'Loading' : testHistory?.safety.history_eligible_for_reassurance ? 'History eligible' : 'Not reassurance-safe'}
+            </span>
+          </div>
+          {!selectedFailure ? <div className="empty">Select a failure to inspect its prior-only test history.</div> : (
+            <>
+              <div className="history-context">
+                <div className="history-context-summary"><strong>{selectedFailure.test_identity}</strong><small>Current run is excluded. Future runs and later reviews cannot enter this calculation. Filters remain in the page URL.</small></div>
+                <label>Run scope<select value={historyRunScope} onChange={(event: ChangeEvent<HTMLSelectElement>) => setHistoryRunScope(event.target.value)}><option value="">All scopes</option><option value="full_suite">Full suite</option><option value="impact_selected">Impact selected</option><option value="unknown">Unknown</option></select></label>
+                <label>Browser<input value={historyBrowser} onChange={(event: ChangeEvent<HTMLInputElement>) => setHistoryBrowser(event.target.value)} placeholder="All browsers" /></label>
+                <label>Branch<input value={historyBranch} onChange={(event: ChangeEvent<HTMLInputElement>) => setHistoryBranch(event.target.value)} placeholder="All branches" /></label>
+                <label>Environment<input value={historyEnvironment} onChange={(event: ChangeEvent<HTMLInputElement>) => setHistoryEnvironment(event.target.value)} placeholder="All environments" /></label>
+                <label>Workers<input type="number" min="1" value={historyWorkerCount} onChange={(event: ChangeEvent<HTMLInputElement>) => setHistoryWorkerCount(event.target.value)} placeholder="Any" /></label>
+                <label>Shards<input type="number" min="1" value={historyShardCount} onChange={(event: ChangeEvent<HTMLInputElement>) => setHistoryShardCount(event.target.value)} placeholder="Any" /></label>
+              </div>
+              {historyLoading ? <div className="empty">Calculating traceable historical rates…</div> : !testHistory ? <div className="empty">Historical data could not be loaded.</div> : (
+                <>
+                  <div className="history-metrics" aria-label="Historical rate metrics">
+                    <article><span>Independent runs</span><strong>{testHistory.sample_sizes.independent_runs ?? 0}</strong><small>{testHistory.sample_sizes.runs_without_matching_test_observation ?? 0} comparable runs had no matching observation and were not counted as passes.</small></article>
+                    <article><span>Observed pass rate</span><strong>{formatRate(testHistory.rates.observed_pass_rate)}</strong><small>{testHistory.rates.observed_pass_rate?.status.replaceAll('_', ' ')}</small></article>
+                    <article><span>First-attempt failure</span><strong>{formatRate(testHistory.rates.first_attempt_failure_rate)}</strong><small>Browsers and retries collapse to one conservative run outcome.</small></article>
+                    <article><span>Final failure</span><strong>{formatRate(testHistory.rates.final_failure_rate)}</strong><small>Skipped, cancelled and unknown remain visible outside the denominator.</small></article>
+                    <article><span>Retry recovery</span><strong>{formatRate(testHistory.rates.retry_recovery_rate)}</strong><small>{testHistory.sample_sizes.retry_eligible_first_failures ?? 0} first-attempt failures were eligible.</small></article>
+                    <article><span>Reviewed known flake</span><strong>{testHistory.review.reviewed_known_flake ? 'Yes' : 'No'}</strong><small>{testHistory.review.events.length} qualifying prior review event{testHistory.review.events.length === 1 ? '' : 's'} before cutoff.</small></article>
+                  </div>
+
+                  {testHistory.safety.insufficient_data_reasons.length > 0 && (
+                    <div className="history-warning" role="status">
+                      <strong>Why this history cannot support reassurance</strong>
+                      <div>{testHistory.safety.insufficient_data_reasons.map((reason) => <code key={reason}>{readableValue(reason)}</code>)}</div>
+                    </div>
+                  )}
+
+                  <div className="history-grid">
+                    <section className="history-timeline" aria-label="Historical observations">
+                      <div className="history-section-heading"><h3>Traceable observations</h3><span>{testHistory.pagination.total} prior observation{testHistory.pagination.total === 1 ? '' : 's'}</span></div>
+                      {testHistory.observations.length === 0 && <div className="empty">No prior matching observations satisfy the selected cohort.</div>}
+                      {testHistory.observations.slice().reverse().map((observation) => (
+                        <article className="history-row" key={`${observation.run_id}-${observation.browser ?? 'default'}`}>
+                          <span className={`history-outcome ${statusClass(observation.final_outcome)}`}>{observation.final_outcome}</span>
+                          <div><strong>{observation.external_id}</strong><small>{new Date(observation.observed_at).toLocaleString()} · {observation.browser ?? 'browser unknown'} · {readableValue(observation.run_scope)}</small><small>First {observation.first_outcome} → final {observation.final_outcome} · {observation.attempt_count} attempt{observation.attempt_count === 1 ? '' : 's'}{observation.retry_recovered ? ' · recovered on retry' : ''}</small></div>
+                          <button type="button" onClick={() => { setRunId(observation.run_id); document.getElementById('runs')?.scrollIntoView({ behavior: 'smooth' }); }}>Open run</button>
+                        </article>
+                      ))}
+                    </section>
+
+                    <section className="history-breakdowns" aria-label="Historical cohort breakdowns">
+                      <div className="history-section-heading"><h3>Cohort comparisons</h3><span>Associations, not causal claims</span></div>
+                      {(['browser', 'branch', 'environment', 'run_scope', 'worker_count', 'shard_count', 'time_bucket'] as const).map((field) => (
+                        <div className="breakdown-group" key={field}>
+                          <h4>{readableValue(field)}</h4>
+                          {(testHistory.breakdowns[field] ?? []).map((row) => (
+                            <div key={`${field}-${row.value}`}><span>{readableValue(row.value)}</span><strong>{formatRate(row.final_failure_rate)}</strong><small>{row.sample_size} sample{row.sample_size === 1 ? '' : 's'}</small></div>
+                          ))}
+                          {(testHistory.breakdowns[field] ?? []).length === 0 && <small>No data</small>}
+                        </div>
+                      ))}
+                    </section>
+                  </div>
+                  <p className="history-provenance mono">Policy {testHistory.policy_version} · cutoff {String(testHistory.window.before)} · input digest {testHistory.history_input_digest.slice(0, 16)} · exact records remain available through the API.</p>
+                </>
+              )}
+            </>
+          )}
         </section>
 
         <section id="evaluation" className="panel evaluation">

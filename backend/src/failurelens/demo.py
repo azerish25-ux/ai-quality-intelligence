@@ -16,6 +16,11 @@ def seed_demo(session: Session) -> dict[str, str]:
         commit_sha="0000000",
         branch="demo",
         framework="normalized",
+        run_scope="full_suite",
+        environment="synthetic-local",
+        timezone="UTC",
+        worker_count=1,
+        shard_count=1,
         expected_inputs=1,
         source_metadata={"synthetic": True, "notice": "No claim of actual LedgerGuard execution"},
         observations=[

@@ -47,7 +47,7 @@ def test_known_flake_requires_reviewed_history() -> None:
         exception_type="HarnessTimeout",
         details={},
         evidence=evidence(),
-        historical={"reviewed_known_flake": True, "independent_runs": 8, "retry_recovery_rate": 0.5},
+        historical={"reviewed_known_flake": True, "independent_runs": 8, "observed_passes": 5, "observed_failures": 3, "history_eligible_for_reassurance": True, "retry_recovery_rate": 0.5},
     )
     assert accepted.category is Category.known_flake
     rejected = analyze_failure(
@@ -55,6 +55,6 @@ def test_known_flake_requires_reviewed_history() -> None:
         exception_type="TimeoutError",
         details={"retry_recovered": True},
         evidence=evidence(),
-        historical={"reviewed_known_flake": False, "independent_runs": 2, "retry_recovery_rate": 0.5},
+        historical={"reviewed_known_flake": False, "independent_runs": 2, "observed_passes": 1, "observed_failures": 1, "history_eligible_for_reassurance": False, "retry_recovery_rate": 0.5},
     )
     assert rejected.category is Category.insufficient_evidence

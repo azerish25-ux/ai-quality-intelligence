@@ -21,6 +21,7 @@ from .evidence_validation import (
     validated_evidence_views,
 )
 from .fingerprint import make_fingerprint
+from .history import history_context_for_failure
 from .ingestion import (
     PARSER_VERSION,
     ParsedArtifact,
@@ -302,6 +303,11 @@ def ingest_parsed_report(
         "commit_sha": metadata.commit_sha,
         "base_sha": metadata.base_sha,
         "branch": metadata.branch,
+        "run_scope": metadata.run_scope,
+        "environment": metadata.environment,
+        "timezone": metadata.timezone,
+        "worker_count": metadata.worker_count,
+        "shard_count": metadata.shard_count,
         "source_digest": source_digest,
         "source_format": source_format,
         "parser_version": parser_version,
@@ -346,6 +352,11 @@ def ingest_parsed_report(
         base_sha=metadata.base_sha,
         branch=metadata.branch,
         framework=source_format,
+        run_scope=metadata.run_scope,
+        environment=metadata.environment,
+        timezone=metadata.timezone,
+        worker_count=metadata.worker_count,
+        shard_count=metadata.shard_count,
         status=RunStatus.processing,
         completeness=completeness,
         expected_inputs=expected_inputs,
@@ -356,6 +367,11 @@ def ingest_parsed_report(
             **metadata.source_metadata,
             "source_format": source_format,
             "parser_version": parser_version,
+            "run_scope": metadata.run_scope,
+            "environment": metadata.environment,
+            "timezone": metadata.timezone,
+            "worker_count": metadata.worker_count,
+            "shard_count": metadata.shard_count,
             "parser_warnings": list(parser_warnings),
             "source_digest": source_digest,
             "manifest_version": manifest_version,
@@ -674,6 +690,21 @@ def enqueue_artifact_ingestion(
             for field, value in supplied.items()
             if value != getattr(existing, field)
         ]
+        context = {
+            "run_scope": metadata.run_scope,
+            "environment": metadata.environment,
+            "timezone": metadata.timezone,
+            "worker_count": metadata.worker_count,
+            "shard_count": metadata.shard_count,
+        }
+        conflicts.extend(
+            field
+            for field, value in context.items()
+            if existing.source_metadata.get(
+                field, "unknown" if field == "run_scope" else None
+            )
+            != value
+        )
         if conflicts:
             raise ValueError(
                 "idempotency conflict for existing ingestion fields: " + ", ".join(conflicts)
@@ -690,7 +721,14 @@ def enqueue_artifact_ingestion(
         base_sha=metadata.base_sha,
         branch=metadata.branch,
         source_format=source_format,
-        source_metadata=metadata.source_metadata,
+        source_metadata={
+            **metadata.source_metadata,
+            "run_scope": metadata.run_scope,
+            "environment": metadata.environment,
+            "timezone": metadata.timezone,
+            "worker_count": metadata.worker_count,
+            "shard_count": metadata.shard_count,
+        },
         original_name=stored.original_name,
         media_type=stored.media_type,
         source_digest=stored.digest,
@@ -825,6 +863,27 @@ def process_artifact_ingestion(
         base_sha=ingestion.base_sha,
         branch=ingestion.branch,
         framework=parsed.source_format,
+        run_scope=str(ingestion.source_metadata.get("run_scope") or "unknown"),
+        environment=(
+            str(ingestion.source_metadata["environment"])
+            if ingestion.source_metadata.get("environment") is not None
+            else None
+        ),
+        timezone=(
+            str(ingestion.source_metadata["timezone"])
+            if ingestion.source_metadata.get("timezone") is not None
+            else None
+        ),
+        worker_count=(
+            int(ingestion.source_metadata["worker_count"])
+            if ingestion.source_metadata.get("worker_count") is not None
+            else None
+        ),
+        shard_count=(
+            int(ingestion.source_metadata["shard_count"])
+            if ingestion.source_metadata.get("shard_count") is not None
+            else None
+        ),
         expected_inputs=ingestion.expected_inputs,
         source_metadata={
             **ingestion.source_metadata,
@@ -912,31 +971,6 @@ def process_artifact_ingestion(
     return run
 
 
-def _historical_context(session: Session, failure: Failure) -> dict[str, Any]:
-    prior_count = session.scalar(
-        select(func.count(Failure.id)).where(
-            Failure.project_id == failure.project_id,
-            Failure.strict_fingerprint == failure.strict_fingerprint,
-            Failure.created_at < failure.created_at,
-        )
-    ) or 0
-    reviewed_known_flake = session.scalar(
-        select(func.count(ReviewEvent.id))
-        .join(Analysis, ReviewEvent.analysis_id == Analysis.id)
-        .join(Failure, Analysis.failure_id == Failure.id)
-        .where(
-            Failure.project_id == failure.project_id,
-            Failure.strict_fingerprint == failure.strict_fingerprint,
-            ReviewEvent.proposed_category == Category.known_flake.value,
-            ReviewEvent.decision.in_(["accept", "category_correction"]),
-        )
-    ) or 0
-    return {
-        "independent_runs": prior_count + 1,
-        "reviewed_known_flake": reviewed_known_flake > 0,
-        "retry_recovery_rate": 0.0,
-    }
-
 
 def select_failure_evidence(session: Session, failure: Failure) -> list[Evidence]:
     """Return only evidence authorized for one failure investigation.
@@ -990,7 +1024,7 @@ def select_failure_evidence(session: Session, failure: Failure) -> list[Evidence
 
 def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
     evidence_rows = select_failure_evidence(session, failure)
-    historical = _historical_context(session, failure)
+    historical = history_context_for_failure(session, failure)
     settings = get_settings()
 
     evidence_validation = validate_evidence_records(
@@ -1105,7 +1139,10 @@ def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
         policy_flags=list(validated.policy_flags),
         provenance={
             "input_digest": digest,
-            "history_cutoff": datetime.now(UTC).isoformat(),
+            "history_cutoff": historical["history_cutoff"],
+            "history_policy_version": historical["policy_version"],
+            "history_input_digest": historical["history_input_digest"],
+            "history_cohort": historical["cohort"],
             "parser_versions": sorted(
                 {item.parser_version for item in evidence_rows}
             ),

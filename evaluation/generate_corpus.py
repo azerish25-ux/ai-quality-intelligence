@@ -89,7 +89,7 @@ def build_case(category: str, case_index: int, family_index: int, global_family_
             "exception_type": "HarnessTimeout",
             "details": {"retry_recovered": True},
             "evidence": ["Reviewer-approved harness record identifies nondeterministic fixture ordering outside product code."],
-            "historical": {"reviewed_known_flake": True, "independent_runs": 12, "retry_recovery_rate": 0.42},
+            "historical": {"reviewed_known_flake": True, "independent_runs": 12, "observed_passes": 8, "observed_failures": 4, "history_eligible_for_reassurance": True, "retry_recovery_rate": 0.42},
             "root_cause": "reviewed nondeterministic test harness ordering",
             "severity": "low",
             "required_evidence": ["reviewed flake record", "independent run history"],

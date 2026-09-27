@@ -43,6 +43,16 @@ def _has(text: str, terms: Iterable[str]) -> bool:
     return any(term.casefold() in folded for term in terms)
 
 
+def _history_supports_known_flake(historical: dict[str, Any]) -> bool:
+    return bool(
+        historical.get("history_eligible_for_reassurance") is True
+        and historical.get("reviewed_known_flake") is True
+        and historical.get("independent_runs", 0) >= 5
+        and historical.get("observed_passes", 0) > 0
+        and historical.get("observed_failures", 0) > 0
+    )
+
+
 def rule_signal_counts(
     *,
     message: str,
@@ -125,10 +135,7 @@ def rule_signal_counts(
     if details.get("runner_diagnostic") is True:
         infrastructure_signals += 3
 
-    if (
-        historical.get("reviewed_known_flake") is True
-        and historical.get("independent_runs", 0) >= 5
-    ):
+    if _history_supports_known_flake(historical):
         flake_signals += 5
     if historical.get("retry_recovery_rate", 0) > 0.2:
         flake_signals += 1
@@ -275,9 +282,8 @@ def analyze_failure(
         Category.insufficient_evidence: "insufficient evidence",
     }[winner]
 
-    if winner is Category.known_flake and (
-        historical.get("reviewed_known_flake") is not True
-        or historical.get("independent_runs", 0) < 5
+    if winner is Category.known_flake and not _history_supports_known_flake(
+        historical
     ):
         flags.append("known_flake_requires_reviewed_history")
         return analyze_failure(

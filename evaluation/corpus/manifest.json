@@ -7,7 +7,7 @@
     "product_defect": 80,
     "test_defect": 30
   },
-  "corpus_sha256": "849452388f260bab8e19769f0edc5bab586b1e0649ff9d4a3637bbd338da81aa",
+  "corpus_sha256": "39e5e657cbae3a48d48b619c8d3883731e91a41a192a30db951efc49be00ce56",
   "family_count": 100,
   "generator_version": "generator-v1",
   "limitations": [

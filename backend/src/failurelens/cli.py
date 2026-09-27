@@ -35,6 +35,15 @@ def main() -> None:
     ingest.add_argument("--commit-sha")
     ingest.add_argument("--base-sha")
     ingest.add_argument("--branch")
+    ingest.add_argument(
+        "--run-scope",
+        choices=["full_suite", "impact_selected", "unknown"],
+        default="unknown",
+    )
+    ingest.add_argument("--environment")
+    ingest.add_argument("--timezone")
+    ingest.add_argument("--worker-count", type=int)
+    ingest.add_argument("--shard-count", type=int)
     ingest.add_argument("--expected-inputs", type=int)
     ingest.add_argument("--format", default="auto")
     ingest.add_argument(
@@ -104,6 +113,11 @@ def main() -> None:
                 base_sha=args.base_sha,
                 branch=args.branch,
                 framework=args.format,
+                run_scope=args.run_scope,
+                environment=args.environment,
+                timezone=args.timezone,
+                worker_count=args.worker_count,
+                shard_count=args.shard_count,
                 expected_inputs=args.expected_inputs,
                 source_metadata={"transport": "cli"},
             )

@@ -30,6 +30,11 @@ export interface Run {
   base_sha: string | null;
   branch: string | null;
   framework: string;
+  run_scope: string;
+  environment: string | null;
+  timezone: string | null;
+  worker_count: number | null;
+  shard_count: number | null;
   status: string;
   completeness: string;
   expected_inputs: number | null;
@@ -90,6 +95,7 @@ export interface Ingestion {
 
 export interface Failure {
   id: string;
+  execution_id: string;
   test_identity: string;
   message: string;
   fingerprint: string;
@@ -115,6 +121,83 @@ export interface Analysis {
     rejected_evidence_ids: string[];
     claims: Array<Record<string, unknown>>;
   } | null;
+}
+
+export interface HistoryRate {
+  numerator: number;
+  denominator: number;
+  value: number | null;
+  interval_95: number[] | null;
+  status: string;
+  minimum_support: number;
+  definition: string;
+}
+
+export interface HistoryObservation {
+  run_id: string;
+  external_id: string;
+  commit_sha: string | null;
+  branch: string | null;
+  browser: string | null;
+  environment: string | null;
+  run_scope: string;
+  run_completeness: string;
+  timezone: string | null;
+  worker_count: number | null;
+  shard_count: number | null;
+  time_bucket: string;
+  observed_at: string;
+  first_outcome: string;
+  final_outcome: string;
+  attempt_count: number;
+  attempt_numbers: number[];
+  execution_ids: string[];
+  first_execution_id: string;
+  final_execution_id: string;
+  retry_recovered: boolean;
+  duration_ms: number | null;
+  duplicate_attempt_numbers: boolean;
+}
+
+export interface TestHistory {
+  policy_version: string;
+  history_input_digest: string;
+  status: string;
+  logical_test: Record<string, unknown>;
+  window: Record<string, unknown>;
+  filters: Record<string, unknown>;
+  sample_sizes: Record<string, number>;
+  outcomes: { first_attempt: Record<string, number>; final: Record<string, number> };
+  rates: Record<string, HistoryRate>;
+  breakdowns: Record<string, Array<{
+    value: string;
+    sample_size: number;
+    outcomes: Record<string, number>;
+    final_failure_rate: HistoryRate;
+  }>>;
+  sequences: Record<string, unknown>;
+  review: { reviewed_known_flake: boolean; events: Array<Record<string, unknown>> };
+  safety: {
+    history_eligible_for_reassurance: boolean;
+    insufficient_data_reasons: string[];
+    selection_bias_present: boolean;
+    truncated: boolean;
+    notes: string[];
+  };
+  pagination: { offset: number; limit: number; returned: number; total: number };
+  observations: HistoryObservation[];
+}
+
+export interface HistoryFilters {
+  browser?: string;
+  branch?: string;
+  environment?: string;
+  runScope?: 'full_suite' | 'impact_selected' | 'unknown';
+  timezone?: string;
+  workerCount?: number;
+  shardCount?: number;
+  limit?: number;
+  offset?: number;
 }
 
 export interface Overview {
@@ -209,6 +292,11 @@ export interface UploadMetadata {
   commitSha?: string;
   baseSha?: string;
   branch?: string;
+  runScope?: 'full_suite' | 'impact_selected' | 'unknown';
+  environment?: string;
+  timezone?: string;
+  workerCount?: number;
+  shardCount?: number;
 }
 
 const parseResponse = async <T>(response: Response): Promise<T> => {
@@ -241,6 +329,11 @@ const upload = async (
   if (metadata.commitSha) query.set('commit_sha', metadata.commitSha);
   if (metadata.baseSha) query.set('base_sha', metadata.baseSha);
   if (metadata.branch) query.set('branch', metadata.branch);
+  if (metadata.runScope) query.set('run_scope', metadata.runScope);
+  if (metadata.environment) query.set('environment', metadata.environment);
+  if (metadata.timezone) query.set('timezone', metadata.timezone);
+  if (metadata.workerCount !== undefined) query.set('worker_count', String(metadata.workerCount));
+  if (metadata.shardCount !== undefined) query.set('shard_count', String(metadata.shardCount));
 
   const response = await fetch(`/api/v1/projects/${projectId}/ingestions?${query.toString()}`, {
     method: 'POST',
@@ -248,6 +341,21 @@ const upload = async (
     body: file
   });
   return parseResponse<Ingestion>(response);
+};
+
+const historyUrl = (executionId: string, filters: HistoryFilters = {}): string => {
+  const query = new URLSearchParams();
+  if (filters.browser) query.set('browser', filters.browser);
+  if (filters.branch) query.set('branch', filters.branch);
+  if (filters.environment) query.set('environment', filters.environment);
+  if (filters.runScope) query.set('run_scope', filters.runScope);
+  if (filters.timezone) query.set('timezone', filters.timezone);
+  if (filters.workerCount !== undefined) query.set('worker_count', String(filters.workerCount));
+  if (filters.shardCount !== undefined) query.set('shard_count', String(filters.shardCount));
+  if (filters.limit !== undefined) query.set('limit', String(filters.limit));
+  if (filters.offset !== undefined) query.set('offset', String(filters.offset));
+  const suffix = query.toString();
+  return `/api/v1/tests/${executionId}/history${suffix ? `?${suffix}` : ''}`;
 };
 
 export const api = {
@@ -260,6 +368,8 @@ export const api = {
   retryIngestion: (ingestionId: string) => json<Ingestion>(`/api/v1/ingestions/${ingestionId}/retry`, { method: 'POST' }),
   cancelIngestion: (ingestionId: string) => json<Ingestion>(`/api/v1/ingestions/${ingestionId}/cancel`, { method: 'POST' }),
   failures: (runId: string) => json<Failure[]>(`/api/v1/runs/${runId}/failures`),
+  testHistory: (executionId: string, filters: HistoryFilters = {}) =>
+    json<TestHistory>(historyUrl(executionId, filters)),
   clusters: (projectId: string) => json<ClusterSummary[]>(`/api/v1/projects/${projectId}/clusters`),
   runClusters: (runId: string) => json<ClusterSummary[]>(`/api/v1/runs/${runId}/clusters`),
   cluster: (clusterId: string) => json<ClusterDetail>(`/api/v1/clusters/${clusterId}`),

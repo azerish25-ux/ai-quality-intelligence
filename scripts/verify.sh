@@ -15,7 +15,7 @@ rm -f "$MIGRATION_DB"
 (
   cd backend
   PYTHONPATH=src FAILURELENS_DATABASE_URL="sqlite+pysqlite:///$MIGRATION_DB" alembic upgrade head
-  PYTHONPATH=src FAILURELENS_DATABASE_URL="sqlite+pysqlite:///$MIGRATION_DB" alembic downgrade c4e1d9a7b2f0
+  PYTHONPATH=src FAILURELENS_DATABASE_URL="sqlite+pysqlite:///$MIGRATION_DB" alembic downgrade d8f6c1a9b230
   PYTHONPATH=src FAILURELENS_DATABASE_URL="sqlite+pysqlite:///$MIGRATION_DB" alembic upgrade head
 )
 rm -f "$MIGRATION_DB"

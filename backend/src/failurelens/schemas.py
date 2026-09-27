@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .models import Category, IngestionState, Outcome, RunStatus
 
@@ -41,8 +42,24 @@ class RunMetadata(BaseModel):
     base_sha: str | None = Field(default=None, pattern=r"^[0-9a-fA-F]{7,64}$")
     branch: str | None = Field(default=None, max_length=240)
     framework: str = Field(default="auto", min_length=1, max_length=64)
+    run_scope: Literal["full_suite", "impact_selected", "unknown"] = "unknown"
+    environment: str | None = Field(default=None, max_length=160)
+    timezone: str | None = Field(default=None, max_length=80)
+    worker_count: int | None = Field(default=None, ge=1, le=100_000)
+    shard_count: int | None = Field(default=None, ge=1, le=100_000)
     expected_inputs: int | None = Field(default=None, ge=0)
     source_metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        try:
+            ZoneInfo(value)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError(f"unknown timezone: {value}") from exc
+        return value
 
 
 class IngestionRequest(RunMetadata):
@@ -62,6 +79,11 @@ class RunRead(BaseModel):
     base_sha: str | None
     branch: str | None
     framework: str
+    run_scope: str
+    environment: str | None
+    timezone: str | None
+    worker_count: int | None
+    shard_count: int | None
     status: RunStatus
     completeness: str
     expected_inputs: int | None
@@ -155,6 +177,60 @@ class IngestionRead(BaseModel):
     completed_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class HistoryRate(BaseModel):
+    numerator: int
+    denominator: int
+    value: float | None
+    interval_95: list[float] | None
+    status: str
+    minimum_support: int
+    definition: str
+
+
+class HistoryObservationRead(BaseModel):
+    run_id: str
+    external_id: str
+    commit_sha: str | None
+    branch: str | None
+    browser: str | None
+    environment: str | None
+    run_scope: str
+    run_completeness: str
+    timezone: str | None
+    worker_count: int | None
+    shard_count: int | None
+    time_bucket: str
+    observed_at: datetime
+    first_outcome: str
+    final_outcome: str
+    attempt_count: int
+    attempt_numbers: list[int]
+    execution_ids: list[str]
+    first_execution_id: str
+    final_execution_id: str
+    retry_recovered: bool
+    duration_ms: float | None
+    duplicate_attempt_numbers: bool
+
+
+class TestHistoryRead(BaseModel):
+    policy_version: str
+    history_input_digest: str
+    status: str
+    logical_test: dict[str, Any]
+    window: dict[str, Any]
+    filters: dict[str, Any]
+    sample_sizes: dict[str, int]
+    outcomes: dict[str, dict[str, int]]
+    rates: dict[str, HistoryRate]
+    breakdowns: dict[str, list[dict[str, Any]]]
+    sequences: dict[str, Any]
+    review: dict[str, Any]
+    safety: dict[str, Any]
+    pagination: dict[str, int]
+    observations: list[HistoryObservationRead]
 
 
 class Confidence(BaseModel):

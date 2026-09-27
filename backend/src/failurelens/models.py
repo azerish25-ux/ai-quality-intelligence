@@ -83,6 +83,7 @@ class Run(Base):
     __table_args__ = (
         UniqueConstraint("project_id", "external_id", "attempt", "manifest_digest", name="uq_run_identity"),
         Index("ix_runs_project_started", "project_id", "started_at"),
+        Index("ix_runs_project_history", "project_id", "created_at", "run_scope"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
@@ -94,6 +95,11 @@ class Run(Base):
     base_sha: Mapped[str | None] = mapped_column(String(64), nullable=True)
     branch: Mapped[str | None] = mapped_column(String(240), nullable=True)
     framework: Mapped[str] = mapped_column(String(64), default="unknown")
+    run_scope: Mapped[str] = mapped_column(String(40), default="unknown")
+    environment: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    timezone: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    worker_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    shard_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[RunStatus] = mapped_column(Enum(RunStatus), default=RunStatus.queued)
     completeness: Mapped[str] = mapped_column(String(32), default="unknown")
     expected_inputs: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -245,7 +251,10 @@ class RunInput(Base):
 
 class TestExecution(Base):
     __tablename__ = "test_executions"
-    __table_args__ = (Index("ix_execution_identity", "run_id", "test_identity"),)
+    __table_args__ = (
+        Index("ix_execution_identity", "run_id", "test_identity"),
+        Index("ix_execution_history_identity", "test_identity", "browser", "run_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)

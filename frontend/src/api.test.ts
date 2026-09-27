@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { api, type ClusterDetail, type ClusterSummary, type Ingestion, type RunInput } from './api';
+import { api, type ClusterDetail, type ClusterSummary, type Ingestion, type RunInput, type TestHistory } from './api';
 
 const ingestion: Ingestion = {
   id: 'ing-1',
@@ -69,6 +69,33 @@ const clusterSummary: ClusterSummary = {
   updated_at: '2026-09-26T00:00:00Z'
 };
 
+
+const testHistory: TestHistory = {
+  policy_version: 'history-v1',
+  history_input_digest: 'd'.repeat(64),
+  status: 'available',
+  logical_test: { test_identity: 'payments::duplicate' },
+  window: { before: '2026-09-26T12:00:00Z', prior_only: true },
+  filters: { browser: 'chromium', run_scope: 'full_suite' },
+  sample_sizes: { independent_runs: 5, runs_without_matching_test_observation: 1 },
+  outcomes: {
+    first_attempt: { passed: 2, failed: 3, skipped: 0, cancelled: 0, unknown: 0 },
+    final: { passed: 4, failed: 1, skipped: 0, cancelled: 0, unknown: 0 }
+  },
+  rates: {
+    observed_pass_rate: { numerator: 4, denominator: 5, value: 0.8, interval_95: [0.38, 0.96], status: 'available', minimum_support: 3, definition: 'Observed pass rate.' },
+    first_attempt_failure_rate: { numerator: 3, denominator: 5, value: 0.6, interval_95: [0.23, 0.88], status: 'available', minimum_support: 3, definition: 'First-attempt failure rate.' },
+    final_failure_rate: { numerator: 1, denominator: 5, value: 0.2, interval_95: [0.04, 0.62], status: 'available', minimum_support: 3, definition: 'Final failure rate.' },
+    retry_recovery_rate: { numerator: 2, denominator: 3, value: 0.666667, interval_95: [0.21, 0.94], status: 'available', minimum_support: 3, definition: 'Retry recovery rate.' }
+  },
+  breakdowns: { browser: [], branch: [], environment: [], run_scope: [], worker_count: [], shard_count: [], time_bucket: [] },
+  sequences: {},
+  review: { reviewed_known_flake: true, events: [] },
+  safety: { history_eligible_for_reassurance: true, insufficient_data_reasons: [], selection_bias_present: false, truncated: false, notes: [] },
+  pagination: { offset: 0, limit: 100, returned: 0, total: 0 },
+  observations: []
+};
+
 const clusterDetail: ClusterDetail = {
   ...clusterSummary,
   current: {
@@ -104,7 +131,12 @@ describe('artifact upload client', () => {
     const result = await api.upload('project-1', file, {
       externalId: 'workflow-1',
       expectedInputs: 1,
-      commitSha: 'abcdef0'
+      commitSha: 'abcdef0',
+      runScope: 'full_suite',
+      environment: 'ci-linux',
+      timezone: 'America/Halifax',
+      workerCount: 4,
+      shardCount: 2
     });
 
     expect(result.state).toBe('queued');
@@ -114,6 +146,11 @@ describe('artifact upload client', () => {
     expect(url).toContain('filename=report.json');
     expect(url).toContain('external_id=workflow-1');
     expect(url).toContain('expected_inputs=1');
+    expect(url).toContain('run_scope=full_suite');
+    expect(url).toContain('environment=ci-linux');
+    expect(url).toContain('timezone=America%2FHalifax');
+    expect(url).toContain('worker_count=4');
+    expect(url).toContain('shard_count=2');
     expect(init.method).toBe('POST');
     expect(init.body).toBe(file);
     expect(init.headers).toEqual({ 'Content-Type': 'application/json' });
@@ -192,5 +229,36 @@ describe('explainable clustering client', () => {
       failure_ids: ['failure-2'],
       target_cluster_id: null
     });
+  });
+});
+
+
+describe('prior-only history client', () => {
+  it('serializes cohort filters and loads traceable history statistics', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(testHistory), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await api.testHistory('execution-1', {
+      browser: 'chromium',
+      branch: 'main',
+      environment: 'ci-linux',
+      runScope: 'full_suite',
+      timezone: 'America/Halifax',
+      workerCount: 4,
+      shardCount: 2,
+      limit: 50,
+      offset: 10
+    });
+
+    expect(result.history_input_digest).toBe('d'.repeat(64));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/tests/execution-1/history?browser=chromium&branch=main&environment=ci-linux&run_scope=full_suite&timezone=America%2FHalifax&worker_count=4&shard_count=2&limit=50&offset=10',
+      { headers: { 'Content-Type': 'application/json' } }
+    );
   });
 });

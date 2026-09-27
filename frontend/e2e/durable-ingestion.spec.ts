@@ -39,4 +39,8 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
     page.locator('.analysis-summary').getByText('Probable product defect', { exact: true })
   ).toBeVisible();
   await expect(page.locator('.analysis-summary').getByText(/validated current-run observations/i)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Historical test intelligence' })).toBeVisible();
+  await expect(page.locator('.history-context')).toContainText('Current run is excluded');
+  await expect(page.locator('.history-panel')).toContainText('No prior matching observations');
+  await expect(page.locator('.history-warning')).toContainText('no prior matching observations');
 });
