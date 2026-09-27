@@ -1,6 +1,9 @@
 name: Apply verified M4 change-impact delivery
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
