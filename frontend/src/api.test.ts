@@ -98,6 +98,8 @@ describe('run input diagnostics client', () => {
     const result = await api.runInputs('run-1');
 
     expect(result).toEqual([runInput]);
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/runs/run-1/inputs');
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/runs/run-1/inputs', {
+      headers: { 'Content-Type': 'application/json' }
+    });
   });
 });
