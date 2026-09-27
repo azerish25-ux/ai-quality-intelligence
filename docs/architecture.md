@@ -15,6 +15,9 @@ flowchart LR
     Q --> R[(cluster identities + append-only revisions)]
     F --> S[prior-only history aggregation]
     F --> U[validated changed-file evidence]
+    F --> O[normalized evidence-linked performance observations]
+    O --> B[prior-only compatibility-gated baseline snapshots]
+    B --> C[deterministic performance comparisons]
     W[immutable mapping snapshot] --> X[deterministic impact selector]
     U --> X
     X --> Y[(recommendation + ranked items + overrides)]
@@ -25,6 +28,7 @@ flowchart LR
     V --> I[evidence-linked analysis revision]
     R --> J[React dashboard]
     Y --> J
+    C --> J
     I --> J
     I --> N[Markdown / GitHub Action summary]
     K[synthetic evaluation corpus] --> L[evaluation harness]
@@ -65,6 +69,7 @@ The migrations define explicit tables for:
 - reviewed cluster confirm/split/merge decisions with optimistic revision checks;
 - immutable impact mapping snapshots, test definitions and typed mapping edges;
 - deterministic impact recommendations, ranked selected/excluded items and append-only optimistic overrides;
+- normalized performance observations, immutable policies, prior-only baseline snapshots/members and evidence-linked comparisons;
 - validated analysis revisions and validation audits; and
 - append-only review events.
 
@@ -83,8 +88,9 @@ Important invariants are represented directly: a retry is not an independent run
 9. Build clusters conservatively: a candidate must satisfy both the representative threshold and the complete-link floor against every existing member. This prevents weak transitive A–B–C bridge merges.
 10. Persist deterministic cluster identities, representative failures, uncertainty flags, member scores and append-only revisions. Reviewed confirm/split/merge corrections create new revisions rather than rewriting history.
 11. Retrieve prior executions for the exact project/repository/framework/test/suite/path/parameter identity. Collapse retries per run/browser cohort; expose explicit outcome counts, denominators, uncertainty intervals, sequences and cohort breakdowns; exclude current/future data and later reviews; and persist the versioned history digest/cutoff in analysis provenance. Known-flake support requires compatible full-suite passes and failures plus a qualifying prior reviewed matching fingerprint. Cluster similarity does not prove causality and cannot override contradictory current-run evidence.
-12. Independently validate each typed claim's evidence references and semantic support; withhold invalid claims and safely degrade unsupported classifications.
-13. Persist confidence, supporting/contradictory evidence, missing evidence, hypotheses, validation audit, investigation steps, policy flags and reproducibility provenance.
+12. Persist final-attempt test durations and bounded k6 summary statistics as evidence-linked performance observations. For each current metric, build an immutable prior-only baseline from independent runs that match policy-required project/repository/workload/environment/producer/unit/statistic/run-scope and execution dimensions; reject stale, incomplete, untrusted or future observations. Classify only against available compatible baselines and preserve every accepted member, rejected reason, tolerance, confounder and evidence ID.
+13. Independently validate each typed claim's evidence references and semantic support; withhold invalid claims and safely degrade unsupported classifications.
+14. Persist confidence, supporting/contradictory evidence, missing evidence, hypotheses, validation audit, investigation steps, policy flags and reproducibility provenance.
 
 The score is a `heuristic_score`, not a calibrated probability.
 
@@ -105,6 +111,14 @@ The selector normalizes paths, preserves old and new names for renames/deletions
 The fail-safe state is broad execution. Self-reported trust, missing or mismatched base/head values, incomplete/truncated change lists, unmapped paths, stale mappings and critical shared/auth/authorization/ledger/migration/dependency/CI/test-infrastructure changes force `FULL_SUITE_REQUIRED`. Recommendations never mutate test execution. Reviewer overrides append a new attributed revision; stale writes fail, and mandatory/critical exclusions are rejected.
 
 Artifact content cannot grant itself trust. A producer-provided trust label is retained only as declared metadata; effective comparison trust is supplied by the validated transport boundary and defaults to `self_reported`.
+
+## Performance intelligence boundary
+
+Performance normalization is part of ingestion rather than a detached analytics job. The final attempt duration for each logical test/browser pair and every bounded numeric k6 summary statistic receives an explicit metric identity, original and canonical unit, producer/version, workload, compatibility dimensions, source digest/locator and approved safe evidence ID. Unit conversion is allow-listed; unsupported conversions fail rather than guessing.
+
+A versioned immutable policy controls tolerances, minimum independent prior-run support, maximum age, required trust and compatibility dimensions. Baseline selection is project-scoped and prior-only. One run contributes at most one observation, and repository, workload, metric/statistic/unit/direction, environment, browser, run scope, producer/version, load profile, region and executor mismatches remain visible as rejected-candidate reasons. Missing history produces `BASELINE_UNAVAILABLE`; unsafe or incompatible history produces `INCOMPATIBLE_BASELINE`. Neither state is represented as no regression.
+
+Available baselines use the median of compatible run-level observations. Exported p95/p99 values remain run-level percentile observations: they are never averaged or described as an aggregate percentile. Findings retain absolute and relative change, run/sample counts, tolerances, threshold evidence, robust dispersion context, confounders, current/baseline evidence IDs and next-measurement guidance. The engine records `significance_claimed: false`; repeated baseline dispersion is context, not a causal or population-significance claim. See `docs/performance.md`.
 
 ## Explainable clustering boundary
 

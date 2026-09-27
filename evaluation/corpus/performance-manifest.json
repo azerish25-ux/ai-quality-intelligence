@@ -1,0 +1,32 @@
+{
+  "case_count": 20,
+  "case_ids": [
+    "perf-001-clear-regression",
+    "perf-002-clear-improvement",
+    "perf-003-within-tolerance",
+    "perf-004-missing-baseline",
+    "perf-005-stale-baseline",
+    "perf-006-different-workload",
+    "perf-007-different-environment",
+    "perf-008-incompatible-unit",
+    "perf-009-explicit-unit-conversion",
+    "perf-010-different-statistic",
+    "perf-011-incomplete-current",
+    "perf-012-incomplete-baselines",
+    "perf-013-future-leakage",
+    "perf-014-single-pair-no-significance",
+    "perf-015-repeated-distribution",
+    "perf-016-p95-anti-averaging",
+    "perf-017-threshold-attribution-uncertain",
+    "perf-018-project-isolation",
+    "perf-019-higher-is-better-regression",
+    "perf-020-untrusted-current"
+  ],
+  "corpus_sha256": "0c1f1588d131fb6012dd4c64d3971f31d5ea29fd6e153f1a407debe9559215d6",
+  "limitations": [
+    "Cases are agent-authored controlled fixtures, not production workload evidence.",
+    "Run-level exported percentiles are compared as run-level observations and never aggregated into a new percentile."
+  ],
+  "schema_version": "performance-evaluation-v1",
+  "source_kind": "controlled_synthetic"
+}

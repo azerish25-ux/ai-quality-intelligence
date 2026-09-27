@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import replace
+import math
+import re
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any
@@ -49,6 +51,11 @@ from .models import (
     RunStatus,
     TestExecution,
 )
+from .performance import (
+    build_observation_dimensions,
+    infer_metric_direction,
+    register_performance_observation,
+)
 from .redaction import REDACTION_VERSION, redact_sensitive_field, redact_text
 from .schemas import AnalysisResult, Confidence, IngestionRequest, ReviewCreate, RunMetadata
 from .storage import (
@@ -59,6 +66,325 @@ from .storage import (
 
 INGEST_JOB_KIND = "ingest_and_analyze_v1"
 ARTIFACT_POLICY_VERSION = "artifact-policy-v1"
+MAX_PERSISTED_PERFORMANCE_OBSERVATIONS = 20_000
+MAX_PERFORMANCE_VALUES_PER_METRIC = 32
+
+
+def _performance_statistic(value: str) -> str:
+    normalized = value.strip().casefold()
+    aliases = {"med": "median", "mean": "avg"}
+    if normalized in aliases:
+        return aliases[normalized]
+    percentile = re.fullmatch(r"p\((\d+(?:\.\d+)?)\)", normalized)
+    if percentile:
+        return "p" + percentile.group(1).replace(".", "_")
+    return normalized[:80] or "value"
+
+
+def _performance_unit(
+    *, metric_name: str, metric_type: str | None, contains: str | None, statistic: str
+) -> str:
+    contains_value = (contains or "").casefold()
+    type_value = (metric_type or "").casefold()
+    lowered_name = metric_name.casefold()
+    if statistic in {"count", "passes", "fails"}:
+        return "count"
+    if contains_value == "time":
+        return "ms"
+    if contains_value == "data":
+        return "B"
+    if statistic == "rate" and type_value == "counter":
+        if "req" in lowered_name or "request" in lowered_name:
+            return "requests/s"
+        if "iteration" in lowered_name:
+            return "iterations/s"
+        return "events/s"
+    if type_value == "rate" or statistic == "rate":
+        return "ratio"
+    return "unknown"
+
+
+def _metric_threshold_status(thresholds: dict[str, Any]) -> str:
+    values = [value for value in thresholds.values() if isinstance(value, bool)]
+    if any(value is False for value in values):
+        return "failed"
+    if values and all(values):
+        return "passed"
+    return "unknown"
+
+
+def _json_pointer_escape(value: str) -> str:
+    return value.replace("~", "~0").replace("/", "~1")
+
+
+def _persist_performance_observations(
+    session: Session,
+    *,
+    project: Project,
+    run: Run,
+    artifact: Artifact,
+    input_records: Sequence[ParsedInput],
+    run_inputs_by_input_id: dict[str, RunInput],
+    settings: Settings,
+) -> None:
+    """Persist bounded, evidence-linked performance observations for one run."""
+
+    persisted = 0
+    truncated = False
+    executions = list(
+        session.scalars(
+            select(TestExecution)
+            .where(
+                TestExecution.run_id == run.id,
+                TestExecution.duration_ms.is_not(None),
+            )
+            .order_by(
+                TestExecution.test_identity,
+                TestExecution.browser,
+                TestExecution.attempt.desc(),
+                TestExecution.id.desc(),
+            )
+        ).all()
+    )
+    final_executions: dict[tuple[str, str | None], TestExecution] = {}
+    for execution in executions:
+        final_executions.setdefault((execution.test_identity, execution.browser), execution)
+    evidence_rows = list(
+        session.scalars(
+            select(Evidence).where(
+                Evidence.run_id == run.id,
+                Evidence.execution_id.in_([item.id for item in final_executions.values()]),
+            )
+        ).all()
+    ) if final_executions else []
+    evidence_by_execution = {
+        item.execution_id: item for item in evidence_rows if item.execution_id is not None
+    }
+    for execution in final_executions.values():
+        evidence = evidence_by_execution.get(execution.id)
+        if evidence is None or execution.duration_ms is None:
+            continue
+        input_id = str((execution.details or {}).get("input_id") or "input-1")
+        run_input = run_inputs_by_input_id.get(input_id)
+        producer = str((execution.details or {}).get("producer") or run.framework)
+        producer_version = run_input.parser_version if run_input else None
+        workload = execution.test_identity
+        dimensions = build_observation_dimensions(
+            run,
+            workload=workload,
+            browser=execution.browser,
+            producer=producer,
+            producer_version=producer_version,
+            extra={
+                "suite": execution.suite,
+                "source_path": execution.source_path,
+                "parameterization": execution.parameterization,
+            },
+        )
+        register_performance_observation(
+            session,
+            project_id=project.id,
+            run=run,
+            run_input_id=run_input.id if run_input else None,
+            execution_id=execution.id,
+            evidence_id=evidence.id,
+            metric_name="test.duration",
+            metric_scope="test_duration",
+            statistic="duration",
+            original_value=execution.duration_ms,
+            original_unit="ms",
+            sample_count=1,
+            producer=producer,
+            producer_version=producer_version,
+            workload=workload,
+            dimensions=dimensions,
+            threshold_status="unknown",
+            threshold_details={},
+            source_digest=run_input.digest if run_input and run_input.digest else artifact.digest,
+            source_locator=evidence.locator,
+            direction="lower_is_better",
+            observed_at=run.started_at or run.created_at,
+        )
+        persisted += 1
+        if persisted >= MAX_PERSISTED_PERFORMANCE_OBSERVATIONS:
+            truncated = True
+            break
+
+    for item in input_records:
+        if persisted >= MAX_PERSISTED_PERFORMANCE_OBSERVATIONS:
+            truncated = True
+            break
+        if item.kind != "k6-summary-json" or item.status not in {"accepted", "restricted"}:
+            continue
+        metrics = item.metadata.get("metrics")
+        if not isinstance(metrics, dict):
+            continue
+        run_input = run_inputs_by_input_id.get(item.input_id)
+        if run_input is None:
+            continue
+        producer = str(item.metadata.get("producer") or "k6-handleSummary")
+        producer_version = str(
+            item.metadata.get("producer_version")
+            or (run.source_metadata or {}).get("k6_version")
+            or ""
+        ) or None
+        workload = str(
+            item.metadata.get("workload")
+            or item.metadata.get("scenario")
+            or (run.source_metadata or {}).get("workload")
+            or "default"
+        )[:512]
+        state = item.metadata.get("state") if isinstance(item.metadata.get("state"), dict) else {}
+        for metric_name, metric in sorted(metrics.items()):
+            if persisted >= MAX_PERSISTED_PERFORMANCE_OBSERVATIONS:
+                truncated = True
+                break
+            if not isinstance(metric, dict):
+                continue
+            values = metric.get("values") if isinstance(metric.get("values"), dict) else {}
+            thresholds = metric.get("thresholds") if isinstance(metric.get("thresholds"), dict) else {}
+            metric_type = str(metric.get("type") or "") or None
+            contains = str(metric.get("contains") or "") or None
+            numeric_values = [
+                (str(key), float(value))
+                for key, value in values.items()
+                if isinstance(value, (int, float))
+                and not isinstance(value, bool)
+                and math.isfinite(float(value))
+            ][:MAX_PERFORMANCE_VALUES_PER_METRIC]
+            sample_count_value = values.get("count")
+            sample_count = (
+                int(sample_count_value)
+                if isinstance(sample_count_value, (int, float))
+                and not isinstance(sample_count_value, bool)
+                and sample_count_value >= 0
+                else None
+            )
+            threshold_status = _metric_threshold_status(thresholds)
+            for value_name, value in numeric_values:
+                if persisted >= MAX_PERSISTED_PERFORMANCE_OBSERVATIONS:
+                    truncated = True
+                    break
+                statistic = _performance_statistic(value_name)
+                unit = _performance_unit(
+                    metric_name=str(metric_name),
+                    metric_type=metric_type,
+                    contains=contains,
+                    statistic=statistic,
+                )
+                source_locator = {
+                    "kind": "json-pointer",
+                    "input_id": item.input_id,
+                    "input_path": item.path,
+                    "pointer": (
+                        f"/metrics/{_json_pointer_escape(str(metric_name))}/values/"
+                        f"{_json_pointer_escape(value_name)}"
+                    ),
+                }
+                typed_observation = {
+                    "metric_name": str(metric_name)[:240],
+                    "metric_scope": "k6_summary",
+                    "statistic": statistic,
+                    "value": value,
+                    "unit": unit,
+                    "sample_count": sample_count,
+                    "producer": producer,
+                    "producer_version": producer_version,
+                    "workload": workload,
+                    "metric_type": metric_type,
+                    "contains": contains,
+                    "threshold_status": threshold_status,
+                    "thresholds": thresholds,
+                    "state": state,
+                }
+                excerpt = json.dumps(typed_observation, sort_keys=True, separators=(",", ":"))
+                derivative = _get_or_create_text_derivative(
+                    session,
+                    project=project,
+                    run=run,
+                    artifact=artifact,
+                    source_locator=source_locator,
+                    excerpt=excerpt[: settings.analysis_text_budget],
+                    observation=typed_observation,
+                    redaction_classes=set(),
+                    settings=settings,
+                )
+                evidence = Evidence(
+                    project_id=project.id,
+                    run_id=run.id,
+                    artifact_id=artifact.id,
+                    run_input_id=run_input.id,
+                    execution_id=None,
+                    derivative_id=derivative.id,
+                    kind="performance_metric_observation",
+                    provenance_kind="current_run_metric",
+                    locator_version="evidence-locator-v2",
+                    locator={
+                        "version": "evidence-locator-v2",
+                        "source": source_locator,
+                        "derivative": {"kind": "json-pointer", "pointer": "/excerpt"},
+                    },
+                    excerpt=excerpt[: settings.analysis_text_budget],
+                    observation=typed_observation,
+                    content_digest=derivative.digest,
+                    parser_version=item.parser_version or "k6-summary-v1",
+                    extractor_version="performance-observation-extractor-v1",
+                    redaction_version=REDACTION_VERSION,
+                    warnings=list(item.warnings),
+                )
+                session.add(evidence)
+                session.flush()
+                dimensions = build_observation_dimensions(
+                    run,
+                    workload=workload,
+                    browser=None,
+                    producer=producer,
+                    producer_version=producer_version,
+                    extra={
+                        "metric_type": metric_type,
+                        "contains": contains,
+                        "load_profile": state.get("testRunDurationMs")
+                        or state.get("isStdOutTTY")
+                        or (run.source_metadata or {}).get("load_profile"),
+                    },
+                )
+                register_performance_observation(
+                    session,
+                    project_id=project.id,
+                    run=run,
+                    run_input_id=run_input.id,
+                    execution_id=None,
+                    evidence_id=evidence.id,
+                    metric_name=str(metric_name)[:240],
+                    metric_scope="k6_summary",
+                    statistic=statistic,
+                    original_value=value,
+                    original_unit=unit,
+                    sample_count=sample_count,
+                    producer=producer,
+                    producer_version=producer_version,
+                    workload=workload,
+                    dimensions=dimensions,
+                    threshold_status=threshold_status,
+                    threshold_details={"thresholds": thresholds},
+                    source_digest=run_input.digest or artifact.digest,
+                    source_locator=source_locator,
+                    direction=infer_metric_direction(
+                        str(metric_name),
+                        metric_scope="k6_summary",
+                        statistic=statistic,
+                        contains=contains,
+                    ),
+                    observed_at=run.started_at or run.created_at,
+                )
+                persisted += 1
+
+    run.source_metadata = {
+        **(run.source_metadata or {}),
+        "performance_observation_count": persisted,
+        "performance_observations_truncated": truncated,
+        "performance_extractor_version": "performance-observation-extractor-v1",
+    }
 
 
 def manifest_digest(payload: dict[str, Any]) -> str:
@@ -605,6 +931,16 @@ def ingest_parsed_report(
                     loose_features=features,
                 )
             )
+
+    _persist_performance_observations(
+        session,
+        project=project,
+        run=run,
+        artifact=artifact,
+        input_records=input_records,
+        run_inputs_by_input_id=run_inputs_by_input_id,
+        settings=settings,
+    )
 
     run.status = RunStatus.complete if completeness == "complete" else RunStatus.partial
     run.ended_at = datetime.now(UTC)

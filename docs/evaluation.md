@@ -76,3 +76,20 @@ The committed result under `evaluation/reports/latest/impact-*` is:
 - Missed revealing or mandatory tests: 0.
 
 This fixture verifies deterministic policy boundaries, not production savings. Its labels, mappings and scenario families are generator-owned and agent-reviewed. The duration values are estimates used only to expose selection-size arithmetic; they are not observed CI runtimes. Actual LedgerGuard/ForgeQA full-suite backtesting, measured runtime change, mapping drift and counterfactual missed-defect analysis remain open.
+
+## Compatible performance fixture
+
+`evaluation/generate_performance_corpus.py` produces 20 controlled synthetic cases covering clear regressions and improvements, tolerance boundaries, missing/stale baselines, workload/environment/statistic/unit incompatibility, explicit unit conversion, incomplete/untrusted runs, future-data leakage, single-pair uncertainty, repeated distributions, percentile anti-aggregation, threshold-attribution uncertainty and project isolation. Runtime evaluation receives only current observations, candidate baselines and policy configuration; expected status and tags remain evaluation-only labels.
+
+The committed result under `evaluation/reports/latest/performance-*` is:
+
+- Status accuracy: 1.000.
+- Regression recall: 1.000.
+- Compatibility-selection accuracy: 1.000.
+- Evidence-citation validity: 1.000.
+- Deterministic-repeat agreement: 1.000.
+- Dangerous false negatives: 0/5 regression cases.
+- Statistical-significance claims: 0.
+- Non-median baseline aggregations: 0.
+
+The baseline aggregation check means the harness observed only `median_of_run_level_observations`; it does not imply that exported p95 values form an aggregate p95. The fixture is generator-owned and agent-authored. It validates deterministic policy boundaries and leakage protections, not production latency distributions, causal attribution or population-level detection accuracy.

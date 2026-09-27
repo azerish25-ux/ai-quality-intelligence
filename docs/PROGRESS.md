@@ -11,6 +11,7 @@
 - Explainable-clustering development parent: exact source export of `5ea816f94c22d61a269b19298da38617947d1d77`
 - Historical-intelligence development parent: exact source export of `0329b7c0f5eaee4f657e7daa29a7b88aed3b0bdc`
 - Change-impact development parent: exact source export of `48335b42c2da5b74bee0ce02aea471b987e5d416`
+- Performance-intelligence development parent: exact source export of `2324ea06aa0d4910e671d23dda36d817a108e05d`
 - Companion repositories remain read-only inputs:
   - `azerish25-ux/transaction-reliability-lab`
   - `azerish25-ux/playwright-quality-platform`
@@ -23,23 +24,25 @@
 | M1 — executable vertical slice | PASS | Raw upload -> stored ingestion/job -> leased worker -> run/evidence/failure -> automatic deterministic analysis -> dashboard. Recovery and browser path exist. |
 | M2 — full ingestion and safe evidence | PARTIAL | Manifest `2.0`, adapter registry, honest completeness, execution/input-scoped evidence, immutable safe text derivatives, source maps, independent digest/locator/quotation/observation checks, semantic classification-claim validation, safe degradation, and restricted screenshot/trace indexes exist. Producer-pinned fixtures, safe binary derivatives, broader predicates, project-scoped authorization and controlled artifact serving remain open. |
 | M3 — analytical core | PASS | Versioned strict fingerprints plus loose readable clustering features, bounded candidate generation, explainable multi-signal scoring, hard conflict preservation, complete-link bridge prevention, deterministic cluster identities, append-only membership revisions, reviewed confirm/split/merge corrections, conservative rules, contradiction handling, confidence semantics and safe abstention all have executable coverage. |
-| M4 — history and impact | PARTIAL | Prior-only exact-test history and deterministic change-impact recommendations are implemented. Impact uses immutable mapping snapshots, validated base/head provenance, renamed/deleted path handling, bounded reverse dependencies, mandatory critical tests, conservative full-suite fallbacks, ranked explanations and append-only optimistic overrides through the API/CLI/dashboard. Separately modeled infrastructure-event correlation and compatible performance baselines remain open. |
-| M5 — review workflow and UI | PARTIAL | Append-only analysis reviews, cluster decisions and impact include/exclude overrides exist with optimistic conflict versions. Upload/status, per-input completeness, clustering, history, impact, overview/runs/failure/evaluation views and Chromium journey source exist. Roles, complete audit/settings views and broader accessibility/browser coverage remain open. |
-| M6 — corpus and evaluation | PARTIAL | 200 synthetic classification cases, a 24-case/13-label clustering fixture and a 12-case/11-family deterministic impact fixture have executable harnesses and committed reports. Actual LedgerGuard executions remain 0, and the impact runtime figures are estimates rather than measured savings. |
+| M4 — history, impact and performance | PARTIAL | Prior-only exact-test history, deterministic change-impact recommendations and compatibility-gated performance regression analysis are implemented. Performance uses normalized evidence-linked observations, immutable policies and prior-only baseline snapshots, strict project/repository/workload/environment/producer/unit/trust/completeness compatibility, conservative missing/incompatible statuses, median run-level aggregation and evidence-grounded next-measurement guidance through the API/CLI/dashboard. Separately modeled infrastructure-event correlation remains open. |
+| M5 — review workflow and UI | PARTIAL | Append-only analysis reviews, cluster decisions and impact include/exclude overrides exist with optimistic conflict versions. Upload/status, per-input completeness, clustering, history, impact, performance, overview/runs/failure/evaluation views and Chromium journey source exist. Roles, complete audit/settings views and broader accessibility/browser coverage remain open. |
+| M6 — corpus and evaluation | PARTIAL | 200 synthetic classification cases, a 24-case/13-label clustering fixture, a 12-case/11-family deterministic impact fixture and a 20-case performance compatibility/regression fixture have executable harnesses and committed reports. Actual LedgerGuard executions remain 0; impact runtimes are estimates and performance results are controlled synthetic safety evidence rather than production measurements. |
 | M7 — optional model boundary | NOT RUN | Deterministic mode is functional; provider adapter is not implemented. |
 | M8 — GitHub integration | PARTIAL | Composite Action uses durable ingestion, carries repository/base/head/run-scope/comparison-trust metadata through safe argument arrays and emits ingestion/run/report outputs. Authenticated comparison lookup, live idempotent PR publication and stale-head reconciliation remain open. |
 | M9 — hardening and packaging | PARTIAL | Docker/Compose, nonroot backend, CI, storage/archive/image bounds, recovery tests, browser E2E source and migration chain exist. Retention, backup/restore, telemetry export, load benchmarks and broader isolation evidence remain open. |
-| M10 — final audit and source delivery | PARTIAL | M1 and M3 plus the M2 safety foundation and the history/impact portions of M4 are implemented; complete master-spec acceptance remains open. |
+| M10 — final audit and source delivery | PARTIAL | M1 and M3 plus the M2 safety foundation and the history, impact and performance portions of M4 are implemented; infrastructure-event correlation and the remaining master-spec acceptance remain open. |
 
-## Checks executed for the explainable-impact checkpoint
+## Checks executed for the compatible-performance checkpoint
 
-- `PYTHONPATH=src pytest -q`: **148 passed**.
-- `PYTHONPATH=src pytest --cov=failurelens --cov-branch --cov-fail-under=75 -q`: **148 passed, 88.00% total branch-aware coverage**.
-- `python -m compileall -q src tests`: **passed**.
+- `PYTHONPATH=src pytest -q`: **156 passed**.
+- `PYTHONPATH=src pytest --cov=failurelens --cov-branch --cov-fail-under=75 -q`: **156 passed, 85.26% total branch-aware coverage**.
+- `python -m compileall -q backend/src backend/tests evaluation`: **passed**.
+- Performance coverage includes final-attempt test durations and bounded k6 statistics, original/canonical units, exact evidence locators, immutable versioned policies, prior-only baselines, project/repository/workload/environment/producer/statistic/unit/trust/completeness gates, stale and future exclusion, deterministic replay, missing/incompatible statuses, lower- and higher-is-better metrics, zero baselines and run-level percentile anti-aggregation.
 - Impact coverage includes focused direct mappings, renamed/deleted paths, bounded reverse-dependency traversal with cycles, immutable mapping versions, project isolation, mandatory critical-test preservation, untrusted/incomplete/truncated/unmapped full-suite fallbacks, base/head mismatch rejection, deterministic replay, append-only overrides, stale-revision rejection and artifact self-trust prevention.
 - The controlled impact fixture contains **12 synthetic cases / 11 scenario families** and reports defect-revealing-test recall **1.000**, mandatory-critical-test recall **1.000**, expected safety-status accuracy **1.000**, deterministic-repeat agreement **1.000**, **7** focused-subset cases and **5** full-suite fallback cases. It remains synthetic and agent-authored; runtime values are estimates, not measured savings.
+- The controlled performance fixture contains **20 synthetic cases** and reports status accuracy **1.000**, regression recall **1.000**, compatibility-selection accuracy **1.000**, evidence-citation validity **1.000**, deterministic-repeat agreement **1.000**, **0/5** dangerous false negatives, **0** significance claims and **0** non-median baseline aggregations. It remains synthetic and agent-authored, not production workload evidence.
 - The frozen clustering fixture remains **24 cases / 13 evaluation-only incident labels** with pairwise precision **1.000**, pairwise recall **1.000**, **0** false merges, **0** false splits and adjusted Rand index **1.000**.
-- SQLite Alembic empty-database upgrade, downgrade to the previous head `e4b7c2d9a510`, and re-upgrade: **passed**.
+- SQLite Alembic empty-database upgrade, downgrade to the previous head `f1a9d4c7e620`, and re-upgrade through `b2c8e5f1a730`: **passed**.
 - `bash -n integrations/github-action/run.sh`: **passed**.
 - Locked npm restore/test/build could not be completed locally because package-registry access stalled in the isolated environment. PostgreSQL migration, frontend unit/build, Chromium, evaluation and Docker results must be taken from the exact delivered GitHub workflow run rather than inferred from workflow source.
 
@@ -90,3 +93,17 @@
 - **Usability:** the dashboard displays changed files, selected and excluded tests, safety reasons, mapping provenance, confidence, revision and override history rather than only a selected count.
 - **Evaluation truthfulness:** the committed impact benchmark reports recall and fallback behavior on synthetic fixtures; estimated durations are not presented as observed CI savings, and actual full-suite LedgerGuard backtesting remains open.
 - **Delivery truthfulness:** local backend, migration, shell and deterministic evaluation checks are separated from npm/browser/PostgreSQL/Docker workflow evidence until the exact candidate SHA is inspected remotely.
+
+## M4 performance failure perspectives reviewed
+
+- **Functional correctness:** final-attempt test durations and bounded k6 summary statistics become normalized observations; original and canonical values, units, statistic type, threshold state, workload and dimensions remain explicit.
+- **Baseline compatibility:** baselines are prior-only and require matching project, repository, workload, metric scope/name/statistic, canonical unit, direction, trusted producer/run context, completeness and configured dimensions. Rejected candidates retain reason counts.
+- **Missing evidence:** no acceptable prior cohort yields `BASELINE_UNAVAILABLE` or `INCOMPATIBLE_BASELINE`; neither state is rendered as no regression. Every accepted observation requires approved safe evidence.
+- **Dangerous reassurance:** single current/baseline percentile pairs never produce significance claims; exported p95 values are compared as run-level observations and never averaged into an aggregate p95.
+- **Data leakage and isolation:** current/future runs and cross-project records are excluded; immutable snapshots persist cutoff, policy, accepted members, rejected candidates and a canonical digest.
+- **Uncertainty and confounders:** repeated observations expose median absolute deviation where available; small cohorts, producer threshold conflicts and limited samples remain visible with an explicit next-measurement recommendation.
+- **Authorization:** project isolation is enforced at every policy, observation, baseline and comparison lookup. Full viewer/reviewer/administrator roles remain an M5 gap.
+- **Reproducibility:** policy, engine, normalized dimensions, observation/baseline digests, exact evidence IDs and deterministic comparison inputs are persisted.
+- **Usability:** API, CLI and dashboard expose deltas, counts, tolerances, baseline age/provenance, blockers, rejected compatibility reasons, confounders, evidence links and next measurements.
+- **Evaluation truthfulness:** the 20-case fixture is controlled synthetic safety evidence; it does not claim production prevalence, statistical power or independently blinded generalization.
+- **Delivery truthfulness:** local backend, migration, TypeScript, shell and deterministic evaluation results remain distinct from the exact delivered GitHub Actions evidence.

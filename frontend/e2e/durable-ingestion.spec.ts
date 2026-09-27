@@ -43,6 +43,13 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   await expect(page.locator('.history-context')).toContainText('Current run is excluded');
   await expect(page.locator('.history-panel')).toContainText('No prior matching observations');
   await expect(page.locator('.history-warning')).toContainText('no prior matching observations');
+
+  await expect(page.getByRole('heading', { name: 'Performance regression analysis' })).toBeVisible();
+  await expect(page.locator('.performance-observation-row')).toContainText('test.duration');
+  await page.getByRole('button', { name: 'Compare compatible baselines' }).click();
+  await expect(page.locator('.performance-comparison-card')).toContainText(/incompatible baseline/i);
+  await expect(page.locator('.performance-comparison-card')).toContainText(/current run untrusted/i);
+  await expect(page.locator('.performance-comparison-card').getByRole('link', { name: 'Current metric evidence' })).toBeVisible();
 });
 
 test('builds an explainable focused recommendation and records an attributed override', async ({ page }) => {

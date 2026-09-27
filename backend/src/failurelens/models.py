@@ -82,6 +82,18 @@ class Project(Base):
     impact_recommendations: Mapped[list[ImpactRecommendation]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
+    performance_policies: Mapped[list[PerformancePolicy]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    performance_observations: Mapped[list[PerformanceObservation]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    performance_baselines: Mapped[list[PerformanceBaselineSnapshot]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    performance_comparisons: Mapped[list[PerformanceComparison]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
 
 
 class Run(Base):
@@ -133,6 +145,15 @@ class Run(Base):
     )
     impact_recommendations: Mapped[list[ImpactRecommendation]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
+    )
+    performance_observations: Mapped[list[PerformanceObservation]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
+    )
+    performance_baselines: Mapped[list[PerformanceBaselineSnapshot]] = relationship(
+        back_populates="current_run", cascade="all, delete-orphan"
+    )
+    performance_comparisons: Mapped[list[PerformanceComparison]] = relationship(
+        back_populates="current_run", cascade="all, delete-orphan"
     )
 
 
@@ -259,6 +280,9 @@ class RunInput(Base):
     impact_recommendations: Mapped[list[ImpactRecommendation]] = relationship(
         back_populates="changed_input"
     )
+    performance_observations: Mapped[list[PerformanceObservation]] = relationship(
+        back_populates="run_input"
+    )
 
 
 class TestExecution(Base):
@@ -284,6 +308,9 @@ class TestExecution(Base):
     run: Mapped[Run] = relationship(back_populates="executions")
     failure: Mapped[Failure | None] = relationship(back_populates="execution", uselist=False)
     evidence: Mapped[list[Evidence]] = relationship(back_populates="execution")
+    performance_observations: Mapped[list[PerformanceObservation]] = relationship(
+        back_populates="execution"
+    )
 
 
 class Artifact(Base):
@@ -415,6 +442,9 @@ class Evidence(Base):
     run_input: Mapped[RunInput | None] = relationship(back_populates="evidence")
     execution: Mapped[TestExecution | None] = relationship(back_populates="evidence")
     derivative: Mapped[ArtifactDerivative | None] = relationship(
+        back_populates="evidence"
+    )
+    performance_observations: Mapped[list[PerformanceObservation]] = relationship(
         back_populates="evidence"
     )
 
@@ -864,4 +894,267 @@ class ImpactOverride(Base):
 
     recommendation: Mapped[ImpactRecommendation] = relationship(
         back_populates="overrides"
+    )
+
+
+class PerformancePolicy(Base):
+    __tablename__ = "performance_policies"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id", "version", name="uq_performance_policy_version"
+        ),
+        Index("ix_performance_policies_project_created", "project_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    version: Mapped[str] = mapped_column(String(80))
+    relative_tolerance: Mapped[float] = mapped_column(Float, default=0.10)
+    absolute_tolerance: Mapped[float] = mapped_column(Float, default=0.0)
+    min_baseline_runs: Mapped[int] = mapped_column(Integer, default=3)
+    max_baseline_age_days: Mapped[int] = mapped_column(Integer, default=30)
+    require_trusted: Mapped[bool] = mapped_column(Boolean, default=True)
+    required_dimensions: Mapped[list[str]] = mapped_column(JSON, default=list)
+    direction_overrides: Mapped[dict[str, str]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    project: Mapped[Project] = relationship(back_populates="performance_policies")
+    baselines: Mapped[list[PerformanceBaselineSnapshot]] = relationship(
+        back_populates="policy"
+    )
+    comparisons: Mapped[list[PerformanceComparison]] = relationship(
+        back_populates="policy"
+    )
+
+
+class PerformanceObservation(Base):
+    __tablename__ = "performance_observations"
+    __table_args__ = (
+        UniqueConstraint("run_id", "metric_key", name="uq_performance_run_metric"),
+        Index(
+            "ix_performance_observations_lookup",
+            "project_id",
+            "metric_name",
+            "statistic",
+            "observed_at",
+        ),
+        Index(
+            "ix_performance_observations_cohort",
+            "project_id",
+            "dimension_signature",
+            "observed_at",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), index=True
+    )
+    run_input_id: Mapped[str | None] = mapped_column(
+        ForeignKey("run_inputs.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    execution_id: Mapped[str | None] = mapped_column(
+        ForeignKey("test_executions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    evidence_id: Mapped[str] = mapped_column(
+        ForeignKey("evidence.id", ondelete="RESTRICT"), index=True
+    )
+    metric_key: Mapped[str] = mapped_column(String(64))
+    metric_name: Mapped[str] = mapped_column(String(240))
+    metric_scope: Mapped[str] = mapped_column(String(40))
+    statistic: Mapped[str] = mapped_column(String(80))
+    direction: Mapped[str] = mapped_column(String(40), default="lower_is_better")
+    original_value: Mapped[float] = mapped_column(Float)
+    original_unit: Mapped[str] = mapped_column(String(40))
+    canonical_value: Mapped[float] = mapped_column(Float)
+    canonical_unit: Mapped[str] = mapped_column(String(40))
+    sample_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    producer: Mapped[str] = mapped_column(String(120))
+    producer_version: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    workload: Mapped[str] = mapped_column(String(512))
+    dimension_signature: Mapped[str] = mapped_column(String(64))
+    dimensions: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    threshold_status: Mapped[str] = mapped_column(String(40), default="unknown")
+    threshold_details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    source_digest: Mapped[str] = mapped_column(String(64))
+    source_locator: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    project: Mapped[Project] = relationship(back_populates="performance_observations")
+    run: Mapped[Run] = relationship(back_populates="performance_observations")
+    run_input: Mapped[RunInput | None] = relationship(
+        back_populates="performance_observations"
+    )
+    execution: Mapped[TestExecution | None] = relationship(
+        back_populates="performance_observations"
+    )
+    evidence: Mapped[Evidence] = relationship(back_populates="performance_observations")
+    baseline_memberships: Mapped[list[PerformanceBaselineMember]] = relationship(
+        back_populates="observation"
+    )
+    current_baselines: Mapped[list[PerformanceBaselineSnapshot]] = relationship(
+        back_populates="current_observation",
+        foreign_keys="PerformanceBaselineSnapshot.current_observation_id",
+    )
+    current_comparisons: Mapped[list[PerformanceComparison]] = relationship(
+        back_populates="current_observation",
+        foreign_keys="PerformanceComparison.current_observation_id",
+    )
+
+
+class PerformanceBaselineSnapshot(Base):
+    __tablename__ = "performance_baseline_snapshots"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id", "input_digest", name="uq_performance_baseline_input"
+        ),
+        Index("ix_performance_baselines_run_created", "current_run_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    current_run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), index=True
+    )
+    current_observation_id: Mapped[str] = mapped_column(
+        ForeignKey("performance_observations.id", ondelete="CASCADE"), index=True
+    )
+    policy_id: Mapped[str] = mapped_column(
+        ForeignKey("performance_policies.id", ondelete="RESTRICT"), index=True
+    )
+    input_digest: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(40))
+    cutoff_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    cohort_dimensions: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    compatibility: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    rejected_candidates: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    run_count: Mapped[int] = mapped_column(Integer, default=0)
+    sample_count: Mapped[int] = mapped_column(Integer, default=0)
+    baseline_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    baseline_min: Mapped[float | None] = mapped_column(Float, nullable=True)
+    baseline_max: Mapped[float | None] = mapped_column(Float, nullable=True)
+    baseline_mad: Mapped[float | None] = mapped_column(Float, nullable=True)
+    baseline_age_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    aggregation: Mapped[str] = mapped_column(
+        String(80), default="median_of_run_level_observations"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    project: Mapped[Project] = relationship(back_populates="performance_baselines")
+    current_run: Mapped[Run] = relationship(back_populates="performance_baselines")
+    current_observation: Mapped[PerformanceObservation] = relationship(
+        back_populates="current_baselines",
+        foreign_keys=[current_observation_id],
+    )
+    policy: Mapped[PerformancePolicy] = relationship(back_populates="baselines")
+    members: Mapped[list[PerformanceBaselineMember]] = relationship(
+        back_populates="snapshot", cascade="all, delete-orphan"
+    )
+    comparison: Mapped[PerformanceComparison | None] = relationship(
+        back_populates="baseline_snapshot", uselist=False
+    )
+
+
+class PerformanceBaselineMember(Base):
+    __tablename__ = "performance_baseline_members"
+    __table_args__ = (
+        UniqueConstraint(
+            "snapshot_id", "observation_id", name="uq_performance_baseline_member"
+        ),
+        Index("ix_performance_baseline_members_order", "snapshot_id", "position"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    snapshot_id: Mapped[str] = mapped_column(
+        ForeignKey("performance_baseline_snapshots.id", ondelete="CASCADE"), index=True
+    )
+    observation_id: Mapped[str] = mapped_column(
+        ForeignKey("performance_observations.id", ondelete="RESTRICT"), index=True
+    )
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="RESTRICT"), index=True
+    )
+    position: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    snapshot: Mapped[PerformanceBaselineSnapshot] = relationship(back_populates="members")
+    observation: Mapped[PerformanceObservation] = relationship(
+        back_populates="baseline_memberships"
+    )
+    run: Mapped[Run] = relationship()
+
+
+class PerformanceComparison(Base):
+    __tablename__ = "performance_comparisons"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id", "input_digest", name="uq_performance_comparison_input"
+        ),
+        Index("ix_performance_comparisons_run_created", "current_run_id", "created_at"),
+        Index("ix_performance_comparisons_status", "project_id", "status"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    current_run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), index=True
+    )
+    current_observation_id: Mapped[str] = mapped_column(
+        ForeignKey("performance_observations.id", ondelete="CASCADE"), index=True
+    )
+    baseline_snapshot_id: Mapped[str] = mapped_column(
+        ForeignKey("performance_baseline_snapshots.id", ondelete="RESTRICT"),
+        unique=True,
+        index=True,
+    )
+    policy_id: Mapped[str] = mapped_column(
+        ForeignKey("performance_policies.id", ondelete="RESTRICT"), index=True
+    )
+    engine_version: Mapped[str] = mapped_column(String(80))
+    input_digest: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(40))
+    current_value: Mapped[float] = mapped_column(Float)
+    baseline_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    absolute_change: Mapped[float | None] = mapped_column(Float, nullable=True)
+    relative_change: Mapped[float | None] = mapped_column(Float, nullable=True)
+    allowed_absolute_change: Mapped[float] = mapped_column(Float)
+    allowed_relative_change: Mapped[float] = mapped_column(Float)
+    current_sample_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    baseline_run_count: Mapped[int] = mapped_column(Integer, default=0)
+    baseline_sample_count: Mapped[int] = mapped_column(Integer, default=0)
+    threshold_status: Mapped[str] = mapped_column(String(40), default="unknown")
+    effect_size: Mapped[float | None] = mapped_column(Float, nullable=True)
+    uncertainty: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    compatibility: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    confounders: Mapped[list[str]] = mapped_column(JSON, default=list)
+    current_evidence_id: Mapped[str] = mapped_column(
+        ForeignKey("evidence.id", ondelete="RESTRICT"), index=True
+    )
+    baseline_evidence_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    next_measurement: Mapped[str] = mapped_column(Text)
+    summary: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    project: Mapped[Project] = relationship(back_populates="performance_comparisons")
+    current_run: Mapped[Run] = relationship(back_populates="performance_comparisons")
+    current_observation: Mapped[PerformanceObservation] = relationship(
+        back_populates="current_comparisons",
+        foreign_keys=[current_observation_id],
+    )
+    baseline_snapshot: Mapped[PerformanceBaselineSnapshot] = relationship(
+        back_populates="comparison"
+    )
+    policy: Mapped[PerformancePolicy] = relationship(back_populates="comparisons")
+    current_evidence: Mapped[Evidence] = relationship(
+        foreign_keys=[current_evidence_id]
     )

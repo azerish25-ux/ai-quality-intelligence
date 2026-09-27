@@ -1,0 +1,28 @@
+{
+  "case_count": 20,
+  "compatibility_selection_accuracy": 1.0,
+  "dangerous_false_negative": {
+    "case_ids": [],
+    "denominator": 5,
+    "numerator": 0
+  },
+  "deterministic_repeat_agreement": 1.0,
+  "evidence_citation_validity": 1.0,
+  "limitations": [
+    "The fixture is synthetic and agent-authored.",
+    "The result measures deterministic safety behavior, not population-level production accuracy.",
+    "No exported percentile is averaged or represented as an aggregate percentile."
+  ],
+  "non_median_baseline_aggregations": 0,
+  "regression_recall": 1.0,
+  "schema_version": "performance-evaluation-result-v1",
+  "statistical_significance_claims": 0,
+  "status_accuracy": 1.0,
+  "status_counts": {
+    "BASELINE_UNAVAILABLE": 1,
+    "IMPROVEMENT": 1,
+    "INCOMPATIBLE_BASELINE": 10,
+    "REGRESSION": 5,
+    "WITHIN_TOLERANCE": 3
+  }
+}

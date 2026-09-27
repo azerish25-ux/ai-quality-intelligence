@@ -15,7 +15,12 @@ from .demo import seed_demo
 from .github_report import render_markdown
 from .impact import create_impact_recommendation, impact_recommendation_to_schema
 from .jobs import process_next
-from .models import Analysis, Failure, Ingestion, Project, Run
+from .models import Analysis, Failure, Ingestion, PerformancePolicy, Project, Run
+from .performance import (
+    create_run_performance_comparisons,
+    ensure_default_performance_policy,
+    performance_comparison_to_schema,
+)
 from .schemas import ImpactRecommendationCreate, RunMetadata
 from .service import analyze_and_persist, create_project, enqueue_artifact_ingestion
 from .storage import store_bytes
@@ -77,6 +82,19 @@ def main() -> None:
     impact.add_argument("--run", required=True, help="run ID containing changed-files input")
     impact.add_argument("--mapping-snapshot", required=True)
     impact.add_argument("--changed-input")
+
+    performance = sub.add_parser(
+        "performance",
+        help="compare normalized run metrics with compatible prior-only baselines",
+    )
+    performance.add_argument("--run", required=True, help="run ID to compare")
+    performance.add_argument("--policy", help="immutable performance policy ID")
+    performance.add_argument(
+        "--observation",
+        action="append",
+        default=[],
+        help="optional performance observation ID; repeat to compare a subset",
+    )
 
     args = parser.parse_args()
     initialize_database()
@@ -213,6 +231,38 @@ def main() -> None:
             print(
                 impact_recommendation_to_schema(recommendation).model_dump_json(
                     indent=2
+                )
+            )
+        elif args.command == "performance":
+            run = session.get(Run, args.run)
+            if run is None:
+                raise SystemExit("run not found")
+            project = session.get(Project, run.project_id)
+            if project is None:
+                raise SystemExit("project not found")
+            if args.policy:
+                policy = session.get(PerformancePolicy, args.policy)
+                if policy is None or policy.project_id != project.id:
+                    raise SystemExit("performance policy not found in project")
+            else:
+                policy = ensure_default_performance_policy(session, project)
+            try:
+                comparisons = create_run_performance_comparisons(
+                    session,
+                    run,
+                    policy,
+                    observation_ids=args.observation,
+                )
+            except ValueError as exc:
+                raise SystemExit(str(exc)) from exc
+            print(
+                json.dumps(
+                    [
+                        performance_comparison_to_schema(item).model_dump(mode="json")
+                        for item in comparisons
+                    ],
+                    indent=2,
+                    default=str,
                 )
             )
         elif args.command == "report":

@@ -363,6 +363,165 @@ class ImpactRecommendationRead(BaseModel):
     updated_at: datetime
 
 
+class PerformancePolicyCreate(BaseModel):
+    version: str = Field(default="performance-policy-v1", min_length=1, max_length=80)
+    relative_tolerance: float = Field(default=0.10, ge=0, le=10)
+    absolute_tolerance: float = Field(default=0.0, ge=0)
+    min_baseline_runs: int = Field(default=3, ge=1, le=10_000)
+    max_baseline_age_days: int = Field(default=30, ge=1, le=3650)
+    require_trusted: bool = True
+    required_dimensions: list[str] = Field(
+        default_factory=lambda: [
+            "repository",
+            "workload",
+            "environment",
+            "browser",
+            "run_scope",
+            "producer",
+            "producer_version",
+            "load_profile",
+            "region",
+            "executor",
+        ],
+        min_length=1,
+        max_length=40,
+    )
+    direction_overrides: dict[str, Literal["lower_is_better", "higher_is_better", "neutral"]] = Field(
+        default_factory=dict
+    )
+
+    @field_validator("required_dimensions")
+    @classmethod
+    def normalize_dimensions(cls, value: list[str]) -> list[str]:
+        normalized = sorted({item.strip() for item in value if item.strip()})
+        if not normalized:
+            raise ValueError("at least one compatibility dimension is required")
+        if any(len(item) > 80 for item in normalized):
+            raise ValueError("compatibility dimension names must be at most 80 characters")
+        return normalized
+
+
+class PerformancePolicyRead(PerformancePolicyCreate):
+    id: str
+    project_id: str
+    created_at: datetime
+
+
+class PerformanceObservationRead(BaseModel):
+    id: str
+    project_id: str
+    run_id: str
+    run_input_id: str | None
+    execution_id: str | None
+    evidence_id: str
+    metric_key: str
+    metric_name: str
+    metric_scope: str
+    statistic: str
+    direction: str
+    original_value: float
+    original_unit: str
+    canonical_value: float
+    canonical_unit: str
+    sample_count: int | None
+    producer: str
+    producer_version: str | None
+    workload: str
+    dimension_signature: str
+    dimensions: dict[str, Any]
+    threshold_status: str
+    threshold_details: dict[str, Any]
+    source_digest: str
+    source_locator: dict[str, Any]
+    observed_at: datetime
+    created_at: datetime
+
+
+class PerformanceBaselineCreate(BaseModel):
+    current_observation_id: str = Field(min_length=1, max_length=36)
+    policy_id: str | None = Field(default=None, min_length=1, max_length=36)
+
+
+class PerformanceBaselineMemberRead(BaseModel):
+    observation_id: str
+    run_id: str
+    evidence_id: str
+    external_id: str
+    commit_sha: str | None
+    observed_at: datetime
+    canonical_value: float
+    canonical_unit: str
+    sample_count: int | None
+    position: int
+
+
+class PerformanceBaselineRead(BaseModel):
+    id: str
+    project_id: str
+    current_run_id: str
+    current_observation_id: str
+    policy_id: str
+    input_digest: str
+    status: str
+    cutoff_at: datetime
+    cohort_dimensions: dict[str, Any]
+    compatibility: dict[str, Any]
+    rejected_candidates: list[dict[str, Any]]
+    run_count: int
+    sample_count: int
+    baseline_value: float | None
+    baseline_min: float | None
+    baseline_max: float | None
+    baseline_mad: float | None
+    baseline_age_seconds: float | None
+    aggregation: str
+    members: list[PerformanceBaselineMemberRead]
+    created_at: datetime
+
+
+class PerformanceComparisonCreate(BaseModel):
+    policy_id: str | None = Field(default=None, min_length=1, max_length=36)
+    observation_ids: list[str] = Field(default_factory=list, max_length=5000)
+
+
+class PerformanceComparisonRead(BaseModel):
+    id: str
+    project_id: str
+    current_run_id: str
+    current_observation_id: str
+    baseline_snapshot_id: str
+    policy_id: str
+    engine_version: str
+    input_digest: str
+    status: str
+    metric_name: str
+    metric_scope: str
+    statistic: str
+    direction: str
+    workload: str
+    canonical_unit: str
+    current_value: float
+    baseline_value: float | None
+    absolute_change: float | None
+    relative_change: float | None
+    allowed_absolute_change: float
+    allowed_relative_change: float
+    current_sample_count: int | None
+    baseline_run_count: int
+    baseline_sample_count: int
+    threshold_status: str
+    effect_size: float | None
+    uncertainty: dict[str, Any]
+    compatibility: dict[str, Any]
+    confounders: list[str]
+    current_evidence_id: str
+    baseline_evidence_ids: list[str]
+    next_measurement: str
+    summary: str
+    baseline: PerformanceBaselineRead
+    created_at: datetime
+
+
 class Confidence(BaseModel):
     value: float | None
     kind: str

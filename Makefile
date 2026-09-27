@@ -20,12 +20,14 @@ evaluate:
 	$(PYTHON) evaluation/generate_corpus.py
 	$(PYTHON) evaluation/generate_clustering_corpus.py
 	$(PYTHON) evaluation/generate_impact_corpus.py
+	$(PYTHON) evaluation/generate_performance_corpus.py
 	PYTHONPATH=backend/src $(PYTHON) evaluation/harness.py --split test --output evaluation/reports/latest
 	PYTHONPATH=backend/src $(PYTHON) evaluation/clustering_harness.py --output evaluation/reports/latest
 	PYTHONPATH=backend/src $(PYTHON) evaluation/impact_harness.py --output evaluation/reports/latest
+	PYTHONPATH=backend/src $(PYTHON) evaluation/performance_harness.py --output evaluation/reports/latest
 
 security-test:
-	cd backend && PYTHONPATH=src pytest -q tests/test_redaction.py tests/test_ingestion.py tests/test_analysis.py tests/test_clustering.py tests/test_history.py tests/test_impact.py
+	cd backend && PYTHONPATH=src pytest -q tests/test_redaction.py tests/test_ingestion.py tests/test_analysis.py tests/test_clustering.py tests/test_history.py tests/test_impact.py tests/test_performance.py
 
 verify:
 	./scripts/verify.sh

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { api, type ClusterDetail, type ClusterSummary, type ImpactMappingSnapshot, type ImpactRecommendation, type Ingestion, type RunInput, type TestHistory } from './api';
+import { api, type ClusterDetail, type ClusterSummary, type ImpactMappingSnapshot, type ImpactRecommendation, type Ingestion, type PerformanceComparison, type PerformanceObservation, type PerformancePolicy, type RunInput, type TestHistory } from './api';
 
 const ingestion: Ingestion = {
   id: 'ing-1',
@@ -52,6 +52,110 @@ const runInput: RunInput = {
   created_at: '2026-09-26T00:00:00Z'
 };
 
+
+const performancePolicy: PerformancePolicy = {
+  id: 'performance-policy-1',
+  project_id: 'project-1',
+  version: 'performance-policy-v1',
+  relative_tolerance: 0.1,
+  absolute_tolerance: 0,
+  min_baseline_runs: 3,
+  max_baseline_age_days: 30,
+  require_trusted: true,
+  required_dimensions: ['repository', 'workload', 'environment'],
+  direction_overrides: {},
+  created_at: '2026-09-27T00:00:00Z'
+};
+
+const performanceObservation: PerformanceObservation = {
+  id: 'performance-observation-1',
+  project_id: 'project-1',
+  run_id: 'run-1',
+  run_input_id: 'input-row-1',
+  execution_id: null,
+  evidence_id: 'evidence-current',
+  metric_key: '1'.repeat(64),
+  metric_name: 'http_req_duration',
+  metric_scope: 'k6_summary',
+  statistic: 'p95',
+  direction: 'lower_is_better',
+  original_value: 130,
+  original_unit: 'ms',
+  canonical_value: 130,
+  canonical_unit: 'ms',
+  sample_count: 600,
+  producer: 'k6-handleSummary',
+  producer_version: '0.54.0',
+  workload: 'checkout-steady',
+  dimension_signature: '2'.repeat(64),
+  dimensions: { repository: 'owner/repo', environment: 'ci-linux' },
+  threshold_status: 'passed',
+  threshold_details: {},
+  source_digest: '3'.repeat(64),
+  source_locator: { pointer: '/metrics/http_req_duration/values/p(95)' },
+  observed_at: '2026-09-27T00:00:00Z',
+  created_at: '2026-09-27T00:00:00Z'
+};
+
+const performanceComparison: PerformanceComparison = {
+  id: 'performance-comparison-1',
+  project_id: 'project-1',
+  current_run_id: 'run-1',
+  current_observation_id: performanceObservation.id,
+  baseline_snapshot_id: 'performance-baseline-1',
+  policy_id: performancePolicy.id,
+  engine_version: 'performance-engine-v1',
+  input_digest: '4'.repeat(64),
+  status: 'REGRESSION',
+  metric_name: performanceObservation.metric_name,
+  metric_scope: performanceObservation.metric_scope,
+  statistic: performanceObservation.statistic,
+  direction: performanceObservation.direction,
+  workload: performanceObservation.workload,
+  canonical_unit: 'ms',
+  current_value: 130,
+  baseline_value: 100,
+  absolute_change: 30,
+  relative_change: 0.3,
+  allowed_absolute_change: 10,
+  allowed_relative_change: 0.1,
+  current_sample_count: 600,
+  baseline_run_count: 3,
+  baseline_sample_count: 1800,
+  threshold_status: 'passed',
+  effect_size: null,
+  uncertainty: { significance_claimed: false },
+  compatibility: { rejected_reason_counts: {} },
+  confounders: ['no_statistical_significance_claim_from_single_current_summary'],
+  current_evidence_id: 'evidence-current',
+  baseline_evidence_ids: ['evidence-b1', 'evidence-b2', 'evidence-b3'],
+  next_measurement: 'Repeat the identical workload.',
+  summary: 'Compatible prior baseline indicates a regression.',
+  baseline: {
+    id: 'performance-baseline-1',
+    project_id: 'project-1',
+    current_run_id: 'run-1',
+    current_observation_id: performanceObservation.id,
+    policy_id: performancePolicy.id,
+    input_digest: '5'.repeat(64),
+    status: 'AVAILABLE',
+    cutoff_at: '2026-09-27T00:00:00Z',
+    cohort_dimensions: { environment: 'ci-linux' },
+    compatibility: { accepted_count: 3 },
+    rejected_candidates: [],
+    run_count: 3,
+    sample_count: 1800,
+    baseline_value: 100,
+    baseline_min: 95,
+    baseline_max: 105,
+    baseline_mad: 5,
+    baseline_age_seconds: 86400,
+    aggregation: 'median_of_run_level_observations',
+    members: [],
+    created_at: '2026-09-27T00:00:00Z'
+  },
+  created_at: '2026-09-27T00:00:00Z'
+};
 
 const impactMapping: ImpactMappingSnapshot = {
   id: 'mapping-1',
@@ -390,6 +494,61 @@ describe('change-impact client', () => {
       test_key: 'profile',
       reason: 'Reviewed release-risk coupling.',
       expected_revision: 0
+    });
+  });
+});
+
+
+describe('compatible performance intelligence client', () => {
+  it('loads policies and normalized observations', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify([performancePolicy]), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([performanceObservation]), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await api.performancePolicies('project-1')).toEqual([performancePolicy]);
+    expect(await api.performanceObservations('run-1')).toEqual([performanceObservation]);
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/projects/project-1/performance-policies', {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/runs/run-1/performance-observations', {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  });
+
+  it('registers an immutable policy and creates prior-only comparisons', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(performancePolicy), {
+        status: 201, headers: { 'Content-Type': 'application/json' }
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([performanceComparison]), {
+        status: 201, headers: { 'Content-Type': 'application/json' }
+      }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const policy = await api.createPerformancePolicy('project-1', {
+      version: 'performance-policy-v1',
+      min_baseline_runs: 3,
+      require_trusted: true
+    });
+    expect(policy.version).toBe('performance-policy-v1');
+    expect(JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))).toEqual({
+      version: 'performance-policy-v1',
+      min_baseline_runs: 3,
+      require_trusted: true
+    });
+
+    const findings = await api.createPerformanceComparisons(
+      'run-1', performancePolicy.id, [performanceObservation.id]
+    );
+    expect(findings[0].status).toBe('REGRESSION');
+    expect(JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body))).toEqual({
+      policy_id: performancePolicy.id,
+      observation_ids: [performanceObservation.id]
     });
   });
 });

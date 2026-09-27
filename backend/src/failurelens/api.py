@@ -28,6 +28,21 @@ from .impact import (
     list_project_recommendations,
     mapping_snapshot_to_schema,
 )
+from .performance import (
+    build_performance_baseline,
+    create_performance_policy,
+    create_run_performance_comparisons,
+    ensure_default_performance_policy,
+    get_performance_baseline,
+    get_performance_comparison,
+    list_performance_policies,
+    list_run_performance_comparisons,
+    list_run_performance_observations,
+    performance_baseline_to_schema,
+    performance_comparison_to_schema,
+    performance_observation_to_schema,
+    performance_policy_to_schema,
+)
 from .models import (
     Analysis,
     Category,
@@ -40,6 +55,9 @@ from .models import (
     Ingestion,
     IngestionState,
     ImpactRecommendation,
+    PerformanceComparison,
+    PerformanceObservation,
+    PerformancePolicy,
     Project,
     Run,
     RunInput,
@@ -62,6 +80,13 @@ from .schemas import (
     ImpactOverrideCreate,
     ImpactRecommendationCreate,
     ImpactRecommendationRead,
+    PerformanceBaselineCreate,
+    PerformanceBaselineRead,
+    PerformanceComparisonCreate,
+    PerformanceComparisonRead,
+    PerformanceObservationRead,
+    PerformancePolicyCreate,
+    PerformancePolicyRead,
     ProjectCreate,
     ProjectRead,
     ReviewCreate,
@@ -91,7 +116,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="FailureLens API",
-    version="0.6.0",
+    version="0.7.0",
     description="Evidence-grounded automated test failure triage",
     lifespan=lifespan,
 )
@@ -272,6 +297,10 @@ def overview(session: Session = Depends(get_session)) -> dict:
         or 0,
         "impact_recommendations": session.scalar(
             select(func.count(ImpactRecommendation.id))
+        )
+        or 0,
+        "performance_comparisons": session.scalar(
+            select(func.count(PerformanceComparison.id))
         )
         or 0,
         "analyses": len(analyses),
@@ -649,6 +678,180 @@ def impact_overrides_create(
         status_code = 409 if any(marker in detail for marker in conflict_markers) else 422
         raise HTTPException(status_code, detail) from exc
     return impact_recommendation_to_schema(refreshed)
+
+
+@app.post(
+    "/api/v1/projects/{project_id}/performance-policies",
+    response_model=PerformancePolicyRead,
+    status_code=201,
+    dependencies=[Depends(authorized)],
+)
+def performance_policies_create(
+    project_id: str,
+    request: PerformancePolicyCreate,
+    session: Session = Depends(get_session),
+) -> PerformancePolicyRead:
+    project = session.get(Project, project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    try:
+        policy = create_performance_policy(session, project, request)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return performance_policy_to_schema(policy)
+
+
+@app.get(
+    "/api/v1/projects/{project_id}/performance-policies",
+    response_model=list[PerformancePolicyRead],
+)
+def performance_policies_list(
+    project_id: str,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    session: Session = Depends(get_session),
+) -> list[PerformancePolicyRead]:
+    if session.get(Project, project_id) is None:
+        raise HTTPException(404, "project not found")
+    return [
+        performance_policy_to_schema(item)
+        for item in list_performance_policies(
+            session, project_id, limit=limit, offset=offset
+        )
+    ]
+
+
+@app.get(
+    "/api/v1/runs/{run_id}/performance-observations",
+    response_model=list[PerformanceObservationRead],
+)
+def performance_observations_list(
+    run_id: str,
+    limit: Annotated[int, Query(ge=1, le=5000)] = 1000,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    session: Session = Depends(get_session),
+) -> list[PerformanceObservationRead]:
+    if session.get(Run, run_id) is None:
+        raise HTTPException(404, "run not found")
+    return [
+        performance_observation_to_schema(item)
+        for item in list_run_performance_observations(
+            session, run_id, limit=limit, offset=offset
+        )
+    ]
+
+
+@app.post(
+    "/api/v1/projects/{project_id}/performance-baselines",
+    response_model=PerformanceBaselineRead,
+    status_code=201,
+    dependencies=[Depends(authorized)],
+)
+def performance_baselines_create(
+    project_id: str,
+    request: PerformanceBaselineCreate,
+    session: Session = Depends(get_session),
+) -> PerformanceBaselineRead:
+    project = session.get(Project, project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    observation = session.get(PerformanceObservation, request.current_observation_id)
+    if observation is None or observation.project_id != project_id:
+        raise HTTPException(404, "performance observation not found in project")
+    if request.policy_id:
+        policy = session.get(PerformancePolicy, request.policy_id)
+        if policy is None or policy.project_id != project_id:
+            raise HTTPException(404, "performance policy not found in project")
+    else:
+        policy = ensure_default_performance_policy(session, project)
+    try:
+        baseline = build_performance_baseline(session, observation, policy)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return performance_baseline_to_schema(baseline)
+
+
+@app.get(
+    "/api/v1/performance-baselines/{baseline_id}",
+    response_model=PerformanceBaselineRead,
+)
+def performance_baselines_get(
+    baseline_id: str,
+    session: Session = Depends(get_session),
+) -> PerformanceBaselineRead:
+    baseline = get_performance_baseline(session, baseline_id)
+    if baseline is None:
+        raise HTTPException(404, "performance baseline not found")
+    return performance_baseline_to_schema(baseline)
+
+
+@app.post(
+    "/api/v1/runs/{run_id}/performance-comparisons",
+    response_model=list[PerformanceComparisonRead],
+    status_code=201,
+    dependencies=[Depends(authorized)],
+)
+def performance_comparisons_create(
+    run_id: str,
+    request: PerformanceComparisonCreate,
+    session: Session = Depends(get_session),
+) -> list[PerformanceComparisonRead]:
+    run = session.get(Run, run_id)
+    if run is None:
+        raise HTTPException(404, "run not found")
+    project = session.get(Project, run.project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    if request.policy_id:
+        policy = session.get(PerformancePolicy, request.policy_id)
+        if policy is None or policy.project_id != run.project_id:
+            raise HTTPException(404, "performance policy not found in project")
+    else:
+        policy = ensure_default_performance_policy(session, project)
+    try:
+        rows = create_run_performance_comparisons(
+            session,
+            run,
+            policy,
+            observation_ids=request.observation_ids,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return [performance_comparison_to_schema(item) for item in rows]
+
+
+@app.get(
+    "/api/v1/runs/{run_id}/performance-comparisons",
+    response_model=list[PerformanceComparisonRead],
+)
+def performance_comparisons_list(
+    run_id: str,
+    limit: Annotated[int, Query(ge=1, le=5000)] = 1000,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    session: Session = Depends(get_session),
+) -> list[PerformanceComparisonRead]:
+    if session.get(Run, run_id) is None:
+        raise HTTPException(404, "run not found")
+    return [
+        performance_comparison_to_schema(item)
+        for item in list_run_performance_comparisons(
+            session, run_id, limit=limit, offset=offset
+        )
+    ]
+
+
+@app.get(
+    "/api/v1/performance-comparisons/{comparison_id}",
+    response_model=PerformanceComparisonRead,
+)
+def performance_comparisons_get(
+    comparison_id: str,
+    session: Session = Depends(get_session),
+) -> PerformanceComparisonRead:
+    row = get_performance_comparison(session, comparison_id)
+    if row is None:
+        raise HTTPException(404, "performance comparison not found")
+    return performance_comparison_to_schema(row)
 
 
 @app.get(

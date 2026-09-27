@@ -11,6 +11,9 @@ import {
   type ImpactRecommendation,
   type ImpactRecommendationItem,
   type Overview,
+  type PerformanceComparison,
+  type PerformanceObservation,
+  type PerformancePolicy,
   type Project,
   type Run,
   type RunInput,
@@ -44,6 +47,15 @@ const formatRate = (rate: TestHistory['rates'][string] | undefined): string => {
 };
 
 const readableValue = (value: string): string => value.replaceAll('_', ' ');
+const performanceStatusClass = (value: string): string => statusClass(value.toLowerCase());
+const formatPerformanceValue = (value: number | null, unit: string): string => {
+  if (value === null || !Number.isFinite(value)) return 'Unavailable';
+  return `${new Intl.NumberFormat(undefined, { maximumSignificantDigits: 6 }).format(value)} ${unit}`;
+};
+const formatPerformanceDelta = (value: number | null): string => {
+  if (value === null || !Number.isFinite(value)) return 'Unavailable';
+  return `${value >= 0 ? '+' : ''}${(value * 100).toFixed(1)}%`;
+};
 
 const newExternalId = (): string => `manual-${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}`;
 
@@ -108,6 +120,11 @@ function App() {
   const [watchedIngestionId, setWatchedIngestionId] = useState<string | null>(null);
   const [failures, setFailures] = useState<Failure[]>([]);
   const [runInputs, setRunInputs] = useState<RunInput[]>([]);
+  const [performancePolicies, setPerformancePolicies] = useState<PerformancePolicy[]>([]);
+  const [performancePolicyId, setPerformancePolicyId] = useState('');
+  const [performanceObservations, setPerformanceObservations] = useState<PerformanceObservation[]>([]);
+  const [performanceComparisons, setPerformanceComparisons] = useState<PerformanceComparison[]>([]);
+  const [performanceLoading, setPerformanceLoading] = useState(false);
   const [impactMappings, setImpactMappings] = useState<ImpactMappingSnapshot[]>([]);
   const [impactMappingId, setImpactMappingId] = useState('');
   const [impactRecommendations, setImpactRecommendations] = useState<ImpactRecommendation[]>([]);
@@ -176,6 +193,10 @@ function App() {
       setRunClusters([]);
       setImpactMappings([]);
       setImpactRecommendations([]);
+      setPerformancePolicies([]);
+      setPerformancePolicyId('');
+      setPerformanceObservations([]);
+      setPerformanceComparisons([]);
       setImpactMappingId('');
       setSelectedImpactId('');
       setSelectedImpact(null);
@@ -184,18 +205,24 @@ function App() {
       setRunId('');
       return;
     }
-    const [nextRuns, nextIngestions, nextClusters, nextMappings, nextImpactRecommendations] = await Promise.all([
+    const [nextRuns, nextIngestions, nextClusters, nextMappings, nextImpactRecommendations, nextPerformancePolicies] = await Promise.all([
       api.runs(nextProjectId),
       api.ingestions(nextProjectId),
       api.clusters(nextProjectId),
       api.impactMappings(nextProjectId),
-      api.impactRecommendations(nextProjectId)
+      api.impactRecommendations(nextProjectId),
+      api.performancePolicies(nextProjectId)
     ]);
     setRuns(nextRuns);
     setIngestions(nextIngestions);
     setClusters(nextClusters);
     setImpactMappings(nextMappings);
     setImpactRecommendations(nextImpactRecommendations);
+    setPerformancePolicies(nextPerformancePolicies);
+    setPerformancePolicyId((current) => {
+      if (current && nextPerformancePolicies.some((policy) => policy.id === current)) return current;
+      return nextPerformancePolicies[0]?.id ?? '';
+    });
     setImpactMappingId((current) => {
       if (current && nextMappings.some((mapping) => mapping.id === current)) return current;
       return nextMappings[0]?.id ?? '';
@@ -228,14 +255,28 @@ function App() {
       setFailures([]);
       setRunInputs([]);
       setRunClusters([]);
+      setPerformanceObservations([]);
+      setPerformanceComparisons([]);
       setSelectedFailure(null);
+      setPerformanceLoading(false);
       return;
     }
-    Promise.all([api.failures(runId), api.runInputs(runId), api.runClusters(runId)])
-      .then(([nextFailures, nextInputs, nextRunClusters]) => {
+    let cancelled = false;
+    setPerformanceLoading(true);
+    Promise.all([
+      api.failures(runId),
+      api.runInputs(runId),
+      api.runClusters(runId),
+      api.performanceObservations(runId),
+      api.performanceComparisons(runId)
+    ])
+      .then(([nextFailures, nextInputs, nextRunClusters, nextPerformanceObservations, nextPerformanceComparisons]) => {
+        if (cancelled) return;
         setFailures(nextFailures);
         setRunInputs(nextInputs);
         setRunClusters(nextRunClusters);
+        setPerformanceObservations(nextPerformanceObservations);
+        setPerformanceComparisons(nextPerformanceComparisons);
         setSelectedClusterId((current) => {
           if (current && nextRunClusters.some((cluster) => cluster.id === current)) return current;
           return nextRunClusters[0]?.id ?? current;
@@ -245,7 +286,13 @@ function App() {
           return nextFailures[0] ?? null;
         });
       })
-      .catch((reason: unknown) => setError(String(reason)));
+      .catch((reason: unknown) => {
+        if (!cancelled) setError(String(reason));
+      })
+      .finally(() => {
+        if (!cancelled) setPerformanceLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [runId]);
 
   const hasActiveIngestion = useMemo(
@@ -528,6 +575,63 @@ function App() {
     }
   };
 
+  const registerDefaultPerformancePolicy = async () => {
+    if (!projectId) {
+      setError('Select a project before registering a performance policy.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const policy = await api.createPerformancePolicy(projectId, {
+        version: 'performance-policy-v1',
+        relative_tolerance: 0.10,
+        absolute_tolerance: 0,
+        min_baseline_runs: 3,
+        max_baseline_age_days: 30,
+        require_trusted: true
+      });
+      setPerformancePolicies((current) => [policy, ...current.filter((item) => item.id !== policy.id)]);
+      setPerformancePolicyId(policy.id);
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const generatePerformanceComparisons = async () => {
+    if (!runId) {
+      setError('Select a run before comparing performance observations.');
+      return;
+    }
+    if (performanceObservations.length === 0) {
+      setError('The selected run has no normalized duration or k6 performance observations.');
+      return;
+    }
+    setBusy(true);
+    setPerformanceLoading(true);
+    setError(null);
+    try {
+      const comparisons = await api.createPerformanceComparisons(
+        runId,
+        performancePolicyId || undefined
+      );
+      setPerformanceComparisons(comparisons);
+      if (projectId) {
+        const policies = await api.performancePolicies(projectId);
+        setPerformancePolicies(policies);
+        setPerformancePolicyId((current) => current || policies[0]?.id || '');
+      }
+      await refreshRoot();
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+      setPerformanceLoading(false);
+    }
+  };
+
   const registerImpactMapping = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!projectId) {
@@ -674,6 +778,7 @@ function App() {
           <a href="#ingestion">Ingestion</a>
           <a href="#runs">Runs</a>
           <a href="#impact">Change impact</a>
+          <a href="#performance">Performance</a>
           <a href="#clusters">Clusters</a>
           <a href="#workspace">Failure workspace</a>
           <a href="#history">Test history</a>
@@ -699,6 +804,7 @@ function App() {
             ['Failures', overview?.failures ?? '—'],
             ['Clusters', overview?.clusters ?? '—'],
             ['Impact plans', overview?.impact_recommendations ?? '—'],
+            ['Performance findings', overview?.performance_comparisons ?? '—'],
             ['Analyses', overview?.analyses ?? '—']
           ].map(([label, value]) => <article className="metric" key={label}><span>{label}</span><strong>{value}</strong></article>)}
         </section>
@@ -859,6 +965,70 @@ function App() {
               <p className="history-provenance mono">Engine {selectedImpact.engine_version} · policy {selectedImpact.policy_version} · input {selectedImpact.input_digest.slice(0, 16)} · mapping {selectedImpact.mapping_snapshot_id.slice(0, 8)}.</p>
             </>
           )}
+        </section>
+
+        <section id="performance" className="panel performance-panel">
+          <div className="panel-heading">
+            <div><p className="eyebrow">COMPATIBLE PRIOR-ONLY BASELINES</p><h2>Performance regression analysis</h2></div>
+            <span className={`state ${performanceComparisons[0] ? performanceStatusClass(performanceComparisons[0].status) : performanceObservations.length ? 'partial' : 'unknown'}`}>
+              {performanceLoading ? 'Calculating' : performanceComparisons.length ? `${performanceComparisons.length} finding${performanceComparisons.length === 1 ? '' : 's'}` : performanceObservations.length ? 'Ready to compare' : 'No observations'}
+            </span>
+          </div>
+          <p className="performance-advisory">Only prior observations with compatible workload, environment, producer, units, run scope, trust, and completeness may form a baseline. Missing or incompatible history is never presented as “no regression.”</p>
+          <div className="performance-controls">
+            <label>Performance run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setRunId(event.target.value)}><option value="">Select a run</option>{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.commit_sha?.slice(0, 10) ?? 'head unknown'}</option>)}</select></label>
+            <label>Immutable policy<select value={performancePolicyId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setPerformancePolicyId(event.target.value)}><option value="">Default strict policy</option>{performancePolicies.map((policy) => <option key={policy.id} value={policy.id}>{policy.version} · {Math.round(policy.relative_tolerance * 100)}% · {policy.min_baseline_runs} runs</option>)}</select></label>
+            {performancePolicies.length === 0 && <button type="button" onClick={registerDefaultPerformancePolicy} disabled={busy || !projectId}>Register strict policy</button>}
+            <button className="primary" type="button" onClick={generatePerformanceComparisons} disabled={busy || performanceLoading || !runId || performanceObservations.length === 0}>Compare compatible baselines</button>
+          </div>
+
+          <div className="performance-observations" aria-label="Normalized performance observations">
+            <div className="history-section-heading"><h3>Normalized current observations</h3><span>{performanceObservations.length} duration or metric value{performanceObservations.length === 1 ? '' : 's'}</span></div>
+            {performanceObservations.length === 0 && <div className="empty">The selected run contains no normalized test-duration or k6 metric observations.</div>}
+            {performanceObservations.slice(0, 24).map((observation) => (
+              <article className="performance-observation-row" key={observation.id}>
+                <div><strong>{observation.metric_name}</strong><small>{readableValue(observation.metric_scope)} · {readableValue(observation.statistic)} · {observation.workload}</small></div>
+                <span>{formatPerformanceValue(observation.canonical_value, observation.canonical_unit)}</span>
+                <span className={`state ${performanceStatusClass(observation.threshold_status)}`}>{readableValue(observation.threshold_status)}</span>
+                <a href={`/api/v1/evidence/${observation.evidence_id}`} target="_blank" rel="noreferrer">Evidence</a>
+              </article>
+            ))}
+          </div>
+
+          <div className="performance-results" aria-label="Performance comparison results">
+            <div className="history-section-heading"><h3>Evidence-grounded findings</h3><span>Median of compatible run-level observations; never an aggregate percentile</span></div>
+            {performanceLoading && <div className="empty">Selecting prior-only compatible cohorts and calculating deterministic changes…</div>}
+            {!performanceLoading && performanceComparisons.length === 0 && <div className="empty">Run the comparison to create immutable baseline snapshots and findings.</div>}
+            {performanceComparisons.map((comparison) => {
+              const rejectedReasons = (comparison.compatibility.rejected_reason_counts ?? {}) as Record<string, number>;
+              const currentBlockers = (comparison.compatibility.current_blockers ?? []) as string[];
+              return (
+                <article className="performance-comparison-card" key={comparison.id}>
+                  <div className="performance-comparison-heading">
+                    <div><strong>{comparison.metric_name}</strong><small>{readableValue(comparison.statistic)} · {comparison.workload} · {readableValue(comparison.direction)}</small></div>
+                    <span className={`performance-status ${performanceStatusClass(comparison.status)}`}>{readableValue(comparison.status)}</span>
+                  </div>
+                  <p>{comparison.summary}</p>
+                  <div className="performance-summary">
+                    <div><span>Current</span><strong>{formatPerformanceValue(comparison.current_value, comparison.canonical_unit)}</strong><small>{comparison.current_sample_count ?? 'unknown'} sample{comparison.current_sample_count === 1 ? '' : 's'}</small></div>
+                    <div><span>Compatible baseline</span><strong>{formatPerformanceValue(comparison.baseline_value, comparison.canonical_unit)}</strong><small>{comparison.baseline_run_count} prior run{comparison.baseline_run_count === 1 ? '' : 's'} · {comparison.baseline_sample_count} samples</small></div>
+                    <div><span>Absolute change</span><strong>{formatPerformanceValue(comparison.absolute_change, comparison.canonical_unit)}</strong><small>Allowed {formatPerformanceValue(comparison.allowed_absolute_change, comparison.canonical_unit)}</small></div>
+                    <div><span>Relative change</span><strong>{formatPerformanceDelta(comparison.relative_change)}</strong><small>Policy tolerance {(comparison.allowed_relative_change * 100).toFixed(1)}%</small></div>
+                  </div>
+                  {currentBlockers.length > 0 && <div className="performance-reasons"><strong>Current observation blockers</strong>{currentBlockers.map((reason) => <code key={reason}>{readableValue(reason)}</code>)}</div>}
+                  {Object.keys(rejectedReasons).length > 0 && <div className="performance-reasons"><strong>Rejected baseline candidates</strong>{Object.entries(rejectedReasons).map(([reason, count]) => <code key={reason}>{readableValue(reason)} · {count}</code>)}</div>}
+                  {comparison.confounders.length > 0 && <div className="performance-reasons"><strong>Confounders and limitations</strong>{comparison.confounders.map((reason) => <code key={reason}>{readableValue(reason)}</code>)}</div>}
+                  <div className="performance-evidence">
+                    <strong>Evidence provenance</strong>
+                    <a href={`/api/v1/evidence/${comparison.current_evidence_id}`} target="_blank" rel="noreferrer">Current metric evidence</a>
+                    {comparison.baseline_evidence_ids.map((evidenceId, index) => <a key={evidenceId} href={`/api/v1/evidence/${evidenceId}`} target="_blank" rel="noreferrer">Baseline evidence {index + 1}</a>)}
+                  </div>
+                  <div className="performance-next"><strong>Next measurement</strong><p>{comparison.next_measurement}</p></div>
+                  <p className="history-provenance mono">Engine {comparison.engine_version} · policy {comparison.policy_id.slice(0, 8)} · baseline {comparison.baseline.status} · aggregation {comparison.baseline.aggregation} · input {comparison.input_digest.slice(0, 16)}.</p>
+                </article>
+              );
+            })}
+          </div>
         </section>
 
         <section id="clusters" className="cluster-workspace">

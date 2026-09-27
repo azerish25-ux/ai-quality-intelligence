@@ -208,8 +208,139 @@ export interface Overview {
   failures: number;
   clusters: number;
   impact_recommendations: number;
+  performance_comparisons: number;
   analyses: number;
   categories: Record<Category, number>;
+}
+
+export interface PerformancePolicy {
+  id: string;
+  project_id: string;
+  version: string;
+  relative_tolerance: number;
+  absolute_tolerance: number;
+  min_baseline_runs: number;
+  max_baseline_age_days: number;
+  require_trusted: boolean;
+  required_dimensions: string[];
+  direction_overrides: Record<string, 'lower_is_better' | 'higher_is_better' | 'neutral'>;
+  created_at: string;
+}
+
+export interface PerformancePolicyInput {
+  version?: string;
+  relative_tolerance?: number;
+  absolute_tolerance?: number;
+  min_baseline_runs?: number;
+  max_baseline_age_days?: number;
+  require_trusted?: boolean;
+  required_dimensions?: string[];
+  direction_overrides?: Record<string, 'lower_is_better' | 'higher_is_better' | 'neutral'>;
+}
+
+export interface PerformanceObservation {
+  id: string;
+  project_id: string;
+  run_id: string;
+  run_input_id: string | null;
+  execution_id: string | null;
+  evidence_id: string;
+  metric_key: string;
+  metric_name: string;
+  metric_scope: string;
+  statistic: string;
+  direction: string;
+  original_value: number;
+  original_unit: string;
+  canonical_value: number;
+  canonical_unit: string;
+  sample_count: number | null;
+  producer: string;
+  producer_version: string | null;
+  workload: string;
+  dimension_signature: string;
+  dimensions: Record<string, unknown>;
+  threshold_status: string;
+  threshold_details: Record<string, unknown>;
+  source_digest: string;
+  source_locator: Record<string, unknown>;
+  observed_at: string;
+  created_at: string;
+}
+
+export interface PerformanceBaselineMember {
+  observation_id: string;
+  run_id: string;
+  evidence_id: string;
+  external_id: string;
+  commit_sha: string | null;
+  observed_at: string;
+  canonical_value: number;
+  canonical_unit: string;
+  sample_count: number | null;
+  position: number;
+}
+
+export interface PerformanceBaseline {
+  id: string;
+  project_id: string;
+  current_run_id: string;
+  current_observation_id: string;
+  policy_id: string;
+  input_digest: string;
+  status: string;
+  cutoff_at: string;
+  cohort_dimensions: Record<string, unknown>;
+  compatibility: Record<string, unknown>;
+  rejected_candidates: Array<Record<string, unknown>>;
+  run_count: number;
+  sample_count: number;
+  baseline_value: number | null;
+  baseline_min: number | null;
+  baseline_max: number | null;
+  baseline_mad: number | null;
+  baseline_age_seconds: number | null;
+  aggregation: string;
+  members: PerformanceBaselineMember[];
+  created_at: string;
+}
+
+export interface PerformanceComparison {
+  id: string;
+  project_id: string;
+  current_run_id: string;
+  current_observation_id: string;
+  baseline_snapshot_id: string;
+  policy_id: string;
+  engine_version: string;
+  input_digest: string;
+  status: string;
+  metric_name: string;
+  metric_scope: string;
+  statistic: string;
+  direction: string;
+  workload: string;
+  canonical_unit: string;
+  current_value: number;
+  baseline_value: number | null;
+  absolute_change: number | null;
+  relative_change: number | null;
+  allowed_absolute_change: number;
+  allowed_relative_change: number;
+  current_sample_count: number | null;
+  baseline_run_count: number;
+  baseline_sample_count: number;
+  threshold_status: string;
+  effect_size: number | null;
+  uncertainty: Record<string, unknown>;
+  compatibility: Record<string, unknown>;
+  confounders: string[];
+  current_evidence_id: string;
+  baseline_evidence_ids: string[];
+  next_measurement: string;
+  summary: string;
+  baseline: PerformanceBaseline;
+  created_at: string;
 }
 
 export interface ImpactTestInput {
@@ -504,6 +635,28 @@ export const api = {
     }
   ),
   runInputs: (runId: string) => json<RunInput[]>(`/api/v1/runs/${runId}/inputs`),
+  performancePolicies: (projectId: string) =>
+    json<PerformancePolicy[]>(`/api/v1/projects/${projectId}/performance-policies`),
+  createPerformancePolicy: (projectId: string, policy: PerformancePolicyInput = {}) =>
+    json<PerformancePolicy>(`/api/v1/projects/${projectId}/performance-policies`, {
+      method: 'POST',
+      body: JSON.stringify(policy)
+    }),
+  performanceObservations: (runId: string) =>
+    json<PerformanceObservation[]>(`/api/v1/runs/${runId}/performance-observations`),
+  performanceComparisons: (runId: string) =>
+    json<PerformanceComparison[]>(`/api/v1/runs/${runId}/performance-comparisons`),
+  createPerformanceComparisons: (
+    runId: string,
+    policyId?: string,
+    observationIds: string[] = []
+  ) => json<PerformanceComparison[]>(`/api/v1/runs/${runId}/performance-comparisons`, {
+    method: 'POST',
+    body: JSON.stringify({
+      policy_id: policyId || null,
+      observation_ids: observationIds
+    })
+  }),
   impactMappings: (projectId: string) =>
     json<ImpactMappingSnapshot[]>(`/api/v1/projects/${projectId}/impact-mappings`),
   createImpactMapping: (projectId: string, mapping: ImpactMappingInput) =>

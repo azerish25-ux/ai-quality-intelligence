@@ -130,6 +130,30 @@ Example override:
 
 See `docs/impact.md` for the policy, ranking and evaluation boundaries.
 
+## Compatible performance intelligence
+
+Performance observations are normalized during ingestion and remain linked to approved safe evidence. Test durations use the final attempt for each logical test/browser pair; k6 `handleSummary` values retain the exported statistic, unit, sample count, threshold state, producer/version and workload dimensions.
+
+- `POST /api/v1/projects/{project_id}/performance-policies` registers an immutable versioned compatibility/tolerance policy.
+- `GET /api/v1/projects/{project_id}/performance-policies` lists policies newest first.
+- `GET /api/v1/runs/{run_id}/performance-observations` lists normalized current observations and evidence IDs.
+- `POST /api/v1/projects/{project_id}/performance-baselines` creates an immutable prior-only baseline for one observation.
+- `GET /api/v1/performance-baselines/{baseline_id}` returns accepted members, rejected candidates/reasons, provenance, aggregation and support.
+- `POST /api/v1/runs/{run_id}/performance-comparisons` compares all or selected run observations with compatible baselines.
+- `GET /api/v1/runs/{run_id}/performance-comparisons` lists persisted findings.
+- `GET /api/v1/performance-comparisons/{comparison_id}` returns one finding with its baseline snapshot.
+
+Example comparison request:
+
+```json
+{
+  "policy_id": "<optional-immutable-policy-id>",
+  "observation_ids": ["<optional-observation-id>"]
+}
+```
+
+Omitting `policy_id` uses or creates the project’s strict default policy. Omitting `observation_ids` compares every normalized observation in the run. Results are `REGRESSION`, `IMPROVEMENT`, `WITHIN_TOLERANCE`, `INCONCLUSIVE`, `BASELINE_UNAVAILABLE` or `INCOMPATIBLE_BASELINE`. A missing or unsafe cohort never becomes a reassuring zero. The response includes exact current/baseline evidence IDs, run/sample counts, tolerances, compatibility reasons, confounders and next-measurement guidance. See `docs/performance.md`.
+
 ## Manifest `2.0` ZIP contract
 
 A root `manifest.json` declares every artifact:
@@ -181,6 +205,14 @@ Schema `1.0` bundles with a single `report` path remain readable. A ZIP without 
 - `POST /api/v1/impact-recommendations/{recommendation_id}/overrides`
 - `GET /api/v1/runs/{run_id}`
 - `GET /api/v1/runs/{run_id}/inputs`
+- `POST /api/v1/projects/{project_id}/performance-policies`
+- `GET /api/v1/projects/{project_id}/performance-policies`
+- `GET /api/v1/runs/{run_id}/performance-observations`
+- `POST /api/v1/projects/{project_id}/performance-baselines`
+- `GET /api/v1/performance-baselines/{baseline_id}`
+- `POST /api/v1/runs/{run_id}/performance-comparisons`
+- `GET /api/v1/runs/{run_id}/performance-comparisons`
+- `GET /api/v1/performance-comparisons/{comparison_id}`
 - `GET /api/v1/projects/{project_id}/clusters`
 - `GET /api/v1/runs/{run_id}/clusters`
 - `GET /api/v1/clusters/{cluster_id}`
@@ -206,6 +238,8 @@ failurelens ingestion-status --ingestion <ingestion-id>
 failurelens ingest failurelens-bundle.zip --project checkout --external-id gha-902 --expected-inputs 3 --process
 failurelens report --run <run-id> --format markdown
 failurelens impact --project checkout --run <run-id> --mapping-snapshot <snapshot-id>
+failurelens performance --run <run-id>
+failurelens performance --run <run-id> --policy <policy-id> --observation <observation-id>
 ```
 
 Without `--process`, `ingest` queues work for `failurelens-worker`. `--process` claims one job using the same worker implementation and exits nonzero when no run is published. The complete differentiated quality-gate/operational exit-code contract remains future work.
