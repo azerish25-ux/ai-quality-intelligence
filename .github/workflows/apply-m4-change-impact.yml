@@ -21,26 +21,15 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 1
-      - name: Reconstruct and validate delivery archive
+      - name: Reconstruct and validate patch
         shell: bash
         run: |
           set -euo pipefail
-          for part in .delivery/failurelens-m4.part-*; do
-            base64 --decode "$part"
-          done > /tmp/failurelens-m4.tar.gz
-          echo "131052e5f2be17d04efff62f4e6d1cc7915a52517b8c2a6f30d0ccf2086f7043  /tmp/failurelens-m4.tar.gz" | sha256sum --check --strict
-          python - <<'PY'
-          from pathlib import PurePosixPath
-          import tarfile
-
-          with tarfile.open('/tmp/failurelens-m4.tar.gz', 'r:gz') as archive:
-              members = archive.getmembers()
-              for member in members:
-                  path = PurePosixPath(member.name)
-                  if path.is_absolute() or '..' in path.parts or member.issym() or member.islnk():
-                      raise SystemExit(f'unsafe archive member: {member.name}')
-              archive.extractall('.')
-          PY
+          cat .delivery/m4-patch-* | base64 --decode > /tmp/failurelens-m4.patch.gz
+          echo "9939448945cea72adef1c42ddbb892d21c4cd4dcd12261d0ebb82a5cc9fd91bf  /tmp/failurelens-m4.patch.gz" | sha256sum --check --strict
+          gzip --decompress --stdout /tmp/failurelens-m4.patch.gz > /tmp/failurelens-m4.patch
+          git apply --check /tmp/failurelens-m4.patch
+          git apply /tmp/failurelens-m4.patch
       - name: Publish exact verified source tree
         shell: bash
         run: |
@@ -51,5 +40,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
+          test "$(git write-tree)" = "cdb5401f1371dc2f21fa1dd80b1306e668389bca"
           git commit -m "feat(m4): deliver explainable change-impact selection" -m "Add versioned mapping snapshots, deterministic bounded impact selection, conservative full-suite fallbacks, mandatory critical-test preservation, audited overrides, typed APIs, dashboard workflows, controlled evaluation, migrations, tests, and documentation."
           git push origin HEAD:main
