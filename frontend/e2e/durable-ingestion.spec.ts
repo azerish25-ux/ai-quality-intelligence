@@ -68,7 +68,7 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   await page.getByRole('button', { name: 'Create token' }).click();
   await expect(page.getByText('Copy this secret now. It will not be shown again.')).toBeVisible();
   await page.getByRole('button', { name: 'Revoke' }).click();
-  await expect(page.getByText('Revoked')).toBeVisible();
+  await expect(page.getByText('Revoked', { exact: true })).toBeVisible();
 });
 
 test('builds an explainable focused recommendation and records an attributed override', async ({ page }) => {
