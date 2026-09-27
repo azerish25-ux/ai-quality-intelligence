@@ -110,6 +110,9 @@ class Run(Base):
         uselist=False,
         foreign_keys="Ingestion.run_id",
     )
+    inputs: Mapped[list[RunInput]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
+    )
 
 
 class Job(Base):
@@ -199,6 +202,38 @@ class Ingestion(Base):
         back_populates="ingestion",
         foreign_keys=[job_id],
     )
+
+
+class RunInput(Base):
+    __tablename__ = "run_inputs"
+    __table_args__ = (
+        UniqueConstraint("run_id", "input_id", name="uq_run_input_identity"),
+        Index("ix_run_inputs_run_status", "run_id", "status"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), index=True
+    )
+    input_id: Mapped[str] = mapped_column(String(120))
+    kind: Mapped[str] = mapped_column(String(80))
+    path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    required: Mapped[bool] = mapped_column(Boolean, default=True)
+    status: Mapped[str] = mapped_column(String(40))
+    digest: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    media_type: Mapped[str] = mapped_column(
+        String(160), default="application/octet-stream"
+    )
+    parser_version: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    warnings: Mapped[list[str]] = mapped_column(JSON, default=list)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    run: Mapped[Run] = relationship(back_populates="inputs")
 
 
 class TestExecution(Base):

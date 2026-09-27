@@ -27,12 +27,32 @@ export interface Run {
   external_id: string;
   repository: string | null;
   commit_sha: string | null;
+  base_sha: string | null;
   branch: string | null;
   framework: string;
   status: string;
   completeness: string;
   expected_inputs: number | null;
   received_inputs: number;
+  source_metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface RunInput {
+  id: string;
+  project_id: string;
+  run_id: string;
+  input_id: string;
+  kind: string;
+  path: string | null;
+  required: boolean;
+  status: string;
+  digest: string | null;
+  size_bytes: number | null;
+  media_type: string;
+  parser_version: string | null;
+  warnings: string[];
+  metadata_json: Record<string, unknown>;
   created_at: string;
 }
 
@@ -158,6 +178,7 @@ export const api = {
   retryIngestion: (ingestionId: string) => json<Ingestion>(`/api/v1/ingestions/${ingestionId}/retry`, { method: 'POST' }),
   cancelIngestion: (ingestionId: string) => json<Ingestion>(`/api/v1/ingestions/${ingestionId}/cancel`, { method: 'POST' }),
   failures: (runId: string) => json<Failure[]>(`/api/v1/runs/${runId}/failures`),
+  runInputs: (runId: string) => json<RunInput[]>(`/api/v1/runs/${runId}/inputs`),
   analyze: (failureId: string) => json<Analysis>(`/api/v1/failures/${failureId}/analyses`, { method: 'POST' }),
   seedDemo: () => json<{ project_id: string; run_id: string }>('/api/v1/demo/seed', { method: 'POST' }),
   evaluation: () => json<{ status: string; metrics?: Record<string, unknown>; message?: string }>('/api/v1/evaluations/latest')

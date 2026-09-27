@@ -4,19 +4,21 @@
 
 `POST /api/v1/projects/{project_id}/ingestions` supports two contracts:
 
-1. `Content-Type: application/json` with no `filename` query parameter preserves the versioned normalized observation API.
-2. A raw request body plus `external_id` and `filename` query parameters stores and queues JUnit XML, Playwright JSON, or a FailureLens ZIP bundle.
+1. `Content-Type: application/json` with no `filename` query parameter preserves the versioned normalized-observation API.
+2. A raw request body plus `external_id` and `filename` stores and queues a supported standalone artifact or FailureLens ZIP bundle.
 
 Raw upload example:
 
 ```bash
 curl --request POST \
-  --header 'Content-Type: application/xml' \
-  --data-binary @junit.xml \
-  'http://localhost:8000/api/v1/projects/<project-id>/ingestions?external_id=gha-901&filename=junit.xml&attempt=1&expected_inputs=25'
+  --header 'Content-Type: application/zip' \
+  --data-binary @failurelens-bundle.zip \
+  'http://localhost:8000/api/v1/projects/<project-id>/ingestions?external_id=gha-901&filename=failurelens-bundle.zip&attempt=1&expected_inputs=3'
 ```
 
-A raw upload returns `202 Accepted` with an `IngestionRead` resource. Parsing and analysis happen in the database-backed worker, not in the HTTP request.
+A raw upload returns `202 Accepted` with an `IngestionRead` resource. Parsing and automatic deterministic analysis happen in the database-backed worker, not in the HTTP request.
+
+`expected_inputs` means expected **required artifacts/shards**, not test observations. For manifest `2.0`, the worker compares this optional outer declaration with the manifest’s required-input count and retains the larger expected scope. The number of parsed tests is stored separately as `source_metadata.observation_count`.
 
 ## Ingestion lifecycle operations
 
@@ -25,7 +27,55 @@ A raw upload returns `202 Accepted` with an `IngestionRead` resource. Parsing an
 - `POST /api/v1/ingestions/{ingestion_id}/cancel`
 - `POST /api/v1/ingestions/{ingestion_id}/retry`
 
-States are `queued`, `running`, `succeeded`, `partial`, `failed`, `cancelled`, and `dead_lettered`. Permanent invalid-input errors are not retried. Transient worker failures use bounded exponential delay and eventually dead-letter. A completed ingestion includes its `run_id`.
+States are `queued`, `running`, `succeeded`, `partial`, `failed`, `cancelled`, and `dead_lettered`. Permanent invalid-input errors are not retried. Transient worker failures use bounded delay and eventually dead-letter. A completed ingestion includes its `run_id`.
+
+## Run input diagnostics
+
+`GET /api/v1/runs/{run_id}/inputs` returns persisted input records ordered with required inputs first. Each record contains:
+
+- manifest input ID, kind and path;
+- required/optional flag;
+- `accepted`, `restricted`, `missing`, `rejected`, or `unsupported` status;
+- digest, size and media type when bytes were received;
+- adapter/parser version;
+- warnings and bounded safe metadata.
+
+A required input can be received but still prevent completeness—for example a screenshot retained as restricted metadata, a digest mismatch, or an unsupported declared format.
+
+## Manifest `2.0` ZIP contract
+
+A root `manifest.json` declares every artifact:
+
+```json
+{
+  "schema_version": "2.0",
+  "inputs": [
+    {
+      "id": "pytest-results",
+      "kind": "pytest-json",
+      "path": "reports/report.json",
+      "required": true,
+      "media_type": "application/json"
+    },
+    {
+      "id": "network",
+      "kind": "har",
+      "path": "evidence/network.har",
+      "required": false
+    },
+    {
+      "id": "trace",
+      "kind": "playwright-trace",
+      "path": "evidence/trace.zip",
+      "required": true
+    }
+  ]
+}
+```
+
+Supported canonical kinds are documented in `docs/input-compatibility.md`. Aliases such as `xml`, `junit`, `pytest`, `console`, `network`, `image`, `trace`, `github`, and `changes` resolve through the versioned adapter registry.
+
+Schema `1.0` bundles with a single `report` path remain readable. A ZIP without a manifest remains a compatibility path only when it contains exactly one detectable report. New producers should emit schema `2.0`.
 
 ## Other API operations
 
@@ -36,8 +86,9 @@ States are `queued`, `running`, `succeeded`, `partial`, `failed`, `cancelled`, a
 - `GET /api/v1/projects`
 - `GET /api/v1/projects/{project_id}/runs`
 - `GET /api/v1/runs/{run_id}`
+- `GET /api/v1/runs/{run_id}/inputs`
 - `GET /api/v1/runs/{run_id}/failures`
-- `POST /api/v1/failures/{failure_id}/analyses` for explicit re-analysis
+- `POST /api/v1/failures/{failure_id}/analyses`
 - `GET /api/v1/analyses/{analysis_id}`
 - `POST /api/v1/analyses/{analysis_id}/reviews`
 - `GET /api/v1/evidence/{evidence_id}`
@@ -46,26 +97,13 @@ States are `queued`, `running`, `succeeded`, `partial`, `failed`, `cancelled`, a
 
 FastAPI generates the authoritative OpenAPI schema at runtime.
 
-## ZIP bundle contract
-
-A bundle may contain exactly one `.xml` or `.json` report, or a root `manifest.json`:
-
-```json
-{
-  "schema_version": "1.0",
-  "report": "reports/playwright-report.json"
-}
-```
-
-Current M1 bundles index only the selected report. Archive entry count, total expanded bytes, per-entry compression ratio, traversal paths, case-folded collisions, symlinks, encrypted entries, nested archives, and report size are validated before parsing.
-
 ## CLI
 
 ```bash
 failurelens doctor
 failurelens ingest report.xml --project checkout --external-id gha-901
 failurelens ingestion-status --ingestion <ingestion-id>
-failurelens ingest report.json --project checkout --external-id gha-902 --process
+failurelens ingest failurelens-bundle.zip --project checkout --external-id gha-902 --expected-inputs 3 --process
 failurelens report --run <run-id> --format markdown
 ```
 

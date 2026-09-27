@@ -23,6 +23,7 @@ class TestObservation(BaseModel):
     test_identity: str = Field(min_length=1, max_length=512)
     suite: str | None = None
     source_path: str | None = None
+    parameterization: str | None = Field(default=None, max_length=512)
     browser: str | None = None
     attempt: int = Field(default=0, ge=0)
     outcome: Outcome
@@ -58,6 +59,7 @@ class RunRead(BaseModel):
     attempt: int
     repository: str | None
     commit_sha: str | None
+    base_sha: str | None
     branch: str | None
     framework: str
     status: RunStatus
@@ -65,6 +67,26 @@ class RunRead(BaseModel):
     expected_inputs: int | None
     received_inputs: int
     manifest_digest: str
+    source_metadata: dict[str, Any]
+    created_at: datetime
+
+
+class RunInputRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    project_id: str
+    run_id: str
+    input_id: str
+    kind: str
+    path: str | None
+    required: bool
+    status: str
+    digest: str | None
+    size_bytes: int | None
+    media_type: str
+    parser_version: str | None
+    warnings: list[str]
+    metadata_json: dict[str, Any]
     created_at: datetime
 
 

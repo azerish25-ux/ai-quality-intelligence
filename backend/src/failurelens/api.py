@@ -13,7 +13,17 @@ from sqlalchemy.orm import Session, selectinload
 from .config import get_settings
 from .db import get_session, initialize_database
 from .demo import seed_demo
-from .models import Analysis, Category, Evidence, Failure, Ingestion, IngestionState, Project, Run
+from .models import (
+    Analysis,
+    Category,
+    Evidence,
+    Failure,
+    Ingestion,
+    IngestionState,
+    Project,
+    Run,
+    RunInput,
+)
 from .schemas import (
     AnalysisResult,
     IngestionRead,
@@ -21,6 +31,7 @@ from .schemas import (
     ProjectCreate,
     ProjectRead,
     ReviewCreate,
+    RunInputRead,
     RunMetadata,
     RunRead,
 )
@@ -311,6 +322,20 @@ def runs_get(run_id: str, session: Session = Depends(get_session)) -> dict:
         "failure_types": counts,
         "failure_count": sum(counts.values()),
     }
+
+
+@app.get("/api/v1/runs/{run_id}/inputs", response_model=list[RunInputRead])
+def run_inputs_list(run_id: str, session: Session = Depends(get_session)) -> list[RunInput]:
+    run = session.get(Run, run_id)
+    if not run:
+        raise HTTPException(404, "run not found")
+    return list(
+        session.scalars(
+            select(RunInput)
+            .where(RunInput.run_id == run_id)
+            .order_by(RunInput.required.desc(), RunInput.input_id.asc())
+        ).all()
+    )
 
 
 @app.get("/api/v1/runs/{run_id}/failures")

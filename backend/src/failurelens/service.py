@@ -13,7 +13,13 @@ from sqlalchemy.orm import Session
 from .analysis import ANALYSIS_VERSION, RULES_VERSION, EvidenceView, analyze_failure, input_digest
 from .config import Settings, get_settings
 from .fingerprint import make_fingerprint
-from .ingestion import PARSER_VERSION, ParsedArtifact, ParsedObservation, parse_artifact
+from .ingestion import (
+    PARSER_VERSION,
+    ParsedArtifact,
+    ParsedInput,
+    ParsedObservation,
+    parse_artifact,
+)
 from .models import (
     Analysis,
     Artifact,
@@ -28,6 +34,7 @@ from .models import (
     Project,
     ReviewEvent,
     Run,
+    RunInput,
     RunStatus,
     TestExecution,
 )
@@ -59,12 +66,21 @@ def create_project(session: Session, slug: str, name: str) -> Project:
     return project
 
 
-def _completeness(expected: int | None, received: int) -> str:
-    if expected is None:
-        return "complete"
-    if expected == received:
-        return "complete"
-    return "partial"
+def _resolve_input_scope(
+    declared_expected: int | None,
+    parsed_expected: int | None,
+    parsed_received: int | None,
+    parsed_completeness: str | None,
+) -> tuple[int | None, int, str]:
+    expected_candidates = [
+        value for value in (declared_expected, parsed_expected) if value is not None
+    ]
+    expected = max(expected_candidates) if expected_candidates else None
+    received = parsed_received if parsed_received is not None else 1
+    complete_by_count = expected is None or expected == received
+    complete_by_parser = parsed_completeness in {None, "complete"}
+    completeness = "complete" if complete_by_count and complete_by_parser else "partial"
+    return expected, received, completeness
 
 
 def ingest_parsed_report(
@@ -81,10 +97,32 @@ def ingest_parsed_report(
     source_format: str,
     parser_version: str,
     parser_warnings: Sequence[str] = (),
+    input_records: Sequence[ParsedInput] = (),
+    parsed_expected_inputs: int | None = None,
+    parsed_received_inputs: int | None = None,
+    parsed_completeness: str | None = None,
+    manifest_version: str = "standalone",
     restricted: bool = True,
 ) -> Run:
+    expected_inputs, received_inputs, completeness = _resolve_input_scope(
+        metadata.expected_inputs,
+        parsed_expected_inputs,
+        parsed_received_inputs,
+        parsed_completeness,
+    )
+    input_identity = [
+        {
+            "id": item.input_id,
+            "kind": item.kind,
+            "path": item.path,
+            "required": item.required,
+            "status": item.status,
+            "digest": item.digest,
+        }
+        for item in input_records
+    ]
     identity_payload = {
-        "schema_version": "artifact-ingestion-v1",
+        "schema_version": "artifact-ingestion-v2",
         "external_id": metadata.external_id,
         "attempt": metadata.attempt,
         "repository": metadata.repository,
@@ -94,7 +132,10 @@ def ingest_parsed_report(
         "source_digest": source_digest,
         "source_format": source_format,
         "parser_version": parser_version,
-        "expected_inputs": metadata.expected_inputs,
+        "manifest_version": manifest_version,
+        "expected_inputs": expected_inputs,
+        "received_inputs": received_inputs,
+        "inputs": input_identity,
     }
     digest = manifest_digest(identity_payload)
     existing = session.scalar(
@@ -108,7 +149,20 @@ def ingest_parsed_report(
     if existing:
         return existing
 
-    completeness = _completeness(metadata.expected_inputs, len(observations))
+    input_summary = [
+        {
+            "id": item.input_id,
+            "kind": item.kind,
+            "path": item.path,
+            "required": item.required,
+            "status": item.status,
+            "digest": item.digest,
+            "size_bytes": item.size_bytes,
+            "parser_version": item.parser_version,
+            "warnings": list(item.warnings),
+        }
+        for item in input_records
+    ]
     run = Run(
         project_id=project.id,
         external_id=metadata.external_id,
@@ -120,8 +174,8 @@ def ingest_parsed_report(
         framework=source_format,
         status=RunStatus.processing,
         completeness=completeness,
-        expected_inputs=metadata.expected_inputs,
-        received_inputs=len(observations),
+        expected_inputs=expected_inputs,
+        received_inputs=received_inputs,
         manifest_digest=digest,
         started_at=datetime.now(UTC),
         source_metadata={
@@ -130,6 +184,9 @@ def ingest_parsed_report(
             "parser_version": parser_version,
             "parser_warnings": list(parser_warnings),
             "source_digest": source_digest,
+            "manifest_version": manifest_version,
+            "observation_count": len(observations),
+            "input_summary": input_summary,
         },
     )
     session.add(run)
@@ -137,7 +194,7 @@ def ingest_parsed_report(
 
     artifact = Artifact(
         run_id=run.id,
-        kind="source-report",
+        kind="source-bundle" if len(input_records) > 1 else "source-report",
         original_name=source_name,
         digest=source_digest,
         safe_storage_path=storage_path,
@@ -148,19 +205,53 @@ def ingest_parsed_report(
         metadata_json={
             "source_format": source_format,
             "parser_version": parser_version,
+            "manifest_version": manifest_version,
             "warnings": list(parser_warnings),
+            "inputs": input_summary,
         },
     )
     session.add(artifact)
     session.flush()
+
+    for item in input_records:
+        session.add(
+            RunInput(
+                project_id=project.id,
+                run_id=run.id,
+                input_id=item.input_id,
+                kind=item.kind,
+                path=item.path,
+                required=item.required,
+                status=item.status,
+                digest=item.digest,
+                size_bytes=item.size_bytes,
+                media_type=item.media_type,
+                parser_version=item.parser_version,
+                warnings=list(item.warnings),
+                metadata_json=item.metadata,
+            )
+        )
+
+    observation_sources: dict[int, tuple[str, str | None, list[str]]] = {}
+    for item in input_records:
+        for observation in item.observations:
+            observation_sources[id(observation)] = (
+                item.input_id,
+                item.parser_version,
+                list(item.warnings),
+            )
 
     for observation_index, observation in enumerate(observations):
         try:
             outcome = Outcome(observation.outcome)
         except ValueError:
             outcome = Outcome.unknown
+        input_id, evidence_parser_version, input_warnings = observation_sources.get(
+            id(observation), ("input-1", parser_version, list(parser_warnings))
+        )
         details = dict(observation.details)
         details["retry_recovered"] = bool(details.get("retry_recovered"))
+        details["input_id"] = input_id
         raw_message = observation.message or ""
         safe_message = redact_text(raw_message)
         execution = TestExecution(
@@ -168,6 +259,7 @@ def ingest_parsed_report(
             test_identity=observation.test_identity,
             suite=observation.suite,
             source_path=observation.source_path,
+            parameterization=observation.parameterization,
             browser=observation.browser,
             attempt=observation.attempt,
             outcome=outcome,
@@ -178,30 +270,38 @@ def ingest_parsed_report(
         session.add(execution)
         session.flush()
 
-        raw_excerpt = observation.evidence_excerpt or raw_message or f"{observation.test_identity}: {outcome.value}"
+        raw_excerpt = (
+            observation.evidence_excerpt
+            or raw_message
+            or f"{observation.test_identity}: {outcome.value}"
+        )
         safe_excerpt = redact_text(raw_excerpt)
+        locator = dict(
+            observation.evidence_locator
+            or {"kind": "derived-observation", "index": observation_index}
+        )
+        locator["input_id"] = input_id
         evidence = Evidence(
             project_id=project.id,
             run_id=run.id,
             artifact_id=artifact.id,
             kind="current_run_observation",
-            locator=observation.evidence_locator or {
-                "kind": "derived-observation",
-                "index": observation_index,
-            },
+            locator=locator,
             excerpt=safe_excerpt.text[:40_000],
             content_digest=hashlib.sha256(safe_excerpt.text.encode("utf-8")).hexdigest(),
-            parser_version=parser_version,
+            parser_version=evidence_parser_version or parser_version,
             warnings=[
                 *[f"redacted:{item}" for item in safe_excerpt.classes],
-                *[f"parser:{item}" for item in parser_warnings],
+                *[f"parser:{item}" for item in input_warnings],
             ],
         )
         session.add(evidence)
         session.flush()
         if outcome is Outcome.failed:
             message = safe_message.text or safe_excerpt.text or "Test failed without a message"
-            fingerprint, features = make_fingerprint(message, observation.exception_type, details)
+            fingerprint, features = make_fingerprint(
+                message, observation.exception_type, details
+            )
             session.add(
                 Failure(
                     project_id=project.id,
@@ -244,6 +344,7 @@ def ingest_normalized(session: Session, project: Project, request: IngestionRequ
             test_identity=observation.test_identity,
             suite=observation.suite,
             source_path=observation.source_path,
+            parameterization=observation.parameterization,
             browser=observation.browser,
             attempt=observation.attempt,
             outcome=observation.outcome.value,
@@ -256,7 +357,25 @@ def ingest_normalized(session: Session, project: Project, request: IngestionRequ
         )
         for index, observation in enumerate(request.observations)
     ]
-    metadata = RunMetadata.model_validate(request.model_dump(exclude={"schema_version", "observations"}))
+    normalized_input = ParsedInput(
+        input_id="normalized-request",
+        kind="normalized-json",
+        path="normalized-ingestion.json",
+        required=True,
+        status="accepted",
+        digest=artifact_digest,
+        size_bytes=len(artifact_payload),
+        media_type="application/json",
+        parser_version="normalized-v2",
+        observations=tuple(parsed),
+        metadata={
+            "schema_version": request.schema_version,
+            "observation_count": len(parsed),
+        },
+    )
+    metadata = RunMetadata.model_validate(
+        request.model_dump(exclude={"schema_version", "observations"})
+    )
     return ingest_parsed_report(
         session,
         project,
@@ -268,7 +387,12 @@ def ingest_normalized(session: Session, project: Project, request: IngestionRequ
         storage_path=f"db://normalized/{artifact_digest}",
         media_type="application/json",
         source_format="normalized-json",
-        parser_version="normalized-v1",
+        parser_version="normalized-v2",
+        input_records=(normalized_input,),
+        parsed_expected_inputs=1,
+        parsed_received_inputs=1,
+        parsed_completeness="complete",
+        manifest_version="normalized-1.0",
         restricted=False,
     )
 
@@ -438,7 +562,13 @@ def process_artifact_ingestion(
     )
     if heartbeat:
         heartbeat()
-    parsed: ParsedArtifact = parse_artifact(content, ingestion.original_name, settings)
+    parsed: ParsedArtifact = parse_artifact(
+        content,
+        ingestion.original_name,
+        settings,
+        source_format=ingestion.source_format,
+        media_type=ingestion.media_type,
+    )
     if heartbeat:
         heartbeat()
     metadata = RunMetadata(
@@ -455,6 +585,7 @@ def process_artifact_ingestion(
             "ingestion_id": ingestion.id,
             "report_name": parsed.report_name,
             "source_format_requested": ingestion.source_format,
+            "manifest_version": parsed.manifest_version,
         },
     )
     run = ingest_parsed_report(
@@ -470,6 +601,11 @@ def process_artifact_ingestion(
         source_format=parsed.source_format,
         parser_version=parsed.parser_version,
         parser_warnings=parsed.warnings,
+        input_records=parsed.inputs,
+        parsed_expected_inputs=parsed.expected_inputs,
+        parsed_received_inputs=parsed.received_inputs,
+        parsed_completeness=parsed.completeness,
+        manifest_version=parsed.manifest_version,
         restricted=True,
     )
     failures = list(session.scalars(select(Failure).where(Failure.run_id == run.id)).all())
@@ -485,6 +621,7 @@ def process_artifact_ingestion(
     if ingestion.state is IngestionState.cancelled:
         return run
     ingestion.run_id = run.id
+    ingestion.expected_inputs = run.expected_inputs
     ingestion.received_inputs = run.received_inputs
     ingestion.parser_version = parsed.parser_version
     ingestion.state = (
@@ -500,7 +637,22 @@ def process_artifact_ingestion(
             "status": "complete",
             "format": parsed.source_format,
             "report": parsed.report_name,
+            "manifest_version": parsed.manifest_version,
+            "expected_inputs": run.expected_inputs,
+            "received_inputs": run.received_inputs,
+            "completeness": run.completeness,
             "observations": len(parsed.observations),
+            "inputs": [
+                {
+                    "id": item.input_id,
+                    "kind": item.kind,
+                    "path": item.path,
+                    "required": item.required,
+                    "status": item.status,
+                    "warnings": list(item.warnings),
+                }
+                for item in parsed.inputs
+            ],
             "warnings": list(parsed.warnings),
         },
         {

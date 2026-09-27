@@ -5,7 +5,8 @@ import {
   type Ingestion,
   type Overview,
   type Project,
-  type Run
+  type Run,
+  type RunInput
 } from './api';
 
 const categoryLabel: Record<string, string> = {
@@ -40,6 +41,7 @@ function App() {
   const [ingestions, setIngestions] = useState<Ingestion[]>([]);
   const [watchedIngestionId, setWatchedIngestionId] = useState<string | null>(null);
   const [failures, setFailures] = useState<Failure[]>([]);
+  const [runInputs, setRunInputs] = useState<RunInput[]>([]);
   const [selectedFailure, setSelectedFailure] = useState<Failure | null>(null);
   const [evaluation, setEvaluation] = useState<Record<string, unknown> | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -92,15 +94,17 @@ function App() {
   useEffect(() => {
     if (!runId) {
       setFailures([]);
+      setRunInputs([]);
       setSelectedFailure(null);
       return;
     }
-    api.failures(runId)
-      .then((next) => {
-        setFailures(next);
+    Promise.all([api.failures(runId), api.runInputs(runId)])
+      .then(([nextFailures, nextInputs]) => {
+        setFailures(nextFailures);
+        setRunInputs(nextInputs);
         setSelectedFailure((current) => {
-          if (current) return next.find((item) => item.id === current.id) ?? next[0] ?? null;
-          return next[0] ?? null;
+          if (current) return nextFailures.find((item) => item.id === current.id) ?? nextFailures[0] ?? null;
+          return nextFailures[0] ?? null;
         });
       })
       .catch((reason: unknown) => setError(String(reason)));
@@ -170,7 +174,7 @@ function App() {
       return;
     }
     if (!selectedFile) {
-      setError('Choose a JUnit XML, Playwright JSON, or FailureLens ZIP bundle.');
+      setError('Choose a supported report or FailureLens manifest v2 ZIP bundle.');
       return;
     }
     setBusy(true);
@@ -291,8 +295,8 @@ function App() {
           <form className="upload-form" onSubmit={uploadArtifact}>
             <label>Project<select value={projectId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setProjectId(event.target.value)} required><option value="">Select project</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
             <label>External run ID<input value={externalId} onChange={(event: ChangeEvent<HTMLInputElement>) => setExternalId(event.target.value)} minLength={1} maxLength={240} required/></label>
-            <label>Expected observations<input inputMode="numeric" min="0" step="1" placeholder="Optional" value={expectedInputs} onChange={(event: ChangeEvent<HTMLInputElement>) => setExpectedInputs(event.target.value)}/></label>
-            <label className="file-field">Report file<input key={fileInputKey} type="file" accept=".xml,.json,.zip,application/xml,application/json,application/zip" onChange={(event: ChangeEvent<HTMLInputElement>) => setSelectedFile(event.target.files?.[0] ?? null)} required/><small>{selectedFile ? `${selectedFile.name} · ${Math.ceil(selectedFile.size / 1024)} KiB` : 'JUnit XML, Playwright JSON, or manifest ZIP'}</small></label>
+            <label>Expected required inputs<input inputMode="numeric" min="0" step="1" placeholder="Optional" value={expectedInputs} onChange={(event: ChangeEvent<HTMLInputElement>) => setExpectedInputs(event.target.value)}/></label>
+            <label className="file-field">Report file<input key={fileInputKey} type="file" accept=".xml,.json,.jsonl,.har,.log,.txt,.zip,.png,.jpg,.jpeg,application/xml,application/json,application/zip,text/plain,image/png,image/jpeg" onChange={(event: ChangeEvent<HTMLInputElement>) => setSelectedFile(event.target.files?.[0] ?? null)} required/><small>{selectedFile ? `${selectedFile.name} · ${Math.ceil(selectedFile.size / 1024)} KiB` : 'Supported report, evidence file, or manifest v2 ZIP'}</small></label>
             <button className="primary" type="submit" disabled={busy || !projectId || !selectedFile}>{busy ? 'Working…' : 'Queue ingestion'}</button>
           </form>
 
@@ -308,7 +312,7 @@ function App() {
                     {ingestion.error_message && <p className="ingestion-error">{ingestion.error_code}: {ingestion.error_message}</p>}
                     {!ingestion.error_message && lastDiagnostic && <p className="diagnostic mono">{String(lastDiagnostic.phase ?? 'pipeline')} · {String(lastDiagnostic.status ?? 'updated')}</p>}
                   </div>
-                  <div className="ingestion-stats"><span>{ingestion.received_inputs}/{ingestion.expected_inputs ?? '—'} observations</span><code>{ingestion.source_digest.slice(0, 10)}</code></div>
+                  <div className="ingestion-stats"><span>{ingestion.received_inputs}/{ingestion.expected_inputs ?? '—'} inputs</span><code>{ingestion.source_digest.slice(0, 10)}</code></div>
                   <div className="ingestion-actions">
                     {ingestion.run_id && <button type="button" onClick={() => setRunId(ingestion.run_id ?? '')}>Open run</button>}
                     {!terminalIngestionStates.has(ingestion.state) && <button type="button" onClick={() => cancelIngestion(ingestion)} disabled={busy}>Cancel</button>}
@@ -325,6 +329,34 @@ function App() {
           <label>Run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setRunId(event.target.value)}><option value="">Select run</option>{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.status}</option>)}</select></label>
           <div className="scope"><span>Scope</span><strong>{selectedRun ? `${selectedRun.received_inputs}/${selectedRun.expected_inputs ?? 'unspecified'}` : '—'}</strong><small>{selectedRun?.completeness ?? 'no run selected'}</small></div>
           <div className="scope"><span>Revision</span><strong className="mono">{selectedRun?.commit_sha?.slice(0, 10) ?? 'unknown'}</strong><small>{selectedRun?.branch ?? 'branch unknown'}</small></div>
+        </section>
+
+        <section id="inputs" className="panel input-panel">
+          <div className="panel-heading">
+            <div><p className="eyebrow">EVIDENCE SCOPE</p><h2>Run inputs and completeness</h2></div>
+            <span className={`state ${statusClass(selectedRun?.completeness ?? 'unknown')}`}>{selectedRun?.completeness ?? 'No run'}</span>
+          </div>
+          {!selectedRun ? <div className="empty">Select a run to inspect its declared and received inputs.</div> : (
+            <>
+              <div className="input-summary">
+                <span>Received inputs<strong>{selectedRun.received_inputs}</strong></span>
+                <span>Expected required<strong>{selectedRun.expected_inputs ?? 'Unspecified'}</strong></span>
+                <span>Parsed observations<strong>{String(selectedRun.source_metadata.observation_count ?? 'Unknown')}</strong></span>
+                <span>Manifest version<strong>{String(selectedRun.source_metadata.manifest_version ?? 'Legacy / direct')}</strong></span>
+              </div>
+              <div className="input-table" aria-live="polite">
+                {runInputs.length === 0 && <div className="empty">No persisted per-input diagnostics exist for this run.</div>}
+                {runInputs.map((input) => (
+                  <article className="input-row" key={input.id}>
+                    <div><strong>{input.input_id}</strong><small>{input.path ?? 'No artifact path'}</small></div>
+                    <div><span>{input.kind}</span><small>{input.parser_version ?? 'No parser executed'}</small></div>
+                    <div><span className={`state ${statusClass(input.status)}`}>{input.status}</span><small>{input.required ? 'Required' : 'Optional'}</small></div>
+                    <div><span>{input.size_bytes === null ? 'No bytes received' : `${Math.ceil(input.size_bytes / 1024)} KiB`}</span><small>{input.warnings.length > 0 ? input.warnings.join(' · ') : input.digest?.slice(0, 16) ?? 'No digest'}</small></div>
+                  </article>
+                ))}
+              </div>
+            </>
+          )}
         </section>
 
         <section id="workspace" className="workspace">

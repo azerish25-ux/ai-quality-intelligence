@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { api, type Ingestion } from './api';
+import { api, type Ingestion, type RunInput } from './api';
 
 const ingestion: Ingestion = {
   id: 'ing-1',
@@ -34,6 +34,24 @@ const ingestion: Ingestion = {
   updated_at: '2026-09-26T00:00:00Z'
 };
 
+const runInput: RunInput = {
+  id: 'input-row-1',
+  project_id: 'project-1',
+  run_id: 'run-1',
+  input_id: 'report',
+  kind: 'junit-xml',
+  path: 'report.xml',
+  required: true,
+  status: 'accepted',
+  digest: 'b'.repeat(64),
+  size_bytes: 128,
+  media_type: 'application/xml',
+  parser_version: 'junit-v3',
+  warnings: [],
+  metadata_json: {},
+  created_at: '2026-09-26T00:00:00Z'
+};
+
 afterEach(() => vi.unstubAllGlobals());
 
 describe('artifact upload client', () => {
@@ -63,5 +81,23 @@ describe('artifact upload client', () => {
     expect(init.method).toBe('POST');
     expect(init.body).toBe(file);
     expect(init.headers).toEqual({ 'Content-Type': 'application/json' });
+  });
+});
+
+
+describe('run input diagnostics client', () => {
+  it('loads persisted per-input completeness evidence', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([runInput]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await api.runInputs('run-1');
+
+    expect(result).toEqual([runInput]);
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/runs/run-1/inputs');
   });
 });

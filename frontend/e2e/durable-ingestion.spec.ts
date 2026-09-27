@@ -6,7 +6,7 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   await expect(page.getByRole('heading', { name: 'Upload an actual test report' })).toBeVisible();
 
   await page.getByLabel('External run ID').fill('browser-e2e-1');
-  await page.getByLabel('Expected observations').fill('1');
+  await page.getByLabel('Expected required inputs').fill('1');
   await page.getByLabel('Report file').setInputFiles({
     name: 'browser-junit.xml',
     mimeType: 'application/xml',
@@ -20,6 +20,9 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   await expect(ingestion).toBeVisible();
   await expect(ingestion.getByText('Succeeded')).toBeVisible();
   await ingestion.getByRole('button', { name: 'Open run' }).click();
+  await expect(page.getByRole('heading', { name: 'Run inputs and completeness' })).toBeVisible();
+  await expect(page.locator('.input-row', { hasText: 'browser-junit.xml' })).toContainText('accepted');
+  await expect(page.locator('.input-summary')).toContainText('1');
 
   const failure = page.locator('.failure-row', { hasText: 'Transfer::duplicate' });
   await expect(failure).toBeVisible();
