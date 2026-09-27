@@ -16,7 +16,7 @@ Support depth is stated explicitly. “Working adapter” means the format is pa
 | PNG/JPEG screenshots | Restricted metadata adapter | Digest, dimensions, pixel count, media type, review state and optional expected/actual/diff relationship metadata | Original remains restricted; no claim that text redaction sanitizes pixels; review/mask workflow and perceptual comparison remain open |
 | Playwright traces | Restricted bounded-index adapter | Trace archive digest, entry list, supported trace stream name, bounded action/event/error/network counts and version hints | Original remains restricted; no trace HTML is executed; rich resource extraction and controlled local viewer workflow remain open |
 | GitHub commit/workflow metadata | Working metadata adapter | Repository, commit/base SHA, branch, PR, workflow/run/attempt, trigger, minimized author display, explicit trust provenance | Uploaded metadata is self-reported unless an authenticated integration marks it otherwise; it never grants authorization |
-| Changed-file lists | Working metadata adapter | Base/head, added/modified/deleted/renamed paths, old/new paths, diff/coverage references, pagination and completeness | Incomplete lists carry a warning and cannot support narrow impact recommendations by themselves |
+| Changed-file lists | Working impact input | Base/head, added/modified/deleted/renamed paths, old/new paths, diff/coverage references, pagination/completeness, declared trust and transport-bound effective trust | Incomplete, truncated, untrusted, unmapped or critical changes force full-suite execution; artifact bytes cannot promote their own trust |
 
 ## Manifest `2.0`
 
@@ -64,3 +64,5 @@ Completeness is evaluated from **declared required inputs**, not the number of t
 - An explicitly declared Playwright trace may itself be a bounded ZIP; other nested archives remain forbidden.
 - Valid sibling inputs survive when another manifest input is missing, rejected, or unsupported. The overall run becomes partial and stores per-input diagnostics.
 - Duplicate submission of the same project/external ID/attempt/source digest returns the existing ingestion rather than duplicating work. Distinct attempts remain distinct even when bytes match.
+- Changed-file JSON may contain a producer-declared trust label, but it is stored only as `declared_trust`. The effective `trust` used by impact policy is bound at the API/CLI/Action transport boundary through `comparison_trust`; ordinary uploads default to `self_reported`. A payload cannot make itself `trusted_workflow`.
+- Narrow impact selection additionally requires matching non-empty base/head SHAs, a complete non-truncated changed-file input and a project-scoped immutable mapping snapshot. Any missing invariant is persisted as a safety reason and returns `FULL_SUITE_REQUIRED`.

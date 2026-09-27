@@ -1,0 +1,30 @@
+{
+  "acceptance": {
+    "critical_test_recall_eq_1": true,
+    "defect_revealing_test_recall_eq_1": true,
+    "deterministic_repeat_rate_eq_1": true,
+    "expected_status_accuracy_eq_1": true,
+    "zero_missed_defect_examples": true
+  },
+  "average_focused_selected_fraction": 0.628571,
+  "case_count": 12,
+  "critical_test_recall": 1.0,
+  "defect_revealing_test_recall": 1.0,
+  "deterministic_repeat_rate": 1.0,
+  "engine_version": "impact-engine-v1",
+  "evaluation_version": "impact-harness-v1",
+  "expected_status_accuracy": 1.0,
+  "fallback_case_count": 5,
+  "focused_case_count": 7,
+  "limitations": [
+    "All cases and mapping oracles are synthetic and agent-authored.",
+    "Durations are declared fixture estimates, not observed runtime measurements.",
+    "The fixture does not satisfy the required actual LedgerGuard execution count.",
+    "Selection recall here is controlled-fixture recall, not population performance.",
+    "No counterfactual production runtime savings are claimed."
+  ],
+  "missed_defect_examples": [],
+  "policy_version": "impact-policy-v1",
+  "scenario_family_count": 11,
+  "test_catalog_count": 5
+}

@@ -6,6 +6,10 @@ import {
   type ClusterSummary,
   type Failure,
   type Ingestion,
+  type ImpactMappingInput,
+  type ImpactMappingSnapshot,
+  type ImpactRecommendation,
+  type ImpactRecommendationItem,
   type Overview,
   type Project,
   type Run,
@@ -43,6 +47,57 @@ const readableValue = (value: string): string => value.replaceAll('_', ' ');
 
 const newExternalId = (): string => `manual-${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}`;
 
+const defaultImpactMapping = JSON.stringify({
+  version: 'mapping-v1',
+  policy_version: 'impact-policy-v1',
+  trusted: true,
+  coverage_complete: true,
+  source_metadata: {
+    generator: 'reviewed repository mapping',
+    note: 'Replace this example with trusted coverage, ownership, or dependency data.'
+  },
+  tests: [
+    {
+      test_key: 'critical-smoke',
+      test_identity: 'tests/smoke.spec.ts::critical smoke',
+      source_path: 'tests/smoke.spec.ts',
+      criticality: 'critical',
+      mandatory: true,
+      tags: ['smoke', 'security'],
+      estimated_duration_ms: 500
+    },
+    {
+      test_key: 'checkout',
+      test_identity: 'tests/checkout.spec.ts::submits payment',
+      source_path: 'tests/checkout.spec.ts',
+      criticality: 'high',
+      mandatory: false,
+      tags: ['checkout'],
+      estimated_duration_ms: 1200
+    },
+    {
+      test_key: 'profile',
+      test_identity: 'tests/profile.spec.ts::updates avatar',
+      source_path: 'tests/profile.spec.ts',
+      criticality: 'normal',
+      mandatory: false,
+      tags: ['profile'],
+      estimated_duration_ms: 1800
+    }
+  ],
+  edges: [
+    {
+      source_path: 'src/checkout.py',
+      target_type: 'test',
+      target_value: 'checkout',
+      kind: 'coverage',
+      confidence: 0.95,
+      mapping_source: 'reviewed coverage export',
+      mapping_version: 'coverage-v1'
+    }
+  ]
+}, null, 2);
+
 function App() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -53,6 +108,14 @@ function App() {
   const [watchedIngestionId, setWatchedIngestionId] = useState<string | null>(null);
   const [failures, setFailures] = useState<Failure[]>([]);
   const [runInputs, setRunInputs] = useState<RunInput[]>([]);
+  const [impactMappings, setImpactMappings] = useState<ImpactMappingSnapshot[]>([]);
+  const [impactMappingId, setImpactMappingId] = useState('');
+  const [impactRecommendations, setImpactRecommendations] = useState<ImpactRecommendation[]>([]);
+  const [selectedImpactId, setSelectedImpactId] = useState('');
+  const [selectedImpact, setSelectedImpact] = useState<ImpactRecommendation | null>(null);
+  const [impactMappingJson, setImpactMappingJson] = useState(defaultImpactMapping);
+  const [impactReviewActor, setImpactReviewActor] = useState('reviewer@example.test');
+  const [impactReviewReason, setImpactReviewReason] = useState('');
   const [clusters, setClusters] = useState<ClusterSummary[]>([]);
   const [runClusters, setRunClusters] = useState<ClusterSummary[]>([]);
   const [selectedClusterId, setSelectedClusterId] = useState('');
@@ -111,19 +174,36 @@ function App() {
       setIngestions([]);
       setClusters([]);
       setRunClusters([]);
+      setImpactMappings([]);
+      setImpactRecommendations([]);
+      setImpactMappingId('');
+      setSelectedImpactId('');
+      setSelectedImpact(null);
       setSelectedClusterId('');
       setSelectedCluster(null);
       setRunId('');
       return;
     }
-    const [nextRuns, nextIngestions, nextClusters] = await Promise.all([
+    const [nextRuns, nextIngestions, nextClusters, nextMappings, nextImpactRecommendations] = await Promise.all([
       api.runs(nextProjectId),
       api.ingestions(nextProjectId),
-      api.clusters(nextProjectId)
+      api.clusters(nextProjectId),
+      api.impactMappings(nextProjectId),
+      api.impactRecommendations(nextProjectId)
     ]);
     setRuns(nextRuns);
     setIngestions(nextIngestions);
     setClusters(nextClusters);
+    setImpactMappings(nextMappings);
+    setImpactRecommendations(nextImpactRecommendations);
+    setImpactMappingId((current) => {
+      if (current && nextMappings.some((mapping) => mapping.id === current)) return current;
+      return nextMappings[0]?.id ?? '';
+    });
+    setSelectedImpactId((current) => {
+      if (current && nextImpactRecommendations.some((item) => item.id === current)) return current;
+      return nextImpactRecommendations[0]?.id ?? '';
+    });
     setSelectedClusterId((current) => {
       if (current && nextClusters.some((cluster) => cluster.id === current)) return current;
       return nextClusters[0]?.id ?? '';
@@ -290,6 +370,24 @@ function App() {
     selectedFailure
   ]);
 
+  useEffect(() => {
+    if (!selectedImpactId) {
+      setSelectedImpact(null);
+      return;
+    }
+    let cancelled = false;
+    api.impactRecommendation(selectedImpactId)
+      .then((recommendation) => {
+        if (!cancelled) setSelectedImpact(recommendation);
+      })
+      .catch((reason: unknown) => {
+        if (!cancelled) setError(String(reason));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedImpactId]);
+
   const visibleClusters = useMemo(
     () => runId ? runClusters : clusters,
     [clusters, runClusters, runId]
@@ -430,6 +528,89 @@ function App() {
     }
   };
 
+  const registerImpactMapping = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!projectId) {
+      setError('Select a project before registering an impact mapping snapshot.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const parsed = JSON.parse(impactMappingJson) as ImpactMappingInput;
+      const snapshot = await api.createImpactMapping(projectId, parsed);
+      setImpactMappings((current) => [snapshot, ...current.filter((item) => item.id !== snapshot.id)]);
+      setImpactMappingId(snapshot.id);
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const generateImpactRecommendation = async () => {
+    if (!projectId || !runId || !impactMappingId) {
+      setError('Select a project, run, and immutable mapping snapshot before generating a recommendation.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const recommendation = await api.createImpactRecommendation(
+        projectId,
+        runId,
+        impactMappingId,
+        undefined,
+        selectedRun?.base_sha ?? undefined,
+        selectedRun?.commit_sha ?? undefined
+      );
+      setImpactRecommendations((current) => [
+        recommendation,
+        ...current.filter((item) => item.id !== recommendation.id)
+      ]);
+      setSelectedImpact(recommendation);
+      setSelectedImpactId(recommendation.id);
+      await refreshRoot();
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const applyImpactOverride = async (
+    item: ImpactRecommendationItem,
+    action: 'include' | 'exclude'
+  ) => {
+    if (!selectedImpact) return;
+    const actor = impactReviewActor.trim();
+    const reason = impactReviewReason.trim();
+    if (!actor || !reason) {
+      setError('Impact overrides require an attributed actor and a concrete engineering reason.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const recommendation = await api.overrideImpactRecommendation(selectedImpact.id, {
+        actor,
+        action,
+        testKey: item.test_key,
+        reason,
+        expectedRevision: selectedImpact.current_revision
+      });
+      setSelectedImpact(recommendation);
+      setImpactRecommendations((current) => current.map((entry) => (
+        entry.id === recommendation.id ? recommendation : entry
+      )));
+      setImpactReviewReason('');
+    } catch (reasonValue) {
+      setError(String(reasonValue));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const toggleClusterMember = (failureId: string) => {
     setSelectedClusterMembers((current) => (
       current.includes(failureId)
@@ -492,6 +673,7 @@ function App() {
           <a href="#overview">Overview</a>
           <a href="#ingestion">Ingestion</a>
           <a href="#runs">Runs</a>
+          <a href="#impact">Change impact</a>
           <a href="#clusters">Clusters</a>
           <a href="#workspace">Failure workspace</a>
           <a href="#history">Test history</a>
@@ -516,6 +698,7 @@ function App() {
             ['Runs', overview?.runs ?? '—'],
             ['Failures', overview?.failures ?? '—'],
             ['Clusters', overview?.clusters ?? '—'],
+            ['Impact plans', overview?.impact_recommendations ?? '—'],
             ['Analyses', overview?.analyses ?? '—']
           ].map(([label, value]) => <article className="metric" key={label}><span>{label}</span><strong>{value}</strong></article>)}
         </section>
@@ -597,6 +780,83 @@ function App() {
                   </article>
                 ))}
               </div>
+            </>
+          )}
+        </section>
+
+        <section id="impact" className="panel impact-panel">
+          <div className="panel-heading">
+            <div><p className="eyebrow">EXPLAINABLE CHANGE IMPACT</p><h2>Focused test recommendation</h2></div>
+            <span className={`state ${selectedImpact?.full_suite_required ? 'partial' : selectedImpact ? 'succeeded' : 'unknown'}`}>
+              {selectedImpact?.full_suite_required ? 'Full suite required' : selectedImpact ? 'Focused subset' : 'No recommendation'}
+            </span>
+          </div>
+          <p className="impact-advisory">Recommendations are deterministic and advisory. They never skip tests automatically; incomplete, untrusted, critical, or unmapped changes force broad execution.</p>
+
+          <div className="impact-controls">
+            <label>Impact run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setRunId(event.target.value)}><option value="">Select a run</option>{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.commit_sha?.slice(0, 10) ?? 'head unknown'}</option>)}</select></label>
+            <label>Impact mapping<select value={impactMappingId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setImpactMappingId(event.target.value)}><option value="">Select mapping snapshot</option>{impactMappings.map((mapping) => <option key={mapping.id} value={mapping.id}>{mapping.version} · {mapping.test_count} tests · {mapping.trusted && mapping.coverage_complete ? 'trusted' : 'fallback only'}</option>)}</select></label>
+            <button className="primary" type="button" onClick={generateImpactRecommendation} disabled={busy || !runId || !impactMappingId}>Generate recommendation</button>
+            <label>Saved recommendation<select value={selectedImpactId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setSelectedImpactId(event.target.value)}><option value="">Select recommendation</option>{impactRecommendations.map((recommendation) => <option key={recommendation.id} value={recommendation.id}>{recommendation.head_sha?.slice(0, 10) ?? 'unknown head'} · {readableValue(recommendation.status)}</option>)}</select></label>
+          </div>
+
+          <details className="impact-mapping-editor">
+            <summary>Register an immutable mapping snapshot</summary>
+            <form onSubmit={registerImpactMapping}>
+              <label>Impact mapping manifest<textarea rows={16} spellCheck={false} value={impactMappingJson} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setImpactMappingJson(event.target.value)} /></label>
+              <button type="submit" disabled={busy || !projectId}>Register mapping snapshot</button>
+            </form>
+            <p>Use explicit file-to-test, coverage, ownership, historical-failure, or reverse-dependency edges. A reused version name must have identical content.</p>
+          </details>
+
+          {!selectedImpact ? <div className="empty">Choose a run containing a changed-files input and a reviewed mapping snapshot.</div> : (
+            <>
+              <div className="impact-summary">
+                <div><span>Status</span><strong>{readableValue(selectedImpact.status)}</strong><small>{selectedImpact.summary}</small></div>
+                <div><span>Comparison</span><strong>{selectedImpact.comparison_trusted ? 'Trusted' : 'Fallback'}</strong><small>{selectedImpact.base_sha?.slice(0, 10) ?? 'unknown base'} → {selectedImpact.head_sha?.slice(0, 10) ?? 'unknown head'}</small></div>
+                <div><span>Selected</span><strong>{String(selectedImpact.metrics.effective_selected_test_count ?? selectedImpact.selected_tests.length)}</strong><small>of {String(selectedImpact.metrics.test_catalog_count ?? '—')} catalogued tests</small></div>
+                <div><span>Revision</span><strong>{selectedImpact.current_revision}</strong><small>{selectedImpact.overrides.length} audited override{selectedImpact.overrides.length === 1 ? '' : 's'}</small></div>
+              </div>
+
+              {selectedImpact.safety_reasons.length > 0 && <div className="impact-warning" role="status"><strong>Why focused execution is blocked</strong><div>{selectedImpact.safety_reasons.map((reason) => <code key={reason}>{readableValue(reason)}</code>)}</div></div>}
+
+              <div className="impact-changes"><h3>Validated change set</h3>{selectedImpact.changed_files.map((change, index) => <span key={`${String(change.path)}-${index}`}><strong>{String(change.status)}</strong> {String(change.old_path ? `${change.old_path} → ` : '')}{String(change.path)}</span>)}</div>
+
+              <div className="impact-review-controls">
+                <label>Impact reviewer<input value={impactReviewActor} onChange={(event: ChangeEvent<HTMLInputElement>) => setImpactReviewActor(event.target.value)} /></label>
+                <label>Impact override reason<input value={impactReviewReason} onChange={(event: ChangeEvent<HTMLInputElement>) => setImpactReviewReason(event.target.value)} placeholder="Required before including or excluding a test" /></label>
+              </div>
+
+              <div className="impact-test-grid">
+                <section aria-label="Selected impact tests">
+                  <div className="history-section-heading"><h3>Selected tests</h3><span>{selectedImpact.selected_tests.length}</span></div>
+                  {selectedImpact.selected_tests.map((item) => (
+                    <article className="impact-test-row" key={item.test_key}>
+                      <div><strong>{item.test_identity}</strong><small>{item.mandatory ? 'Mandatory · ' : ''}{item.confidence} confidence · {item.selection_source}</small><div className="impact-reasons">{item.reason_codes.map((reason) => <code key={reason}>{readableValue(reason)}</code>)}</div></div>
+                      <span className={`impact-criticality ${item.criticality}`}>{item.criticality}</span>
+                      <button type="button" onClick={() => applyImpactOverride(item, 'exclude')} disabled={busy || selectedImpact.full_suite_required || item.mandatory || item.criticality === 'critical'}>Exclude</button>
+                    </article>
+                  ))}
+                </section>
+                <section aria-label="Excluded impact tests">
+                  <div className="history-section-heading"><h3>Excluded tests</h3><span>{selectedImpact.excluded_tests.length}</span></div>
+                  {selectedImpact.excluded_tests.length === 0 && <div className="empty">No tests are excluded from the effective recommendation.</div>}
+                  {selectedImpact.excluded_tests.map((item) => (
+                    <article className="impact-test-row" key={item.test_key}>
+                      <div><strong>{item.test_identity}</strong><small>{item.exclusion_reason}</small></div>
+                      <span className={`impact-criticality ${item.criticality}`}>{item.criticality}</span>
+                      <button type="button" onClick={() => applyImpactOverride(item, 'include')} disabled={busy}>Include</button>
+                    </article>
+                  ))}
+                </section>
+              </div>
+
+              <section className="impact-audit" aria-label="Impact override audit">
+                <div className="history-section-heading"><h3>Override audit</h3><span>append-only</span></div>
+                {selectedImpact.overrides.length === 0 && <div className="empty">No reviewer has changed the deterministic recommendation.</div>}
+                {selectedImpact.overrides.map((override) => <article key={override.id}><strong>{override.action} {override.test_key}</strong><span>{override.actor} · revision {override.revision_before} → {override.revision_after}</span><p>{override.reason}</p></article>)}
+              </section>
+              <p className="history-provenance mono">Engine {selectedImpact.engine_version} · policy {selectedImpact.policy_version} · input {selectedImpact.input_digest.slice(0, 16)} · mapping {selectedImpact.mapping_snapshot_id.slice(0, 8)}.</p>
             </>
           )}
         </section>

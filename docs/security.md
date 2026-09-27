@@ -22,6 +22,10 @@ Every artifact field is untrusted: filenames, manifests, XML/JSON/JSONL, test na
 - Withhold invalid claims and safely degrade unsupported non-abstaining classifications to `insufficient_evidence`.
 - Keep the deterministic analyzer incapable of shell, network, GitHub-write, test-deletion, quarantine, merge or release actions.
 - Prevent non-product classifications from overriding conflicting product-risk evidence without abstention.
+- Separate artifact-declared comparison trust from transport-bound effective trust; uploaded changed-file bytes cannot mark themselves as an authenticated or trusted workflow comparison.
+- Require matching project, run, base/head values and immutable mapping versions before impact selection; incomplete, truncated, untrusted, unmapped or critical changes fail closed to full-suite execution.
+- Keep impact recommendations advisory and incapable of executing/skipping tests; preserve mandatory critical tests and reject their exclusion through reviewer overrides.
+- Record impact overrides append-only with actor, reason, timestamp and optimistic revision checks.
 - Render GitHub Markdown with fixed advisory language and no release approval.
 - Serve the frontend with a restrictive CSP and `nosniff`; never execute artifact HTML, SVG scripts or trace viewer content on the authenticated origin.
 
@@ -39,7 +43,7 @@ Still required:
 
 ## Known gaps
 
-Automatic redaction remains incomplete for unknown free-text identifiers, names, arbitrary binary formats, DOM snapshots and pixels. The implemented semantic validator covers deterministic classification predicates, not arbitrary future free-form claims. Project-scoped viewer/reviewer/admin authorization, ingestion rate limiting, cross-project cache/isolation tests, retention/backup policy, masked screenshots and richer trace derivatives remain incomplete.
+Automatic redaction remains incomplete for unknown free-text identifiers, names, arbitrary binary formats, DOM snapshots and pixels. The implemented semantic validator covers deterministic classification predicates, not arbitrary future free-form claims. Project-scoped viewer/reviewer/admin authorization, authenticated GitHub comparison lookup, ingestion rate limiting, cross-project cache/isolation tests, retention/backup policy, masked screenshots and richer trace derivatives remain incomplete.
 
 The current demo mode permits unauthenticated local writes when no ingestion token is configured. Production deployment must disable demo mode and supply a strong token; full project-scoped identity and roles remain pending.
 

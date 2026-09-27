@@ -14,12 +14,17 @@ flowchart LR
     P --> Q[bounded candidates + explainable complete-link clustering]
     Q --> R[(cluster identities + append-only revisions)]
     F --> S[prior-only history aggregation]
+    F --> U[validated changed-file evidence]
+    W[immutable mapping snapshot] --> X[deterministic impact selector]
+    U --> X
+    X --> Y[(recommendation + ranked items + overrides)]
     S --> T[traceable rates + history digest]
     P --> H[deterministic rule engine]
     T --> H
     H --> V[independent publication validator]
     V --> I[evidence-linked analysis revision]
     R --> J[React dashboard]
+    Y --> J
     I --> J
     I --> N[Markdown / GitHub Action summary]
     K[synthetic evaluation corpus] --> L[evaluation harness]
@@ -58,6 +63,8 @@ The migrations define explicit tables for:
 - failures and versioned fingerprints;
 - failure clusters, append-only cluster revisions and revision-scoped memberships;
 - reviewed cluster confirm/split/merge decisions with optimistic revision checks;
+- immutable impact mapping snapshots, test definitions and typed mapping edges;
+- deterministic impact recommendations, ranked selected/excluded items and append-only optimistic overrides;
 - validated analysis revisions and validation audits; and
 - append-only review events.
 
@@ -87,6 +94,17 @@ The score is a `heuristic_score`, not a calibrated probability.
 History is computed from persisted observations rather than a failure-only table. One run/browser cohort contributes one independent first/final outcome. Retries are never counted as separate runs, absent tests are not passes, and skipped/cancelled/unknown outcomes remain explicit. Run scope (`full_suite`, `impact_selected`, `unknown`) is part of the cohort contract so selected-subset evidence cannot silently create reassuring population rates.
 
 The API may explore browser, branch, environment, run-scope, worker, shard and timezone-aware time buckets, but the analyzer uses the same browser/environment and full-suite history only. Every calculation is bounded by an immutable cutoff and produces a canonical digest over policy, filters, observations and prior review IDs. Human review annotates observed outcomes; it does not rewrite them.
+
+
+## Change-impact boundary
+
+Impact selection consumes two explicit, versioned inputs: a run-scoped changed-file record with validated base/head provenance and a project-scoped immutable mapping snapshot. Mapping edges identify their source (`file_to_test`, coverage, API/ownership, historical relation, dependency or mandatory policy) and version rather than hiding selection behind a free-form model label.
+
+The selector normalizes paths, preserves old and new names for renames/deletions, performs bounded cycle-safe reverse dependency traversal, and records every contributing edge and reason. Mandatory smoke, security, transaction and critical tests are added independently of ranking. Tests not selected remain persisted with exclusion reasons so a small subset is inspectable rather than opaque.
+
+The fail-safe state is broad execution. Self-reported trust, missing or mismatched base/head values, incomplete/truncated change lists, unmapped paths, stale mappings and critical shared/auth/authorization/ledger/migration/dependency/CI/test-infrastructure changes force `FULL_SUITE_REQUIRED`. Recommendations never mutate test execution. Reviewer overrides append a new attributed revision; stale writes fail, and mandatory/critical exclusions are rejected.
+
+Artifact content cannot grant itself trust. A producer-provided trust label is retained only as declared metadata; effective comparison trust is supplied by the validated transport boundary and defaults to `self_reported`.
 
 ## Explainable clustering boundary
 

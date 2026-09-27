@@ -87,6 +87,66 @@ def test_raw_junit_is_queued_processed_and_auto_analyzed(client, session) -> Non
     assert session.scalar(select(func.count(Run.id))) == 1
 
 
+def test_changed_file_trust_is_bound_by_transport_not_artifact_claim(client, session) -> None:
+    project_id = _project(client)
+    changes = {
+        "base_sha": "abcdef0",
+        "head_sha": "1234567",
+        "complete": True,
+        "trust": "trusted_workflow",
+        "files": [{"status": "modified", "path": "src/payments.py"}],
+    }
+
+    untrusted = client.post(
+        f"/api/v1/projects/{project_id}/ingestions",
+        params={
+            "external_id": "changes-untrusted",
+            "filename": "changes.json",
+            "repository": "owner/repo",
+            "commit_sha": "1234567",
+            "base_sha": "abcdef0",
+        },
+        content=json.dumps(changes).encode(),
+        headers={"content-type": "application/json"},
+    )
+    assert untrusted.status_code == 202, untrusted.text
+    assert process_next(session, "worker-changes-untrusted", settings=get_settings()) is True
+    untrusted_run_id = client.get(
+        f"/api/v1/ingestions/{untrusted.json()['id']}"
+    ).json()["run_id"]
+    untrusted_input = session.scalar(
+        select(RunInput).where(RunInput.run_id == untrusted_run_id)
+    )
+    assert untrusted_input is not None
+    assert untrusted_input.metadata_json["declared_trust"] == "trusted_workflow"
+    assert untrusted_input.metadata_json["trust"] == "self_reported"
+    assert untrusted_input.metadata_json["trust_source"] == "ingestion_metadata"
+
+    trusted = client.post(
+        f"/api/v1/projects/{project_id}/ingestions",
+        params={
+            "external_id": "changes-trusted",
+            "filename": "changes.json",
+            "repository": "owner/repo",
+            "commit_sha": "1234567",
+            "base_sha": "abcdef0",
+            "comparison_trust": "trusted_workflow",
+        },
+        content=json.dumps(changes).encode(),
+        headers={"content-type": "application/json"},
+    )
+    assert trusted.status_code == 202, trusted.text
+    assert process_next(session, "worker-changes-trusted", settings=get_settings()) is True
+    trusted_run_id = client.get(
+        f"/api/v1/ingestions/{trusted.json()['id']}"
+    ).json()["run_id"]
+    trusted_input = session.scalar(
+        select(RunInput).where(RunInput.run_id == trusted_run_id)
+    )
+    assert trusted_input is not None
+    assert trusted_input.metadata_json["trust"] == "trusted_workflow"
+
+
 def test_playwright_report_preserves_attempts_and_auto_analysis(client, session) -> None:
     project_id = _project(client)
     report = {
@@ -252,6 +312,20 @@ def test_duplicate_digest_with_conflicting_provenance_is_rejected(client) -> Non
     )
     assert conflict.status_code == 409
     assert "idempotency conflict" in conflict.text
+
+    trust_conflict = client.post(
+        f"/api/v1/projects/{project_id}/ingestions",
+        params={
+            "external_id": "same-run",
+            "filename": "junit.xml",
+            "commit_sha": "abcdef0",
+            "comparison_trust": "trusted_workflow",
+        },
+        content=content,
+        headers={"content-type": "application/xml"},
+    )
+    assert trust_conflict.status_code == 409
+    assert "comparison_trust" in trust_conflict.text
 
 
 def test_same_report_bytes_are_distinct_across_run_attempts(client) -> None:

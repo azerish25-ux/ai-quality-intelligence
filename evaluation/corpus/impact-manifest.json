@@ -1,0 +1,160 @@
+{
+  "case_count": 12,
+  "cases_sha256": "81ed3829c5b8c71e164dfe5bb4677bcc70098ada5f5c71301211678c4ae2abba",
+  "generator_version": "impact-generator-v1",
+  "limitations": [
+    "All cases and mapping oracles are synthetic and agent-authored.",
+    "Durations are declared fixture estimates, not observed runtime measurements.",
+    "The fixture does not satisfy the required actual LedgerGuard execution count."
+  ],
+  "mapping": {
+    "edges": [
+      {
+        "confidence": 0.97,
+        "kind": "coverage",
+        "mapping_source": "controlled-coverage",
+        "mapping_version": "coverage-v1",
+        "source_path": "src/checkout.py",
+        "target_type": "test",
+        "target_value": "checkout"
+      },
+      {
+        "confidence": 0.95,
+        "kind": "coverage",
+        "mapping_source": "controlled-coverage",
+        "mapping_version": "coverage-v1",
+        "source_path": "src/profile.py",
+        "target_type": "test",
+        "target_value": "profile"
+      },
+      {
+        "confidence": 1.0,
+        "kind": "file_to_test",
+        "mapping_source": "reviewed-policy",
+        "mapping_version": "policy-v1",
+        "source_path": "src/ledger.py",
+        "target_type": "test",
+        "target_value": "ledger"
+      },
+      {
+        "confidence": 0.92,
+        "kind": "coverage",
+        "mapping_source": "controlled-coverage",
+        "mapping_version": "coverage-v1",
+        "source_path": "src/reporting.py",
+        "target_type": "test",
+        "target_value": "reports"
+      },
+      {
+        "confidence": 0.93,
+        "kind": "dependency",
+        "mapping_source": "controlled-import-graph",
+        "mapping_version": "imports-v1",
+        "source_path": "src/core.py",
+        "target_type": "file",
+        "target_value": "src/checkout.py"
+      },
+      {
+        "confidence": 0.9,
+        "kind": "ownership",
+        "mapping_source": "reviewed-ownership",
+        "mapping_version": "owners-v1",
+        "source_path": "src/old-profile.py",
+        "target_type": "test",
+        "target_value": "profile"
+      },
+      {
+        "confidence": 0.94,
+        "kind": "api_ownership",
+        "mapping_source": "api-contract-map",
+        "mapping_version": "api-v1",
+        "source_path": "api/payments.openapi.yaml",
+        "target_type": "test",
+        "target_value": "checkout"
+      },
+      {
+        "confidence": 0.78,
+        "kind": "historical_failure",
+        "mapping_source": "reviewed-prior-failures",
+        "mapping_version": "history-v1",
+        "source_path": "src/payment_gateway.py",
+        "target_type": "test",
+        "target_value": "checkout"
+      }
+    ],
+    "tests": [
+      {
+        "criticality": "critical",
+        "estimated_duration_ms": 500,
+        "mandatory": true,
+        "source_path": "tests/smoke.spec.ts",
+        "tags": [
+          "smoke",
+          "security"
+        ],
+        "test_identity": "tests/smoke.spec.ts::critical smoke",
+        "test_key": "smoke"
+      },
+      {
+        "criticality": "critical",
+        "estimated_duration_ms": 2500,
+        "mandatory": true,
+        "source_path": "tests/ledger.spec.ts",
+        "tags": [
+          "transaction"
+        ],
+        "test_identity": "tests/ledger.spec.ts::transaction invariants",
+        "test_key": "ledger"
+      },
+      {
+        "criticality": "high",
+        "estimated_duration_ms": 1200,
+        "mandatory": false,
+        "source_path": "tests/checkout.spec.ts",
+        "tags": [
+          "checkout"
+        ],
+        "test_identity": "tests/checkout.spec.ts::submits payment",
+        "test_key": "checkout"
+      },
+      {
+        "criticality": "normal",
+        "estimated_duration_ms": 1800,
+        "mandatory": false,
+        "source_path": "tests/profile.spec.ts",
+        "tags": [
+          "profile"
+        ],
+        "test_identity": "tests/profile.spec.ts::updates avatar",
+        "test_key": "profile"
+      },
+      {
+        "criticality": "normal",
+        "estimated_duration_ms": 900,
+        "mandatory": false,
+        "source_path": "tests/reports.spec.ts",
+        "tags": [
+          "reports"
+        ],
+        "test_identity": "tests/reports.spec.ts::exports statement",
+        "test_key": "reports"
+      }
+    ]
+  },
+  "scenario_families": {
+    "api-ownership": 1,
+    "critical-policy": 1,
+    "direct-coverage": 2,
+    "historical-link": 1,
+    "mapping-completeness": 1,
+    "missing-input": 1,
+    "multi-change": 1,
+    "provenance-boundary": 1,
+    "rename-delete": 1,
+    "reverse-dependency": 1,
+    "safety-fallback": 1
+  },
+  "scenario_family_count": 11,
+  "schema_version": "1.0",
+  "source_kind": "synthetic"
+}

@@ -44,3 +44,76 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   await expect(page.locator('.history-panel')).toContainText('No prior matching observations');
   await expect(page.locator('.history-warning')).toContainText('no prior matching observations');
 });
+
+test('builds an explainable focused recommendation and records an attributed override', async ({ page }) => {
+  const seedResponse = await page.request.post('http://127.0.0.1:5173/api/v1/demo/seed');
+  expect(seedResponse.ok()).toBeTruthy();
+  const seed = await seedResponse.json() as { project_id: string };
+
+  const baseSha = '1'.repeat(40);
+  const headSha = '2'.repeat(40);
+  const query = new URLSearchParams({
+    external_id: 'impact-browser-e2e-1',
+    filename: 'changes.json',
+    repository: 'owner/repo',
+    base_sha: baseSha,
+    commit_sha: headSha,
+    comparison_trust: 'trusted_workflow',
+    expected_inputs: '1'
+  });
+  const uploadResponse = await page.request.post(
+    `http://127.0.0.1:5173/api/v1/projects/${seed.project_id}/ingestions?${query.toString()}`,
+    {
+      headers: { 'Content-Type': 'application/json' },
+      data: JSON.stringify({
+        base_sha: baseSha,
+        head_sha: headSha,
+        complete: true,
+        // This artifact claim is preserved only for audit. Effective trust comes
+        // from the authenticated comparison_trust transport metadata above.
+        trust: 'self_reported',
+        files: [{ status: 'modified', path: 'src/checkout.py' }]
+      })
+    }
+  );
+  expect(uploadResponse.status()).toBe(202);
+  const queued = await uploadResponse.json() as { id: string };
+
+  let impactRunId = '';
+  await expect.poll(async () => {
+    const response = await page.request.get(
+      `http://127.0.0.1:5173/api/v1/ingestions/${queued.id}`
+    );
+    const body = await response.json() as { state: string; run_id: string | null };
+    impactRunId = body.run_id ?? '';
+    return body.state;
+  }).toBe('succeeded');
+  expect(impactRunId).not.toBe('');
+
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Focused test recommendation' })).toBeVisible();
+  await page.getByLabel('Impact run').selectOption(impactRunId);
+
+  const editor = page.locator('details.impact-mapping-editor');
+  await editor.getByText('Register an immutable mapping snapshot').click();
+  const manifest = JSON.parse(await editor.getByLabel('Impact mapping manifest').inputValue()) as Record<string, unknown>;
+  manifest.version = 'mapping-browser-e2e-v1';
+  await editor.getByLabel('Impact mapping manifest').fill(JSON.stringify(manifest, null, 2));
+  await editor.getByRole('button', { name: 'Register mapping snapshot' }).click();
+
+  await expect(page.getByLabel('Impact mapping')).toContainText('mapping-browser-e2e-v1');
+  await page.getByRole('button', { name: 'Generate recommendation' }).click();
+  await expect(page.locator('.impact-summary')).toContainText('FOCUSED SUBSET');
+  await expect(page.getByRole('region', { name: 'Selected impact tests' })).toContainText('submits payment');
+  await expect(page.getByRole('region', { name: 'Excluded impact tests' })).toContainText('updates avatar');
+
+  await page.getByLabel('Impact reviewer').fill('browser-reviewer@example.test');
+  await page.getByLabel('Impact override reason').fill(
+    'Reviewed release-risk coupling not represented in the current coverage snapshot.'
+  );
+  await page.getByRole('region', { name: 'Excluded impact tests' }).getByRole('button', { name: 'Include' }).click();
+
+  await expect(page.getByRole('region', { name: 'Impact override audit' })).toContainText('include profile');
+  await expect(page.getByRole('region', { name: 'Impact override audit' })).toContainText('browser-reviewer@example.test');
+  await expect(page.locator('.impact-summary')).toContainText('1 audited override');
+});

@@ -10,6 +10,7 @@
 - Evidence-integrity development parent: exact source export of `59539ba4e4252eb1a41789fa6fab26b4c7f05c6b`
 - Explainable-clustering development parent: exact source export of `5ea816f94c22d61a269b19298da38617947d1d77`
 - Historical-intelligence development parent: exact source export of `0329b7c0f5eaee4f657e7daa29a7b88aed3b0bdc`
+- Change-impact development parent: exact source export of `48335b42c2da5b74bee0ce02aea471b987e5d416`
 - Companion repositories remain read-only inputs:
   - `azerish25-ux/transaction-reliability-lab`
   - `azerish25-ux/playwright-quality-platform`
@@ -22,23 +23,25 @@
 | M1 — executable vertical slice | PASS | Raw upload -> stored ingestion/job -> leased worker -> run/evidence/failure -> automatic deterministic analysis -> dashboard. Recovery and browser path exist. |
 | M2 — full ingestion and safe evidence | PARTIAL | Manifest `2.0`, adapter registry, honest completeness, execution/input-scoped evidence, immutable safe text derivatives, source maps, independent digest/locator/quotation/observation checks, semantic classification-claim validation, safe degradation, and restricted screenshot/trace indexes exist. Producer-pinned fixtures, safe binary derivatives, broader predicates, project-scoped authorization and controlled artifact serving remain open. |
 | M3 — analytical core | PASS | Versioned strict fingerprints plus loose readable clustering features, bounded candidate generation, explainable multi-signal scoring, hard conflict preservation, complete-link bridge prevention, deterministic cluster identities, append-only membership revisions, reviewed confirm/split/merge corrections, conservative rules, contradiction handling, confidence semantics and safe abstention all have executable coverage. |
-| M4 — history and impact | PARTIAL | Prior-only exact-test history now collapses retries per run/browser cohort, exposes traceable numerators/denominators and uncertainty intervals, separates run scopes, preserves missing/skipped/cancelled states, enforces cutoff-safe reviews, feeds a versioned history digest into analysis revisions, and has an API/dashboard workspace. Separate infrastructure-event correlation, impact recommendations/overrides and performance baselines remain open. |
-| M5 — review workflow and UI | PARTIAL | Append-only analysis reviews and cluster decisions, optimistic conflict versions, upload/status workflow, per-input completeness, explainable cluster workspace, overview/runs/failure/evaluation views and Chromium journey source exist. Roles, complete views and broader accessibility/browser coverage remain open. |
-| M6 — corpus and evaluation | PARTIAL | 200 synthetic classification cases plus a 24-case/13-evaluation-label clustering fixture, executable harnesses, safety/clustering metrics and reports exist. Actual LedgerGuard executions remain 0. |
+| M4 — history and impact | PARTIAL | Prior-only exact-test history and deterministic change-impact recommendations are implemented. Impact uses immutable mapping snapshots, validated base/head provenance, renamed/deleted path handling, bounded reverse dependencies, mandatory critical tests, conservative full-suite fallbacks, ranked explanations and append-only optimistic overrides through the API/CLI/dashboard. Separately modeled infrastructure-event correlation and compatible performance baselines remain open. |
+| M5 — review workflow and UI | PARTIAL | Append-only analysis reviews, cluster decisions and impact include/exclude overrides exist with optimistic conflict versions. Upload/status, per-input completeness, clustering, history, impact, overview/runs/failure/evaluation views and Chromium journey source exist. Roles, complete audit/settings views and broader accessibility/browser coverage remain open. |
+| M6 — corpus and evaluation | PARTIAL | 200 synthetic classification cases, a 24-case/13-label clustering fixture and a 12-case/11-family deterministic impact fixture have executable harnesses and committed reports. Actual LedgerGuard executions remain 0, and the impact runtime figures are estimates rather than measured savings. |
 | M7 — optional model boundary | NOT RUN | Deterministic mode is functional; provider adapter is not implemented. |
-| M8 — GitHub integration | PARTIAL | Composite Action uses durable ingestion and emits ingestion/run/report outputs. Live idempotent PR publication and stale-head reconciliation remain open. |
+| M8 — GitHub integration | PARTIAL | Composite Action uses durable ingestion, carries repository/base/head/run-scope/comparison-trust metadata through safe argument arrays and emits ingestion/run/report outputs. Authenticated comparison lookup, live idempotent PR publication and stale-head reconciliation remain open. |
 | M9 — hardening and packaging | PARTIAL | Docker/Compose, nonroot backend, CI, storage/archive/image bounds, recovery tests, browser E2E source and migration chain exist. Retention, backup/restore, telemetry export, load benchmarks and broader isolation evidence remain open. |
-| M10 — final audit and source delivery | PARTIAL | M1 and M3 plus the M2 safety foundation are implemented; complete master-spec acceptance remains open. |
+| M10 — final audit and source delivery | PARTIAL | M1 and M3 plus the M2 safety foundation and the history/impact portions of M4 are implemented; complete master-spec acceptance remains open. |
 
-## Checks executed for the historical-intelligence checkpoint
+## Checks executed for the explainable-impact checkpoint
 
-- `PYTHONPATH=src pytest -q`: **135 passed**.
-- `PYTHONPATH=src pytest --cov=failurelens --cov-branch --cov-fail-under=75 -q`: **135 passed, 88.03% total coverage**.
+- `PYTHONPATH=src pytest -q`: **148 passed**.
+- `PYTHONPATH=src pytest --cov=failurelens --cov-branch --cov-fail-under=75 -q`: **148 passed, 88.00% total branch-aware coverage**.
 - `python -m compileall -q src tests`: **passed**.
-- Historical coverage includes prior-only/future exclusion, project/repository/cohort isolation, retry collapse, absent-test handling, run-scope selection bias, skipped/cancelled visibility, cutoff-safe reviews, no-pass reassurance prevention, analysis-revision digest changes, timezone validation, API pagination and traceable record references. Existing clustering safety coverage remains in the full suite.
-- The frozen clustering fixture contains **24 cases / 13 evaluation-only incident labels** and reports pairwise precision **1.000**, pairwise recall **1.000**, **0** false merges, **0** false splits and adjusted Rand index **1.000**. It remains synthetic and agent-authored.
-- SQLite Alembic empty-database upgrade, downgrade to the previous head `d8f6c1a9b230`, and re-upgrade: **passed**.
-- Strict TypeScript source checking completed with the local compiler. Locked npm test/build could not run locally because package-registry DNS returned `EAI_AGAIN`. PostgreSQL migration, frontend, Chromium, evaluation and Docker results must be taken from the exact delivered GitHub workflow run.
+- Impact coverage includes focused direct mappings, renamed/deleted paths, bounded reverse-dependency traversal with cycles, immutable mapping versions, project isolation, mandatory critical-test preservation, untrusted/incomplete/truncated/unmapped full-suite fallbacks, base/head mismatch rejection, deterministic replay, append-only overrides, stale-revision rejection and artifact self-trust prevention.
+- The controlled impact fixture contains **12 synthetic cases / 11 scenario families** and reports defect-revealing-test recall **1.000**, mandatory-critical-test recall **1.000**, expected safety-status accuracy **1.000**, deterministic-repeat agreement **1.000**, **7** focused-subset cases and **5** full-suite fallback cases. It remains synthetic and agent-authored; runtime values are estimates, not measured savings.
+- The frozen clustering fixture remains **24 cases / 13 evaluation-only incident labels** with pairwise precision **1.000**, pairwise recall **1.000**, **0** false merges, **0** false splits and adjusted Rand index **1.000**.
+- SQLite Alembic empty-database upgrade, downgrade to the previous head `e4b7c2d9a510`, and re-upgrade: **passed**.
+- `bash -n integrations/github-action/run.sh`: **passed**.
+- Locked npm restore/test/build could not be completed locally because package-registry access stalled in the isolated environment. PostgreSQL migration, frontend unit/build, Chromium, evaluation and Docker results must be taken from the exact delivered GitHub workflow run rather than inferred from workflow source.
 
 ## M2 failure perspectives reviewed
 
@@ -74,3 +77,16 @@
 - **Auditability:** every rate includes its definition, numerator, denominator, interval/status and contributing run/execution references. Human reviews annotate but never rewrite outcomes.
 - **Reproducibility:** history policy, filters, cutoff, review IDs and observations feed a canonical digest stored in the analysis input/provenance; changed history creates a new revision.
 - **Usability:** the dashboard exposes rates, cohort filters, observation navigation, selection-bias warnings and explicit insufficient-data reasons rather than favorable default zeros.
+
+## M4 impact failure perspectives reviewed
+
+- **Functional correctness:** the selector uses explicit versioned mappings and changed paths rather than hidden keyword similarity; renamed/deleted paths and bounded reverse dependencies are first-class inputs.
+- **Missing evidence:** missing, incomplete, truncated, untrusted or unmapped change evidence produces `FULL_SUITE_REQUIRED` instead of a narrow recommendation.
+- **Dangerous reassurance:** recommendations are advisory only, never execute or skip tests, and always preserve mandatory smoke, security, transaction and explicitly critical tests.
+- **Trust boundary:** a changed-file artifact may declare trust, but effective trust is bound only by validated transport metadata; uploaded bytes cannot self-promote to `trusted_workflow`.
+- **Authorization/isolation:** snapshots, recommendations, tests, edges and overrides are project-scoped; cross-project IDs are rejected. Full project roles remain an M5 gap.
+- **Reproducibility:** recommendations persist base/head, changed-input digest, mapping snapshot/policy/engine versions, stable reason components, exclusions and a canonical recommendation digest.
+- **Review/audit:** include/exclude overrides are append-only, attributed, reasoned and timestamped; optimistic revision updates reject stale reviewers. Mandatory/critical exclusions are blocked.
+- **Usability:** the dashboard displays changed files, selected and excluded tests, safety reasons, mapping provenance, confidence, revision and override history rather than only a selected count.
+- **Evaluation truthfulness:** the committed impact benchmark reports recall and fallback behavior on synthetic fixtures; estimated durations are not presented as observed CI savings, and actual full-suite LedgerGuard backtesting remains open.
+- **Delivery truthfulness:** local backend, migration, shell and deterministic evaluation checks are separated from npm/browser/PostgreSQL/Docker workflow evidence until the exact candidate SHA is inspected remotely.

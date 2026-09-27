@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { api, type ClusterDetail, type ClusterSummary, type Ingestion, type RunInput, type TestHistory } from './api';
+import { api, type ClusterDetail, type ClusterSummary, type ImpactMappingSnapshot, type ImpactRecommendation, type Ingestion, type RunInput, type TestHistory } from './api';
 
 const ingestion: Ingestion = {
   id: 'ing-1',
@@ -50,6 +50,49 @@ const runInput: RunInput = {
   warnings: [],
   metadata_json: {},
   created_at: '2026-09-26T00:00:00Z'
+};
+
+
+const impactMapping: ImpactMappingSnapshot = {
+  id: 'mapping-1',
+  project_id: 'project-1',
+  version: 'mapping-v1',
+  policy_version: 'impact-policy-v1',
+  source_digest: 'e'.repeat(64),
+  trusted: true,
+  coverage_complete: true,
+  source_metadata: { trusted_revision: 'abcdef0' },
+  test_count: 3,
+  edge_count: 1,
+  created_at: '2026-09-27T00:00:00Z'
+};
+
+const impactRecommendation: ImpactRecommendation = {
+  id: 'impact-1',
+  project_id: 'project-1',
+  run_id: 'run-1',
+  changed_input_id: 'changes-1',
+  mapping_snapshot_id: 'mapping-1',
+  base_sha: '1'.repeat(40),
+  head_sha: '2'.repeat(40),
+  input_digest: 'f'.repeat(64),
+  changed_files_digest: 'a'.repeat(64),
+  engine_version: 'impact-engine-v1',
+  policy_version: 'impact-policy-v1',
+  status: 'FOCUSED_SUBSET',
+  current_revision: 0,
+  comparison_trusted: true,
+  mapping_complete: true,
+  full_suite_required: false,
+  summary: 'Selected 2 of 3 tests.',
+  changed_files: [{ status: 'modified', path: 'src/checkout.py' }],
+  safety_reasons: [],
+  metrics: { test_catalog_count: 3, effective_selected_test_count: 2 },
+  selected_tests: [],
+  excluded_tests: [],
+  overrides: [],
+  created_at: '2026-09-27T00:00:00Z',
+  updated_at: '2026-09-27T00:00:00Z'
 };
 
 const clusterSummary: ClusterSummary = {
@@ -133,6 +176,7 @@ describe('artifact upload client', () => {
       expectedInputs: 1,
       commitSha: 'abcdef0',
       runScope: 'full_suite',
+      comparisonTrust: 'trusted_workflow',
       environment: 'ci-linux',
       timezone: 'America/Halifax',
       workerCount: 4,
@@ -147,6 +191,7 @@ describe('artifact upload client', () => {
     expect(url).toContain('external_id=workflow-1');
     expect(url).toContain('expected_inputs=1');
     expect(url).toContain('run_scope=full_suite');
+    expect(url).toContain('comparison_trust=trusted_workflow');
     expect(url).toContain('environment=ci-linux');
     expect(url).toContain('timezone=America%2FHalifax');
     expect(url).toContain('worker_count=4');
@@ -260,5 +305,91 @@ describe('prior-only history client', () => {
       '/api/v1/tests/execution-1/history?browser=chromium&branch=main&environment=ci-linux&run_scope=full_suite&timezone=America%2FHalifax&worker_count=4&shard_count=2&limit=50&offset=10',
       { headers: { 'Content-Type': 'application/json' } }
     );
+  });
+});
+
+
+describe('change-impact client', () => {
+  it('registers an immutable mapping and creates an explainable recommendation', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(impactMapping), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' }
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(impactRecommendation), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' }
+      }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const createdMapping = await api.createImpactMapping('project-1', {
+      version: 'mapping-v1',
+      trusted: true,
+      coverage_complete: true,
+      tests: [{ test_key: 'checkout', test_identity: 'checkout' }],
+      edges: []
+    });
+    expect(createdMapping.source_digest).toBe('e'.repeat(64));
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/projects/project-1/impact-mappings');
+    expect(JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))).toMatchObject({
+      version: 'mapping-v1',
+      trusted: true,
+      coverage_complete: true
+    });
+
+    const recommendation = await api.createImpactRecommendation(
+      'project-1', 'run-1', 'mapping-1', 'changes-1', 'a'.repeat(40), 'b'.repeat(40)
+    );
+    expect(recommendation.status).toBe('FOCUSED_SUBSET');
+    expect(JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body))).toEqual({
+      run_id: 'run-1',
+      mapping_snapshot_id: 'mapping-1',
+      changed_input_id: 'changes-1',
+      base_sha: 'a'.repeat(40),
+      head_sha: 'b'.repeat(40)
+    });
+  });
+
+  it('serializes an attributed optimistic override', async () => {
+    const revised = {
+      ...impactRecommendation,
+      current_revision: 1,
+      overrides: [{
+        id: 'override-1',
+        actor: 'reviewer@example.test',
+        action: 'include',
+        test_key: 'profile',
+        reason: 'Reviewed release-risk coupling.',
+        revision_before: 0,
+        revision_after: 1,
+        created_at: '2026-09-27T00:01:00Z'
+      }]
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(revised), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await api.overrideImpactRecommendation('impact-1', {
+      actor: 'reviewer@example.test',
+      action: 'include',
+      testKey: 'profile',
+      reason: 'Reviewed release-risk coupling.',
+      expectedRevision: 0
+    });
+
+    expect(result.current_revision).toBe(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/v1/impact-recommendations/impact-1/overrides');
+    expect(JSON.parse(String(init.body))).toEqual({
+      actor: 'reviewer@example.test',
+      action: 'include',
+      test_key: 'profile',
+      reason: 'Reviewed release-risk coupling.',
+      expected_revision: 0
+    });
   });
 });

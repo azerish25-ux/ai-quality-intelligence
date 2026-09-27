@@ -87,6 +87,49 @@ The selected execution defines the exact logical test identity and maximum cutof
 
 The response contains explicit first/final outcome counts, pass/fail and retry-recovery numerators/denominators, 95% Wilson intervals, sample-size status, browser/branch/environment/scope/worker/shard/time-bucket breakdowns, sequences, recurrence intervals, qualifying prior review events, safety reasons, a deterministic history digest and exact contributing run/execution IDs. Runs where the test was absent are reported separately and are not counted as passes. See `docs/history.md` for definitions and known-flake safety policy.
 
+## Explainable change impact
+
+Impact analysis is deterministic and advisory. It never executes or skips tests. A project first registers an immutable mapping snapshot, then requests a recommendation for a completed run containing changed-file evidence.
+
+- `POST /api/v1/projects/{project_id}/impact-mappings` creates a versioned mapping snapshot with tests and typed edges.
+- `GET /api/v1/projects/{project_id}/impact-mappings` lists snapshots newest first.
+- `POST /api/v1/projects/{project_id}/impact-recommendations` validates the run, changed input, mapping snapshot and base/head comparison, then persists a deterministic recommendation.
+- `GET /api/v1/projects/{project_id}/impact-recommendations` lists project recommendations.
+- `GET /api/v1/impact-recommendations/{recommendation_id}` returns changed files, selected/excluded tests, reasons, confidence, safety state, provenance and override audit.
+- `POST /api/v1/impact-recommendations/{recommendation_id}/overrides` appends an attributed include/exclude decision using `expected_revision` optimistic concurrency.
+
+Mapping edges use explicit source kinds such as `file_to_test`, `coverage`, `api_ownership`, `ownership`, `historical_failure`, `dependency` and `mandatory`. Recommendations support renamed/deleted paths and bounded reverse-dependency traversal. Each selected item records score components, mapping edge IDs and human-readable reasons; excluded tests remain visible with exclusion reasons.
+
+The current recommendation states are `FOCUSED_SUBSET` and `FULL_SUITE_REQUIRED`. The policy conservatively returns `FULL_SUITE_REQUIRED` for self-reported/untrusted comparisons, incomplete or truncated change lists, missing or unmapped paths, stale/mismatched base/head values and critical shared/auth/authorization/ledger/migration/dependency/CI/test-infrastructure changes. Mandatory critical tests are always included and cannot be excluded by an override.
+
+A changed-file payload's own `trust` field is never authoritative. Raw ingestion accepts a separate `comparison_trust` transport value, defaulting to `self_reported`; the service stores the payload label as `declared_trust` and binds the effective trust from transport metadata. The composite Action validates and passes this field without evaluating artifact-controlled shell text.
+
+Example request:
+
+```json
+{
+  "run_id": "<run-id>",
+  "mapping_snapshot_id": "<snapshot-id>",
+  "changed_input_id": "<optional-run-input-id>",
+  "base_sha": "<validated-base-sha>",
+  "head_sha": "<validated-head-sha>"
+}
+```
+
+Example override:
+
+```json
+{
+  "actor": "reviewer@example.test",
+  "action": "include",
+  "test_key": "profile-e2e",
+  "reason": "Profile storage is shared with the changed account module.",
+  "expected_revision": 1
+}
+```
+
+See `docs/impact.md` for the policy, ranking and evaluation boundaries.
+
 ## Manifest `2.0` ZIP contract
 
 A root `manifest.json` declares every artifact:
@@ -130,6 +173,12 @@ Schema `1.0` bundles with a single `report` path remain readable. A ZIP without 
 - `POST /api/v1/projects`
 - `GET /api/v1/projects`
 - `GET /api/v1/projects/{project_id}/runs`
+- `POST /api/v1/projects/{project_id}/impact-mappings`
+- `GET /api/v1/projects/{project_id}/impact-mappings`
+- `POST /api/v1/projects/{project_id}/impact-recommendations`
+- `GET /api/v1/projects/{project_id}/impact-recommendations`
+- `GET /api/v1/impact-recommendations/{recommendation_id}`
+- `POST /api/v1/impact-recommendations/{recommendation_id}/overrides`
 - `GET /api/v1/runs/{run_id}`
 - `GET /api/v1/runs/{run_id}/inputs`
 - `GET /api/v1/projects/{project_id}/clusters`
@@ -156,6 +205,7 @@ failurelens ingest report.xml --project checkout --external-id gha-901 --run-sco
 failurelens ingestion-status --ingestion <ingestion-id>
 failurelens ingest failurelens-bundle.zip --project checkout --external-id gha-902 --expected-inputs 3 --process
 failurelens report --run <run-id> --format markdown
+failurelens impact --project checkout --run <run-id> --mapping-snapshot <snapshot-id>
 ```
 
 Without `--process`, `ingest` queues work for `failurelens-worker`. `--process` claims one job using the same worker implementation and exits nonzero when no run is published. The complete differentiated quality-gate/operational exit-code contract remains future work.

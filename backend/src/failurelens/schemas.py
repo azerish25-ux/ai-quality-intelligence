@@ -43,6 +43,9 @@ class RunMetadata(BaseModel):
     branch: str | None = Field(default=None, max_length=240)
     framework: str = Field(default="auto", min_length=1, max_length=64)
     run_scope: Literal["full_suite", "impact_selected", "unknown"] = "unknown"
+    comparison_trust: Literal[
+        "self_reported", "authenticated_lookup", "trusted_workflow"
+    ] = "self_reported"
     environment: str | None = Field(default=None, max_length=160)
     timezone: str | None = Field(default=None, max_length=80)
     worker_count: int | None = Field(default=None, ge=1, le=100_000)
@@ -231,6 +234,133 @@ class TestHistoryRead(BaseModel):
     safety: dict[str, Any]
     pagination: dict[str, int]
     observations: list[HistoryObservationRead]
+
+
+class ImpactTestCreate(BaseModel):
+    test_key: str = Field(min_length=1, max_length=240)
+    test_identity: str = Field(min_length=1, max_length=512)
+    source_path: str | None = Field(default=None, max_length=1024)
+    criticality: Literal["normal", "high", "critical"] = "normal"
+    mandatory: bool = False
+    tags: list[str] = Field(default_factory=list, max_length=40)
+    estimated_duration_ms: float | None = Field(default=None, ge=0)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ImpactMappingEdgeCreate(BaseModel):
+    source_path: str = Field(min_length=1, max_length=1024)
+    target_type: Literal["test", "file"]
+    target_value: str = Field(min_length=1, max_length=1024)
+    kind: Literal[
+        "file_to_test",
+        "coverage",
+        "api_ownership",
+        "ownership",
+        "historical_failure",
+        "dependency",
+    ]
+    confidence: float = Field(ge=0, le=1)
+    mapping_source: str = Field(min_length=1, max_length=120)
+    mapping_version: str = Field(min_length=1, max_length=80)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ImpactMappingSnapshotCreate(BaseModel):
+    version: str = Field(min_length=1, max_length=80)
+    policy_version: str = Field(default="impact-policy-v1", min_length=1, max_length=80)
+    trusted: bool = False
+    coverage_complete: bool = False
+    source_metadata: dict[str, Any] = Field(default_factory=dict)
+    tests: list[ImpactTestCreate] = Field(min_length=1, max_length=20_000)
+    edges: list[ImpactMappingEdgeCreate] = Field(default_factory=list, max_length=200_000)
+
+
+class ImpactMappingSnapshotRead(BaseModel):
+    id: str
+    project_id: str
+    version: str
+    policy_version: str
+    source_digest: str
+    trusted: bool
+    coverage_complete: bool
+    source_metadata: dict[str, Any]
+    test_count: int
+    edge_count: int
+    created_at: datetime
+
+
+class ImpactRecommendationCreate(BaseModel):
+    run_id: str = Field(min_length=1, max_length=36)
+    mapping_snapshot_id: str = Field(min_length=1, max_length=36)
+    changed_input_id: str | None = Field(default=None, min_length=1, max_length=36)
+    base_sha: str | None = Field(default=None, pattern=r"^[0-9a-fA-F]{7,64}$")
+    head_sha: str | None = Field(default=None, pattern=r"^[0-9a-fA-F]{7,64}$")
+
+
+class ImpactOverrideCreate(BaseModel):
+    actor: str = Field(min_length=1, max_length=240)
+    action: Literal["include", "exclude"]
+    test_key: str = Field(min_length=1, max_length=240)
+    reason: str = Field(min_length=3, max_length=5000)
+    expected_revision: int = Field(ge=0)
+
+
+class ImpactOverrideRead(BaseModel):
+    id: str
+    actor: str
+    action: str
+    test_key: str
+    reason: str
+    revision_before: int
+    revision_after: int
+    created_at: datetime
+
+
+class ImpactRecommendationItemRead(BaseModel):
+    id: str
+    test_key: str
+    test_identity: str
+    source_path: str | None
+    criticality: str
+    mandatory: bool
+    base_selected: bool
+    effective_selected: bool
+    selection_source: str
+    rank: int | None
+    score: float
+    confidence: str
+    reason_codes: list[str]
+    reasons: list[dict[str, Any]]
+    mapping_edge_ids: list[str]
+    exclusion_reason: str | None
+
+
+class ImpactRecommendationRead(BaseModel):
+    id: str
+    project_id: str
+    run_id: str
+    changed_input_id: str
+    mapping_snapshot_id: str
+    base_sha: str | None
+    head_sha: str | None
+    input_digest: str
+    changed_files_digest: str
+    engine_version: str
+    policy_version: str
+    status: str
+    current_revision: int
+    comparison_trusted: bool
+    mapping_complete: bool
+    full_suite_required: bool
+    summary: str
+    changed_files: list[dict[str, Any]]
+    safety_reasons: list[str]
+    metrics: dict[str, Any]
+    selected_tests: list[ImpactRecommendationItemRead]
+    excluded_tests: list[ImpactRecommendationItemRead]
+    overrides: list[ImpactOverrideRead]
+    created_at: datetime
+    updated_at: datetime
 
 
 class Confidence(BaseModel):

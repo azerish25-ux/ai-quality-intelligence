@@ -18,6 +18,16 @@ from .db import get_session, initialize_database
 from .demo import seed_demo
 from .evidence_validation import persisted_analysis_is_publication_validated
 from .history import build_test_history
+from .impact import (
+    apply_impact_override,
+    create_impact_recommendation,
+    create_mapping_snapshot,
+    get_impact_recommendation,
+    impact_recommendation_to_schema,
+    list_mapping_snapshots,
+    list_project_recommendations,
+    mapping_snapshot_to_schema,
+)
 from .models import (
     Analysis,
     Category,
@@ -29,6 +39,7 @@ from .models import (
     FailureCluster,
     Ingestion,
     IngestionState,
+    ImpactRecommendation,
     Project,
     Run,
     RunInput,
@@ -46,6 +57,11 @@ from .schemas import (
     EvidenceRead,
     IngestionRead,
     IngestionRequest,
+    ImpactMappingSnapshotCreate,
+    ImpactMappingSnapshotRead,
+    ImpactOverrideCreate,
+    ImpactRecommendationCreate,
+    ImpactRecommendationRead,
     ProjectCreate,
     ProjectRead,
     ReviewCreate,
@@ -75,7 +91,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="FailureLens API",
-    version="0.5.0",
+    version="0.6.0",
     description="Evidence-grounded automated test failure triage",
     lifespan=lifespan,
 )
@@ -254,6 +270,10 @@ def overview(session: Session = Depends(get_session)) -> dict:
             )
         )
         or 0,
+        "impact_recommendations": session.scalar(
+            select(func.count(ImpactRecommendation.id))
+        )
+        or 0,
         "analyses": len(analyses),
         "categories": {
             category.value: publication_categories.get(category.value, 0)
@@ -317,6 +337,10 @@ async def ingestions_create(
     run_scope: str = Query(
         default="unknown", pattern=r"^(full_suite|impact_selected|unknown)$"
     ),
+    comparison_trust: str = Query(
+        default="self_reported",
+        pattern=r"^(self_reported|authenticated_lookup|trusted_workflow)$",
+    ),
     environment: str | None = Query(default=None, max_length=160),
     timezone: str | None = Query(default=None, max_length=80),
     worker_count: int | None = Query(default=None, ge=1, le=100_000),
@@ -353,6 +377,7 @@ async def ingestions_create(
             branch=branch,
             framework=source_format,
             run_scope=run_scope,
+            comparison_trust=comparison_trust,
             environment=environment,
             timezone=timezone,
             worker_count=worker_count,
@@ -499,6 +524,131 @@ def run_inputs_list(run_id: str, session: Session = Depends(get_session)) -> lis
             .order_by(RunInput.required.desc(), RunInput.input_id.asc())
         ).all()
     )
+
+
+@app.post(
+    "/api/v1/projects/{project_id}/impact-mappings",
+    response_model=ImpactMappingSnapshotRead,
+    status_code=201,
+    dependencies=[Depends(authorized)],
+)
+def impact_mappings_create(
+    project_id: str,
+    request: ImpactMappingSnapshotCreate,
+    session: Session = Depends(get_session),
+) -> ImpactMappingSnapshotRead:
+    project = session.get(Project, project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    try:
+        snapshot = create_mapping_snapshot(session, project, request)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return mapping_snapshot_to_schema(snapshot)
+
+
+@app.get(
+    "/api/v1/projects/{project_id}/impact-mappings",
+    response_model=list[ImpactMappingSnapshotRead],
+)
+def impact_mappings_list(
+    project_id: str,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    session: Session = Depends(get_session),
+) -> list[ImpactMappingSnapshotRead]:
+    if session.get(Project, project_id) is None:
+        raise HTTPException(404, "project not found")
+    return [
+        mapping_snapshot_to_schema(snapshot)
+        for snapshot in list_mapping_snapshots(
+            session, project_id, limit=limit, offset=offset
+        )
+    ]
+
+
+@app.post(
+    "/api/v1/projects/{project_id}/impact-recommendations",
+    response_model=ImpactRecommendationRead,
+    status_code=201,
+    dependencies=[Depends(authorized)],
+)
+def impact_recommendations_create(
+    project_id: str,
+    request: ImpactRecommendationCreate,
+    session: Session = Depends(get_session),
+) -> ImpactRecommendationRead:
+    project = session.get(Project, project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    try:
+        recommendation = create_impact_recommendation(session, project, request)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return impact_recommendation_to_schema(recommendation)
+
+
+@app.get(
+    "/api/v1/projects/{project_id}/impact-recommendations",
+    response_model=list[ImpactRecommendationRead],
+)
+def impact_recommendations_list(
+    project_id: str,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    session: Session = Depends(get_session),
+) -> list[ImpactRecommendationRead]:
+    if session.get(Project, project_id) is None:
+        raise HTTPException(404, "project not found")
+    return [
+        impact_recommendation_to_schema(recommendation)
+        for recommendation in list_project_recommendations(
+            session, project_id, limit=limit, offset=offset
+        )
+    ]
+
+
+@app.get(
+    "/api/v1/impact-recommendations/{recommendation_id}",
+    response_model=ImpactRecommendationRead,
+)
+def impact_recommendations_get(
+    recommendation_id: str,
+    session: Session = Depends(get_session),
+) -> ImpactRecommendationRead:
+    recommendation = get_impact_recommendation(session, recommendation_id)
+    if recommendation is None:
+        raise HTTPException(404, "impact recommendation not found")
+    return impact_recommendation_to_schema(recommendation)
+
+
+@app.post(
+    "/api/v1/impact-recommendations/{recommendation_id}/overrides",
+    response_model=ImpactRecommendationRead,
+    status_code=201,
+    dependencies=[Depends(authorized)],
+)
+def impact_overrides_create(
+    recommendation_id: str,
+    request: ImpactOverrideCreate,
+    session: Session = Depends(get_session),
+) -> ImpactRecommendationRead:
+    recommendation = get_impact_recommendation(session, recommendation_id)
+    if recommendation is None:
+        raise HTTPException(404, "impact recommendation not found")
+    try:
+        refreshed = apply_impact_override(session, recommendation, request)
+    except ValueError as exc:
+        detail = str(exc)
+        conflict_markers = (
+            "revision conflict",
+            "cannot be excluded",
+            "cannot be excluded while",
+            "would not change",
+        )
+        status_code = 409 if any(marker in detail for marker in conflict_markers) else 422
+        raise HTTPException(status_code, detail) from exc
+    return impact_recommendation_to_schema(refreshed)
 
 
 @app.get(

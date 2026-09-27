@@ -341,6 +341,7 @@ def test_github_metadata_and_changed_files_preserve_trust_and_completeness() -> 
         "base_sha": "abcdef0",
         "head_sha": "1234567",
         "complete": False,
+        "trust": "authenticated_lookup",
         "pagination": {"page": 1, "has_more": True},
         "files": [
             "src/a.py",
@@ -356,6 +357,9 @@ def test_github_metadata_and_changed_files_preserve_trust_and_completeness() -> 
     parsed_changes = parse_artifact(json.dumps(changes).encode(), "changes.json", get_settings())
     change_input = parsed_changes.inputs[0]
     assert change_input.metadata["file_count"] == 2
+    assert change_input.metadata["declared_trust"] == "authenticated_lookup"
+    assert change_input.metadata["trust"] == "self_reported"
+    assert change_input.metadata["trust_source"] == "artifact_default"
     assert change_input.metadata["files"][1]["old_path"] == "src/old.py"
     assert change_input.warnings == ("changed_file_list_incomplete",)
 
@@ -375,6 +379,11 @@ def test_github_metadata_and_changed_files_reject_invalid_values() -> None:
         {"files": [{"status": "unknown", "path": "x"}], "complete": True},
         {"files": [{"status": "modified"}], "complete": True},
         {"files": [{"status": "modified", "path": "../escape"}], "complete": True},
+        {
+            "files": [{"status": "modified", "path": "src/a.py"}],
+            "complete": True,
+            "trust": "made_up_trust",
+        },
     ]:
         with pytest.raises(IngestionError):
             parse_artifact(

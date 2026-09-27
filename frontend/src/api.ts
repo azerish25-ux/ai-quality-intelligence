@@ -207,8 +207,121 @@ export interface Overview {
   active_ingestions: number;
   failures: number;
   clusters: number;
+  impact_recommendations: number;
   analyses: number;
   categories: Record<Category, number>;
+}
+
+export interface ImpactTestInput {
+  test_key: string;
+  test_identity: string;
+  source_path?: string | null;
+  criticality?: 'normal' | 'high' | 'critical';
+  mandatory?: boolean;
+  tags?: string[];
+  estimated_duration_ms?: number | null;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ImpactMappingEdgeInput {
+  source_path: string;
+  target_type: 'test' | 'file';
+  target_value: string;
+  kind: 'file_to_test' | 'coverage' | 'api_ownership' | 'ownership' | 'historical_failure' | 'dependency';
+  confidence: number;
+  mapping_source: string;
+  mapping_version: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ImpactMappingInput {
+  version: string;
+  policy_version?: string;
+  trusted: boolean;
+  coverage_complete: boolean;
+  source_metadata?: Record<string, unknown>;
+  tests: ImpactTestInput[];
+  edges: ImpactMappingEdgeInput[];
+}
+
+export interface ImpactMappingSnapshot {
+  id: string;
+  project_id: string;
+  version: string;
+  policy_version: string;
+  source_digest: string;
+  trusted: boolean;
+  coverage_complete: boolean;
+  source_metadata: Record<string, unknown>;
+  test_count: number;
+  edge_count: number;
+  created_at: string;
+}
+
+export interface ImpactRecommendationItem {
+  id: string;
+  test_key: string;
+  test_identity: string;
+  source_path: string | null;
+  criticality: string;
+  mandatory: boolean;
+  base_selected: boolean;
+  effective_selected: boolean;
+  selection_source: string;
+  rank: number | null;
+  score: number;
+  confidence: string;
+  reason_codes: string[];
+  reasons: Array<Record<string, unknown>>;
+  mapping_edge_ids: string[];
+  exclusion_reason: string | null;
+}
+
+export interface ImpactOverride {
+  id: string;
+  actor: string;
+  action: string;
+  test_key: string;
+  reason: string;
+  revision_before: number;
+  revision_after: number;
+  created_at: string;
+}
+
+export interface ImpactRecommendation {
+  id: string;
+  project_id: string;
+  run_id: string;
+  changed_input_id: string;
+  mapping_snapshot_id: string;
+  base_sha: string | null;
+  head_sha: string | null;
+  input_digest: string;
+  changed_files_digest: string;
+  engine_version: string;
+  policy_version: string;
+  status: string;
+  current_revision: number;
+  comparison_trusted: boolean;
+  mapping_complete: boolean;
+  full_suite_required: boolean;
+  summary: string;
+  changed_files: Array<Record<string, unknown>>;
+  safety_reasons: string[];
+  metrics: Record<string, number | string | null>;
+  selected_tests: ImpactRecommendationItem[];
+  excluded_tests: ImpactRecommendationItem[];
+  overrides: ImpactOverride[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ImpactOverrideRequest {
+  actor: string;
+  action: 'include' | 'exclude';
+  testKey: string;
+  reason: string;
+  expectedRevision: number;
 }
 
 export interface ClusterSummary {
@@ -293,6 +406,7 @@ export interface UploadMetadata {
   baseSha?: string;
   branch?: string;
   runScope?: 'full_suite' | 'impact_selected' | 'unknown';
+  comparisonTrust?: 'self_reported' | 'authenticated_lookup' | 'trusted_workflow';
   environment?: string;
   timezone?: string;
   workerCount?: number;
@@ -330,6 +444,7 @@ const upload = async (
   if (metadata.baseSha) query.set('base_sha', metadata.baseSha);
   if (metadata.branch) query.set('branch', metadata.branch);
   if (metadata.runScope) query.set('run_scope', metadata.runScope);
+  if (metadata.comparisonTrust) query.set('comparison_trust', metadata.comparisonTrust);
   if (metadata.environment) query.set('environment', metadata.environment);
   if (metadata.timezone) query.set('timezone', metadata.timezone);
   if (metadata.workerCount !== undefined) query.set('worker_count', String(metadata.workerCount));
@@ -389,6 +504,46 @@ export const api = {
     }
   ),
   runInputs: (runId: string) => json<RunInput[]>(`/api/v1/runs/${runId}/inputs`),
+  impactMappings: (projectId: string) =>
+    json<ImpactMappingSnapshot[]>(`/api/v1/projects/${projectId}/impact-mappings`),
+  createImpactMapping: (projectId: string, mapping: ImpactMappingInput) =>
+    json<ImpactMappingSnapshot>(`/api/v1/projects/${projectId}/impact-mappings`, {
+      method: 'POST',
+      body: JSON.stringify(mapping)
+    }),
+  impactRecommendations: (projectId: string) =>
+    json<ImpactRecommendation[]>(`/api/v1/projects/${projectId}/impact-recommendations`),
+  impactRecommendation: (recommendationId: string) =>
+    json<ImpactRecommendation>(`/api/v1/impact-recommendations/${recommendationId}`),
+  createImpactRecommendation: (
+    projectId: string,
+    runId: string,
+    mappingSnapshotId: string,
+    changedInputId?: string,
+    baseSha?: string,
+    headSha?: string
+  ) =>
+    json<ImpactRecommendation>(`/api/v1/projects/${projectId}/impact-recommendations`, {
+      method: 'POST',
+      body: JSON.stringify({
+        run_id: runId,
+        mapping_snapshot_id: mappingSnapshotId,
+        changed_input_id: changedInputId ?? null,
+        base_sha: baseSha ?? null,
+        head_sha: headSha ?? null
+      })
+    }),
+  overrideImpactRecommendation: (recommendationId: string, override: ImpactOverrideRequest) =>
+    json<ImpactRecommendation>(`/api/v1/impact-recommendations/${recommendationId}/overrides`, {
+      method: 'POST',
+      body: JSON.stringify({
+        actor: override.actor,
+        action: override.action,
+        test_key: override.testKey,
+        reason: override.reason,
+        expected_revision: override.expectedRevision
+      })
+    }),
   analyze: (failureId: string) => json<Analysis>(`/api/v1/failures/${failureId}/analyses`, { method: 'POST' }),
   seedDemo: () => json<{ project_id: string; run_id: string }>('/api/v1/demo/seed', { method: 'POST' }),
   evaluation: () => json<{ status: string; metrics?: Record<string, unknown>; message?: string }>('/api/v1/evaluations/latest')

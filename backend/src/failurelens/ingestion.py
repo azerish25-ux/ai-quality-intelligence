@@ -963,6 +963,12 @@ def _github_metadata_adapter(content: bytes, _: str, __: Settings) -> AdapterRes
 
 def _changed_files_adapter(content: bytes, _: str, __: Settings) -> AdapterResult:
     data = _json_object(content, "changed-file list")
+    trust = str(data.get("trust") or "self_reported").casefold()
+    if trust not in {"self_reported", "authenticated_lookup", "trusted_workflow"}:
+        raise IngestionError(
+            "malformed_report",
+            "Changed-file input trust must be self_reported, authenticated_lookup, or trusted_workflow",
+        )
     files = data.get("files")
     if not isinstance(files, list):
         raise IngestionError("unsupported_format", "Changed-file input requires a files array")
@@ -1009,6 +1015,12 @@ def _changed_files_adapter(content: bytes, _: str, __: Settings) -> AdapterResul
             "base_sha": data.get("base_sha"),
             "head_sha": data.get("head_sha"),
             "complete": complete,
+            # Artifact bytes are untrusted data.  Preserve the producer's claim for
+            # audit only; the effective trust level is bound later from authenticated
+            # ingestion metadata at the service boundary.
+            "declared_trust": trust,
+            "trust": "self_reported",
+            "trust_source": "artifact_default",
             "pagination": _safe_json_value(data.get("pagination", {})),
             "files": normalized,
             "file_count": len(normalized),

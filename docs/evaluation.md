@@ -59,3 +59,20 @@ The committed controlled result under `evaluation/reports/latest/clustering-*` i
 - Predicted clusters: 13 for 13 labeled incidents.
 
 These values demonstrate the intended regression boundaries on this compact generator-owned fixture. They do not estimate production incident prevalence, screenshot-similarity quality, causal-edge accuracy or performance on independently labeled external projects.
+
+## Explainable change-impact fixture
+
+`evaluation/generate_impact_corpus.py` produces 12 controlled synthetic cases across 11 scenario families. It exercises direct file mappings, coverage mappings, API ownership, historical relationships, renamed paths, bounded reverse dependencies and safety fallbacks for critical, unmapped, untrusted, incomplete and empty change sets. Runtime selection receives only the mapping snapshot and change evidence; expected tests and expected status remain evaluation-only labels.
+
+The committed result under `evaluation/reports/latest/impact-*` is:
+
+- Defect-revealing-test recall: 1.000.
+- Mandatory-critical-test recall: 1.000.
+- Expected focused/full-suite status accuracy: 1.000.
+- Deterministic-repeat agreement: 1.000.
+- Focused-subset cases: 7.
+- Full-suite fallback cases: 5.
+- Average selected fraction within focused cases: 0.628571.
+- Missed revealing or mandatory tests: 0.
+
+This fixture verifies deterministic policy boundaries, not production savings. Its labels, mappings and scenario families are generator-owned and agent-reviewed. The duration values are estimates used only to expose selection-size arithmetic; they are not observed CI runtimes. Actual LedgerGuard/ForgeQA full-suite backtesting, measured runtime change, mapping drift and counterfactual missed-defect analysis remain open.

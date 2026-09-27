@@ -76,6 +76,12 @@ class Project(Base):
     clusters: Mapped[list[FailureCluster]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
+    impact_mapping_snapshots: Mapped[list[ImpactMappingSnapshot]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    impact_recommendations: Mapped[list[ImpactRecommendation]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
 
 
 class Run(Base):
@@ -123,6 +129,9 @@ class Run(Base):
         foreign_keys="Ingestion.run_id",
     )
     inputs: Mapped[list[RunInput]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
+    )
+    impact_recommendations: Mapped[list[ImpactRecommendation]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
     )
 
@@ -247,6 +256,9 @@ class RunInput(Base):
 
     run: Mapped[Run] = relationship(back_populates="inputs")
     evidence: Mapped[list[Evidence]] = relationship(back_populates="run_input")
+    impact_recommendations: Mapped[list[ImpactRecommendation]] = relationship(
+        back_populates="changed_input"
+    )
 
 
 class TestExecution(Base):
@@ -631,3 +643,225 @@ class ReviewEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     analysis: Mapped[Analysis] = relationship(back_populates="reviews")
+
+
+class ImpactMappingSnapshot(Base):
+    __tablename__ = "impact_mapping_snapshots"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id",
+            "version",
+            name="uq_impact_mapping_snapshot_identity",
+        ),
+        Index(
+            "ix_impact_mapping_snapshots_project_created",
+            "project_id",
+            "created_at",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    version: Mapped[str] = mapped_column(String(80))
+    policy_version: Mapped[str] = mapped_column(String(80))
+    source_digest: Mapped[str] = mapped_column(String(64))
+    trusted: Mapped[bool] = mapped_column(Boolean, default=False)
+    coverage_complete: Mapped[bool] = mapped_column(Boolean, default=False)
+    source_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    project: Mapped[Project] = relationship(back_populates="impact_mapping_snapshots")
+    tests: Mapped[list[ImpactTestDefinition]] = relationship(
+        back_populates="snapshot", cascade="all, delete-orphan"
+    )
+    edges: Mapped[list[ImpactMappingEdge]] = relationship(
+        back_populates="snapshot", cascade="all, delete-orphan"
+    )
+    recommendations: Mapped[list[ImpactRecommendation]] = relationship(
+        back_populates="mapping_snapshot"
+    )
+
+
+class ImpactTestDefinition(Base):
+    __tablename__ = "impact_test_definitions"
+    __table_args__ = (
+        UniqueConstraint(
+            "snapshot_id", "test_key", name="uq_impact_test_snapshot_key"
+        ),
+        Index("ix_impact_tests_snapshot_identity", "snapshot_id", "test_identity"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    snapshot_id: Mapped[str] = mapped_column(
+        ForeignKey("impact_mapping_snapshots.id", ondelete="CASCADE"), index=True
+    )
+    test_key: Mapped[str] = mapped_column(String(240))
+    test_identity: Mapped[str] = mapped_column(String(512))
+    source_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    criticality: Mapped[str] = mapped_column(String(40), default="normal")
+    mandatory: Mapped[bool] = mapped_column(Boolean, default=False)
+    tags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    estimated_duration_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    snapshot: Mapped[ImpactMappingSnapshot] = relationship(back_populates="tests")
+
+
+class ImpactMappingEdge(Base):
+    __tablename__ = "impact_mapping_edges"
+    __table_args__ = (
+        Index("ix_impact_edges_snapshot_source", "snapshot_id", "source_path"),
+        Index(
+            "ix_impact_edges_snapshot_target",
+            "snapshot_id",
+            "target_type",
+            "target_value",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    snapshot_id: Mapped[str] = mapped_column(
+        ForeignKey("impact_mapping_snapshots.id", ondelete="CASCADE"), index=True
+    )
+    source_path: Mapped[str] = mapped_column(String(1024))
+    target_type: Mapped[str] = mapped_column(String(20))
+    target_value: Mapped[str] = mapped_column(String(1024))
+    kind: Mapped[str] = mapped_column(String(80))
+    confidence: Mapped[float] = mapped_column(Float)
+    mapping_source: Mapped[str] = mapped_column(String(120))
+    mapping_version: Mapped[str] = mapped_column(String(80))
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    snapshot: Mapped[ImpactMappingSnapshot] = relationship(back_populates="edges")
+
+
+class ImpactRecommendation(Base):
+    __tablename__ = "impact_recommendations"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id", "input_digest", name="uq_impact_recommendation_input"
+        ),
+        Index(
+            "ix_impact_recommendations_project_created",
+            "project_id",
+            "created_at",
+        ),
+        Index("ix_impact_recommendations_run", "run_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), index=True
+    )
+    changed_input_id: Mapped[str] = mapped_column(
+        ForeignKey("run_inputs.id", ondelete="RESTRICT"), index=True
+    )
+    mapping_snapshot_id: Mapped[str] = mapped_column(
+        ForeignKey("impact_mapping_snapshots.id", ondelete="RESTRICT"), index=True
+    )
+    base_sha: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    head_sha: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    input_digest: Mapped[str] = mapped_column(String(64))
+    changed_files_digest: Mapped[str] = mapped_column(String(64))
+    engine_version: Mapped[str] = mapped_column(String(80))
+    policy_version: Mapped[str] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(40))
+    current_revision: Mapped[int] = mapped_column(Integer, default=0)
+    comparison_trusted: Mapped[bool] = mapped_column(Boolean, default=False)
+    mapping_complete: Mapped[bool] = mapped_column(Boolean, default=False)
+    full_suite_required: Mapped[bool] = mapped_column(Boolean, default=True)
+    summary: Mapped[str] = mapped_column(Text)
+    changed_files: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    safety_reasons: Mapped[list[str]] = mapped_column(JSON, default=list)
+    metrics: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+    project: Mapped[Project] = relationship(back_populates="impact_recommendations")
+    run: Mapped[Run] = relationship(back_populates="impact_recommendations")
+    changed_input: Mapped[RunInput] = relationship(
+        back_populates="impact_recommendations"
+    )
+    mapping_snapshot: Mapped[ImpactMappingSnapshot] = relationship(
+        back_populates="recommendations"
+    )
+    items: Mapped[list[ImpactRecommendationItem]] = relationship(
+        back_populates="recommendation", cascade="all, delete-orphan"
+    )
+    overrides: Mapped[list[ImpactOverride]] = relationship(
+        back_populates="recommendation", cascade="all, delete-orphan"
+    )
+
+
+class ImpactRecommendationItem(Base):
+    __tablename__ = "impact_recommendation_items"
+    __table_args__ = (
+        UniqueConstraint(
+            "recommendation_id",
+            "test_key",
+            name="uq_impact_recommendation_test",
+        ),
+        Index(
+            "ix_impact_recommendation_items_selected",
+            "recommendation_id",
+            "base_selected",
+            "rank",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    recommendation_id: Mapped[str] = mapped_column(
+        ForeignKey("impact_recommendations.id", ondelete="CASCADE"), index=True
+    )
+    test_key: Mapped[str] = mapped_column(String(240))
+    test_identity: Mapped[str] = mapped_column(String(512))
+    source_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    criticality: Mapped[str] = mapped_column(String(40))
+    mandatory: Mapped[bool] = mapped_column(Boolean, default=False)
+    base_selected: Mapped[bool] = mapped_column(Boolean)
+    rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    score: Mapped[float] = mapped_column(Float, default=0.0)
+    confidence: Mapped[str] = mapped_column(String(40), default="none")
+    reason_codes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    reasons: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    mapping_edge_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    exclusion_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    recommendation: Mapped[ImpactRecommendation] = relationship(back_populates="items")
+
+
+class ImpactOverride(Base):
+    __tablename__ = "impact_overrides"
+    __table_args__ = (
+        Index(
+            "ix_impact_overrides_recommendation_revision",
+            "recommendation_id",
+            "revision_after",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    recommendation_id: Mapped[str] = mapped_column(
+        ForeignKey("impact_recommendations.id", ondelete="CASCADE"), index=True
+    )
+    actor: Mapped[str] = mapped_column(String(240))
+    action: Mapped[str] = mapped_column(String(20))
+    test_key: Mapped[str] = mapped_column(String(240))
+    reason: Mapped[str] = mapped_column(Text)
+    revision_before: Mapped[int] = mapped_column(Integer)
+    revision_after: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    recommendation: Mapped[ImpactRecommendation] = relationship(
+        back_populates="overrides"
+    )

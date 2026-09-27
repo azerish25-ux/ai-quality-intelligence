@@ -13,6 +13,30 @@ inputs:
   external-id:
     description: Trusted workflow/run identifier
     required: true
+  repository:
+    description: Trusted repository identity for the analyzed comparison
+    required: false
+    default: ""
+  base-sha:
+    description: Trusted base revision for changed-file comparison
+    required: false
+    default: ""
+  head-sha:
+    description: Exact tested head revision
+    required: false
+    default: ""
+  branch:
+    description: Trusted branch name
+    required: false
+    default: ""
+  run-scope:
+    description: Whether this artifact represents a full suite or an impact-selected run
+    required: false
+    default: unknown
+  comparison-trust:
+    description: Provenance of changed-file metadata; keep self_reported for untrusted PR artifacts
+    required: false
+    default: self_reported
   database-url:
     description: SQLAlchemy database URL; PostgreSQL is recommended
     required: false
@@ -41,4 +65,10 @@ runs:
         FAILURELENS_REPORT: ${{ inputs.report }}
         FAILURELENS_PROJECT: ${{ inputs.project }}
         FAILURELENS_EXTERNAL_ID: ${{ inputs.external-id }}
+        FAILURELENS_REPOSITORY: ${{ inputs.repository }}
+        FAILURELENS_BASE_SHA: ${{ inputs.base-sha }}
+        FAILURELENS_HEAD_SHA: ${{ inputs.head-sha }}
+        FAILURELENS_BRANCH: ${{ inputs.branch }}
+        FAILURELENS_RUN_SCOPE: ${{ inputs.run-scope }}
+        FAILURELENS_COMPARISON_TRUST: ${{ inputs.comparison-trust }}
       run: "${GITHUB_ACTION_PATH}/run.sh"

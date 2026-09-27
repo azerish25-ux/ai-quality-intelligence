@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any
@@ -257,6 +258,32 @@ def _resolve_input_scope(
     return expected, received, completeness
 
 
+def _bind_changed_file_trust(
+    input_records: Sequence[ParsedInput],
+    *,
+    effective_trust: str,
+) -> tuple[ParsedInput, ...]:
+    """Bind changed-file trust at the authenticated ingestion boundary.
+
+    Artifact bytes may declare provenance for audit, but they cannot elevate
+    themselves. Only validated RunMetadata supplied by a trusted transport
+    establishes the trust level used by impact selection.
+    """
+    bound: list[ParsedInput] = []
+    for item in input_records:
+        if item.kind != "changed-files":
+            bound.append(item)
+            continue
+        item_metadata = dict(item.metadata)
+        item_metadata.setdefault(
+            "declared_trust", item_metadata.get("trust", "self_reported")
+        )
+        item_metadata["trust"] = effective_trust
+        item_metadata["trust_source"] = "ingestion_metadata"
+        bound.append(replace(item, metadata=item_metadata))
+    return tuple(bound)
+
+
 def ingest_parsed_report(
     session: Session,
     project: Project,
@@ -278,6 +305,9 @@ def ingest_parsed_report(
     manifest_version: str = "standalone",
     restricted: bool = True,
 ) -> Run:
+    input_records = _bind_changed_file_trust(
+        input_records, effective_trust=metadata.comparison_trust
+    )
     expected_inputs, received_inputs, completeness = _resolve_input_scope(
         metadata.expected_inputs,
         parsed_expected_inputs,
@@ -304,6 +334,7 @@ def ingest_parsed_report(
         "base_sha": metadata.base_sha,
         "branch": metadata.branch,
         "run_scope": metadata.run_scope,
+        "comparison_trust": metadata.comparison_trust,
         "environment": metadata.environment,
         "timezone": metadata.timezone,
         "worker_count": metadata.worker_count,
@@ -368,6 +399,7 @@ def ingest_parsed_report(
             "source_format": source_format,
             "parser_version": parser_version,
             "run_scope": metadata.run_scope,
+            "comparison_trust": metadata.comparison_trust,
             "environment": metadata.environment,
             "timezone": metadata.timezone,
             "worker_count": metadata.worker_count,
@@ -659,6 +691,49 @@ def ingest_normalized(session: Session, project: Project, request: IngestionRequ
     )
 
 
+def _validate_ingestion_idempotency(
+    existing: Ingestion,
+    metadata: RunMetadata,
+    *,
+    source_format: str,
+) -> None:
+    supplied = {
+        "repository": metadata.repository,
+        "commit_sha": metadata.commit_sha,
+        "base_sha": metadata.base_sha,
+        "branch": metadata.branch,
+        "expected_inputs": metadata.expected_inputs,
+        "source_format": source_format,
+    }
+    conflicts = [
+        field
+        for field, value in supplied.items()
+        if value != getattr(existing, field)
+    ]
+    context = {
+        "run_scope": metadata.run_scope,
+        "comparison_trust": metadata.comparison_trust,
+        "environment": metadata.environment,
+        "timezone": metadata.timezone,
+        "worker_count": metadata.worker_count,
+        "shard_count": metadata.shard_count,
+    }
+    legacy_defaults = {
+        "run_scope": "unknown",
+        "comparison_trust": "self_reported",
+    }
+    conflicts.extend(
+        field
+        for field, value in context.items()
+        if existing.source_metadata.get(field, legacy_defaults.get(field)) != value
+    )
+    if conflicts:
+        raise ValueError(
+            "idempotency conflict for existing ingestion fields: "
+            + ", ".join(sorted(set(conflicts)))
+        )
+
+
 def enqueue_artifact_ingestion(
     session: Session,
     project: Project,
@@ -677,38 +752,9 @@ def enqueue_artifact_ingestion(
         )
     )
     if existing:
-        supplied = {
-            "repository": metadata.repository,
-            "commit_sha": metadata.commit_sha,
-            "base_sha": metadata.base_sha,
-            "branch": metadata.branch,
-            "expected_inputs": metadata.expected_inputs,
-            "source_format": source_format,
-        }
-        conflicts = [
-            field
-            for field, value in supplied.items()
-            if value != getattr(existing, field)
-        ]
-        context = {
-            "run_scope": metadata.run_scope,
-            "environment": metadata.environment,
-            "timezone": metadata.timezone,
-            "worker_count": metadata.worker_count,
-            "shard_count": metadata.shard_count,
-        }
-        conflicts.extend(
-            field
-            for field, value in context.items()
-            if existing.source_metadata.get(
-                field, "unknown" if field == "run_scope" else None
-            )
-            != value
+        _validate_ingestion_idempotency(
+            existing, metadata, source_format=source_format
         )
-        if conflicts:
-            raise ValueError(
-                "idempotency conflict for existing ingestion fields: " + ", ".join(conflicts)
-            )
         return existing
 
     settings = settings or get_settings()
@@ -724,6 +770,7 @@ def enqueue_artifact_ingestion(
         source_metadata={
             **metadata.source_metadata,
             "run_scope": metadata.run_scope,
+            "comparison_trust": metadata.comparison_trust,
             "environment": metadata.environment,
             "timezone": metadata.timezone,
             "worker_count": metadata.worker_count,
@@ -764,6 +811,9 @@ def enqueue_artifact_ingestion(
             )
         )
         if existing:
+            _validate_ingestion_idempotency(
+                existing, metadata, source_format=source_format
+            )
             return existing
         raise
     session.refresh(ingestion)
@@ -864,6 +914,9 @@ def process_artifact_ingestion(
         branch=ingestion.branch,
         framework=parsed.source_format,
         run_scope=str(ingestion.source_metadata.get("run_scope") or "unknown"),
+        comparison_trust=str(
+            ingestion.source_metadata.get("comparison_trust") or "self_reported"
+        ),
         environment=(
             str(ingestion.source_metadata["environment"])
             if ingestion.source_metadata.get("environment") is not None

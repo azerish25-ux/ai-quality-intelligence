@@ -13,9 +13,10 @@ from .config import get_settings
 from .db import SessionLocal, initialize_database
 from .demo import seed_demo
 from .github_report import render_markdown
+from .impact import create_impact_recommendation, impact_recommendation_to_schema
 from .jobs import process_next
 from .models import Analysis, Failure, Ingestion, Project, Run
-from .schemas import RunMetadata
+from .schemas import ImpactRecommendationCreate, RunMetadata
 from .service import analyze_and_persist, create_project, enqueue_artifact_ingestion
 from .storage import store_bytes
 
@@ -40,6 +41,12 @@ def main() -> None:
         choices=["full_suite", "impact_selected", "unknown"],
         default="unknown",
     )
+    ingest.add_argument(
+        "--comparison-trust",
+        choices=["self_reported", "authenticated_lookup", "trusted_workflow"],
+        default="self_reported",
+        help="trusted transport provenance for changed-file input; artifact claims are ignored",
+    )
     ingest.add_argument("--environment")
     ingest.add_argument("--timezone")
     ingest.add_argument("--worker-count", type=int)
@@ -61,6 +68,15 @@ def main() -> None:
     report = sub.add_parser("report")
     report.add_argument("--run", required=True)
     report.add_argument("--format", choices=["markdown", "json"], default="markdown")
+
+    impact = sub.add_parser(
+        "impact",
+        help="create a deterministic impact recommendation for an ingested changed-file run",
+    )
+    impact.add_argument("--project", required=True, help="project slug")
+    impact.add_argument("--run", required=True, help="run ID containing changed-files input")
+    impact.add_argument("--mapping-snapshot", required=True)
+    impact.add_argument("--changed-input")
 
     args = parser.parse_args()
     initialize_database()
@@ -114,6 +130,7 @@ def main() -> None:
                 branch=args.branch,
                 framework=args.format,
                 run_scope=args.run_scope,
+                comparison_trust=args.comparison_trust,
                 environment=args.environment,
                 timezone=args.timezone,
                 worker_count=args.worker_count,
@@ -177,6 +194,27 @@ def main() -> None:
             failures = session.scalars(select(Failure).where(Failure.run_id == args.run)).all()
             results = [analyze_and_persist(session, failure) for failure in failures]
             print(json.dumps({"analyzed": len(results), "analysis_ids": [item.id for item in results]}))
+        elif args.command == "impact":
+            project = session.scalar(select(Project).where(Project.slug == args.project))
+            if project is None:
+                raise SystemExit("project not found")
+            try:
+                recommendation = create_impact_recommendation(
+                    session,
+                    project,
+                    ImpactRecommendationCreate(
+                        run_id=args.run,
+                        mapping_snapshot_id=args.mapping_snapshot,
+                        changed_input_id=args.changed_input,
+                    ),
+                )
+            except ValueError as exc:
+                raise SystemExit(str(exc)) from exc
+            print(
+                impact_recommendation_to_schema(recommendation).model_dump_json(
+                    indent=2
+                )
+            )
         elif args.command == "report":
             run = session.get(Run, args.run)
             if not run:
