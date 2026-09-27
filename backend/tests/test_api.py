@@ -46,3 +46,52 @@ def test_overview_and_demo_seed(client) -> None:
     assert overview["runs"] == 1
     assert overview["failures"] == 2
     assert overview["analyses"] == 2
+
+
+def test_evidence_endpoint_exposes_only_safe_derivative_metadata(client, session) -> None:
+    from sqlalchemy import select
+
+    from failurelens.models import Evidence, Failure
+
+    project_response = client.post(
+        "/api/v1/projects",
+        json={"slug": "evidence-project", "name": "Evidence Project"},
+    )
+    project_id = project_response.json()["id"]
+    ingestion = client.post(
+        f"/api/v1/projects/{project_id}/ingestions",
+        json={
+            "external_id": "evidence-run",
+            "observations": [
+                {
+                    "test_identity": "ledger::evidence",
+                    "outcome": "failed",
+                    "message": "duplicate committed transfer left ledger unbalanced",
+                    "details": {"data_integrity_violation": True},
+                }
+            ],
+        },
+    )
+    run_id = ingestion.json()["id"]
+    failure = session.scalar(select(Failure).where(Failure.run_id == run_id))
+    assert failure is not None
+    analysis = client.post(f"/api/v1/failures/{failure.id}/analyses").json()
+    evidence_id = analysis["supporting_evidence_ids"][0]
+
+    response = client.get(f"/api/v1/evidence/{evidence_id}")
+    assert response.status_code == 200
+    body = response.json()
+    evidence = session.get(Evidence, evidence_id)
+    assert evidence is not None
+    assert body["execution_id"] == failure.execution_id
+    assert body["run_input_id"] == evidence.run_input_id
+    assert body["provenance_kind"] == "current_execution"
+    assert body["locator_version"] == "evidence-locator-v2"
+    assert body["derivative"]["digest"] == body["content_digest"]
+    assert body["derivative"]["approval_state"] == "auto_approved_text"
+    assert "storage_path" not in body["derivative"]
+
+    evidence.derivative.restricted = True
+    session.commit()
+    restricted = client.get(f"/api/v1/evidence/{evidence_id}")
+    assert restricted.status_code == 403

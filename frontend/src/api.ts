@@ -108,6 +108,13 @@ export interface Analysis {
   missing_evidence: string[];
   policy_flags: string[];
   next_investigation: Array<{ action: string; rationale: string; evidence_ids: string[] }>;
+  validation_version: string | null;
+  validation_results: {
+    status: string;
+    accepted_evidence_ids: string[];
+    rejected_evidence_ids: string[];
+    claims: Array<Record<string, unknown>>;
+  } | null;
 }
 
 export interface Overview {

@@ -104,6 +104,9 @@ class Run(Base):
     project: Mapped[Project] = relationship(back_populates="runs")
     executions: Mapped[list[TestExecution]] = relationship(back_populates="run", cascade="all, delete-orphan")
     artifacts: Mapped[list[Artifact]] = relationship(back_populates="run", cascade="all, delete-orphan")
+    derivatives: Mapped[list[ArtifactDerivative]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
+    )
     failures: Mapped[list[Failure]] = relationship(back_populates="run", cascade="all, delete-orphan")
     ingestion: Mapped[Ingestion | None] = relationship(
         back_populates="run",
@@ -234,6 +237,7 @@ class RunInput(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     run: Mapped[Run] = relationship(back_populates="inputs")
+    evidence: Mapped[list[Evidence]] = relationship(back_populates="run_input")
 
 
 class TestExecution(Base):
@@ -255,11 +259,14 @@ class TestExecution(Base):
 
     run: Mapped[Run] = relationship(back_populates="executions")
     failure: Mapped[Failure | None] = relationship(back_populates="execution", uselist=False)
+    evidence: Mapped[list[Evidence]] = relationship(back_populates="execution")
 
 
 class Artifact(Base):
     __tablename__ = "artifacts"
-    __table_args__ = (UniqueConstraint("run_id", "digest", "kind", name="uq_artifact_run_digest_kind"),)
+    __table_args__ = (
+        UniqueConstraint("run_id", "digest", "kind", name="uq_artifact_run_digest_kind"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
@@ -267,31 +274,125 @@ class Artifact(Base):
     original_name: Mapped[str] = mapped_column(String(1024))
     digest: Mapped[str] = mapped_column(String(64))
     safe_storage_path: Mapped[str] = mapped_column(String(2048))
-    media_type: Mapped[str] = mapped_column(String(160), default="application/octet-stream")
+    media_type: Mapped[str] = mapped_column(
+        String(160), default="application/octet-stream"
+    )
     size_bytes: Mapped[int] = mapped_column(Integer)
-    redaction_version: Mapped[str] = mapped_column(String(40), default="redaction-v1")
+    redaction_version: Mapped[str] = mapped_column(
+        String(40), default="redaction-v1"
+    )
     restricted: Mapped[bool] = mapped_column(Boolean, default=False)
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
     run: Mapped[Run] = relationship(back_populates="artifacts")
-    evidence: Mapped[list[Evidence]] = relationship(back_populates="artifact", cascade="all, delete-orphan")
+    derivatives: Mapped[list[ArtifactDerivative]] = relationship(
+        back_populates="artifact", cascade="all, delete-orphan"
+    )
+    evidence: Mapped[list[Evidence]] = relationship(
+        back_populates="artifact", cascade="all, delete-orphan"
+    )
+
+
+class ArtifactDerivative(Base):
+    __tablename__ = "artifact_derivatives"
+    __table_args__ = (
+        UniqueConstraint(
+            "artifact_id",
+            "kind",
+            "digest",
+            name="uq_artifact_derivative_content",
+        ),
+        Index("ix_artifact_derivatives_project_digest", "project_id", "digest"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), index=True
+    )
+    artifact_id: Mapped[str] = mapped_column(
+        ForeignKey("artifacts.id", ondelete="CASCADE"), index=True
+    )
+    kind: Mapped[str] = mapped_column(String(80))
+    digest: Mapped[str] = mapped_column(String(64))
+    source_digest: Mapped[str] = mapped_column(String(64))
+    storage_path: Mapped[str] = mapped_column(String(2048))
+    media_type: Mapped[str] = mapped_column(String(160))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    redaction_version: Mapped[str] = mapped_column(String(40))
+    source_map: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    approved: Mapped[bool] = mapped_column(Boolean, default=False)
+    restricted: Mapped[bool] = mapped_column(Boolean, default=True)
+    approval_state: Mapped[str] = mapped_column(String(40), default="pending")
+    retention_state: Mapped[str] = mapped_column(String(40), default="active")
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+    run: Mapped[Run] = relationship(back_populates="derivatives")
+    artifact: Mapped[Artifact] = relationship(back_populates="derivatives")
+    evidence: Mapped[list[Evidence]] = relationship(back_populates="derivative")
 
 
 class Evidence(Base):
     __tablename__ = "evidence"
+    __table_args__ = (
+        Index("ix_evidence_execution_scope", "run_id", "execution_id"),
+        Index("ix_evidence_input_scope", "run_id", "run_input_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
-    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
-    artifact_id: Mapped[str] = mapped_column(ForeignKey("artifacts.id", ondelete="CASCADE"), index=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), index=True
+    )
+    artifact_id: Mapped[str] = mapped_column(
+        ForeignKey("artifacts.id", ondelete="CASCADE"), index=True
+    )
+    run_input_id: Mapped[str | None] = mapped_column(
+        ForeignKey("run_inputs.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    execution_id: Mapped[str | None] = mapped_column(
+        ForeignKey("test_executions.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    derivative_id: Mapped[str | None] = mapped_column(
+        ForeignKey("artifact_derivatives.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     kind: Mapped[str] = mapped_column(String(80))
+    provenance_kind: Mapped[str] = mapped_column(
+        String(80), default="current_execution"
+    )
+    locator_version: Mapped[str] = mapped_column(
+        String(40), default="evidence-locator-v2"
+    )
     locator: Mapped[dict[str, Any]] = mapped_column(JSON)
     excerpt: Mapped[str] = mapped_column(Text)
+    observation: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     content_digest: Mapped[str] = mapped_column(String(64))
     parser_version: Mapped[str] = mapped_column(String(80))
+    extractor_version: Mapped[str] = mapped_column(
+        String(80), default="observation-extractor-v1"
+    )
+    redaction_version: Mapped[str] = mapped_column(
+        String(40), default="redaction-v1"
+    )
     warnings: Mapped[list[str]] = mapped_column(JSON, default=list)
 
     artifact: Mapped[Artifact] = relationship(back_populates="evidence")
+    run_input: Mapped[RunInput | None] = relationship(back_populates="evidence")
+    execution: Mapped[TestExecution | None] = relationship(back_populates="evidence")
+    derivative: Mapped[ArtifactDerivative | None] = relationship(
+        back_populates="evidence"
+    )
 
 
 class Failure(Base):
@@ -346,6 +447,12 @@ class Analysis(Base):
     abstention_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     policy_flags: Mapped[list[str]] = mapped_column(JSON, default=list)
     provenance: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    validation_version: Mapped[str | None] = mapped_column(
+        String(80), nullable=True
+    )
+    validation_results: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     failure: Mapped[Failure] = relationship(back_populates="analyses")

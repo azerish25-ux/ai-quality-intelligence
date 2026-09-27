@@ -3,9 +3,9 @@
 
 FailureLens is a self-hosted quality-intelligence platform that turns automated-test artifacts into evidence-linked failure investigations. Its mandatory analysis path is deterministic and CPU-only: no paid model API, cloud account, GPU, or runtime model download is required.
 
-> **Current delivery status: M1 complete; M2 multi-artifact ingestion foundation implemented; full master specification remains incomplete.**
+> **Current delivery status: M1 complete; M2 ingestion plus the execution-scoped evidence-integrity boundary implemented; full master specification remains incomplete.**
 >
-> This revision adds manifest-level input accounting, a versioned adapter registry, persisted per-input diagnostics, broader evidence formats, and a dashboard completeness view. Safe binary derivatives, producer-pinned integration fixtures, semantic claim validation, clustering, history/impact analysis, authorization, actual LedgerGuard evaluation cases, and live idempotent PR publication remain open.
+> This revision adds immutable content-addressed safe text derivatives, exact execution/input evidence scope, independent digest/locator/quotation/typed-observation validation, semantic claim validation, safe degradation, and dashboard validation diagnostics. Safe binary derivatives, producer-pinned integration fixtures, project-scoped authorization, clustering, history/impact analysis, actual LedgerGuard evaluation cases, and live idempotent PR publication remain open.
 
 ## What works
 
@@ -54,7 +54,11 @@ Support depth and known limits are documented in [`docs/input-compatibility.md`]
 
 - DTD/entity rejection; archive traversal/symlink/encryption/collision/nesting/compression controls.
 - Terminal-control removal and redaction of declared secret/PII classes, including token fields and URL query values.
-- Stable versioned failure fingerprints and idempotent analysis revisions keyed to effective evidence/history input.
+- Stable versioned failure fingerprints and idempotent analysis revisions keyed to effective evidence/history/validation input.
+- Each normalized observation produces an immutable safe JSON derivative with a digest, redaction provenance, source map, execution ID and manifest-input ID.
+- Analysis selects only the failure's execution evidence plus explicitly labeled shared/input diagnostics; ambiguous legacy evidence is not guessed into scope.
+- A separate publication validator re-reads derivative bytes and independently checks authorization scope, digest, locator bounds, quotation accuracy, typed observation equality, semantic claim support and policy safety.
+- Invalid or irrelevant citations are withheld; unsupported classifications safely degrade to `insufficient_evidence` and retain an audit result.
 - Exactly five categories: `product_defect`, `test_defect`, `infrastructure_failure`, `known_flake`, and `insufficient_evidence`.
 - Conservative policy that blocks unsupported flake/infrastructure reassurance when product-risk evidence conflicts or required scope is incomplete.
 - Append-only human review events with optimistic version checks.
@@ -65,9 +69,10 @@ Support depth and known limits are documented in [`docs/input-compatibility.md`]
 ## Verification for this checkpoint
 
 ```text
-89 backend tests passed
-86.61% branch-aware backend coverage (75% gate)
+100 backend tests passed
+87.38% branch-aware backend coverage (75% gate)
 Python source and tests compile successfully
+SQLite migration upgrade/downgrade/re-upgrade passed
 ```
 
 The frontend source was updated and manually audited, but the isolated implementation container did not contain the lockfile’s npm package tarballs, so `npm ci --offline` could not restore Vite. The committed GitHub workflow remains the required evidence for locked dependency resolution, frontend unit/build checks, PostgreSQL migration integration, Chromium E2E, evaluation and Docker execution on the exact delivered SHA. Do not treat workflow source alone as a pass.
@@ -159,7 +164,7 @@ docs/                       Architecture, security, compatibility, progress, req
 
 ## Safety model
 
-All artifact bytes, filenames, manifest fields, logs, URLs, metadata and generated analysis are untrusted. Workers re-check size and SHA-256 before parsing. Unsafe XML/ZIP structures fail with explicit codes. Text evidence is sanitized; screenshot and trace originals remain restricted and expose only bounded metadata/index records in this milestone.
+All artifact bytes, filenames, manifest fields, logs, URLs, metadata and generated analysis are untrusted. Workers re-check size and SHA-256 before parsing. Unsafe XML/ZIP structures fail with explicit codes. Text observations are sanitized into immutable safe derivatives; the validator re-reads those bytes before publication. Screenshot and trace originals remain restricted and expose only bounded metadata/index records in this milestone.
 
 The deterministic analyzer separates observations, inferences, hypotheses, missing evidence and investigation actions. A retry pass does not prove harmlessness. A timeout alone does not prove a flake. `known_flake` requires reviewed history with independent runs. Product-risk signals remain visible even when infrastructure symptoms also exist.
 
@@ -172,9 +177,9 @@ The corpus manifest currently records 200 synthetic cases, 100 scenario families
 ## Remaining M2 closure work
 
 1. Generate and fixture-test every adapter from pinned real producers, including Java REST Assured, Playwright traces and screenshots.
-2. Create immutable reviewed/masked screenshot derivatives and richer safe trace derivatives with source maps and retention controls.
-3. Add publication-grade evidence validation that separately checks reference validity, quotation accuracy and semantic support.
-4. Add project-scoped authorization/isolation and authorized artifact preview/download endpoints.
+2. Create immutable reviewed/masked screenshot derivatives and richer safe trace derivatives with image/trace-specific source maps and retention controls.
+3. Add project-scoped authorization/isolation and authorized bounded artifact preview/download endpoints.
+4. Expand claim predicates and validation metrics beyond the deterministic classification rules implemented here.
 5. Then continue M3+: explainable cluster persistence/revisions, honest history rates, impact selection, performance baselines, complete review roles/views, actual LedgerGuard corpus and live idempotent GitHub publication.
 
 Factual progress is tracked in [`docs/PROGRESS.md`](docs/PROGRESS.md), with requirement status in [`docs/requirements-matrix.md`](docs/requirements-matrix.md).

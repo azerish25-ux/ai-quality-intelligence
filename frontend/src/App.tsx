@@ -387,7 +387,15 @@ function App() {
                       <p>{selectedFailure.latest_analysis.confidence.explanation}</p>
                       <dl><div><dt>Score kind</dt><dd>{selectedFailure.latest_analysis.confidence.kind}</dd></div><div><dt>Score</dt><dd>{selectedFailure.latest_analysis.confidence.value ?? 'unavailable'}</dd></div><div><dt>Evidence completeness</dt><dd>{selectedFailure.latest_analysis.evidence_completeness}</dd></div></dl>
                     </div>
-                    <div className="evidence-card"><h3>Evidence state</h3><p><strong>{selectedFailure.latest_analysis.supporting_evidence_ids.length}</strong> supporting citations</p><p><strong>{selectedFailure.latest_analysis.contradictory_evidence_ids.length}</strong> contradictory citations</p><p><strong>{selectedFailure.latest_analysis.missing_evidence.length}</strong> missing inputs</p></div>
+                    <div className="evidence-card">
+                      <h3>Evidence state</h3>
+                      <p><strong>{selectedFailure.latest_analysis.supporting_evidence_ids.length}</strong> supporting citations</p>
+                      <p><strong>{selectedFailure.latest_analysis.contradictory_evidence_ids.length}</strong> contradictory citations</p>
+                      <p><strong>{selectedFailure.latest_analysis.missing_evidence.length}</strong> missing inputs</p>
+                      <p><strong>{selectedFailure.latest_analysis.validation_results?.accepted_evidence_ids.length ?? 0}</strong> integrity-verified records</p>
+                      <p><strong>{selectedFailure.latest_analysis.validation_results?.rejected_evidence_ids.length ?? 0}</strong> rejected records</p>
+                      <p><strong>{selectedFailure.latest_analysis.validation_results?.status ?? 'not validated'}</strong> publication validation</p>
+                    </div>
                     <div className="next-step"><h3>Next investigation</h3>{selectedFailure.latest_analysis.next_investigation.map((step) => <div key={step.action}><strong>{step.action}</strong><p>{step.rationale}</p></div>)}</div>
                     {selectedFailure.latest_analysis.policy_flags.length > 0 && <div className="flags"><h3>Policy flags</h3>{selectedFailure.latest_analysis.policy_flags.map((flag) => <code key={flag}>{flag}</code>)}</div>}
                   </div>

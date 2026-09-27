@@ -42,6 +42,14 @@ States are `queued`, `running`, `succeeded`, `partial`, `failed`, `cancelled`, a
 
 A required input can be received but still prevent completeness—for example a screenshot retained as restricted metadata, a digest mismatch, or an unsupported declared format.
 
+## Evidence integrity and safe inspection
+
+Every normalized observation is bound to its exact test execution and manifest input, then stored as an immutable content-addressed safe derivative. Analysis never queries all evidence from a run. It selects the current execution plus only explicitly labeled shared or same-input diagnostics.
+
+Before an analysis revision is visible, the publication validator re-reads the derivative and checks its source/derivative digest chain, project/run/execution scope, locator bounds, exact excerpt, typed observation, approval/retention policy and typed claim support. Analysis responses include `validation_version` and `validation_results`, including accepted/rejected evidence IDs and claim-level reasons. Failed validation causes safe abstention rather than a reassuring category.
+
+`GET /api/v1/evidence/{evidence_id}` returns only approved safe evidence metadata and sanitized content. It includes execution/input scope, locator and derivative digest/provenance, but never returns a filesystem path or restricted source bytes. Restricted, unapproved or expired derivatives return `403`.
+
 ## Manifest `2.0` ZIP contract
 
 A root `manifest.json` declares every artifact:

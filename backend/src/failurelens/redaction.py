@@ -17,7 +17,7 @@ class RedactionResult:
 
 _PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("private_key", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----.*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----", re.I | re.S)),
-    ("authorization", re.compile(r"(?im)^(authorization\s*:\s*)(?:bearer|basic)\s+[^\r\n]+")),
+    ("authorization", re.compile(r"(?i)\b(authorization\s*:\s*)(?:bearer|basic)\s+[^\s,;]+")),
     ("cookie", re.compile(r"(?im)^((?:set-)?cookie\s*:\s*)[^\r\n]+")),
     ("api_key", re.compile(r"(?i)\b((?:api[_-]?key|access[_-]?token|token|secret|password)\s*[=:]\s*)[\"']?[^\s,;\"']{6,}")),
     ("email", re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.I)),
@@ -29,6 +29,38 @@ _PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 def _replacement(kind: str, value: str) -> str:
     digest = sha256(value.encode("utf-8", errors="replace")).hexdigest()[:10]
     return f"[REDACTED:{kind}:{digest}]"
+
+
+_SENSITIVE_FIELD_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("authorization", re.compile(r"^(?:authorization|authorization_header|auth_header)$", re.I)),
+    ("cookie", re.compile(r"^(?:(?:set_)?cookie|cookies)$", re.I)),
+    (
+        "api_key",
+        re.compile(
+            r"^(?:.*_)?(?:api_key|apikey|access_token|refresh_token|auth_token|token|secret|client_secret|password|passwd)$",
+            re.I,
+        ),
+    ),
+    ("email", re.compile(r"^(?:.*_)?(?:email|email_address|e_mail)$", re.I)),
+    ("phone", re.compile(r"^(?:.*_)?(?:phone|phone_number|mobile|telephone)$", re.I)),
+    ("session", re.compile(r"^(?:.*_)?(?:session|session_id|sessionid|sid)$", re.I)),
+)
+
+
+def sensitive_field_class(name: str) -> str | None:
+    normalized = re.sub(r"[^a-z0-9]+", "_", name.casefold()).strip("_")
+    for kind, pattern in _SENSITIVE_FIELD_PATTERNS:
+        if pattern.fullmatch(normalized):
+            return kind
+    return None
+
+
+def redact_sensitive_field(name: str, value: object) -> RedactionResult | None:
+    kind = sensitive_field_class(name)
+    if kind is None or value is None:
+        return None
+    raw = str(value)[:4096]
+    return RedactionResult(_replacement(kind, raw), (kind,), 1)
 
 
 def redact_text(text: str) -> RedactionResult:

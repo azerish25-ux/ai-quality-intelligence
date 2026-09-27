@@ -15,3 +15,23 @@ def test_terminal_escape_is_removed() -> None:
     result = redact_text("before\x1b[31mred\x1b[0mafter")
     assert "\x1b" not in result.text
     assert "CONTROL_SEQUENCE_REMOVED" in result.text
+
+
+def test_embedded_authorization_and_sensitive_mapping_fields_are_redacted() -> None:
+    from failurelens.redaction import redact_sensitive_field
+
+    embedded = redact_text(
+        "request failed; Authorization: Bearer top-secret-bearer-value; retrying"
+    )
+    assert "top-secret-bearer-value" not in embedded.text
+    assert "authorization" in embedded.classes
+    assert embedded.text.endswith("; retrying")
+
+    token = redact_sensitive_field("access_token", "top-secret-bearer-value")
+    email = redact_sensitive_field("customer_email", "customer@example.com")
+    ordinary = redact_sensitive_field("amount", "29.00")
+    assert token is not None and "top-secret-bearer-value" not in token.text
+    assert token.classes == ("api_key",)
+    assert email is not None and "customer@example.com" not in email.text
+    assert email.classes == ("email",)
+    assert ordinary is None

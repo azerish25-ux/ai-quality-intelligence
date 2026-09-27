@@ -29,6 +29,7 @@ class Settings(BaseSettings):
         self.artifact_root.mkdir(parents=True, exist_ok=True, mode=0o700)
         (self.artifact_root / "incoming").mkdir(parents=True, exist_ok=True, mode=0o700)
         (self.artifact_root / "sources").mkdir(parents=True, exist_ok=True, mode=0o700)
+        (self.artifact_root / "derivatives").mkdir(parents=True, exist_ok=True, mode=0o700)
 
 
 @lru_cache(maxsize=1)

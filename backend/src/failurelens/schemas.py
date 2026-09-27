@@ -90,6 +90,40 @@ class RunInputRead(BaseModel):
     created_at: datetime
 
 
+class ArtifactDerivativeSummary(BaseModel):
+    id: str
+    kind: str
+    digest: str
+    media_type: str
+    size_bytes: int
+    redaction_version: str
+    approved: bool
+    restricted: bool
+    approval_state: str
+    retention_state: str
+
+
+class EvidenceRead(BaseModel):
+    id: str
+    project_id: str
+    run_id: str
+    run_input_id: str | None
+    execution_id: str | None
+    derivative_id: str | None
+    kind: str
+    provenance_kind: str
+    locator_version: str
+    locator: dict[str, Any]
+    excerpt: str
+    observation: dict[str, Any]
+    content_digest: str
+    parser_version: str
+    extractor_version: str
+    redaction_version: str
+    warnings: list[str]
+    derivative: ArtifactDerivativeSummary
+
+
 class IngestionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str
@@ -150,6 +184,8 @@ class AnalysisResult(BaseModel):
     abstention_reason: str | None
     policy_flags: list[str]
     provenance: dict[str, Any]
+    validation_version: str | None = None
+    validation_results: dict[str, Any] | None = None
 
 
 class ReviewCreate(BaseModel):

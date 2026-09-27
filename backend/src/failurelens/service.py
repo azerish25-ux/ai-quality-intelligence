@@ -6,12 +6,19 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from .analysis import ANALYSIS_VERSION, RULES_VERSION, EvidenceView, analyze_failure, input_digest
+from .analysis import ANALYSIS_VERSION, RULES_VERSION, analyze_failure, input_digest
 from .config import Settings, get_settings
+from .evidence_validation import (
+    VALIDATION_VERSION,
+    persisted_analysis_is_publication_validated,
+    validate_decision,
+    validate_evidence_records,
+    validated_evidence_views,
+)
 from .fingerprint import make_fingerprint
 from .ingestion import (
     PARSER_VERSION,
@@ -23,6 +30,7 @@ from .ingestion import (
 from .models import (
     Analysis,
     Artifact,
+    ArtifactDerivative,
     Category,
     Evidence,
     Failure,
@@ -38,9 +46,13 @@ from .models import (
     RunStatus,
     TestExecution,
 )
-from .redaction import REDACTION_VERSION, redact_text
+from .redaction import REDACTION_VERSION, redact_sensitive_field, redact_text
 from .schemas import AnalysisResult, Confidence, IngestionRequest, ReviewCreate, RunMetadata
-from .storage import StoredUpload, read_stored_bytes
+from .storage import (
+    StoredUpload,
+    read_stored_bytes,
+    store_derivative_bytes,
+)
 
 INGEST_JOB_KIND = "ingest_and_analyze_v1"
 ARTIFACT_POLICY_VERSION = "artifact-policy-v1"
@@ -49,6 +61,166 @@ ARTIFACT_POLICY_VERSION = "artifact-policy-v1"
 def manifest_digest(payload: dict[str, Any]) -> str:
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _sanitize_evidence_value(
+    value: Any,
+    *,
+    max_text: int,
+    depth: int = 0,
+    _remaining: list[int] | None = None,
+) -> tuple[Any, set[str]]:
+    """Return a bounded JSON-safe value plus redaction classes encountered.
+
+    The shared character budget prevents a large nested object from multiplying
+    the per-string limit into an unbounded derivative.
+    """
+    remaining = _remaining if _remaining is not None else [max_text]
+    if depth > 8:
+        return "[TRUNCATED:maximum-depth]", {"maximum_depth"}
+    if value is None or isinstance(value, (bool, int, float)):
+        return value, set()
+    if isinstance(value, str):
+        if remaining[0] <= 0:
+            return "[TRUNCATED:analysis-text-budget]", {"truncated"}
+        retained = value[: min(len(value), remaining[0], max_text)]
+        remaining[0] -= len(retained)
+        redacted = redact_text(retained)
+        classes = set(redacted.classes)
+        if len(retained) < len(value):
+            classes.add("truncated")
+        return redacted.text, classes
+    if isinstance(value, dict):
+        safe: dict[str, Any] = {}
+        classes: set[str] = set()
+        for index, (key, item) in enumerate(value.items()):
+            if index >= 500 or remaining[0] <= 0:
+                safe["__truncated__"] = "analysis-text-budget-or-member-limit"
+                classes.add("truncated")
+                break
+            safe_key = redact_text(str(key)[:512]).text
+            sensitive = redact_sensitive_field(safe_key, item)
+            if sensitive is not None:
+                safe[safe_key] = sensitive.text
+                classes.update(sensitive.classes)
+                continue
+            safe_value, child_classes = _sanitize_evidence_value(
+                item,
+                max_text=max_text,
+                depth=depth + 1,
+                _remaining=remaining,
+            )
+            safe[safe_key] = safe_value
+            classes.update(child_classes)
+        return safe, classes
+    if isinstance(value, (list, tuple)):
+        safe_items: list[Any] = []
+        classes: set[str] = set()
+        for index, item in enumerate(value):
+            if index >= 1000 or remaining[0] <= 0:
+                safe_items.append("[TRUNCATED:analysis-text-budget-or-list-limit]")
+                classes.add("truncated")
+                break
+            safe_item, child_classes = _sanitize_evidence_value(
+                item,
+                max_text=max_text,
+                depth=depth + 1,
+                _remaining=remaining,
+            )
+            safe_items.append(safe_item)
+            classes.update(child_classes)
+        return safe_items, classes
+    return _sanitize_evidence_value(
+        str(value),
+        max_text=max_text,
+        depth=depth,
+        _remaining=remaining,
+    )
+
+
+def _canonical_json_bytes(payload: dict[str, Any]) -> bytes:
+    return (
+        json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
+def _get_or_create_text_derivative(
+    session: Session,
+    *,
+    project: Project,
+    run: Run,
+    artifact: Artifact,
+    source_locator: dict[str, Any],
+    excerpt: str,
+    observation: dict[str, Any],
+    redaction_classes: set[str],
+    settings: Settings,
+) -> ArtifactDerivative:
+    payload = {
+        "schema_version": "failurelens-safe-evidence-1.0",
+        "excerpt": excerpt,
+        "observation": observation,
+        "source_locator": source_locator,
+        "redaction": {
+            "version": REDACTION_VERSION,
+            "classes": sorted(redaction_classes),
+        },
+    }
+    content = _canonical_json_bytes(payload)
+    digest = hashlib.sha256(content).hexdigest()
+    existing = session.scalar(
+        select(ArtifactDerivative).where(
+            ArtifactDerivative.artifact_id == artifact.id,
+            ArtifactDerivative.kind == "safe-observation-json",
+            ArtifactDerivative.digest == digest,
+        )
+    )
+    if existing:
+        return existing
+
+    stored = store_derivative_bytes(
+        content,
+        root=settings.artifact_root,
+        project_id=project.id,
+        filename=f"evidence-{digest[:16]}.json",
+        media_type="application/vnd.failurelens.evidence+json",
+        max_bytes=settings.analysis_text_budget * 4,
+    )
+    derivative = ArtifactDerivative(
+        project_id=project.id,
+        run_id=run.id,
+        artifact_id=artifact.id,
+        kind="safe-observation-json",
+        digest=stored.digest,
+        source_digest=artifact.digest,
+        storage_path=stored.relative_path,
+        media_type=stored.media_type,
+        size_bytes=stored.size_bytes,
+        redaction_version=REDACTION_VERSION,
+        source_map={
+            "version": "source-map-v1",
+            "source": source_locator,
+            "derivative": {"kind": "json-pointer", "pointer": "/excerpt"},
+            "location_preserved": not redaction_classes,
+        },
+        approved=True,
+        restricted=False,
+        approval_state="auto_approved_text",
+        retention_state="active",
+        metadata_json={
+            "schema_version": payload["schema_version"],
+            "redaction_classes": sorted(redaction_classes),
+        },
+    )
+    session.add(derivative)
+    session.flush()
+    return derivative
 
 
 def create_project(session: Session, slug: str, name: str) -> Project:
@@ -213,24 +385,26 @@ def ingest_parsed_report(
     session.add(artifact)
     session.flush()
 
+    run_inputs_by_input_id: dict[str, RunInput] = {}
     for item in input_records:
-        session.add(
-            RunInput(
-                project_id=project.id,
-                run_id=run.id,
-                input_id=item.input_id,
-                kind=item.kind,
-                path=item.path,
-                required=item.required,
-                status=item.status,
-                digest=item.digest,
-                size_bytes=item.size_bytes,
-                media_type=item.media_type,
-                parser_version=item.parser_version,
-                warnings=list(item.warnings),
-                metadata_json=item.metadata,
-            )
+        run_input = RunInput(
+            project_id=project.id,
+            run_id=run.id,
+            input_id=item.input_id,
+            kind=item.kind,
+            path=item.path,
+            required=item.required,
+            status=item.status,
+            digest=item.digest,
+            size_bytes=item.size_bytes,
+            media_type=item.media_type,
+            parser_version=item.parser_version,
+            warnings=list(item.warnings),
+            metadata_json=item.metadata,
         )
+        session.add(run_input)
+        run_inputs_by_input_id[item.input_id] = run_input
+    session.flush()
 
     observation_sources: dict[int, tuple[str, str | None, list[str]]] = {}
     for item in input_records:
@@ -241,6 +415,7 @@ def ingest_parsed_report(
                 list(item.warnings),
             )
 
+    settings = get_settings()
     for observation_index, observation in enumerate(observations):
         try:
             outcome = Outcome(observation.outcome)
@@ -249,18 +424,38 @@ def ingest_parsed_report(
         input_id, evidence_parser_version, input_warnings = observation_sources.get(
             id(observation), ("input-1", parser_version, list(parser_warnings))
         )
-        details = dict(observation.details)
+        raw_details = dict(observation.details)
+        raw_details["retry_recovered"] = bool(raw_details.get("retry_recovered"))
+        raw_details["input_id"] = input_id
+        details_value, detail_redactions = _sanitize_evidence_value(
+            raw_details, max_text=settings.analysis_text_budget
+        )
+        details = dict(details_value) if isinstance(details_value, dict) else {}
         details["retry_recovered"] = bool(details.get("retry_recovered"))
         details["input_id"] = input_id
+
         raw_message = observation.message or ""
         safe_message = redact_text(raw_message)
+        safe_exception = (
+            redact_text(observation.exception_type).text
+            if observation.exception_type
+            else None
+        )
         execution = TestExecution(
             run_id=run.id,
-            test_identity=observation.test_identity,
-            suite=observation.suite,
-            source_path=observation.source_path,
-            parameterization=observation.parameterization,
-            browser=observation.browser,
+            test_identity=redact_text(observation.test_identity).text,
+            suite=redact_text(observation.suite).text if observation.suite else None,
+            source_path=(
+                redact_text(observation.source_path).text
+                if observation.source_path
+                else None
+            ),
+            parameterization=(
+                redact_text(observation.parameterization).text
+                if observation.parameterization
+                else None
+            ),
+            browser=redact_text(observation.browser).text if observation.browser else None,
             attempt=observation.attempt,
             outcome=outcome,
             duration_ms=observation.duration_ms,
@@ -276,31 +471,78 @@ def ingest_parsed_report(
             or f"{observation.test_identity}: {outcome.value}"
         )
         safe_excerpt = redact_text(raw_excerpt)
-        locator = dict(
+        excerpt = safe_excerpt.text[: settings.analysis_text_budget]
+        redaction_classes = (
+            set(safe_excerpt.classes)
+            | set(safe_message.classes)
+            | detail_redactions
+        )
+        if len(safe_excerpt.text) > settings.analysis_text_budget:
+            redaction_classes.add("truncated")
+
+        source_locator = dict(
             observation.evidence_locator
             or {"kind": "derived-observation", "index": observation_index}
         )
-        locator["input_id"] = input_id
+        source_locator["input_id"] = input_id
+        typed_observation = {
+            "test_identity": execution.test_identity,
+            "suite": execution.suite,
+            "source_path": execution.source_path,
+            "parameterization": execution.parameterization,
+            "browser": execution.browser,
+            "attempt": execution.attempt,
+            "outcome": outcome.value,
+            "duration_ms": execution.duration_ms,
+            "message": safe_message.text[: settings.analysis_text_budget],
+            "exception_type": safe_exception,
+            "details": details,
+        }
+        derivative = _get_or_create_text_derivative(
+            session,
+            project=project,
+            run=run,
+            artifact=artifact,
+            source_locator=source_locator,
+            excerpt=excerpt,
+            observation=typed_observation,
+            redaction_classes=redaction_classes,
+            settings=settings,
+        )
+        locator = {
+            "version": "evidence-locator-v2",
+            "source": source_locator,
+            "derivative": {"kind": "json-pointer", "pointer": "/excerpt"},
+        }
+        run_input = run_inputs_by_input_id.get(input_id)
         evidence = Evidence(
             project_id=project.id,
             run_id=run.id,
             artifact_id=artifact.id,
+            run_input_id=run_input.id if run_input else None,
+            execution_id=execution.id,
+            derivative_id=derivative.id,
             kind="current_run_observation",
+            provenance_kind="current_execution",
+            locator_version="evidence-locator-v2",
             locator=locator,
-            excerpt=safe_excerpt.text[:40_000],
-            content_digest=hashlib.sha256(safe_excerpt.text.encode("utf-8")).hexdigest(),
+            excerpt=excerpt,
+            observation=typed_observation,
+            content_digest=derivative.digest,
             parser_version=evidence_parser_version or parser_version,
+            extractor_version="observation-extractor-v2",
+            redaction_version=REDACTION_VERSION,
             warnings=[
-                *[f"redacted:{item}" for item in safe_excerpt.classes],
+                *[f"redacted:{item}" for item in sorted(redaction_classes)],
                 *[f"parser:{item}" for item in input_warnings],
             ],
         )
         session.add(evidence)
         session.flush()
         if outcome is Outcome.failed:
-            message = safe_message.text or safe_excerpt.text or "Test failed without a message"
+            message = safe_message.text or excerpt or "Test failed without a message"
             fingerprint, features = make_fingerprint(
-                message, observation.exception_type, details
+                message, safe_exception, details
             )
             session.add(
                 Failure(
@@ -308,7 +550,7 @@ def ingest_parsed_report(
                     run_id=run.id,
                     execution_id=execution.id,
                     message=message,
-                    exception_type=observation.exception_type,
+                    exception_type=safe_exception,
                     strict_fingerprint=fingerprint,
                     loose_features=features,
                 )
@@ -692,24 +934,127 @@ def _historical_context(session: Session, failure: Failure) -> dict[str, Any]:
     }
 
 
-def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
-    evidence_rows = list(
-        session.scalars(select(Evidence).where(Evidence.run_id == failure.run_id)).all()
+def select_failure_evidence(session: Session, failure: Failure) -> list[Evidence]:
+    """Return only evidence authorized for one failure investigation.
+
+    Execution evidence is isolated by execution ID. Shared run diagnostics and
+    input diagnostics are admitted only through explicit provenance labels; old
+    unscoped evidence is intentionally excluded rather than guessed into scope.
+    """
+    conditions = [Evidence.execution_id == failure.execution_id]
+    conditions.append(
+        and_(
+            Evidence.execution_id.is_(None),
+            Evidence.provenance_kind == "shared_run_diagnostic",
+        )
     )
-    views = [
-        EvidenceView(id=evidence.id, kind=evidence.kind, excerpt=evidence.excerpt, observation={})
-        for evidence in evidence_rows
-    ]
-    execution = failure.execution
+
+    input_id = failure.execution.details.get("input_id")
+    if isinstance(input_id, str) and input_id:
+        run_input = session.scalar(
+            select(RunInput).where(
+                RunInput.run_id == failure.run_id,
+                RunInput.input_id == input_id,
+            )
+        )
+        if run_input is not None:
+            conditions.append(
+                and_(
+                    Evidence.execution_id.is_(None),
+                    Evidence.provenance_kind == "input_diagnostic",
+                    Evidence.run_input_id == run_input.id,
+                )
+            )
+
+    return list(
+        session.scalars(
+            select(Evidence)
+            .where(
+                Evidence.project_id == failure.project_id,
+                Evidence.run_id == failure.run_id,
+                or_(*conditions),
+            )
+            .options(
+                selectinload(Evidence.artifact),
+                selectinload(Evidence.derivative),
+                selectinload(Evidence.run_input),
+            )
+            .order_by(Evidence.id)
+        ).all()
+    )
+
+
+def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
+    evidence_rows = select_failure_evidence(session, failure)
     historical = _historical_context(session, failure)
+    settings = get_settings()
+
+    evidence_validation = validate_evidence_records(
+        failure,
+        evidence_rows,
+        settings=settings,
+    )
+    views = validated_evidence_views(evidence_rows, evidence_validation)
+    execution = failure.execution
+    analysis_details = {
+        **execution.details,
+        "retry_recovered": execution.retry_recovered,
+        "incomplete_run": failure.run.completeness != "complete",
+    }
+    decision = analyze_failure(
+        message=failure.message,
+        exception_type=failure.exception_type,
+        details=analysis_details,
+        evidence=views,
+        historical=historical,
+    )
+    validated = validate_decision(
+        failure=failure,
+        decision=decision,
+        evidence_rows=evidence_rows,
+        evidence_validation=evidence_validation,
+        historical=historical,
+    )
+
+    evidence_checks = {item.evidence_id: item for item in evidence_validation.checks}
     payload = {
         "message": failure.message,
         "exception_type": failure.exception_type,
-        "details": execution.details,
-        "evidence": [evidence.id for evidence in evidence_rows],
+        "details": analysis_details,
+        "evidence": [
+            {
+                "id": evidence.id,
+                "execution_id": evidence.execution_id,
+                "run_input_id": evidence.run_input_id,
+                "provenance_kind": evidence.provenance_kind,
+                "content_digest": evidence.content_digest,
+                "derivative_digest": (
+                    evidence.derivative.digest if evidence.derivative else None
+                ),
+                "actual_digest": (
+                    evidence_checks[evidence.id].actual_digest
+                    if evidence.id in evidence_checks
+                    else None
+                ),
+                "validation_status": (
+                    "verified"
+                    if evidence.id in evidence_validation.accepted_ids
+                    else "rejected"
+                ),
+                "validation_reasons": (
+                    list(evidence_checks[evidence.id].reasons)
+                    if evidence.id in evidence_checks
+                    else ["validation_check_missing"]
+                ),
+            }
+            for evidence in evidence_rows
+        ],
         "history": historical,
+        "decision_signals": decision.signal_counts,
+        "validation": validated.validation_results,
         "analysis_version": ANALYSIS_VERSION,
         "rules_version": RULES_VERSION,
+        "validation_version": VALIDATION_VERSION,
     }
     digest = input_digest(payload)
     existing = session.scalar(
@@ -722,19 +1067,12 @@ def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
     if existing:
         return existing
 
-    decision = analyze_failure(
-        message=failure.message,
-        exception_type=failure.exception_type,
-        details={
-            **execution.details,
-            "retry_recovered": execution.retry_recovered,
-            "incomplete_run": failure.run.completeness != "complete",
-        },
-        evidence=views,
-        historical=historical,
-    )
     revision = (
-        session.scalar(select(func.max(Analysis.revision)).where(Analysis.failure_id == failure.id))
+        session.scalar(
+            select(func.max(Analysis.revision)).where(
+                Analysis.failure_id == failure.id
+            )
+        )
         or 0
     ) + 1
     row = Analysis(
@@ -742,28 +1080,56 @@ def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
         revision=revision,
         analysis_version=ANALYSIS_VERSION,
         input_digest=digest,
-        category=decision.category,
-        severity=decision.severity,
-        confidence_value=decision.score,
-        confidence_kind=decision.score_kind,
-        confidence_explanation=decision.explanation,
-        evidence_completeness="partial" if decision.missing else "complete",
-        summary=decision.summary,
-        claims=list(decision.claims),
-        supporting_evidence_ids=list(decision.supporting_ids),
-        contradictory_evidence_ids=list(decision.contradictory_ids),
-        missing_evidence=list(decision.missing),
-        hypotheses=list(decision.hypotheses),
-        next_investigation=list(decision.next_steps),
-        abstention_reason=decision.abstention_reason,
-        policy_flags=list(decision.policy_flags),
+        category=validated.category,
+        severity=validated.severity,
+        confidence_value=validated.score,
+        confidence_kind=validated.score_kind,
+        confidence_explanation=validated.explanation,
+        evidence_completeness=(
+            "partial"
+            if validated.missing or evidence_validation.rejected_ids
+            else "complete"
+        ),
+        summary=validated.summary,
+        claims=list(validated.claims),
+        supporting_evidence_ids=list(validated.supporting_ids),
+        contradictory_evidence_ids=list(validated.contradictory_ids),
+        missing_evidence=list(validated.missing),
+        hypotheses=list(validated.hypotheses),
+        next_investigation=list(validated.next_steps),
+        abstention_reason=validated.abstention_reason,
+        policy_flags=list(validated.policy_flags),
         provenance={
             "input_digest": digest,
             "history_cutoff": datetime.now(UTC).isoformat(),
-            "parser_versions": sorted({item.parser_version for item in evidence_rows}),
+            "parser_versions": sorted(
+                {item.parser_version for item in evidence_rows}
+            ),
+            "extractor_versions": sorted(
+                {item.extractor_version for item in evidence_rows}
+            ),
+            "redaction_versions": sorted(
+                {item.redaction_version for item in evidence_rows}
+            ),
+            "derivative_digests": sorted(
+                {
+                    item.derivative.digest
+                    for item in evidence_rows
+                    if item.derivative is not None
+                }
+            ),
+            "evidence_scope": {
+                "project_id": failure.project_id,
+                "run_id": failure.run_id,
+                "execution_id": failure.execution_id,
+                "input_id": execution.details.get("input_id"),
+            },
             "rules_version": RULES_VERSION,
             "analysis_version": ANALYSIS_VERSION,
+            "validation_version": VALIDATION_VERSION,
         },
+        validation_version=VALIDATION_VERSION,
+        validation_results=validated.validation_results,
     )
     session.add(row)
     try:
@@ -785,29 +1151,95 @@ def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
 
 
 def analysis_to_schema(row: Analysis) -> AnalysisResult:
+    publication_validated = persisted_analysis_is_publication_validated(row)
+    if publication_validated:
+        category = row.category
+        confidence = Confidence(
+            value=row.confidence_value,
+            kind=row.confidence_kind,
+            explanation=row.confidence_explanation,
+        )
+        evidence_completeness = row.evidence_completeness
+        summary = row.summary
+        claims = row.claims
+        supporting_ids = row.supporting_evidence_ids
+        contradictory_ids = row.contradictory_evidence_ids
+        missing = row.missing_evidence
+        hypotheses = row.hypotheses
+        next_investigation = row.next_investigation
+        abstention_reason = row.abstention_reason
+        policy_flags = row.policy_flags
+        validation_results = row.validation_results
+    else:
+        reason = (
+            "This analysis predates or failed the publication validation boundary; "
+            "its stored category is withheld."
+        )
+        category = Category.insufficient_evidence
+        confidence = Confidence(
+            value=None,
+            kind="unavailable",
+            explanation=reason,
+        )
+        evidence_completeness = "unvalidated"
+        summary = (
+            "Failure requires re-analysis because publication-grade evidence "
+            "validation is unavailable."
+        )
+        claims = []
+        supporting_ids = []
+        contradictory_ids = []
+        missing = sorted(set([*row.missing_evidence, "validated analysis revision"]))
+        hypotheses = [
+            {
+                "description": row.summary,
+                "evidence_ids": [],
+                "counterevidence_ids": [],
+                "status": "legacy_unvalidated",
+            }
+        ]
+        next_investigation = [
+            {
+                "action": "Re-run analysis against immutable scoped derivatives",
+                "rationale": reason,
+                "evidence_ids": [],
+            }
+        ]
+        abstention_reason = reason
+        policy_flags = sorted(
+            set([*row.policy_flags, "legacy_analysis_not_publication_validated"])
+        )
+        validation_results = row.validation_results or {
+            "version": row.validation_version,
+            "status": "not_validated",
+            "accepted_evidence_ids": [],
+            "rejected_evidence_ids": [],
+            "claims": [],
+            "original_category": row.category.value,
+            "published_category": Category.insufficient_evidence.value,
+        }
+
     return AnalysisResult(
         analysis_id=row.id,
         analysis_version=row.analysis_version,
         failure_id=row.failure_id,
         run_id=row.failure.run_id,
-        category=row.category,
+        category=category,
         severity=row.severity,
-        confidence=Confidence(
-            value=row.confidence_value,
-            kind=row.confidence_kind,
-            explanation=row.confidence_explanation,
-        ),
-        evidence_completeness=row.evidence_completeness,
-        summary=row.summary,
-        claims=row.claims,
-        supporting_evidence_ids=row.supporting_evidence_ids,
-        contradictory_evidence_ids=row.contradictory_evidence_ids,
-        missing_evidence=row.missing_evidence,
-        hypotheses=row.hypotheses,
-        next_investigation=row.next_investigation,
-        abstention_reason=row.abstention_reason,
-        policy_flags=row.policy_flags,
+        confidence=confidence,
+        evidence_completeness=evidence_completeness,
+        summary=summary,
+        claims=claims,
+        supporting_evidence_ids=supporting_ids,
+        contradictory_evidence_ids=contradictory_ids,
+        missing_evidence=missing,
+        hypotheses=hypotheses,
+        next_investigation=next_investigation,
+        abstention_reason=abstention_reason,
+        policy_flags=policy_flags,
         provenance=row.provenance,
+        validation_version=row.validation_version,
+        validation_results=validation_results,
     )
 
 

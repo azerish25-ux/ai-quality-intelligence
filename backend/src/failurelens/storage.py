@@ -50,6 +50,10 @@ def _final_relative_path(project_id: str, digest: str, filename: str) -> str:
     return PurePosixPath("sources", project_id, digest[:2], digest, filename).as_posix()
 
 
+def _derivative_relative_path(project_id: str, digest: str, filename: str) -> str:
+    return PurePosixPath("derivatives", project_id, digest[:2], digest, filename).as_posix()
+
+
 def _finalize(
     *,
     root: Path,
@@ -59,8 +63,14 @@ def _finalize(
     digest: str,
     size_bytes: int,
     media_type: str,
+    namespace: str = "sources",
 ) -> StoredUpload:
-    relative = _final_relative_path(project_id, digest, filename)
+    if namespace == "sources":
+        relative = _final_relative_path(project_id, digest, filename)
+    elif namespace == "derivatives":
+        relative = _derivative_relative_path(project_id, digest, filename)
+    else:
+        raise StorageError("unsafe_storage_namespace", "Unsupported storage namespace")
     destination = _resolve_under(root, relative)
     destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if destination.exists():
@@ -124,6 +134,7 @@ async def store_stream(
             digest=digest.hexdigest(),
             size_bytes=size,
             media_type=media_type,
+            namespace="sources",
         )
     except Exception:
         temporary.unlink(missing_ok=True)
@@ -162,11 +173,58 @@ def store_bytes(
             digest=hashlib.sha256(content).hexdigest(),
             size_bytes=len(content),
             media_type=media_type,
+            namespace="sources",
         )
     except Exception:
         temporary.unlink(missing_ok=True)
         raise
 
+
+
+def store_derivative_bytes(
+    content: bytes,
+    *,
+    root: Path,
+    project_id: str,
+    filename: str,
+    media_type: str,
+    max_bytes: int,
+) -> StoredUpload:
+    """Store an immutable, content-addressed safe derivative.
+
+    Derivatives live outside the restricted source namespace so authorization and
+    retention policies can distinguish reviewed/sanitized material from originals.
+    The bytes are still private by default; publication is controlled by database
+    metadata rather than the filesystem path.
+    """
+    if not content:
+        raise StorageError("empty_derivative", "Safe derivative is empty")
+    if len(content) > max_bytes:
+        raise StorageError("limit_exceeded", f"Derivative exceeds the {max_bytes}-byte file limit")
+    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    incoming = root / "incoming"
+    incoming.mkdir(parents=True, exist_ok=True, mode=0o700)
+    name = safe_filename(filename)
+    temporary = incoming / f"{uuid.uuid4()}.part"
+    try:
+        with temporary.open("xb") as handle:
+            os.chmod(temporary, 0o600)
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        return _finalize(
+            root=root,
+            temporary=temporary,
+            project_id=project_id,
+            filename=name,
+            digest=hashlib.sha256(content).hexdigest(),
+            size_bytes=len(content),
+            media_type=media_type,
+            namespace="derivatives",
+        )
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
 
 def read_stored_bytes(
     *,

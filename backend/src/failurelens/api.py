@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from contextlib import asynccontextmanager
 from typing import Annotated
 
@@ -13,6 +14,7 @@ from sqlalchemy.orm import Session, selectinload
 from .config import get_settings
 from .db import get_session, initialize_database
 from .demo import seed_demo
+from .evidence_validation import persisted_analysis_is_publication_validated
 from .models import (
     Analysis,
     Category,
@@ -26,6 +28,8 @@ from .models import (
 )
 from .schemas import (
     AnalysisResult,
+    ArtifactDerivativeSummary,
+    EvidenceRead,
     IngestionRead,
     IngestionRequest,
     ProjectCreate,
@@ -56,7 +60,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="FailureLens API",
-    version="0.2.0",
+    version="0.3.0",
     description="Evidence-grounded automated test failure triage",
     lifespan=lifespan,
 )
@@ -89,6 +93,15 @@ def ready(session: Session = Depends(get_session)) -> dict[str, str]:
 
 @app.get("/api/v1/overview")
 def overview(session: Session = Depends(get_session)) -> dict:
+    analyses = list(session.scalars(select(Analysis)).all())
+    publication_categories = Counter(
+        (
+            item.category.value
+            if persisted_analysis_is_publication_validated(item)
+            else Category.insufficient_evidence.value
+        )
+        for item in analyses
+    )
     return {
         "projects": session.scalar(select(func.count(Project.id))) or 0,
         "runs": session.scalar(select(func.count(Run.id))) or 0,
@@ -100,12 +113,9 @@ def overview(session: Session = Depends(get_session)) -> dict:
         )
         or 0,
         "failures": session.scalar(select(func.count(Failure.id))) or 0,
-        "analyses": session.scalar(select(func.count(Analysis.id))) or 0,
+        "analyses": len(analyses),
         "categories": {
-            category.value: session.scalar(
-                select(func.count(Analysis.id)).where(Analysis.category == category)
-            )
-            or 0
+            category.value: publication_categories.get(category.value, 0)
             for category in Category
         },
     }
@@ -415,16 +425,57 @@ def reviews_create(
     }
 
 
-@app.get("/api/v1/evidence/{evidence_id}")
-def evidence_get(evidence_id: str, session: Session = Depends(get_session)) -> dict:
-    evidence = session.get(Evidence, evidence_id)
+@app.get("/api/v1/evidence/{evidence_id}", response_model=EvidenceRead)
+def evidence_get(
+    evidence_id: str,
+    session: Session = Depends(get_session),
+) -> EvidenceRead:
+    evidence = session.scalar(
+        select(Evidence)
+        .where(Evidence.id == evidence_id)
+        .options(selectinload(Evidence.derivative))
+    )
     if not evidence:
         raise HTTPException(404, "evidence not found")
-    return {
-        "id": evidence.id,
-        "kind": evidence.kind,
-        "locator": evidence.locator,
-        "excerpt": evidence.excerpt,
-        "digest": evidence.content_digest,
-        "warnings": evidence.warnings,
-    }
+    derivative = evidence.derivative
+    if (
+        derivative is None
+        or not derivative.approved
+        or derivative.restricted
+        or derivative.retention_state != "active"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="evidence derivative is not approved for safe inspection",
+        )
+    return EvidenceRead(
+        id=evidence.id,
+        project_id=evidence.project_id,
+        run_id=evidence.run_id,
+        run_input_id=evidence.run_input_id,
+        execution_id=evidence.execution_id,
+        derivative_id=evidence.derivative_id,
+        kind=evidence.kind,
+        provenance_kind=evidence.provenance_kind,
+        locator_version=evidence.locator_version,
+        locator=evidence.locator,
+        excerpt=evidence.excerpt,
+        observation=evidence.observation,
+        content_digest=evidence.content_digest,
+        parser_version=evidence.parser_version,
+        extractor_version=evidence.extractor_version,
+        redaction_version=evidence.redaction_version,
+        warnings=evidence.warnings,
+        derivative=ArtifactDerivativeSummary(
+            id=derivative.id,
+            kind=derivative.kind,
+            digest=derivative.digest,
+            media_type=derivative.media_type,
+            size_bytes=derivative.size_bytes,
+            redaction_version=derivative.redaction_version,
+            approved=derivative.approved,
+            restricted=derivative.restricted,
+            approval_state=derivative.approval_state,
+            retention_state=derivative.retention_state,
+        ),
+    )

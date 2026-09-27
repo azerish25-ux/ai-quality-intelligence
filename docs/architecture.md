@@ -8,11 +8,13 @@ flowchart LR
     B --> C[restricted content-addressed storage]
     C --> D[leased ingestion worker]
     D --> E[adapter registry and bounded validation]
-    E --> F[(PostgreSQL run + run_inputs + evidence)]
-    F --> G[deterministic rule engine]
-    G --> H[evidence-linked analysis]
-    H --> I[React dashboard]
-    H --> J[Markdown / GitHub Action summary]
+    E --> F[(PostgreSQL run + run_inputs + executions)]
+    F --> G[immutable safe derivatives + scoped evidence]
+    G --> H[deterministic rule engine]
+    H --> V[independent publication validator]
+    V --> I[evidence-linked analysis revision]
+    I --> J[React dashboard]
+    I --> N[Markdown / GitHub Action summary]
     K[synthetic evaluation corpus] --> L[evaluation harness]
     L --> G
     L --> M[metrics and predictions]
@@ -44,9 +46,10 @@ The migrations define explicit tables for:
 - persisted per-run input scope/diagnostics (`run_inputs`);
 - logical test executions/attempts;
 - restricted artifact descriptors;
-- immutable evidence excerpts and locators;
+- immutable safe artifact derivatives and source maps;
+- execution/input-scoped evidence observations and locators;
 - failures and versioned fingerprints;
-- analysis revisions; and
+- validated analysis revisions and validation audits; and
 - append-only review events.
 
 Important invariants are represented directly: a retry is not an independent run; skipped is not passed; a missing shard is not clean; a parse failure is not a product defect; partial scope stays partial; and analysis revisions do not overwrite evidence or prior review history.
@@ -56,12 +59,13 @@ Important invariants are represented directly: a retry is not an independent run
 1. Revalidate restricted source bytes and digest.
 2. Resolve manifest/input scope and run each bounded adapter.
 3. Redact or restrict evidence and persist input status/provenance.
-4. Normalize test observations and persist typed locators.
-5. Create strict fingerprints from normalized exception/message/status/route/selector/assertion features.
-6. Retrieve only prior history for the same project/fingerprint.
-7. Apply versioned deterministic rules and contradiction policy.
-8. Abstain when evidence cannot distinguish categories safely or required scope is incomplete.
-9. Persist confidence kind, explanation, supporting/contradictory evidence, missing evidence, hypotheses, investigation steps, policy flags and reproducibility provenance.
+4. Normalize test observations, create immutable content-addressed safe derivatives, and persist exact execution/input scope plus versioned locators/source maps.
+5. Select only evidence authorized for the current failure; never use every evidence row in the run.
+6. Re-read and validate derivative bytes, source/derivative digests, locator bounds, exact excerpt, typed observation and approval state.
+7. Create strict fingerprints from normalized exception/message/status/route/selector/assertion features and retrieve only prior history for the same project/fingerprint.
+8. Apply versioned deterministic rules and contradiction policy to validated evidence only.
+9. Independently validate each typed claim's evidence references and semantic support; withhold invalid claims and safely degrade unsupported classifications.
+10. Persist confidence, supporting/contradictory evidence, missing evidence, hypotheses, validation audit, investigation steps, policy flags and reproducibility provenance.
 
 The score is a `heuristic_score`, not a calibrated probability.
 
