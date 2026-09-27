@@ -1,0 +1,50 @@
+name: Apply verified M4 change-impact delivery
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: failurelens-m4-delivery
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+      - name: Reconstruct and validate delivery archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .delivery/failurelens-m4.part-* | base64 --decode > /tmp/failurelens-m4.tar.gz
+          echo "131052e5f2be17d04efff62f4e6d1cc7915a52517b8c2a6f30d0ccf2086f7043  /tmp/failurelens-m4.tar.gz" | sha256sum --check --strict
+          python - <<'PY'
+          from pathlib import PurePosixPath
+          import tarfile
+
+          with tarfile.open('/tmp/failurelens-m4.tar.gz', 'r:gz') as archive:
+              members = archive.getmembers()
+              for member in members:
+                  path = PurePosixPath(member.name)
+                  if path.is_absolute() or '..' in path.parts or member.issym() or member.islnk():
+                      raise SystemExit(f'unsafe archive member: {member.name}')
+              archive.extractall('.')
+          PY
+      - name: Publish exact verified source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .delivery
+          rm .github/workflows/apply-m4-change-impact.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(m4): deliver explainable change-impact selection" -m "Add versioned mapping snapshots, deterministic bounded impact selection, conservative full-suite fallbacks, mandatory critical-test preservation, audited overrides, typed APIs, dashboard workflows, controlled evaluation, migrations, tests, and documentation."
+          git push origin HEAD:main
