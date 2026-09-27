@@ -490,7 +490,7 @@ describe('prior-only history client', () => {
     expect(result.history_input_digest).toBe('d'.repeat(64));
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/v1/tests/execution-1/history?browser=chromium&branch=main&environment=ci-linux&run_scope=full_suite&timezone=America%2FHalifax&worker_count=4&shard_count=2&limit=50&offset=10',
-      { headers: { 'Content-Type': 'application/json' } }
+      { credentials: 'include', headers: { 'Content-Type': 'application/json' } }
     );
   });
 });
