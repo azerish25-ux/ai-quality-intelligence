@@ -1,5 +1,35 @@
 # API and CLI
 
+## Authentication and project roles
+
+Except for liveness/readiness and `POST /api/v1/auth/login`, API operations require an authenticated principal. Browser sessions use an `HttpOnly` cookie; API clients may send the same session secret as `Authorization: Bearer <session-token>`. A project ingestion credential is sent as either a bearer token or `X-FailureLens-Token` and is limited to creating an ingestion in its assigned project.
+
+```bash
+curl --request POST \
+  --header 'Content-Type: application/json' \
+  --data '{"username":"admin@example.test","password":"<password>"}' \
+  'http://localhost:8000/api/v1/auth/login'
+```
+
+The login response includes a bearer token and also sets the browser cookie. `GET /api/v1/auth/me` returns the verified identity and project memberships; `POST /api/v1/auth/logout` revokes the current session.
+
+Project permissions are cumulative:
+
+- `viewer`: read runs, analyses, approved evidence, history, clusters, performance, and audit-backed results;
+- `reviewer`: viewer access plus analysis reviews, cluster corrections, impact overrides, and persisted analytical comparisons; and
+- `administrator`: reviewer access plus project memberships, ingestion credentials, mappings, policies, and artifact ingestion.
+
+An administrator manages identities and project access through:
+
+- `GET`/`POST /api/v1/users` for system-administrator user provisioning;
+- `GET`/`POST /api/v1/projects/{project_id}/members`;
+- `PATCH`/`DELETE /api/v1/projects/{project_id}/members/{membership_id}`;
+- `GET`/`POST /api/v1/projects/{project_id}/ingestion-tokens`;
+- `POST /api/v1/projects/{project_id}/ingestion-tokens/{token_id}/revoke`; and
+- `GET /api/v1/projects/{project_id}/audit-events` for reviewers and administrators.
+
+The raw secret from an ingestion-token creation response is shown once. Only its digest and display prefix are retained. Client payloads never select the actor for a review or override; actor identity comes from the authenticated principal.
+
 ## Durable artifact ingestion
 
 `POST /api/v1/projects/{project_id}/ingestions` supports two contracts:
@@ -11,6 +41,7 @@ Raw upload example:
 
 ```bash
 curl --request POST \
+  --header 'X-FailureLens-Token: <project-ingestion-token>' \
   --header 'Content-Type: application/zip' \
   --data-binary @failurelens-bundle.zip \
   'http://localhost:8000/api/v1/projects/<project-id>/ingestions?external_id=gha-901&filename=failurelens-bundle.zip&attempt=1&expected_inputs=3'
@@ -50,6 +81,37 @@ Before an analysis revision is visible, the publication validator re-reads the d
 
 `GET /api/v1/evidence/{evidence_id}` returns only approved safe evidence metadata and sanitized content. It includes execution/input scope, locator and derivative digest/provenance, but never returns a filesystem path or restricted source bytes. Restricted, unapproved or expired derivatives return `403`.
 
+## Human review queue and decisions
+
+`GET /api/v1/projects/{project_id}/review-queue` returns the latest analysis for each failure, with optional `status=pending|reviewed|all`, category and pagination filters. Each row includes the test identity, machine category, severity, evidence completeness, policy flags, and latest human decision/version.
+
+Reviewers submit append-only decisions through `POST /api/v1/analyses/{analysis_id}/reviews` and read the full history through `GET /api/v1/analyses/{analysis_id}/reviews`. The request uses `expected_version` optimistic concurrency and may:
+
+- accept or reject the machine analysis;
+- request more evidence;
+- propose a category correction;
+- cite same-project supporting or contradictory evidence;
+- record hypothesis dispositions and an investigation outcome; and
+- record advisory release language.
+
+```json
+{
+  "decision": "category_correction",
+  "proposed_category": "test_defect",
+  "reason": "The approved locator shows an obsolete selector rather than a product response.",
+  "expected_version": 0,
+  "supporting_evidence_ids": ["<evidence-id>"],
+  "contradictory_evidence_ids": [],
+  "hypothesis_decisions": [
+    {"hypothesis": "product regression", "status": "rejected"}
+  ],
+  "investigation_outcome": "Update the test selector and rerun the full browser project.",
+  "release_advice": "INVESTIGATE"
+}
+```
+
+The server records the authenticated reviewer; an `actor` field is rejected. `NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE` is blocked when evidence is incomplete, the machine result still carries unresolved product risk, or safety policy flags remain active. Human decisions never overwrite the original analysis or execute an external release/quarantine action.
+
 ## Explainable failure clusters
 
 Clustering runs after normalized failures are persisted. It is deterministic and project-scoped; replaying the same inputs with the same algorithm/feature versions does not duplicate clusters or memberships.
@@ -64,7 +126,6 @@ Example reviewed split:
 
 ```json
 {
-  "actor": "reviewer@example.test",
   "decision": "split",
   "reason": "The selector and endpoint evidence identify a separate incident.",
   "expected_revision": 2,
@@ -134,7 +195,6 @@ Example override:
 
 ```json
 {
-  "actor": "reviewer@example.test",
   "action": "include",
   "test_key": "profile-e2e",
   "reason": "Profile storage is shared with the changed account module.",
@@ -207,9 +267,19 @@ Schema `1.0` bundles with a single `report` path remain readable. A ZIP without 
 
 - `GET /health/live`
 - `GET /health/ready`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/auth/me`
+- `GET`/`POST /api/v1/users`
 - `GET /api/v1/overview`
 - `POST /api/v1/projects`
 - `GET /api/v1/projects`
+- `GET`/`POST /api/v1/projects/{project_id}/members`
+- `PATCH`/`DELETE /api/v1/projects/{project_id}/members/{membership_id}`
+- `GET`/`POST /api/v1/projects/{project_id}/ingestion-tokens`
+- `POST /api/v1/projects/{project_id}/ingestion-tokens/{token_id}/revoke`
+- `GET /api/v1/projects/{project_id}/audit-events`
+- `GET /api/v1/projects/{project_id}/review-queue`
 - `GET /api/v1/projects/{project_id}/runs`
 - `POST /api/v1/projects/{project_id}/impact-mappings`
 - `GET /api/v1/projects/{project_id}/impact-mappings`
@@ -241,6 +311,7 @@ Schema `1.0` bundles with a single `report` path remain readable. A ZIP without 
 - `GET /api/v1/infrastructure-correlations/{snapshot_id}`
 - `POST /api/v1/failures/{failure_id}/analyses`
 - `GET /api/v1/analyses/{analysis_id}`
+- `GET /api/v1/analyses/{analysis_id}/reviews`
 - `POST /api/v1/analyses/{analysis_id}/reviews`
 - `GET /api/v1/evidence/{evidence_id}`
 - `GET /api/v1/evaluations/latest`

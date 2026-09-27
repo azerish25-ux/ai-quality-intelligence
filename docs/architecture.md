@@ -42,6 +42,12 @@ flowchart LR
 
 The backend is a modular monolith with separate API and worker processes. Domain functions are independent of HTTP so the API, CLI, Action and evaluation harness use the same normalization and deterministic analysis implementation.
 
+## Identity and authorization boundary
+
+Browser and API requests resolve to a server-authenticated principal before project data is queried. Human sessions reference active users; project ingestion credentials reference exactly one project and one restricted scope; local demo mode supplies a visibly synthetic administrator. Passwords, session secrets and ingestion secrets are never stored in plaintext.
+
+Authorization occurs after a resource is resolved to its owning project and before it is serialized or mutated. System administrators can bootstrap and create projects. Project administrators manage membership, credentials, mappings and policies; reviewers record bounded human decisions; viewers are read-only. A non-member requesting a guessed resource identifier receives not-found behavior. Human review, cluster correction and impact override services receive the verified principal from the API and persist that identity with the decision and audit event in the same transaction.
+
 ## Multi-artifact ingestion
 
 Manifest `2.0` declares stable input IDs, kinds, paths, required/optional scope, optional expected digests, media types and producer metadata. The versioned adapter registry resolves each input independently. One bad optional artifact does not erase valid siblings; a bad or absent required input makes the run partial and remains persisted for review.
@@ -61,6 +67,8 @@ Schema `1.0` and one-report implicit ZIPs remain compatibility paths.
 The migrations define explicit tables for:
 
 - projects;
+- users, revocable authentication sessions, project memberships and scoped ingestion credentials;
+- append-only application audit events with verified actor/project/resource metadata;
 - durable ingestions and leased jobs;
 - runs and run completeness;
 - persisted per-run input scope/diagnostics (`run_inputs`);
@@ -76,7 +84,7 @@ The migrations define explicit tables for:
 - normalized performance observations, immutable policies, prior-only baseline snapshots/members and evidence-linked comparisons;
 - independently recorded infrastructure events plus immutable prior-only correlation snapshots and run members;
 - validated analysis revisions and validation audits; and
-- append-only review events.
+- append-only review events with supporting/counterevidence, hypothesis dispositions, investigation outcomes and advisory release states.
 
 Important invariants are represented directly: a retry is not an independent run; skipped is not passed; a missing shard is not clean; a parse failure is not a product defect; partial scope stays partial; and analysis revisions do not overwrite evidence or prior review history.
 
@@ -151,4 +159,4 @@ The `jobs` table supports queued/running/succeeded/partial/failed/cancelled/dead
 
 ## Deployment
 
-`compose.yaml` defines PostgreSQL, API, worker and dashboard services. PostgreSQL is not published to the host. API and worker run as an unprivileged user. Nginx supplies CSP, `nosniff` and same-origin API proxying.
+`compose.yaml` defines PostgreSQL, API, worker and dashboard services. PostgreSQL is not published to the host; the demo API and dashboard bind to loopback. API and worker run as an unprivileged user. Nginx supplies CSP, `nosniff` and same-origin API proxying. Production mode fails closed without a bootstrap administrator and secure session-cookie configuration.

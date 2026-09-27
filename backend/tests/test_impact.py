@@ -255,7 +255,6 @@ def test_focused_selection_is_explainable_persisted_and_override_audited(
     include = client.post(
         f"/api/v1/impact-recommendations/{recommendation['id']}/overrides",
         json={
-            "actor": "reviewer@example.test",
             "action": "include",
             "test_key": "unrelated",
             "reason": "The reviewer identified a release-risk coupling not yet represented in coverage.",
@@ -274,14 +273,13 @@ def test_focused_selection_is_explainable_persisted_and_override_audited(
         item for item in included["selected_tests"] if item["test_key"] == "unrelated"
     )
     assert overridden["selection_source"].startswith("override:")
-    assert included["overrides"][0]["actor"] == "reviewer@example.test"
+    assert included["overrides"][0]["actor"] == "Synthetic demo administrator"
     assert included["overrides"][0]["revision_before"] == 0
     assert included["overrides"][0]["revision_after"] == 1
 
     stale = client.post(
         f"/api/v1/impact-recommendations/{recommendation['id']}/overrides",
         json={
-            "actor": "second-reviewer@example.test",
             "action": "exclude",
             "test_key": "checkout",
             "reason": "This deliberately uses the stale revision to verify optimistic concurrency.",
@@ -294,7 +292,6 @@ def test_focused_selection_is_explainable_persisted_and_override_audited(
     mandatory_exclusion = client.post(
         f"/api/v1/impact-recommendations/{recommendation['id']}/overrides",
         json={
-            "actor": "reviewer@example.test",
             "action": "exclude",
             "test_key": "smoke",
             "reason": "Attempt to remove a mandatory critical test must be rejected.",
@@ -432,7 +429,6 @@ def test_incomplete_untrusted_critical_or_unmapped_inputs_force_full_suite(
     forbidden_exclusion = client.post(
         f"/api/v1/impact-recommendations/{recommendation['id']}/overrides",
         json={
-            "actor": "reviewer@example.test",
             "action": "exclude",
             "test_key": "unrelated",
             "reason": "A full-suite safety fallback must not be weakened by an override.",

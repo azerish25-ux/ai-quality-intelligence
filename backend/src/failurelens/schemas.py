@@ -6,7 +6,124 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from .models import Category, IngestionState, Outcome, RunStatus
+from .models import Category, IngestionState, Outcome, ProjectRole, RunStatus
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=240)
+    password: str = Field(min_length=1, max_length=1024)
+
+
+class AuthMembershipRead(BaseModel):
+    project_id: str
+    project_slug: str
+    project_name: str
+    role: ProjectRole
+
+
+class PrincipalRead(BaseModel):
+    kind: Literal["demo", "user", "ingestion_token"]
+    user_id: str | None = None
+    username: str | None = None
+    display_name: str
+    system_admin: bool
+    demo_mode: bool
+    memberships: list[AuthMembershipRead] = Field(default_factory=list)
+
+
+class LoginResponse(BaseModel):
+    principal: PrincipalRead
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    expires_at: datetime
+
+
+class UserCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    username: str = Field(min_length=1, max_length=240)
+    display_name: str = Field(min_length=1, max_length=240)
+    password: str = Field(min_length=12, max_length=1024)
+    system_admin: bool = False
+
+
+class UserRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    username: str
+    display_name: str
+    is_active: bool
+    is_system_admin: bool
+    created_at: datetime
+    last_login_at: datetime | None
+
+
+class ProjectMembershipCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    username: str = Field(min_length=1, max_length=240)
+    role: ProjectRole
+
+
+class ProjectMembershipUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    role: ProjectRole
+
+
+class ProjectMembershipRead(BaseModel):
+    id: str
+    project_id: str
+    user_id: str
+    username: str
+    display_name: str
+    role: ProjectRole
+    granted_by_user_id: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class IngestionTokenCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=240)
+    expires_at: datetime | None = None
+
+
+class IngestionTokenRead(BaseModel):
+    id: str
+    project_id: str
+    name: str
+    token_prefix: str
+    scopes: list[str]
+    created_by_user_id: str | None
+    expires_at: datetime | None
+    revoked_at: datetime | None
+    last_used_at: datetime | None
+    created_at: datetime
+
+
+class IngestionTokenCreated(IngestionTokenRead):
+    token: str
+
+
+class AuditEventRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    project_id: str | None
+    actor_kind: str
+    actor_user_id: str | None
+    actor_display: str
+    action: str
+    resource_type: str
+    resource_id: str | None
+    outcome: str
+    reason: str | None
+    correlation_id: str | None
+    details: dict[str, Any]
+    created_at: datetime
 
 
 class ProjectCreate(BaseModel):
@@ -420,7 +537,8 @@ class ImpactRecommendationCreate(BaseModel):
 
 
 class ImpactOverrideCreate(BaseModel):
-    actor: str = Field(min_length=1, max_length=240)
+    model_config = ConfigDict(extra="forbid")
+
     action: Literal["include", "exclude"]
     test_key: str = Field(min_length=1, max_length=240)
     reason: str = Field(min_length=3, max_length=5000)
@@ -676,11 +794,55 @@ class AnalysisResult(BaseModel):
 
 
 class ReviewCreate(BaseModel):
-    actor: str = Field(min_length=1, max_length=240)
+    model_config = ConfigDict(extra="forbid")
+
     decision: Literal["accept", "reject", "needs_more_evidence", "category_correction"]
     proposed_category: Category | None = None
     reason: str = Field(min_length=3, max_length=5000)
     expected_version: int = Field(ge=0)
+    supporting_evidence_ids: list[str] = Field(default_factory=list, max_length=500)
+    contradictory_evidence_ids: list[str] = Field(default_factory=list, max_length=500)
+    hypothesis_decisions: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
+    investigation_outcome: str | None = Field(default=None, max_length=10_000)
+    release_advice: Literal[
+        "HOLD_FOR_REVIEW",
+        "INVESTIGATE",
+        "NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE",
+    ] | None = None
+
+
+class ReviewEventRead(BaseModel):
+    id: str
+    analysis_id: str
+    actor: str
+    actor_kind: str
+    actor_user_id: str | None
+    decision: str
+    proposed_category: str | None
+    reason: str
+    supporting_evidence_ids: list[str]
+    contradictory_evidence_ids: list[str]
+    hypothesis_decisions: list[dict[str, Any]]
+    investigation_outcome: str | None
+    release_advice: str | None
+    version: int
+    created_at: datetime
+
+
+class ReviewQueueItem(BaseModel):
+    analysis_id: str
+    failure_id: str
+    run_id: str
+    project_id: str
+    test_identity: str
+    category: Category
+    severity: str
+    summary: str
+    evidence_completeness: str
+    policy_flags: list[str]
+    latest_review_version: int
+    latest_review_decision: str | None
+    created_at: datetime
 
 
 class ClusterMemberRead(BaseModel):
@@ -749,7 +911,8 @@ class ClusterDetail(ClusterSummary):
 
 
 class ClusterReviewCreate(BaseModel):
-    actor: str = Field(min_length=1, max_length=240)
+    model_config = ConfigDict(extra="forbid")
+
     decision: Literal["confirm", "split", "merge"]
     reason: str = Field(min_length=3, max_length=5000)
     expected_revision: int = Field(ge=1)

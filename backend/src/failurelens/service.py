@@ -14,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from .analysis import ANALYSIS_VERSION, RULES_VERSION, analyze_failure, input_digest
+from .auth import Principal, record_audit_event
 from .clustering import cluster_project_failures
 from .config import Settings, get_settings
 from .evidence_validation import (
@@ -552,18 +553,24 @@ def _get_or_create_text_derivative(
     return derivative
 
 
-def create_project(session: Session, slug: str, name: str) -> Project:
+def create_project(
+    session: Session, slug: str, name: str, *, commit: bool = True
+) -> Project:
     project = Project(slug=slug, name=name)
     session.add(project)
     try:
-        session.commit()
+        if commit:
+            session.commit()
+        else:
+            session.flush()
     except IntegrityError:
         session.rollback()
         existing = session.scalar(select(Project).where(Project.slug == slug))
         if existing:
             return existing
         raise
-    session.refresh(project)
+    if commit:
+        session.refresh(project)
     return project
 
 
@@ -1673,7 +1680,14 @@ def analysis_to_schema(row: Analysis) -> AnalysisResult:
     )
 
 
-def add_review(session: Session, analysis: Analysis, request: ReviewCreate) -> ReviewEvent:
+def add_review(
+    session: Session,
+    analysis: Analysis,
+    request: ReviewCreate,
+    *,
+    principal: Principal | None = None,
+    actor: str | None = None,
+) -> ReviewEvent:
     current_version = session.scalar(
         select(func.max(ReviewEvent.version)).where(ReviewEvent.analysis_id == analysis.id)
     ) or 0
@@ -1683,15 +1697,80 @@ def add_review(session: Session, analysis: Analysis, request: ReviewCreate) -> R
         )
     if request.decision == "category_correction" and request.proposed_category is None:
         raise ValueError("category_correction requires proposed_category")
+    if request.decision != "category_correction" and request.proposed_category is not None:
+        raise ValueError("proposed_category is only valid for category_correction")
+    if (
+        request.release_advice == "NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE"
+        and (
+            analysis.evidence_completeness != "complete"
+            or analysis.category in {Category.product_defect, Category.insufficient_evidence}
+            or bool(analysis.policy_flags)
+        )
+    ):
+        raise ValueError(
+            "reassuring release advice is blocked by incomplete evidence, unresolved "
+            "product risk, or active safety policy flags"
+        )
+
+    failure = session.get(Failure, analysis.failure_id)
+    if failure is None:
+        raise ValueError("analysis failure is unavailable")
+    cited_ids = set(request.supporting_evidence_ids) | set(
+        request.contradictory_evidence_ids
+    )
+    if cited_ids:
+        rows = list(
+            session.scalars(select(Evidence).where(Evidence.id.in_(sorted(cited_ids)))).all()
+        )
+        found = {row.id for row in rows if row.project_id == failure.project_id}
+        missing = sorted(cited_ids - found)
+        if missing:
+            raise ValueError(
+                "review evidence must exist in the same project: " + ", ".join(missing)
+            )
+
+    effective_principal = principal or Principal(
+        kind="user",
+        actor_id=None,
+        display_name=(actor or "legacy reviewer").strip(),
+    )
+    if not effective_principal.display_name:
+        raise ValueError("review actor is required")
     event = ReviewEvent(
         analysis_id=analysis.id,
-        actor=request.actor,
+        actor=effective_principal.display_name,
+        actor_kind=effective_principal.audit_kind,
+        actor_user_id=effective_principal.user_id,
         decision=request.decision,
         proposed_category=request.proposed_category.value if request.proposed_category else None,
         reason=request.reason,
+        supporting_evidence_ids=request.supporting_evidence_ids,
+        contradictory_evidence_ids=request.contradictory_evidence_ids,
+        hypothesis_decisions=request.hypothesis_decisions,
+        investigation_outcome=request.investigation_outcome,
+        release_advice=request.release_advice,
         version=current_version + 1,
     )
     session.add(event)
+    session.flush()
+    record_audit_event(
+        session,
+        effective_principal,
+        action="analysis.review_created",
+        resource_type="analysis_review",
+        resource_id=event.id,
+        project_id=failure.project_id,
+        reason=request.reason,
+        details={
+            "analysis_id": analysis.id,
+            "decision": request.decision,
+            "proposed_category": (
+                request.proposed_category.value if request.proposed_category else None
+            ),
+            "release_advice": request.release_advice,
+            "version": event.version,
+        },
+    )
     session.commit()
     session.refresh(event)
     return event

@@ -43,6 +43,12 @@ class Category(str, enum.Enum):
     insufficient_evidence = "insufficient_evidence"
 
 
+class ProjectRole(str, enum.Enum):
+    viewer = "viewer"
+    reviewer = "reviewer"
+    administrator = "administrator"
+
+
 class JobState(str, enum.Enum):
     queued = "queued"
     running = "running"
@@ -63,6 +69,126 @@ class IngestionState(str, enum.Enum):
     dead_lettered = "dead_lettered"
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    username: Mapped[str] = mapped_column(String(240), unique=True, index=True)
+    display_name: Mapped[str] = mapped_column(String(240))
+    password_hash: Mapped[str] = mapped_column(String(512))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_system_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    memberships: Mapped[list[ProjectMembership]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="ProjectMembership.user_id",
+    )
+    sessions: Mapped[list[AuthSession]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class ProjectMembership(Base):
+    __tablename__ = "project_memberships"
+    __table_args__ = (
+        UniqueConstraint("project_id", "user_id", name="uq_project_membership"),
+        Index("ix_project_memberships_user_project", "user_id", "project_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    role: Mapped[ProjectRole] = mapped_column(Enum(ProjectRole))
+    granted_by_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+    project: Mapped[Project] = relationship(back_populates="memberships")
+    user: Mapped[User] = relationship(back_populates="memberships", foreign_keys=[user_id])
+    granted_by: Mapped[User | None] = relationship(foreign_keys=[granted_by_user_id])
+
+
+class AuthSession(Base):
+    __tablename__ = "auth_sessions"
+    __table_args__ = (
+        UniqueConstraint("token_hash", name="uq_auth_session_token_hash"),
+        Index("ix_auth_sessions_user_expiry", "user_id", "expires_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token_prefix: Mapped[str] = mapped_column(String(24), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    user: Mapped[User] = relationship(back_populates="sessions")
+
+
+class IngestionToken(Base):
+    __tablename__ = "ingestion_tokens"
+    __table_args__ = (
+        UniqueConstraint("token_hash", name="uq_ingestion_token_hash"),
+        Index("ix_ingestion_tokens_project_active", "project_id", "revoked_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(240))
+    token_prefix: Mapped[str] = mapped_column(String(24), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64))
+    scopes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_by_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    project: Mapped[Project] = relationship(back_populates="ingestion_tokens")
+    created_by: Mapped[User | None] = relationship(foreign_keys=[created_by_user_id])
+
+
+class AuditEvent(Base):
+    __tablename__ = "audit_events"
+    __table_args__ = (
+        Index("ix_audit_events_project_created", "project_id", "created_at"),
+        Index("ix_audit_events_actor_created", "actor_user_id", "created_at"),
+        Index("ix_audit_events_resource", "resource_type", "resource_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str | None] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    actor_kind: Mapped[str] = mapped_column(String(40))
+    actor_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    actor_display: Mapped[str] = mapped_column(String(240))
+    action: Mapped[str] = mapped_column(String(120), index=True)
+    resource_type: Mapped[str] = mapped_column(String(80), index=True)
+    resource_id: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    outcome: Mapped[str] = mapped_column(String(40), default="succeeded")
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    correlation_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    project: Mapped[Project | None] = relationship(back_populates="audit_events")
+    actor_user: Mapped[User | None] = relationship(foreign_keys=[actor_user_id])
+
+
 class Project(Base):
     __tablename__ = "projects"
 
@@ -70,6 +196,16 @@ class Project(Base):
     slug: Mapped[str] = mapped_column(String(120), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(240))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    memberships: Mapped[list[ProjectMembership]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    ingestion_tokens: Mapped[list[IngestionToken]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    audit_events: Mapped[list[AuditEvent]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
 
     runs: Mapped[list[Run]] = relationship(back_populates="project", cascade="all, delete-orphan")
     ingestions: Mapped[list[Ingestion]] = relationship(back_populates="project", cascade="all, delete-orphan")
@@ -618,6 +754,10 @@ class ClusterMembershipDecision(Base):
         ForeignKey("failure_clusters.id", ondelete="SET NULL"), nullable=True, index=True
     )
     actor: Mapped[str] = mapped_column(String(240))
+    actor_kind: Mapped[str] = mapped_column(String(40), default="legacy")
+    actor_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     decision: Mapped[str] = mapped_column(String(40))
     reason: Mapped[str] = mapped_column(Text)
     failure_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
@@ -631,6 +771,7 @@ class ClusterMembershipDecision(Base):
     target_cluster: Mapped[FailureCluster | None] = relationship(
         foreign_keys=[target_cluster_id]
     )
+    actor_user: Mapped[User | None] = relationship(foreign_keys=[actor_user_id])
 
 
 class Analysis(Base):
@@ -684,13 +825,23 @@ class ReviewEvent(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     analysis_id: Mapped[str] = mapped_column(ForeignKey("analyses.id", ondelete="CASCADE"), index=True)
     actor: Mapped[str] = mapped_column(String(240))
+    actor_kind: Mapped[str] = mapped_column(String(40), default="legacy")
+    actor_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     decision: Mapped[str] = mapped_column(String(80))
     proposed_category: Mapped[str | None] = mapped_column(String(80), nullable=True)
     reason: Mapped[str] = mapped_column(Text)
+    supporting_evidence_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    contradictory_evidence_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    hypothesis_decisions: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    investigation_outcome: Mapped[str | None] = mapped_column(Text, nullable=True)
+    release_advice: Mapped[str | None] = mapped_column(String(80), nullable=True)
     version: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     analysis: Mapped[Analysis] = relationship(back_populates="reviews")
+    actor_user: Mapped[User | None] = relationship(foreign_keys=[actor_user_id])
 
 
 class ImpactMappingSnapshot(Base):
@@ -903,6 +1054,10 @@ class ImpactOverride(Base):
         ForeignKey("impact_recommendations.id", ondelete="CASCADE"), index=True
     )
     actor: Mapped[str] = mapped_column(String(240))
+    actor_kind: Mapped[str] = mapped_column(String(40), default="legacy")
+    actor_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     action: Mapped[str] = mapped_column(String(20))
     test_key: Mapped[str] = mapped_column(String(240))
     reason: Mapped[str] = mapped_column(Text)
@@ -913,6 +1068,7 @@ class ImpactOverride(Base):
     recommendation: Mapped[ImpactRecommendation] = relationship(
         back_populates="overrides"
     )
+    actor_user: Mapped[User | None] = relationship(foreign_keys=[actor_user_id])
 
 
 class PerformancePolicy(Base):

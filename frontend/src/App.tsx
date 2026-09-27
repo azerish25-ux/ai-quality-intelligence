@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import {
   api,
+  type AuditEvent,
+  type Category,
   type ClusterDetail,
   type ClusterRevision,
   type ClusterSummary,
@@ -11,11 +13,17 @@ import {
   type ImpactRecommendation,
   type ImpactRecommendationItem,
   type InfrastructureCorrelation,
+  type IngestionTokenRecord,
   type Overview,
   type PerformanceComparison,
   type PerformanceObservation,
   type PerformancePolicy,
+  type Principal,
   type Project,
+  type ProjectMembership,
+  type ProjectRole,
+  type ReviewEvent,
+  type ReviewQueueItem,
   type Run,
   type RunInput,
   type TestHistory
@@ -37,6 +45,12 @@ const ingestionLabel: Record<string, string> = {
   failed: 'Failed',
   cancelled: 'Cancelled',
   dead_lettered: 'Dead-lettered'
+};
+
+const roleRank: Record<ProjectRole, number> = {
+  viewer: 1,
+  reviewer: 2,
+  administrator: 3
 };
 
 const statusClass = (value: string): string => value.replaceAll('_', '-');
@@ -112,6 +126,10 @@ const defaultImpactMapping = JSON.stringify({
 }, null, 2);
 
 function App() {
+  const [principal, setPrincipal] = useState<Principal | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [overview, setOverview] = useState<Overview | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState('');
@@ -132,7 +150,6 @@ function App() {
   const [selectedImpactId, setSelectedImpactId] = useState('');
   const [selectedImpact, setSelectedImpact] = useState<ImpactRecommendation | null>(null);
   const [impactMappingJson, setImpactMappingJson] = useState(defaultImpactMapping);
-  const [impactReviewActor, setImpactReviewActor] = useState('reviewer@example.test');
   const [impactReviewReason, setImpactReviewReason] = useState('');
   const [clusters, setClusters] = useState<ClusterSummary[]>([]);
   const [runClusters, setRunClusters] = useState<ClusterSummary[]>([]);
@@ -140,7 +157,6 @@ function App() {
   const [selectedCluster, setSelectedCluster] = useState<ClusterDetail | null>(null);
   const [clusterRevisions, setClusterRevisions] = useState<ClusterRevision[]>([]);
   const [selectedClusterMembers, setSelectedClusterMembers] = useState<string[]>([]);
-  const [clusterReviewActor, setClusterReviewActor] = useState('reviewer@example.test');
   const [clusterReviewReason, setClusterReviewReason] = useState('');
   const [mergeTargetId, setMergeTargetId] = useState('');
   const [selectedFailure, setSelectedFailure] = useState<Failure | null>(null);
@@ -167,6 +183,20 @@ function App() {
     () => new URLSearchParams(window.location.search).get('history_shards') ?? ''
   );
   const [evaluation, setEvaluation] = useState<Record<string, unknown> | null>(null);
+  const [reviewQueue, setReviewQueue] = useState<ReviewQueueItem[]>([]);
+  const [analysisReviews, setAnalysisReviews] = useState<ReviewEvent[]>([]);
+  const [reviewDecision, setReviewDecision] = useState<'accept' | 'reject' | 'needs_more_evidence' | 'category_correction'>('needs_more_evidence');
+  const [reviewCategory, setReviewCategory] = useState<Category>('insufficient_evidence');
+  const [reviewReason, setReviewReason] = useState('');
+  const [reviewOutcome, setReviewOutcome] = useState('');
+  const [reviewReleaseAdvice, setReviewReleaseAdvice] = useState<'HOLD_FOR_REVIEW' | 'INVESTIGATE' | 'NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE'>('INVESTIGATE');
+  const [members, setMembers] = useState<ProjectMembership[]>([]);
+  const [ingestionTokens, setIngestionTokens] = useState<IngestionTokenRecord[]>([]);
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
+  const [memberUsername, setMemberUsername] = useState('');
+  const [memberRole, setMemberRole] = useState<ProjectRole>('viewer');
+  const [tokenName, setTokenName] = useState('');
+  const [newTokenSecret, setNewTokenSecret] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [externalId, setExternalId] = useState(newExternalId);
   const [uploadRunScope, setUploadRunScope] = useState<'full_suite' | 'impact_selected' | 'unknown'>('unknown');
@@ -175,6 +205,14 @@ function App() {
   const [fileInputKey, setFileInputKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const currentRole = useMemo<ProjectRole | null>(() => {
+    if (!principal) return null;
+    if (principal.system_admin || principal.kind === 'demo') return 'administrator';
+    return principal.memberships.find((membership) => membership.project_id === projectId)?.role ?? null;
+  }, [principal, projectId]);
+  const canReview = currentRole !== null && roleRank[currentRole] >= roleRank.reviewer;
+  const canAdminister = currentRole === 'administrator';
 
   const refreshRoot = useCallback(async () => {
     const [nextOverview, nextProjects, evaluationResponse] = await Promise.all([
@@ -246,12 +284,93 @@ function App() {
   }, []);
 
   useEffect(() => {
-    refreshRoot().catch((reason: unknown) => setError(String(reason)));
+    let cancelled = false;
+    setAuthLoading(true);
+    api.me()
+      .then(async (nextPrincipal) => {
+        if (cancelled) return;
+        setPrincipal(nextPrincipal);
+        await refreshRoot();
+      })
+      .catch((reason: unknown) => {
+        if (cancelled) return;
+        const message = String(reason);
+        if (!message.startsWith('401 ')) setError(message);
+        setPrincipal(null);
+      })
+      .finally(() => {
+        if (!cancelled) setAuthLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [refreshRoot]);
 
   useEffect(() => {
+    if (!principal) return;
     refreshProject(projectId).catch((reason: unknown) => setError(String(reason)));
-  }, [projectId, refreshProject]);
+  }, [principal, projectId, refreshProject]);
+
+  useEffect(() => {
+    if (!principal || !projectId) {
+      setReviewQueue([]);
+      setMembers([]);
+      setIngestionTokens([]);
+      setAuditEvents([]);
+      return;
+    }
+    let cancelled = false;
+    const tasks: Promise<void>[] = [];
+    if (canReview) {
+      tasks.push(
+        Promise.all([api.reviewQueue(projectId), api.auditEvents(projectId)]).then(
+          ([queue, audit]) => {
+            if (!cancelled) {
+              setReviewQueue(queue);
+              setAuditEvents(audit);
+            }
+          }
+        )
+      );
+    } else {
+      setReviewQueue([]);
+      setAuditEvents([]);
+    }
+    if (canAdminister) {
+      tasks.push(
+        Promise.all([api.projectMembers(projectId), api.ingestionTokens(projectId)]).then(
+          ([nextMembers, nextTokens]) => {
+            if (!cancelled) {
+              setMembers(nextMembers);
+              setIngestionTokens(nextTokens);
+            }
+          }
+        )
+      );
+    } else {
+      setMembers([]);
+      setIngestionTokens([]);
+    }
+    Promise.all(tasks).catch((reason: unknown) => {
+      if (!cancelled) setError(String(reason));
+    });
+    return () => { cancelled = true; };
+  }, [canAdminister, canReview, principal, projectId]);
+
+  useEffect(() => {
+    const analysisId = selectedFailure?.latest_analysis?.analysis_id;
+    if (!principal || !analysisId) {
+      setAnalysisReviews([]);
+      return;
+    }
+    let cancelled = false;
+    api.analysisReviews(analysisId)
+      .then((events) => {
+        if (!cancelled) setAnalysisReviews(events);
+      })
+      .catch((reason: unknown) => {
+        if (!cancelled) setError(String(reason));
+      });
+    return () => { cancelled = true; };
+  }, [principal, selectedFailure?.latest_analysis?.analysis_id]);
 
   useEffect(() => {
     if (!runId) {
@@ -498,6 +617,10 @@ function App() {
 
   const uploadArtifact = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canAdminister) {
+      setError('Administrator project access is required to upload artifacts.');
+      return;
+    }
     if (!projectId) {
       setError('Select a project before uploading an artifact.');
       return;
@@ -537,6 +660,10 @@ function App() {
   };
 
   const retryIngestion = async (ingestion: Ingestion) => {
+    if (!canAdminister) {
+      setError('Administrator project access is required to retry an ingestion.');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -552,6 +679,10 @@ function App() {
   };
 
   const cancelIngestion = async (ingestion: Ingestion) => {
+    if (!canAdminister) {
+      setError('Administrator project access is required to cancel an ingestion.');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -567,6 +698,10 @@ function App() {
   };
 
   const analyze = async (failure: Failure) => {
+    if (!canReview) {
+      setError('Reviewer project access is required to create an analysis revision.');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -583,6 +718,10 @@ function App() {
   };
 
   const persistInfrastructureCorrelation = async () => {
+    if (!canReview) {
+      setError('Reviewer project access is required to persist an infrastructure snapshot.');
+      return;
+    }
     if (!selectedFailure) {
       setError('Select a failure before creating an infrastructure-correlation snapshot.');
       return;
@@ -620,6 +759,10 @@ function App() {
   };
 
   const registerDefaultPerformancePolicy = async () => {
+    if (!canAdminister) {
+      setError('Administrator project access is required to register a performance policy.');
+      return;
+    }
     if (!projectId) {
       setError('Select a project before registering a performance policy.');
       return;
@@ -645,6 +788,10 @@ function App() {
   };
 
   const generatePerformanceComparisons = async () => {
+    if (!canReview) {
+      setError('Reviewer project access is required to persist performance comparisons.');
+      return;
+    }
     if (!runId) {
       setError('Select a run before comparing performance observations.');
       return;
@@ -678,6 +825,10 @@ function App() {
 
   const registerImpactMapping = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canAdminister) {
+      setError('Administrator project access is required to register an impact mapping.');
+      return;
+    }
     if (!projectId) {
       setError('Select a project before registering an impact mapping snapshot.');
       return;
@@ -697,6 +848,10 @@ function App() {
   };
 
   const generateImpactRecommendation = async () => {
+    if (!canReview) {
+      setError('Reviewer project access is required to create an impact recommendation.');
+      return;
+    }
     if (!projectId || !runId || !impactMappingId) {
       setError('Select a project, run, and immutable mapping snapshot before generating a recommendation.');
       return;
@@ -731,17 +886,19 @@ function App() {
     action: 'include' | 'exclude'
   ) => {
     if (!selectedImpact) return;
-    const actor = impactReviewActor.trim();
     const reason = impactReviewReason.trim();
-    if (!actor || !reason) {
-      setError('Impact overrides require an attributed actor and a concrete engineering reason.');
+    if (!canReview) {
+      setError('Reviewer project access is required for an impact override.');
+      return;
+    }
+    if (!reason) {
+      setError('Impact overrides require a concrete engineering reason.');
       return;
     }
     setBusy(true);
     setError(null);
     try {
       const recommendation = await api.overrideImpactRecommendation(selectedImpact.id, {
-        actor,
         action,
         testKey: item.test_key,
         reason,
@@ -770,9 +927,12 @@ function App() {
   const submitClusterReview = async (decision: 'confirm' | 'split' | 'merge') => {
     if (!selectedCluster) return;
     const reason = clusterReviewReason.trim();
-    const actor = clusterReviewActor.trim();
-    if (!actor || !reason) {
-      setError('Cluster reviews require an actor and a concrete engineering reason.');
+    if (!canReview) {
+      setError('Reviewer project access is required for a cluster correction.');
+      return;
+    }
+    if (!reason) {
+      setError('Cluster reviews require a concrete engineering reason.');
       return;
     }
     if (decision === 'split' && selectedClusterMembers.length === 0) {
@@ -788,7 +948,6 @@ function App() {
     setError(null);
     try {
       const detail = await api.reviewCluster(selectedCluster.id, {
-        actor,
         decision,
         reason,
         expectedRevision: selectedCluster.current_revision,
@@ -813,6 +972,211 @@ function App() {
     }
   };
 
+  const submitLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await api.login(loginUsername.trim(), loginPassword);
+      setPrincipal(response.principal);
+      setLoginPassword('');
+      await refreshRoot();
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const logout = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.logout();
+      setPrincipal(null);
+      setProjects([]);
+      setProjectId('');
+      setRuns([]);
+      setRunId('');
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const refreshGovernance = async () => {
+    if (!projectId || !principal) return;
+    const tasks: Promise<unknown>[] = [];
+    if (canReview) {
+      tasks.push(api.reviewQueue(projectId).then(setReviewQueue));
+      tasks.push(api.auditEvents(projectId).then(setAuditEvents));
+    }
+    if (canAdminister) {
+      tasks.push(api.projectMembers(projectId).then(setMembers));
+      tasks.push(api.ingestionTokens(projectId).then(setIngestionTokens));
+    }
+    await Promise.all(tasks);
+  };
+
+  const openReviewQueueItem = async (item: ReviewQueueItem) => {
+    setError(null);
+    setRunId(item.run_id);
+    try {
+      const nextFailures = await api.failures(item.run_id);
+      setFailures(nextFailures);
+      setSelectedFailure(
+        nextFailures.find((failure) => failure.id === item.failure_id) ?? nextFailures[0] ?? null
+      );
+      document.getElementById('workspace')?.scrollIntoView({ behavior: 'smooth' });
+    } catch (reason) {
+      setError(String(reason));
+    }
+  };
+
+  const submitAnalysisReview = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const analysis = selectedFailure?.latest_analysis;
+    if (!analysis || !canReview) {
+      setError('Select an analyzed failure with reviewer project access.');
+      return;
+    }
+    const reason = reviewReason.trim();
+    if (!reason) {
+      setError('A concrete review reason is required.');
+      return;
+    }
+    const expectedVersion = analysisReviews.reduce(
+      (highest, review) => Math.max(highest, review.version),
+      0
+    );
+    setBusy(true);
+    setError(null);
+    try {
+      const created = await api.reviewAnalysis(analysis.analysis_id, {
+        decision: reviewDecision,
+        proposedCategory: reviewDecision === 'category_correction' ? reviewCategory : undefined,
+        reason,
+        expectedVersion,
+        investigationOutcome: reviewOutcome.trim() || undefined,
+        releaseAdvice: reviewReleaseAdvice
+      });
+      setAnalysisReviews((current) => [...current, created]);
+      setReviewReason('');
+      setReviewOutcome('');
+      await refreshGovernance();
+    } catch (reasonValue) {
+      setError(String(reasonValue));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const addProjectMember = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!projectId || !canAdminister) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const created = await api.addProjectMember(projectId, memberUsername.trim(), memberRole);
+      setMembers((current) => [...current, created].sort((left, right) => left.username.localeCompare(right.username)));
+      setMemberUsername('');
+      await api.auditEvents(projectId).then(setAuditEvents);
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const changeProjectMemberRole = async (membershipId: string, role: ProjectRole) => {
+    if (!projectId || !canAdminister) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await api.updateProjectMember(projectId, membershipId, role);
+      setMembers((current) => current.map((member) => member.id === updated.id ? updated : member));
+      await api.auditEvents(projectId).then(setAuditEvents);
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeProjectMember = async (membershipId: string) => {
+    if (!projectId || !canAdminister) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.removeProjectMember(projectId, membershipId);
+      setMembers((current) => current.filter((member) => member.id !== membershipId));
+      await api.auditEvents(projectId).then(setAuditEvents);
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const createIngestionCredential = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!projectId || !canAdminister) return;
+    const name = tokenName.trim();
+    if (!name) {
+      setError('A token name is required.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const created = await api.createIngestionToken(projectId, name);
+      setNewTokenSecret(created.token ?? null);
+      setIngestionTokens((current) => [created, ...current.filter((token) => token.id !== created.id)]);
+      setTokenName('');
+      await api.auditEvents(projectId).then(setAuditEvents);
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revokeIngestionCredential = async (tokenId: string) => {
+    if (!projectId || !canAdminister) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await api.revokeIngestionToken(projectId, tokenId);
+      setIngestionTokens((current) => current.map((token) => token.id === updated.id ? updated : token));
+      await api.auditEvents(projectId).then(setAuditEvents);
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (authLoading) {
+    return <div className="auth-shell"><div className="auth-card" role="status"><p className="eyebrow">FAILURELENS</p><h1>Verifying session</h1><p>Loading the authenticated project scope…</p></div></div>;
+  }
+
+  if (!principal) {
+    return (
+      <div className="auth-shell">
+        <form className="auth-card" onSubmit={submitLogin}>
+          <p className="eyebrow">FAILURELENS</p>
+          <h1>Sign in</h1>
+          <p>Use a self-hosted FailureLens account. Project permissions are applied after authentication.</p>
+          {error && <div className="alert" role="alert">{error}</div>}
+          <label>Username<input autoComplete="username" value={loginUsername} onChange={(event: ChangeEvent<HTMLInputElement>) => setLoginUsername(event.target.value)} required /></label>
+          <label>Password<input type="password" autoComplete="current-password" value={loginPassword} onChange={(event: ChangeEvent<HTMLInputElement>) => setLoginPassword(event.target.value)} required /></label>
+          <button className="primary" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -826,6 +1190,9 @@ function App() {
           <a href="#clusters">Clusters</a>
           <a href="#workspace">Failure workspace</a>
           <a href="#history">Test history</a>
+          {canReview && <a href="#reviews">Review queue</a>}
+          {canAdminister && <a href="#settings">Settings</a>}
+          {canReview && <a href="#audit">Audit</a>}
           <a href="#evaluation">Evaluation</a>
         </nav>
         <div className="sidebar-note">Durable deterministic mode<br/><span>No model API required</span></div>
@@ -834,8 +1201,16 @@ function App() {
       <main>
         <header className="topbar">
           <div><p className="eyebrow">QUALITY INTELLIGENCE</p><h1>Failure investigation console</h1></div>
-          <button className="primary" onClick={seedDemo} disabled={busy}>{busy ? 'Working…' : 'Load synthetic demo'}</button>
+          <div>
+            {principal.demo_mode && canAdminister && <button className="primary" onClick={seedDemo} disabled={busy}>{busy ? 'Working…' : 'Load synthetic demo'}</button>}
+            <div className="identity-bar" aria-label="Authenticated identity">
+              <span><strong>{principal.display_name}</strong> · {readableValue(currentRole ?? 'no project role')}</span>
+              {principal.kind === 'user' && <button className="ghost-button" type="button" onClick={logout} disabled={busy}>Sign out</button>}
+            </div>
+          </div>
         </header>
+
+        {principal.demo_mode && <div className="demo-banner" role="status"><strong>Synthetic demo identity.</strong> This loopback-oriented mode bypasses normal login for a visibly labeled administrator and must not be exposed as production authentication.</div>}
 
         {error && <div className="alert" role="alert">{error}</div>}
 
@@ -873,7 +1248,7 @@ function App() {
             <label>Environment<input placeholder="Optional, e.g. CI Linux" value={uploadEnvironment} onChange={(event: ChangeEvent<HTMLInputElement>) => setUploadEnvironment(event.target.value)}/></label>
             <label>Expected required inputs<input inputMode="numeric" min="0" step="1" placeholder="Optional" value={expectedInputs} onChange={(event: ChangeEvent<HTMLInputElement>) => setExpectedInputs(event.target.value)}/></label>
             <label className="file-field">Report file<input key={fileInputKey} type="file" accept=".xml,.json,.jsonl,.har,.log,.txt,.zip,.png,.jpg,.jpeg,application/xml,application/json,application/zip,text/plain,image/png,image/jpeg" onChange={(event: ChangeEvent<HTMLInputElement>) => setSelectedFile(event.target.files?.[0] ?? null)} required/><small>{selectedFile ? `${selectedFile.name} · ${Math.ceil(selectedFile.size / 1024)} KiB` : 'Supported report, evidence file, or manifest v2 ZIP'}</small></label>
-            <button className="primary" type="submit" disabled={busy || !projectId || !selectedFile}>{busy ? 'Working…' : 'Queue ingestion'}</button>
+            <button className="primary" type="submit" disabled={busy || !canAdminister || !projectId || !selectedFile}>{busy ? 'Working…' : 'Queue ingestion'}</button>
           </form>
 
           <div className="ingestion-list" aria-live="polite">
@@ -891,8 +1266,8 @@ function App() {
                   <div className="ingestion-stats"><span>{ingestion.received_inputs}/{ingestion.expected_inputs ?? '—'} inputs</span><code>{ingestion.source_digest.slice(0, 10)}</code></div>
                   <div className="ingestion-actions">
                     {ingestion.run_id && <button type="button" onClick={() => setRunId(ingestion.run_id ?? '')}>Open run</button>}
-                    {!terminalIngestionStates.has(ingestion.state) && <button type="button" onClick={() => cancelIngestion(ingestion)} disabled={busy}>Cancel</button>}
-                    {['failed', 'dead_lettered', 'cancelled'].includes(ingestion.state) && <button type="button" onClick={() => retryIngestion(ingestion)} disabled={busy}>Retry</button>}
+                    {!terminalIngestionStates.has(ingestion.state) && <button type="button" onClick={() => cancelIngestion(ingestion)} disabled={busy || !canAdminister}>Cancel</button>}
+                    {['failed', 'dead_lettered', 'cancelled'].includes(ingestion.state) && <button type="button" onClick={() => retryIngestion(ingestion)} disabled={busy || !canAdminister}>Retry</button>}
                   </div>
                 </article>
               );
@@ -948,7 +1323,7 @@ function App() {
           <div className="impact-controls">
             <label>Impact run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setRunId(event.target.value)}><option value="">Select a run</option>{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.commit_sha?.slice(0, 10) ?? 'head unknown'}</option>)}</select></label>
             <label>Impact mapping<select value={impactMappingId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setImpactMappingId(event.target.value)}><option value="">Select mapping snapshot</option>{impactMappings.map((mapping) => <option key={mapping.id} value={mapping.id}>{mapping.version} · {mapping.test_count} tests · {mapping.trusted && mapping.coverage_complete ? 'trusted' : 'fallback only'}</option>)}</select></label>
-            <button className="primary" type="button" onClick={generateImpactRecommendation} disabled={busy || !runId || !impactMappingId}>Generate recommendation</button>
+            <button className="primary" type="button" onClick={generateImpactRecommendation} disabled={busy || !canReview || !runId || !impactMappingId}>Generate recommendation</button>
             <label>Saved recommendation<select value={selectedImpactId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setSelectedImpactId(event.target.value)}><option value="">Select recommendation</option>{impactRecommendations.map((recommendation) => <option key={recommendation.id} value={recommendation.id}>{recommendation.head_sha?.slice(0, 10) ?? 'unknown head'} · {readableValue(recommendation.status)}</option>)}</select></label>
           </div>
 
@@ -956,7 +1331,7 @@ function App() {
             <summary>Register an immutable mapping snapshot</summary>
             <form onSubmit={registerImpactMapping}>
               <label>Impact mapping manifest<textarea rows={16} spellCheck={false} value={impactMappingJson} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setImpactMappingJson(event.target.value)} /></label>
-              <button type="submit" disabled={busy || !projectId}>Register mapping snapshot</button>
+              <button type="submit" disabled={busy || !canAdminister || !projectId}>Register mapping snapshot</button>
             </form>
             <p>Use explicit file-to-test, coverage, ownership, historical-failure, or reverse-dependency edges. A reused version name must have identical content.</p>
           </details>
@@ -975,8 +1350,8 @@ function App() {
               <div className="impact-changes"><h3>Validated change set</h3>{selectedImpact.changed_files.map((change, index) => <span key={`${String(change.path)}-${index}`}><strong>{String(change.status)}</strong> {String(change.old_path ? `${change.old_path} → ` : '')}{String(change.path)}</span>)}</div>
 
               <div className="impact-review-controls">
-                <label>Impact reviewer<input value={impactReviewActor} onChange={(event: ChangeEvent<HTMLInputElement>) => setImpactReviewActor(event.target.value)} /></label>
-                <label>Impact override reason<input value={impactReviewReason} onChange={(event: ChangeEvent<HTMLInputElement>) => setImpactReviewReason(event.target.value)} placeholder="Required before including or excluding a test" /></label>
+                <p className="identity-note">Verified reviewer: <strong>{principal.display_name}</strong>. The server records this authenticated identity.</p>
+                <label>Impact override reason<input value={impactReviewReason} onChange={(event: ChangeEvent<HTMLInputElement>) => setImpactReviewReason(event.target.value)} placeholder="Required before including or excluding a test" disabled={!canReview} /></label>
               </div>
 
               <div className="impact-test-grid">
@@ -986,7 +1361,7 @@ function App() {
                     <article className="impact-test-row" key={item.test_key}>
                       <div><strong>{item.test_identity}</strong><small>{item.mandatory ? 'Mandatory · ' : ''}{item.confidence} confidence · {item.selection_source}</small><div className="impact-reasons">{item.reason_codes.map((reason) => <code key={reason}>{readableValue(reason)}</code>)}</div></div>
                       <span className={`impact-criticality ${item.criticality}`}>{item.criticality}</span>
-                      <button type="button" onClick={() => applyImpactOverride(item, 'exclude')} disabled={busy || selectedImpact.full_suite_required || item.mandatory || item.criticality === 'critical'}>Exclude</button>
+                      <button type="button" onClick={() => applyImpactOverride(item, 'exclude')} disabled={busy || !canReview || selectedImpact.full_suite_required || item.mandatory || item.criticality === 'critical'}>Exclude</button>
                     </article>
                   ))}
                 </section>
@@ -997,7 +1372,7 @@ function App() {
                     <article className="impact-test-row" key={item.test_key}>
                       <div><strong>{item.test_identity}</strong><small>{item.exclusion_reason}</small></div>
                       <span className={`impact-criticality ${item.criticality}`}>{item.criticality}</span>
-                      <button type="button" onClick={() => applyImpactOverride(item, 'include')} disabled={busy}>Include</button>
+                      <button type="button" onClick={() => applyImpactOverride(item, 'include')} disabled={busy || !canReview}>Include</button>
                     </article>
                   ))}
                 </section>
@@ -1024,8 +1399,8 @@ function App() {
           <div className="performance-controls">
             <label>Performance run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setRunId(event.target.value)}><option value="">Select a run</option>{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.commit_sha?.slice(0, 10) ?? 'head unknown'}</option>)}</select></label>
             <label>Immutable policy<select value={performancePolicyId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setPerformancePolicyId(event.target.value)}><option value="">Default strict policy</option>{performancePolicies.map((policy) => <option key={policy.id} value={policy.id}>{policy.version} · {Math.round(policy.relative_tolerance * 100)}% · {policy.min_baseline_runs} runs</option>)}</select></label>
-            {performancePolicies.length === 0 && <button type="button" onClick={registerDefaultPerformancePolicy} disabled={busy || !projectId}>Register strict policy</button>}
-            <button className="primary" type="button" onClick={generatePerformanceComparisons} disabled={busy || performanceLoading || !runId || performanceObservations.length === 0}>Compare compatible baselines</button>
+            {performancePolicies.length === 0 && <button type="button" onClick={registerDefaultPerformancePolicy} disabled={busy || !canAdminister || !projectId}>Register strict policy</button>}
+            <button className="primary" type="button" onClick={generatePerformanceComparisons} disabled={busy || !canReview || performanceLoading || !runId || performanceObservations.length === 0}>Compare compatible baselines</button>
           </div>
 
           <div className="performance-observations" aria-label="Normalized performance observations">
@@ -1183,14 +1558,14 @@ function App() {
 
                   <section className="cluster-review" aria-label="Human cluster correction">
                     <h3>Record a reviewed correction</h3>
-                    <label>Actor<input value={clusterReviewActor} onChange={(event: ChangeEvent<HTMLInputElement>) => setClusterReviewActor(event.target.value)} /></label>
-                    <label>Engineering reason<textarea rows={3} value={clusterReviewReason} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setClusterReviewReason(event.target.value)} placeholder="State the evidence supporting this correction." /></label>
-                    <label>Merge target<select value={mergeTargetId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setMergeTargetId(event.target.value)}><option value="">Select another active cluster</option>{clusters.filter((cluster) => cluster.status === 'active' && cluster.id !== selectedCluster.id).map((cluster) => <option key={cluster.id} value={cluster.id}>{cluster.representative_test_identity ?? cluster.cluster_key.slice(0, 10)} · {cluster.member_count} members</option>)}</select></label>
+                    <p className="identity-note">Verified reviewer: <strong>{principal.display_name}</strong>. Actor text is not accepted from the browser.</p>
+                    <label>Engineering reason<textarea rows={3} value={clusterReviewReason} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setClusterReviewReason(event.target.value)} placeholder="State the evidence supporting this correction." disabled={!canReview} /></label>
+                    <label>Merge target<select value={mergeTargetId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setMergeTargetId(event.target.value)} disabled={!canReview}><option value="">Select another active cluster</option>{clusters.filter((cluster) => cluster.status === 'active' && cluster.id !== selectedCluster.id).map((cluster) => <option key={cluster.id} value={cluster.id}>{cluster.representative_test_identity ?? cluster.cluster_key.slice(0, 10)} · {cluster.member_count} members</option>)}</select></label>
                     <p>{selectedClusterMembers.length} member{selectedClusterMembers.length === 1 ? '' : 's'} selected for split.</p>
                     <div className="cluster-review-actions">
-                      <button type="button" onClick={() => submitClusterReview('confirm')} disabled={busy || selectedCluster.status !== 'active'}>Confirm grouping</button>
-                      <button type="button" onClick={() => submitClusterReview('split')} disabled={busy || selectedCluster.status !== 'active' || selectedClusterMembers.length === 0}>Split selected</button>
-                      <button type="button" onClick={() => submitClusterReview('merge')} disabled={busy || selectedCluster.status !== 'active' || !mergeTargetId}>Merge into target</button>
+                      <button type="button" onClick={() => submitClusterReview('confirm')} disabled={busy || !canReview || selectedCluster.status !== 'active'}>Confirm grouping</button>
+                      <button type="button" onClick={() => submitClusterReview('split')} disabled={busy || !canReview || selectedCluster.status !== 'active' || selectedClusterMembers.length === 0}>Split selected</button>
+                      <button type="button" onClick={() => submitClusterReview('merge')} disabled={busy || !canReview || selectedCluster.status !== 'active' || !mergeTargetId}>Merge into target</button>
                     </div>
                   </section>
                 </div>
@@ -1218,27 +1593,59 @@ function App() {
                 <div className="panel-heading"><div><p className="eyebrow">FAILURE WORKSPACE</p><h2>{selectedFailure.test_identity}</h2></div><span className="mono fingerprint">{selectedFailure.fingerprint.slice(0, 12)}</span></div>
                 <div className="message-block"><span>Observed failure</span><p>{selectedFailure.message}</p></div>
                 {!selectedFailure.latest_analysis ? (
-                  <div className="empty action-empty"><p>Automatic analysis was not persisted. A manual re-analysis remains available.</p><button className="primary" onClick={() => analyze(selectedFailure)} disabled={busy}>Analyze failure</button></div>
+                  <div className="empty action-empty"><p>Automatic analysis was not persisted. A manual re-analysis remains available to project reviewers.</p><button className="primary" onClick={() => analyze(selectedFailure)} disabled={busy || !canReview}>Analyze failure</button></div>
                 ) : (
-                  <div className="analysis-grid">
-                    <div className="analysis-summary">
-                      <span className={`pill ${statusClass(selectedFailure.latest_analysis.category)}`}>{categoryLabel[selectedFailure.latest_analysis.category]}</span>
-                      <h3>{selectedFailure.latest_analysis.summary}</h3>
-                      <p>{selectedFailure.latest_analysis.confidence.explanation}</p>
-                      <dl><div><dt>Score kind</dt><dd>{selectedFailure.latest_analysis.confidence.kind}</dd></div><div><dt>Score</dt><dd>{selectedFailure.latest_analysis.confidence.value ?? 'unavailable'}</dd></div><div><dt>Evidence completeness</dt><dd>{selectedFailure.latest_analysis.evidence_completeness}</dd></div></dl>
+                  <>
+                    <div className="analysis-grid">
+                      <div className="analysis-summary">
+                        <span className={`pill ${statusClass(selectedFailure.latest_analysis.category)}`}>{categoryLabel[selectedFailure.latest_analysis.category]}</span>
+                        <h3>{selectedFailure.latest_analysis.summary}</h3>
+                        <p>{selectedFailure.latest_analysis.confidence.explanation}</p>
+                        <dl><div><dt>Score kind</dt><dd>{selectedFailure.latest_analysis.confidence.kind}</dd></div><div><dt>Score</dt><dd>{selectedFailure.latest_analysis.confidence.value ?? 'unavailable'}</dd></div><div><dt>Evidence completeness</dt><dd>{selectedFailure.latest_analysis.evidence_completeness}</dd></div></dl>
+                      </div>
+                      <div className="evidence-card">
+                        <h3>Evidence state</h3>
+                        <p><strong>{selectedFailure.latest_analysis.supporting_evidence_ids.length}</strong> supporting citations</p>
+                        <p><strong>{selectedFailure.latest_analysis.contradictory_evidence_ids.length}</strong> contradictory citations</p>
+                        <p><strong>{selectedFailure.latest_analysis.missing_evidence.length}</strong> missing inputs</p>
+                        <p><strong>{selectedFailure.latest_analysis.validation_results?.accepted_evidence_ids.length ?? 0}</strong> integrity-verified records</p>
+                        <p><strong>{selectedFailure.latest_analysis.validation_results?.rejected_evidence_ids.length ?? 0}</strong> rejected records</p>
+                        <p><strong>{selectedFailure.latest_analysis.validation_results?.status ?? 'not validated'}</strong> publication validation</p>
+                      </div>
+                      <div className="next-step"><h3>Next investigation</h3>{selectedFailure.latest_analysis.next_investigation.map((step) => <div key={step.action}><strong>{step.action}</strong><p>{step.rationale}</p></div>)}</div>
+                      {selectedFailure.latest_analysis.policy_flags.length > 0 && <div className="flags"><h3>Policy flags</h3>{selectedFailure.latest_analysis.policy_flags.map((flag) => <code key={flag}>{flag}</code>)}</div>}
                     </div>
-                    <div className="evidence-card">
-                      <h3>Evidence state</h3>
-                      <p><strong>{selectedFailure.latest_analysis.supporting_evidence_ids.length}</strong> supporting citations</p>
-                      <p><strong>{selectedFailure.latest_analysis.contradictory_evidence_ids.length}</strong> contradictory citations</p>
-                      <p><strong>{selectedFailure.latest_analysis.missing_evidence.length}</strong> missing inputs</p>
-                      <p><strong>{selectedFailure.latest_analysis.validation_results?.accepted_evidence_ids.length ?? 0}</strong> integrity-verified records</p>
-                      <p><strong>{selectedFailure.latest_analysis.validation_results?.rejected_evidence_ids.length ?? 0}</strong> rejected records</p>
-                      <p><strong>{selectedFailure.latest_analysis.validation_results?.status ?? 'not validated'}</strong> publication validation</p>
-                    </div>
-                    <div className="next-step"><h3>Next investigation</h3>{selectedFailure.latest_analysis.next_investigation.map((step) => <div key={step.action}><strong>{step.action}</strong><p>{step.rationale}</p></div>)}</div>
-                    {selectedFailure.latest_analysis.policy_flags.length > 0 && <div className="flags"><h3>Policy flags</h3>{selectedFailure.latest_analysis.policy_flags.map((flag) => <code key={flag}>{flag}</code>)}</div>}
-                  </div>
+
+                    <section className="review-panel" aria-label="Human analysis review">
+                      <div className="panel-heading compact-title-row"><div><p className="eyebrow">HUMAN DECISION</p><h3>Review history</h3></div><span className="count">{analysisReviews.length}</span></div>
+                      {analysisReviews.length === 0 ? <div className="empty">No human decision has been recorded for this analysis.</div> : (
+                        <ol className="review-history">
+                          {analysisReviews.map((review) => (
+                            <li key={review.id}>
+                              <strong>{readableValue(review.decision)}</strong>
+                              {review.proposed_category && <span> · {categoryLabel[review.proposed_category as Category] ?? readableValue(review.proposed_category)}</span>}
+                              <p>{review.reason}</p>
+                              {review.investigation_outcome && <p><strong>Outcome:</strong> {review.investigation_outcome}</p>}
+                              <small>{review.actor} · version {review.version} · {new Date(review.created_at).toLocaleString()}{review.release_advice ? ` · ${readableValue(review.release_advice)}` : ''}</small>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                      {canReview ? (
+                        <form className="review-form" onSubmit={submitAnalysisReview}>
+                          <p className="identity-note">Verified reviewer: <strong>{principal.display_name}</strong>. The machine analysis and every prior review remain unchanged.</p>
+                          <div className="review-form-grid">
+                            <label>Decision<select value={reviewDecision} onChange={(event: ChangeEvent<HTMLSelectElement>) => setReviewDecision(event.target.value as typeof reviewDecision)}><option value="accept">Accept analysis</option><option value="reject">Reject analysis</option><option value="needs_more_evidence">Needs more evidence</option><option value="category_correction">Correct category</option></select></label>
+                            <label>Proposed category<select value={reviewCategory} onChange={(event: ChangeEvent<HTMLSelectElement>) => setReviewCategory(event.target.value as Category)} disabled={reviewDecision !== 'category_correction'}>{Object.keys(categoryLabel).map((category) => <option key={category} value={category}>{categoryLabel[category]}</option>)}</select></label>
+                            <label>Advisory state<select value={reviewReleaseAdvice} onChange={(event: ChangeEvent<HTMLSelectElement>) => setReviewReleaseAdvice(event.target.value as typeof reviewReleaseAdvice)}><option value="HOLD_FOR_REVIEW">Hold for review</option><option value="INVESTIGATE">Investigate</option><option value="NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE">No blocker identified in observed scope</option></select></label>
+                          </div>
+                          <label>Engineering reason<textarea value={reviewReason} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setReviewReason(event.target.value)} placeholder="State the evidence and reasoning for this decision." required /></label>
+                          <label>Investigation outcome<textarea value={reviewOutcome} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setReviewOutcome(event.target.value)} placeholder="Optional follow-up, owner, or unresolved question." /></label>
+                          <button className="primary" type="submit" disabled={busy}>Record append-only decision</button>
+                        </form>
+                      ) : <p className="identity-note">Viewer access is read-only. A reviewer or administrator must record a decision.</p>}
+                    </section>
+                  </>
                 )}
               </>
             )}
@@ -1336,7 +1743,7 @@ function App() {
                         <p className="history-provenance mono">Infrastructure policy {infrastructureCorrelation.policy_version} · engine {infrastructureCorrelation.engine_version} · window ±{infrastructureCorrelation.window_seconds}s · input {infrastructureCorrelation.input_digest.slice(0, 16)}.</p>
                       </>
                     )}
-                    <button className="secondary" type="button" onClick={persistInfrastructureCorrelation} disabled={busy || infrastructureLoading || !selectedFailure}>
+                    <button className="secondary" type="button" onClick={persistInfrastructureCorrelation} disabled={busy || !canReview || infrastructureLoading || !selectedFailure}>
                       {infrastructureSnapshot?.snapshot_id ? 'Snapshot persisted' : 'Persist immutable correlation snapshot'}
                     </button>
                   </section>
@@ -1373,6 +1780,91 @@ function App() {
             </>
           )}
         </section>
+
+        {canReview && (
+          <section id="reviews" className="panel review-queue-panel">
+            <div className="panel-heading"><div><p className="eyebrow">VERIFIED HUMAN WORKFLOW</p><h2>Review queue</h2></div><span className="count">{reviewQueue.length}</span></div>
+            <p className="limitation">The queue contains latest analyses without a terminal accept, reject, or category-correction decision. Opening an item preserves the machine result and prior review history.</p>
+            {reviewQueue.length === 0 ? <div className="empty">No pending analyses are available for this project.</div> : (
+              <div className="table-wrap">
+                <table>
+                  <thead><tr><th>Test</th><th>Machine category</th><th>Evidence</th><th>Latest decision</th><th/></tr></thead>
+                  <tbody>{reviewQueue.map((item) => (
+                    <tr key={item.analysis_id}>
+                      <td><strong>{item.test_identity}</strong><small>{item.summary}</small></td>
+                      <td><span className={`pill ${statusClass(item.category)}`}>{categoryLabel[item.category]}</span><small>{item.severity} severity</small></td>
+                      <td>{readableValue(item.evidence_completeness)}<small>{item.policy_flags.length > 0 ? item.policy_flags.join(' · ') : 'No active policy flags'}</small></td>
+                      <td>{item.latest_review_decision ? readableValue(item.latest_review_decision) : 'Unreviewed'}<small>version {item.latest_review_version}</small></td>
+                      <td><button type="button" onClick={() => openReviewQueueItem(item)}>Open failure</button></td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )}
+
+        {canAdminister && (
+          <section id="settings" className="panel settings-panel">
+            <div className="panel-heading"><div><p className="eyebrow">PROJECT ADMINISTRATION</p><h2>Roles and ingestion credentials</h2></div><span className="state succeeded">Administrator</span></div>
+            <div className="settings-grid">
+              <section className="settings-block" aria-label="Project memberships">
+                <div><h3>Project members</h3><p>Users must already exist. A system administrator can provision users through the typed user API.</p></div>
+                <form className="inline-form" onSubmit={addProjectMember}>
+                  <label>Username<input value={memberUsername} onChange={(event: ChangeEvent<HTMLInputElement>) => setMemberUsername(event.target.value)} placeholder="reviewer@example.test" required /></label>
+                  <label>Role<select value={memberRole} onChange={(event: ChangeEvent<HTMLSelectElement>) => setMemberRole(event.target.value as ProjectRole)}><option value="viewer">Viewer</option><option value="reviewer">Reviewer</option><option value="administrator">Administrator</option></select></label>
+                  <button type="submit" disabled={busy || !memberUsername.trim()}>Add member</button>
+                </form>
+                {members.length === 0 ? <div className="empty">No explicit memberships exist. System administrators retain bootstrap access.</div> : (
+                  <div className="table-wrap"><table><thead><tr><th>User</th><th>Role</th><th/></tr></thead><tbody>{members.map((member) => (
+                    <tr key={member.id}>
+                      <td><strong>{member.display_name}</strong><small>{member.username}</small></td>
+                      <td><select aria-label={`Role for ${member.username}`} value={member.role} onChange={(event: ChangeEvent<HTMLSelectElement>) => changeProjectMemberRole(member.id, event.target.value as ProjectRole)} disabled={busy}><option value="viewer">Viewer</option><option value="reviewer">Reviewer</option><option value="administrator">Administrator</option></select></td>
+                      <td><button className="danger-button" type="button" onClick={() => removeProjectMember(member.id)} disabled={busy}>Remove</button></td>
+                    </tr>
+                  ))}</tbody></table></div>
+                )}
+              </section>
+
+              <section className="settings-block" aria-label="Project ingestion credentials">
+                <div><h3>Ingestion credentials</h3><p>Each secret is bound to this project and can only create artifact ingestions. It cannot read evidence or perform reviews.</p></div>
+                <form className="inline-form" onSubmit={createIngestionCredential}>
+                  <label>Credential name<input value={tokenName} onChange={(event: ChangeEvent<HTMLInputElement>) => setTokenName(event.target.value)} placeholder="GitHub Actions" required /></label>
+                  <span/>
+                  <button type="submit" disabled={busy || !tokenName.trim()}>Create token</button>
+                </form>
+                {newTokenSecret && <div className="secret-once" role="status"><strong>Copy this secret now. It will not be shown again.</strong><code>{newTokenSecret}</code><button type="button" onClick={() => navigator.clipboard?.writeText(newTokenSecret)}>Copy token</button></div>}
+                <ul className="token-list">
+                  {ingestionTokens.map((token) => (
+                    <li key={token.id}>
+                      <div><strong>{token.name}</strong><small>{token.token_prefix}… · {token.scopes.join(', ')} · created {new Date(token.created_at).toLocaleDateString()}{token.last_used_at ? ` · last used ${new Date(token.last_used_at).toLocaleString()}` : ''}</small></div>
+                      {token.revoked_at ? <span className="state failed">Revoked</span> : <button className="danger-button" type="button" onClick={() => revokeIngestionCredential(token.id)} disabled={busy}>Revoke</button>}
+                    </li>
+                  ))}
+                </ul>
+                {ingestionTokens.length === 0 && <div className="empty">No project ingestion credentials exist.</div>}
+              </section>
+            </div>
+          </section>
+        )}
+
+        {canReview && (
+          <section id="audit" className="panel audit-panel">
+            <div className="panel-heading"><div><p className="eyebrow">APPEND-ONLY APPLICATION HISTORY</p><h2>Project audit events</h2></div><span className="count">{auditEvents.length}</span></div>
+            <p className="limitation">These events preserve verified application actors and reasons. They are not represented as cryptographically immutable against a database administrator.</p>
+            {auditEvents.length === 0 ? <div className="empty">No project audit events are available.</div> : (
+              <div className="table-wrap"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Resource</th><th>Reason</th></tr></thead><tbody>{auditEvents.map((event) => (
+                <tr key={event.id}>
+                  <td>{new Date(event.created_at).toLocaleString()}</td>
+                  <td><strong>{event.actor_display}</strong><small>{readableValue(event.actor_kind)}</small></td>
+                  <td>{readableValue(event.action)}<small>{readableValue(event.outcome)}</small></td>
+                  <td>{readableValue(event.resource_type)}<small>{event.resource_id ?? 'No resource identifier'}</small></td>
+                  <td>{event.reason ?? 'No free-text reason'} </td>
+                </tr>
+              ))}</tbody></table></div>
+            )}
+          </section>
+        )}
 
         <section id="evaluation" className="panel evaluation">
           <div className="panel-heading"><div><p className="eyebrow">FROZEN CONTROLLED CORPUS</p><h2>Deterministic evaluation</h2></div><span className="pill insufficient-evidence">Synthetic evidence only</span></div>

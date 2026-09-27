@@ -12,6 +12,7 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from .auth import Principal, record_audit_event
 from .models import (
     ImpactMappingEdge,
     ImpactMappingSnapshot,
@@ -894,6 +895,9 @@ def apply_impact_override(
     session: Session,
     recommendation: ImpactRecommendation,
     request: ImpactOverrideCreate,
+    *,
+    principal: Principal | None = None,
+    actor: str | None = None,
 ) -> ImpactRecommendation:
     if recommendation.current_revision != request.expected_revision:
         raise ValueError(
@@ -931,9 +935,16 @@ def apply_impact_override(
     if result.rowcount != 1:
         session.rollback()
         raise ValueError("impact recommendation revision conflict")
+    effective_principal = principal or Principal(
+        kind="user",
+        actor_id=None,
+        display_name=(actor or "legacy reviewer").strip(),
+    )
     event = ImpactOverride(
         recommendation_id=recommendation.id,
-        actor=request.actor,
+        actor=effective_principal.display_name,
+        actor_kind=effective_principal.audit_kind,
+        actor_user_id=effective_principal.user_id,
         action=request.action,
         test_key=request.test_key,
         reason=request.reason,
@@ -941,6 +952,23 @@ def apply_impact_override(
         revision_after=revision_after,
     )
     session.add(event)
+    session.flush()
+    record_audit_event(
+        session,
+        effective_principal,
+        action="impact.override_created",
+        resource_type="impact_override",
+        resource_id=event.id,
+        project_id=recommendation.project_id,
+        reason=request.reason,
+        details={
+            "recommendation_id": recommendation.id,
+            "test_key": request.test_key,
+            "override_action": request.action,
+            "revision_before": revision_before,
+            "revision_after": revision_after,
+        },
+    )
     session.commit()
     session.expire_all()
     refreshed = get_impact_recommendation(session, recommendation.id)

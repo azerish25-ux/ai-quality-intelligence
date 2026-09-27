@@ -3,9 +3,9 @@
 
 FailureLens is a self-hosted quality-intelligence platform that turns automated-test artifacts into evidence-linked failure investigations. Its mandatory analysis path is deterministic and CPU-only: no paid model API, cloud account, GPU, or runtime model download is required.
 
-> **Current delivery status: M1, M3, and M4 are complete; M2 remains partial. FailureLens now provides prior-only historical intelligence, evidence-grounded infrastructure-event correlations, explainable change-impact recommendations, and compatibility-gated performance-regression analysis. The full master specification remains incomplete.**
+> **Current delivery status: M1, M3, and M4 are complete; M2 and M5 remain partial. FailureLens now provides prior-only historical intelligence, evidence-grounded infrastructure-event correlations, explainable change-impact recommendations, compatibility-gated performance-regression analysis, and an M5.1 project-scoped identity/review foundation. The full master specification remains incomplete.**
 >
-> This revision closes M4 by adding first-class independently recorded infrastructure events, strict trust/context/time compatibility, deterministic exposed-versus-unexposed cohorts, immutable correlation snapshots, typed API/CLI operations, a real dashboard workflow, Chromium coverage, and an 18-case adversarial safety benchmark. Safe binary derivatives, producer-pinned integration fixtures, project-scoped roles, actual LedgerGuard evaluation cases, and live idempotent PR publication remain open.
+> This revision adds authenticated human sessions, project-scoped viewer/reviewer/administrator roles, one-time project ingestion credentials, verified reviewer attribution, append-only application audit events, a review queue, and role-aware dashboard settings. Safe binary derivatives, producer-pinned integration fixtures, broader accessibility/browser coverage, actual LedgerGuard evaluation cases, and live idempotent PR publication remain open.
 
 ## What works
 
@@ -17,6 +17,9 @@ FailureLens is a self-hosted quality-intelligence platform that turns automated-
 - Durable states: `queued`, `running`, `succeeded`, `partial`, `failed`, `cancelled`, and `dead_lettered`.
 - PostgreSQL job claiming with leases, heartbeats, stale-lease recovery, bounded retry, permanent-input failure handling, cancellation safety and idempotent replay.
 - Automatic deterministic analysis after parsing; the normal flow requires no second analysis request.
+- Salted `scrypt` human credentials, revocable hashed sessions, and project-bound hashed ingestion credentials whose plaintext is shown only once.
+- Project-scoped `viewer`, `reviewer`, and `administrator` authorization across every existing resource endpoint, including not-found behavior for guessed cross-project identifiers.
+- Server-derived reviewer identity, optimistic review versions, same-project evidence checks, conservative release-advice gates, and append-only project audit events.
 
 ### Manifest `2.0` and honest completeness
 
@@ -79,8 +82,8 @@ Support depth and known limits are documented in [`docs/input-compatibility.md`]
 - Conservative complete-link membership checks that prevent transitive A–B–C bridge merges and retain singleton outliers, mixed signals and uncertainty.
 - Persisted cluster identities, representative failures, score components, matching/conflicting signals and append-only revision history.
 - Human-reviewed cluster confirmation, split and merge decisions with optimistic revision checks; prior memberships are never overwritten.
-- Append-only human review events with optimistic version checks.
-- React/Vite dashboard with uploads, live ingestion status, cancellation/retry, run navigation, per-input completeness diagnostics, explainable impact selection/overrides, compatible performance baselines/findings, infrastructure-event context and snapshot persistence, cluster inspection/correction, failure inspection, prior-only historical intelligence and evaluation results.
+- Append-only human review events with optimistic version checks, supporting/counterevidence, hypothesis dispositions, investigation outcomes and advisory release states.
+- React/Vite dashboard with authenticated identity, role-aware review/settings controls, review queue, audit stream, project membership and ingestion-token administration, uploads, live ingestion status, cancellation/retry, run navigation, per-input completeness diagnostics, explainable impact selection/overrides, compatible performance baselines/findings, infrastructure-event context and snapshot persistence, cluster inspection/correction, failure inspection, prior-only historical intelligence and evaluation results.
 - Composite GitHub Action using the same durable ingestion and deterministic report path.
 - Versioned 200-case synthetic corpus with group-preserving splits and explicit limitations.
 - Separate 24-case/13-incident clustering fixture measuring pairwise precision/recall, false merges, false splits and adjusted Rand index.
@@ -91,16 +94,16 @@ Support depth and known limits are documented in [`docs/input-compatibility.md`]
 ## Verification for this checkpoint
 
 ```text
-163 backend tests passed
-85.10% branch-aware backend coverage (75% gate)
+171 backend tests passed
+84.18% branch-aware backend coverage (75% gate)
 Python source, tests and all deterministic evaluation harnesses compile successfully
-SQLite migration upgrade/downgrade/re-upgrade passed through `c7a9e2f4b610`
+SQLite migration upgrade/downgrade/re-upgrade passed through `a4f6e8c2d901`
 Impact benchmark: 12/12 status decisions correct, 1.000 defect-revealing and mandatory-critical recall
 Performance benchmark: 20/20 status decisions correct, 1.000 regression recall and compatibility-selection accuracy, 0/5 dangerous false negatives
 Infrastructure benchmark: 18/18 status decisions correct, 1.000 compatibility/provenance accuracy, 0 future/cross-project leaks, 0 unsupported causality claims and 0/1 product-defect downgrades
 ```
 
-The isolated implementation container could not restore the locked npm dependency graph because registry DNS was unavailable, so frontend unit/build and Chromium results must be taken from the committed GitHub workflow on the exact delivered SHA. PostgreSQL migration integration and Docker image execution are likewise verified in CI rather than inferred from workflow source.
+Exact backend/frontend/browser/PostgreSQL/Docker verification for the delivered revision is recorded in the GitHub workflow. Local checks are reported separately and are not used as a substitute for delivered CI.
 
 Synthetic benchmark results apply only to the committed public synthetic corpus; they are not deployment guarantees and do not satisfy the requirement for actual executed LedgerGuard cases.
 
@@ -116,6 +119,8 @@ Open:
 - API documentation: `http://localhost:8000/docs`
 
 Use **Load synthetic demo** to create a clearly labeled project, then upload a supported standalone artifact or manifest `2.0` ZIP from the **Durable pipeline** panel. The dashboard polls the persisted ingestion and exposes the resulting run and its per-input diagnostics.
+
+The supplied Compose configuration is a loopback-bound synthetic demo. For a production deployment, set `FAILURELENS_DEMO_MODE=false`, configure a bootstrap administrator username and a non-placeholder password of at least 14 characters, and set `FAILURELENS_SESSION_COOKIE_SECURE=true`. Production startup rejects the deprecated global ingestion token. Administrators create project-bound ingestion credentials from the dashboard; their plaintext is shown only once.
 
 For Python development:
 
@@ -144,6 +149,7 @@ Raw API upload example:
 
 ```bash
 curl --request POST \
+  --header 'X-FailureLens-Token: <project-ingestion-token>' \
   --header 'Content-Type: application/zip' \
   --data-binary @failurelens-bundle.zip \
   'http://localhost:8000/api/v1/projects/<project-id>/ingestions?external_id=run-123&filename=failurelens-bundle.zip&expected_inputs=3&run_scope=full_suite&comparison_trust=self_reported&environment=ci-linux&timezone=America%2FHalifax'
@@ -182,7 +188,7 @@ The response is `202 Accepted` with stable ingestion/job IDs and eventually a `r
 ## Repository map
 
 ```text
-backend/src/failurelens/    API, storage, adapters, evidence, rules, clustering, history, infrastructure, impact, performance, jobs, CLI
+backend/src/failurelens/    API, authentication/RBAC/audit, storage, adapters, evidence, rules, clustering, history, infrastructure, impact, performance, jobs, CLI
 backend/migrations/         Versioned relational schema
 backend/tests/              Unit, adversarial, API and durable integration tests
 evaluation/                 Corpus generator, labeled corpus, harness, reports
@@ -195,6 +201,8 @@ docs/                       Architecture, security, compatibility, progress, req
 ## Safety model
 
 All artifact bytes, filenames, manifest fields, logs, URLs, metadata and generated analysis are untrusted. Workers re-check size and SHA-256 before parsing. Unsafe XML/ZIP structures fail with explicit codes. Text observations are sanitized into immutable safe derivatives; the validator re-reads those bytes before publication. Screenshot and trace originals remain restricted and expose only bounded metadata/index records in this milestone.
+
+Human sessions and project ingestion credentials are stored only as hashes. Every project-owned resource is checked against the authenticated principal's project role. Reviewer identity is server-derived, and security-sensitive settings and human decisions append attributable audit events. Demo mode is a clearly labeled loopback-only convenience, not a production authentication configuration. See [`docs/security.md`](docs/security.md).
 
 The deterministic analyzer separates observations, inferences, hypotheses, missing evidence and investigation actions. A retry pass does not prove harmlessness. A timeout alone does not prove a flake. `known_flake` requires reviewed history with independent runs. Product-risk signals remain visible even when infrastructure symptoms also exist.
 
@@ -210,8 +218,8 @@ The classification corpus manifest currently records 200 synthetic cases, 100 sc
 
 1. Generate and fixture-test every adapter from pinned real producers, including Java REST Assured, Playwright traces and screenshots.
 2. Create immutable reviewed/masked screenshot derivatives and richer safe trace derivatives with image/trace-specific source maps and retention controls.
-3. Add project-scoped authorization/isolation and authorized bounded artifact preview/download endpoints.
+3. Add bounded artifact preview/download endpoints with authorization, range, expiry and retention controls.
 4. Expand claim predicates and validation metrics beyond the deterministic classification rules implemented here.
-5. Complete M5 review roles/audit/settings views, M6 actual LedgerGuard corpus execution, M7 optional provider boundary, and M8 live idempotent GitHub publication.
+5. Complete remaining M5 accessibility/browser/view-depth work, M6 actual LedgerGuard corpus execution, M7 optional provider boundary, and M8 live idempotent GitHub publication.
 
 Factual progress is tracked in [`docs/PROGRESS.md`](docs/PROGRESS.md), with requirement status in [`docs/requirements-matrix.md`](docs/requirements-matrix.md).

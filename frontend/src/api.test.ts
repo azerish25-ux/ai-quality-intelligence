@@ -403,6 +403,7 @@ describe('run input diagnostics client', () => {
 
     expect(result).toEqual([runInput]);
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/runs/run-1/inputs', {
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' }
     });
   });
@@ -424,9 +425,11 @@ describe('explainable clustering client', () => {
     expect(await api.clusters('project-1')).toEqual([clusterSummary]);
     expect(await api.runClusters('run-1')).toEqual([clusterSummary]);
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/projects/project-1/clusters', {
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' }
     });
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/runs/run-1/clusters', {
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' }
     });
   });
@@ -441,7 +444,6 @@ describe('explainable clustering client', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const result = await api.reviewCluster('cluster-1', {
-      actor: 'reviewer@example.test',
       decision: 'split',
       reason: 'The selector and endpoint evidence identify a separate incident.',
       expectedRevision: 1,
@@ -453,7 +455,6 @@ describe('explainable clustering client', () => {
     expect(url).toBe('/api/v1/clusters/cluster-1/reviews');
     expect(init.method).toBe('POST');
     expect(JSON.parse(String(init.body))).toEqual({
-      actor: 'reviewer@example.test',
       decision: 'split',
       reason: 'The selector and endpoint evidence identify a separate incident.',
       expected_revision: 1,
@@ -509,6 +510,7 @@ describe('infrastructure event correlation client', () => {
 
     expect(await api.infrastructureEvents('project-1')).toEqual([infrastructureEvent]);
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/projects/project-1/infrastructure-events', {
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' }
     });
 
@@ -625,7 +627,6 @@ describe('change-impact client', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const result = await api.overrideImpactRecommendation('impact-1', {
-      actor: 'reviewer@example.test',
       action: 'include',
       testKey: 'profile',
       reason: 'Reviewed release-risk coupling.',
@@ -636,7 +637,6 @@ describe('change-impact client', () => {
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('/api/v1/impact-recommendations/impact-1/overrides');
     expect(JSON.parse(String(init.body))).toEqual({
-      actor: 'reviewer@example.test',
       action: 'include',
       test_key: 'profile',
       reason: 'Reviewed release-risk coupling.',
@@ -660,9 +660,11 @@ describe('compatible performance intelligence client', () => {
     expect(await api.performancePolicies('project-1')).toEqual([performancePolicy]);
     expect(await api.performanceObservations('run-1')).toEqual([performanceObservation]);
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/projects/project-1/performance-policies', {
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' }
     });
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/runs/run-1/performance-observations', {
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' }
     });
   });

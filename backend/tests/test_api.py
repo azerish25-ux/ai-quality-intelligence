@@ -26,7 +26,7 @@ def test_api_vertical_slice(client) -> None:
     assert analysis.json()["category"] == "product_defect"
     review = client.post(
         f"/api/v1/analyses/{analysis.json()['analysis_id']}/reviews",
-        json={"actor": "reviewer@example.test", "decision": "accept", "reason": "Evidence demonstrates the duplicate committed effect", "expected_version": 0},
+        json={"decision": "accept", "reason": "Evidence demonstrates the duplicate committed effect", "expected_version": 0},
     )
     assert review.status_code == 201
     assert review.json()["version"] == 1
@@ -178,7 +178,6 @@ def test_cluster_api_exposes_explanations_revisions_and_review(client) -> None:
     split = client.post(
         f"/api/v1/clusters/{cluster['id']}/reviews",
         json={
-            "actor": "reviewer@example.test",
             "decision": "split",
             "reason": "One failure has separately verified ownership",
             "expected_revision": detail["current_revision"],
@@ -196,7 +195,6 @@ def test_cluster_api_exposes_explanations_revisions_and_review(client) -> None:
     stale = client.post(
         f"/api/v1/clusters/{cluster['id']}/reviews",
         json={
-            "actor": "reviewer@example.test",
             "decision": "confirm",
             "reason": "Stale request should be rejected",
             "expected_revision": detail["current_revision"],
@@ -237,7 +235,6 @@ def test_cluster_detail_includes_incoming_merge_decision(client) -> None:
     merged = client.post(
         f"/api/v1/clusters/{source['id']}/reviews",
         json={
-            "actor": "reviewer@example.test",
             "decision": "merge",
             "reason": "A reviewed incident record links both observations",
             "expected_revision": source["current_revision"],

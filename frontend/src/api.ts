@@ -14,6 +14,129 @@ export type IngestionState =
   | 'cancelled'
   | 'dead_lettered';
 
+export type ProjectRole = 'viewer' | 'reviewer' | 'administrator';
+
+export interface AuthMembership {
+  project_id: string;
+  project_slug: string;
+  project_name: string;
+  role: ProjectRole;
+}
+
+export interface Principal {
+  kind: 'demo' | 'user' | 'ingestion_token';
+  user_id: string | null;
+  username: string | null;
+  display_name: string;
+  system_admin: boolean;
+  demo_mode: boolean;
+  memberships: AuthMembership[];
+}
+
+export interface LoginResponse {
+  principal: Principal;
+  access_token: string;
+  token_type: 'bearer';
+  expires_at: string;
+}
+
+export interface UserRecord {
+  id: string;
+  username: string;
+  display_name: string;
+  is_active: boolean;
+  is_system_admin: boolean;
+  created_at: string;
+  last_login_at: string | null;
+}
+
+export interface ProjectMembership {
+  id: string;
+  project_id: string;
+  user_id: string;
+  username: string;
+  display_name: string;
+  role: ProjectRole;
+  granted_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IngestionTokenRecord {
+  id: string;
+  project_id: string;
+  name: string;
+  token_prefix: string;
+  scopes: string[];
+  created_by_user_id: string | null;
+  expires_at: string | null;
+  revoked_at: string | null;
+  last_used_at: string | null;
+  created_at: string;
+  token?: string;
+}
+
+export interface AuditEvent {
+  id: string;
+  project_id: string | null;
+  actor_kind: string;
+  actor_user_id: string | null;
+  actor_display: string;
+  action: string;
+  resource_type: string;
+  resource_id: string | null;
+  outcome: string;
+  reason: string | null;
+  correlation_id: string | null;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ReviewEvent {
+  id: string;
+  analysis_id: string;
+  actor: string;
+  actor_kind: string;
+  actor_user_id: string | null;
+  decision: string;
+  proposed_category: string | null;
+  reason: string;
+  supporting_evidence_ids: string[];
+  contradictory_evidence_ids: string[];
+  hypothesis_decisions: Array<Record<string, unknown>>;
+  investigation_outcome: string | null;
+  release_advice: string | null;
+  version: number;
+  created_at: string;
+}
+
+export interface ReviewQueueItem {
+  analysis_id: string;
+  failure_id: string;
+  run_id: string;
+  project_id: string;
+  test_identity: string;
+  category: Category;
+  severity: string;
+  summary: string;
+  evidence_completeness: string;
+  policy_flags: string[];
+  latest_review_version: number;
+  latest_review_decision: string | null;
+  created_at: string;
+}
+
+export interface ReviewRequest {
+  decision: 'accept' | 'reject' | 'needs_more_evidence' | 'category_correction';
+  proposedCategory?: Category;
+  reason: string;
+  expectedVersion: number;
+  supportingEvidenceIds?: string[];
+  contradictoryEvidenceIds?: string[];
+  investigationOutcome?: string;
+  releaseAdvice?: 'HOLD_FOR_REVIEW' | 'INVESTIGATE' | 'NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE';
+}
+
 export interface Project {
   id: string;
   slug: string;
@@ -565,7 +688,6 @@ export interface ImpactRecommendation {
 }
 
 export interface ImpactOverrideRequest {
-  actor: string;
   action: 'include' | 'exclude';
   testKey: string;
   reason: string;
@@ -638,7 +760,6 @@ export interface ClusterDetail extends ClusterSummary {
 }
 
 export interface ClusterReview {
-  actor: string;
   decision: 'confirm' | 'split' | 'merge';
   reason: string;
   expectedRevision: number;
@@ -666,15 +787,25 @@ const parseResponse = async <T>(response: Response): Promise<T> => {
     const body = await response.text();
     throw new Error(`${response.status} ${response.statusText}: ${body}`);
   }
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 };
 
 const json = async <T>(url: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(url, {
     ...init,
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) }
   });
   return parseResponse<T>(response);
+};
+
+const noContent = async (url: string, init?: RequestInit): Promise<void> => {
+  const response = await fetch(url, { ...init, credentials: 'include' });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`${response.status} ${response.statusText}: ${body}`);
+  }
 };
 
 const upload = async (
@@ -700,6 +831,7 @@ const upload = async (
 
   const response = await fetch(`/api/v1/projects/${projectId}/ingestions?${query.toString()}`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': file.type || 'application/octet-stream' },
     body: file
   });
@@ -722,8 +854,71 @@ const historyUrl = (executionId: string, filters: HistoryFilters = {}): string =
 };
 
 export const api = {
+  me: () => json<Principal>('/api/v1/auth/me'),
+  login: (username: string, password: string) => json<LoginResponse>('/api/v1/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ username, password })
+  }),
+  logout: () => noContent('/api/v1/auth/logout', { method: 'POST' }),
+  users: () => json<UserRecord[]>('/api/v1/users'),
+  createUser: (input: { username: string; displayName: string; password: string; systemAdmin?: boolean }) =>
+    json<UserRecord>('/api/v1/users', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: input.username,
+        display_name: input.displayName,
+        password: input.password,
+        system_admin: input.systemAdmin ?? false
+      })
+    }),
   overview: () => json<Overview>('/api/v1/overview'),
   projects: () => json<Project[]>('/api/v1/projects'),
+  projectMembers: (projectId: string) =>
+    json<ProjectMembership[]>(`/api/v1/projects/${projectId}/members`),
+  addProjectMember: (projectId: string, username: string, role: ProjectRole) =>
+    json<ProjectMembership>(`/api/v1/projects/${projectId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ username, role })
+    }),
+  updateProjectMember: (projectId: string, membershipId: string, role: ProjectRole) =>
+    json<ProjectMembership>(`/api/v1/projects/${projectId}/members/${membershipId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role })
+    }),
+  removeProjectMember: (projectId: string, membershipId: string) =>
+    noContent(`/api/v1/projects/${projectId}/members/${membershipId}`, { method: 'DELETE' }),
+  ingestionTokens: (projectId: string) =>
+    json<IngestionTokenRecord[]>(`/api/v1/projects/${projectId}/ingestion-tokens`),
+  createIngestionToken: (projectId: string, name: string, expiresAt?: string) =>
+    json<IngestionTokenRecord>(`/api/v1/projects/${projectId}/ingestion-tokens`, {
+      method: 'POST',
+      body: JSON.stringify({ name, expires_at: expiresAt ?? null })
+    }),
+  revokeIngestionToken: (projectId: string, tokenId: string) =>
+    json<IngestionTokenRecord>(`/api/v1/projects/${projectId}/ingestion-tokens/${tokenId}/revoke`, {
+      method: 'POST'
+    }),
+  auditEvents: (projectId: string) =>
+    json<AuditEvent[]>(`/api/v1/projects/${projectId}/audit-events`),
+  reviewQueue: (projectId: string, pendingOnly = true) =>
+    json<ReviewQueueItem[]>(`/api/v1/projects/${projectId}/review-queue?pending_only=${pendingOnly}`),
+  analysisReviews: (analysisId: string) =>
+    json<ReviewEvent[]>(`/api/v1/analyses/${analysisId}/reviews`),
+  reviewAnalysis: (analysisId: string, review: ReviewRequest) =>
+    json<ReviewEvent>(`/api/v1/analyses/${analysisId}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify({
+        decision: review.decision,
+        proposed_category: review.proposedCategory ?? null,
+        reason: review.reason,
+        expected_version: review.expectedVersion,
+        supporting_evidence_ids: review.supportingEvidenceIds ?? [],
+        contradictory_evidence_ids: review.contradictoryEvidenceIds ?? [],
+        hypothesis_decisions: [],
+        investigation_outcome: review.investigationOutcome ?? null,
+        release_advice: review.releaseAdvice ?? null
+      })
+    }),
   runs: (projectId: string) => json<Run[]>(`/api/v1/projects/${projectId}/runs`),
   ingestions: (projectId: string) => json<Ingestion[]>(`/api/v1/projects/${projectId}/ingestions`),
   ingestion: (ingestionId: string) => json<Ingestion>(`/api/v1/ingestions/${ingestionId}`),
@@ -742,7 +937,6 @@ export const api = {
     {
       method: 'POST',
       body: JSON.stringify({
-        actor: review.actor,
         decision: review.decision,
         reason: review.reason,
         expected_revision: review.expectedRevision,
@@ -807,7 +1001,6 @@ export const api = {
     json<ImpactRecommendation>(`/api/v1/impact-recommendations/${recommendationId}/overrides`, {
       method: 'POST',
       body: JSON.stringify({
-        actor: override.actor,
         action: override.action,
         test_key: override.testKey,
         reason: override.reason,

@@ -120,13 +120,15 @@ Apply an override:
 
 ```json
 {
-  "actor": "reviewer@example.test",
   "action": "include",
   "test_key": "checkout-e2e",
   "reason": "Reviewed release-risk coupling missing from the current coverage export.",
   "expected_revision": 0
 }
 ```
+
+The API derives the actor from the authenticated reviewer session; clients cannot
+submit or override reviewer identity.
 
 ## CLI
 

@@ -13,6 +13,14 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+pysqlite:///./failurelens.db"
     artifact_root: Path = Path("./artifacts")
     demo_mode: bool = True
+    session_cookie_name: str = "failurelens_session"
+    session_ttl_hours: int = Field(default=12, ge=1, le=24 * 30)
+    session_cookie_secure: bool = False
+    bootstrap_admin_username: str | None = None
+    bootstrap_admin_password: str | None = None
+    bootstrap_admin_display_name: str = "FailureLens Administrator"
+    # Deprecated global credential retained only so production startup can
+    # reject it explicitly instead of silently granting cross-project access.
     ingestion_token: str | None = None
     max_file_bytes: int = Field(default=50 * 1024 * 1024, ge=1024)
     max_bundle_bytes: int = Field(default=250 * 1024 * 1024, ge=1024)
@@ -30,6 +38,35 @@ class Settings(BaseSettings):
         (self.artifact_root / "incoming").mkdir(parents=True, exist_ok=True, mode=0o700)
         (self.artifact_root / "sources").mkdir(parents=True, exist_ok=True, mode=0o700)
         (self.artifact_root / "derivatives").mkdir(parents=True, exist_ok=True, mode=0o700)
+
+    def validate_security(self) -> None:
+        if self.demo_mode:
+            return
+        if self.ingestion_token:
+            raise RuntimeError(
+                "FAILURELENS_INGESTION_TOKEN is a deprecated global credential; create a project-scoped ingestion token"
+            )
+        username = (self.bootstrap_admin_username or "").strip()
+        password = self.bootstrap_admin_password or ""
+        if not username:
+            raise RuntimeError(
+                "production mode requires FAILURELENS_BOOTSTRAP_ADMIN_USERNAME"
+            )
+        if len(password) < 14:
+            raise RuntimeError(
+                "production mode requires a bootstrap administrator password of at least 14 characters"
+            )
+        if password.lower() in {
+            "changemechangeme",
+            "passwordpassword",
+            "failurelensadmin",
+            "administrator123",
+        }:
+            raise RuntimeError("bootstrap administrator password is unsafe")
+        if not self.session_cookie_secure:
+            raise RuntimeError(
+                "production mode requires FAILURELENS_SESSION_COOKIE_SECURE=true"
+            )
 
 
 @lru_cache(maxsize=1)

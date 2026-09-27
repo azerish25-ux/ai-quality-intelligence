@@ -12,6 +12,7 @@ from typing import Any, Iterable, Sequence
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session, selectinload
 
+from .auth import Principal, record_audit_event
 from .fingerprint import NORMALIZATION_VERSION, normalize_message
 from .models import (
     ClusterMembership,
@@ -976,6 +977,7 @@ def review_cluster(
     expected_revision: int,
     failure_ids: Sequence[str] = (),
     target_cluster_id: str | None = None,
+    principal: Principal | None = None,
 ) -> ClusterMembershipDecision:
     if cluster.status != "active":
         raise ValueError("only active clusters can be reviewed")
@@ -1071,10 +1073,15 @@ def review_cluster(
     else:
         raise ValueError(f"unsupported cluster review decision: {decision}")
 
+    effective_principal = principal or Principal(
+        kind="user", actor_id=None, display_name=actor
+    )
     event = ClusterMembershipDecision(
         cluster_id=cluster.id,
         target_cluster_id=target.id if target is not None else None,
-        actor=actor,
+        actor=effective_principal.display_name,
+        actor_kind=effective_principal.audit_kind,
+        actor_user_id=effective_principal.user_id,
         decision=decision,
         reason=reason,
         failure_ids=sorted(affected_failure_ids),
@@ -1082,6 +1089,24 @@ def review_cluster(
         revision_after=revision.revision,
     )
     session.add(event)
+    session.flush()
+    record_audit_event(
+        session,
+        effective_principal,
+        action="cluster.review_created",
+        resource_type="cluster_review",
+        resource_id=event.id,
+        project_id=cluster.project_id,
+        reason=reason,
+        details={
+            "cluster_id": cluster.id,
+            "decision": decision,
+            "target_cluster_id": target.id if target is not None else None,
+            "failure_ids": sorted(affected_failure_ids),
+            "revision_before": revision_before,
+            "revision_after": revision.revision,
+        },
+    )
     session.commit()
     session.refresh(event)
     return event

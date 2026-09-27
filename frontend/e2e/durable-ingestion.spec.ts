@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('uploads a real JUnit report and opens the automatically analyzed run', async ({ page }) => {
   await page.goto('/');
+  await expect(page.getByText('Synthetic demo identity.')).toBeVisible();
   await page.getByRole('button', { name: 'Load synthetic demo' }).click();
   await expect(page.getByRole('heading', { name: 'Upload an actual test report' })).toBeVisible();
 
@@ -54,6 +55,20 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   await expect(page.locator('.performance-comparison-card')).toContainText(/incompatible baseline/i);
   await expect(page.locator('.performance-comparison-card')).toContainText(/current run untrusted/i);
   await expect(page.locator('.performance-comparison-card').getByRole('link', { name: 'Current metric evidence' })).toBeVisible();
+
+  const analysisReview = page.getByRole('region', { name: 'Human analysis review' });
+  await analysisReview.getByLabel('Engineering reason').fill(
+    'The approved evidence supports the deterministic category for this controlled run.'
+  );
+  await analysisReview.getByRole('button', { name: 'Record append-only decision' }).click();
+  await expect(analysisReview).toContainText('Synthetic demo administrator · version 1');
+
+  await page.locator('#settings').scrollIntoViewIfNeeded();
+  await page.getByLabel('Credential name').fill('browser-ingestion-check');
+  await page.getByRole('button', { name: 'Create token' }).click();
+  await expect(page.getByText('Copy this secret now. It will not be shown again.')).toBeVisible();
+  await page.getByRole('button', { name: 'Revoke' }).click();
+  await expect(page.getByText('Revoked')).toBeVisible();
 });
 
 test('builds an explainable focused recommendation and records an attributed override', async ({ page }) => {
@@ -118,13 +133,12 @@ test('builds an explainable focused recommendation and records an attributed ove
   await expect(page.getByRole('region', { name: 'Selected impact tests' })).toContainText('submits payment');
   await expect(page.getByRole('region', { name: 'Excluded impact tests' })).toContainText('updates avatar');
 
-  await page.getByLabel('Impact reviewer').fill('browser-reviewer@example.test');
   await page.getByLabel('Impact override reason').fill(
     'Reviewed release-risk coupling not represented in the current coverage snapshot.'
   );
   await page.getByRole('region', { name: 'Excluded impact tests' }).getByRole('button', { name: 'Include' }).click();
 
   await expect(page.getByRole('region', { name: 'Impact override audit' })).toContainText('include profile');
-  await expect(page.getByRole('region', { name: 'Impact override audit' })).toContainText('browser-reviewer@example.test');
+  await expect(page.getByRole('region', { name: 'Impact override audit' })).toContainText('Synthetic demo administrator');
   await expect(page.locator('.impact-summary')).toContainText('1 audited override');
 });

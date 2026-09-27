@@ -108,7 +108,6 @@ def test_history_context_is_prior_only_traceable_and_enables_reviewed_flake(sess
         session,
         reviewed_analysis,
         ReviewCreate(
-            actor="reviewer@example.test",
             decision="category_correction",
             proposed_category="known_flake",
             reason="Repeated controlled harness reproduction confirms fixture ordering instability.",
@@ -328,7 +327,6 @@ def test_review_annotation_does_not_rewrite_observed_rates(session) -> None:
         session,
         analysis,
         ReviewCreate(
-            actor="reviewer@example.test",
             decision="category_correction",
             proposed_category="known_flake",
             reason="Controlled reproduction isolates fixture ordering.",
@@ -373,7 +371,6 @@ def test_repeated_failures_without_any_pass_cannot_be_reassuring(session) -> Non
         session,
         analysis,
         ReviewCreate(
-            actor="reviewer@example.test",
             decision="category_correction",
             proposed_category="known_flake",
             reason="Historical annotation retained for safety regression coverage.",
@@ -515,7 +512,6 @@ def test_future_review_is_excluded_by_cutoff(session) -> None:
         session,
         analysis,
         ReviewCreate(
-            actor="reviewer@example.test",
             decision="category_correction",
             proposed_category="known_flake",
             reason="This review intentionally occurs after the selected analysis cutoff.",
@@ -565,7 +561,6 @@ def test_known_flake_review_must_come_from_the_same_safe_cohort(session) -> None
         session,
         selected_analysis,
         ReviewCreate(
-            actor="reviewer@example.test",
             decision="category_correction",
             proposed_category="known_flake",
             reason="Review belongs only to the selected-subset cohort.",
@@ -732,7 +727,6 @@ def test_latest_review_revision_supersedes_older_known_flake_decision(session) -
         session,
         analysis,
         ReviewCreate(
-            actor="reviewer@example.test",
             decision="category_correction",
             proposed_category="known_flake",
             reason="Initial review classified this historical incident as a known flake.",
@@ -746,7 +740,6 @@ def test_latest_review_revision_supersedes_older_known_flake_decision(session) -
         session,
         analysis,
         ReviewCreate(
-            actor="reviewer@example.test",
             decision="category_correction",
             proposed_category="product_defect",
             reason="New evidence supersedes the earlier flake assessment.",
@@ -942,8 +935,7 @@ def test_review_scan_is_bounded_and_blocks_reassurance(session, monkeypatch) -> 
             session,
             analysis,
             ReviewCreate(
-                actor="reviewer@example.test",
-                decision="category_correction",
+                    decision="category_correction",
                 proposed_category="known_flake",
                 reason="Bounded history review fixture.",
                 expected_version=0,

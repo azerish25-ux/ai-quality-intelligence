@@ -6,12 +6,28 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from .auth import (
+    Principal,
+    as_utc,
+    create_auth_session,
+    create_project_ingestion_token,
+    create_user,
+    current_principal,
+    ensure_bootstrap_administrator,
+    normalize_username,
+    record_audit_event,
+    require_project_role,
+    require_system_administrator,
+    require_user,
+    verify_password,
+    visible_project_ids,
+)
 from .config import get_settings
 from .clustering import review_cluster
 from .db import get_session, initialize_database
@@ -53,6 +69,8 @@ from .performance import (
 )
 from .models import (
     Analysis,
+    AuditEvent,
+    AuthSession,
     Category,
     ClusterMembership,
     ClusterMembershipDecision,
@@ -62,6 +80,7 @@ from .models import (
     FailureCluster,
     Ingestion,
     IngestionState,
+    IngestionToken,
     ImpactRecommendation,
     InfrastructureCorrelationSnapshot,
     InfrastructureEvent,
@@ -69,13 +88,20 @@ from .models import (
     PerformanceObservation,
     PerformancePolicy,
     Project,
+    ProjectMembership,
+    ProjectRole,
+    ReviewEvent,
     Run,
     RunInput,
     TestExecution,
+    User,
+    utcnow,
 )
 from .schemas import (
     AnalysisResult,
     ArtifactDerivativeSummary,
+    AuditEventRead,
+    AuthMembershipRead,
     ClusterDecisionRead,
     ClusterDetail,
     ClusterMemberRead,
@@ -85,6 +111,9 @@ from .schemas import (
     EvidenceRead,
     IngestionRead,
     IngestionRequest,
+    IngestionTokenCreate,
+    IngestionTokenCreated,
+    IngestionTokenRead,
     ImpactMappingSnapshotCreate,
     ImpactMappingSnapshotRead,
     ImpactOverrideCreate,
@@ -101,13 +130,23 @@ from .schemas import (
     PerformanceObservationRead,
     PerformancePolicyCreate,
     PerformancePolicyRead,
+    PrincipalRead,
     ProjectCreate,
+    ProjectMembershipCreate,
+    ProjectMembershipRead,
+    ProjectMembershipUpdate,
     ProjectRead,
+    LoginRequest,
+    LoginResponse,
     ReviewCreate,
+    ReviewEventRead,
+    ReviewQueueItem,
     RunInputRead,
     RunMetadata,
     RunRead,
     TestHistoryRead,
+    UserCreate,
+    UserRead,
 )
 from .service import (
     add_review,
@@ -125,12 +164,19 @@ from .storage import StorageError, store_stream
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     initialize_database()
+    settings = get_settings()
+    settings.validate_security()
+    if not settings.demo_mode:
+        from .db import SessionLocal
+
+        with SessionLocal() as session:
+            ensure_bootstrap_administrator(session, settings)
     yield
 
 
 app = FastAPI(
     title="FailureLens API",
-    version="0.8.0",
+    version="0.9.0",
     description="Evidence-grounded automated test failure triage",
     lifespan=lifespan,
 )
@@ -139,15 +185,135 @@ app.add_middleware(
     allow_origins=["http://localhost:5173", "http://localhost:8080"],
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
 
-def authorized(x_failurelens_token: str | None = Header(default=None)) -> None:
+def _require_project(
+    session: Session,
+    principal: Principal,
+    project_id: str,
+    minimum_role: ProjectRole = ProjectRole.viewer,
+    *,
+    ingestion_scope: str | None = None,
+) -> Project:
+    project = session.get(Project, project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    require_project_role(
+        session,
+        principal,
+        project_id,
+        minimum_role,
+        allow_ingestion_scope=ingestion_scope,
+    )
+    return project
+
+
+def _membership_schema(row: ProjectMembership) -> ProjectMembershipRead:
+    return ProjectMembershipRead(
+        id=row.id,
+        project_id=row.project_id,
+        user_id=row.user_id,
+        username=row.user.username,
+        display_name=row.user.display_name,
+        role=row.role,
+        granted_by_user_id=row.granted_by_user_id,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+    )
+
+
+def _ingestion_token_schema(row: IngestionToken) -> IngestionTokenRead:
+    return IngestionTokenRead(
+        id=row.id,
+        project_id=row.project_id,
+        name=row.name,
+        token_prefix=row.token_prefix,
+        scopes=[str(scope) for scope in row.scopes],
+        created_by_user_id=row.created_by_user_id,
+        expires_at=row.expires_at,
+        revoked_at=row.revoked_at,
+        last_used_at=row.last_used_at,
+        created_at=row.created_at,
+    )
+
+
+def _review_event_schema(row: ReviewEvent) -> ReviewEventRead:
+    return ReviewEventRead(
+        id=row.id,
+        analysis_id=row.analysis_id,
+        actor=row.actor,
+        actor_kind=row.actor_kind,
+        actor_user_id=row.actor_user_id,
+        decision=row.decision,
+        proposed_category=row.proposed_category,
+        reason=row.reason,
+        supporting_evidence_ids=row.supporting_evidence_ids,
+        contradictory_evidence_ids=row.contradictory_evidence_ids,
+        hypothesis_decisions=row.hypothesis_decisions,
+        investigation_outcome=row.investigation_outcome,
+        release_advice=row.release_advice,
+        version=row.version,
+        created_at=row.created_at,
+    )
+
+
+def _principal_schema(session: Session, principal: Principal) -> PrincipalRead:
     settings = get_settings()
-    if settings.demo_mode and settings.ingestion_token is None:
-        return
-    if not settings.ingestion_token or x_failurelens_token != settings.ingestion_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid ingestion token")
+    if principal.kind == "demo":
+        memberships = [
+            AuthMembershipRead(
+                project_id=project.id,
+                project_slug=project.slug,
+                project_name=project.name,
+                role=ProjectRole.administrator,
+            )
+            for project in session.scalars(
+                select(Project).order_by(Project.created_at)
+            ).all()
+        ]
+        return PrincipalRead(
+            kind="demo",
+            display_name=principal.display_name,
+            system_admin=True,
+            demo_mode=True,
+            memberships=memberships,
+        )
+    if principal.kind == "ingestion_token":
+        return PrincipalRead(
+            kind="ingestion_token",
+            display_name=principal.display_name,
+            system_admin=False,
+            demo_mode=settings.demo_mode,
+            memberships=[],
+        )
+    user = session.get(User, principal.user_id) if principal.user_id else None
+    memberships = list(
+        session.scalars(
+            select(ProjectMembership)
+            .where(ProjectMembership.user_id == principal.user_id)
+            .options(selectinload(ProjectMembership.project))
+            .order_by(ProjectMembership.created_at)
+        ).all()
+    )
+    return PrincipalRead(
+        kind="user",
+        user_id=principal.user_id,
+        username=user.username if user else None,
+        display_name=principal.display_name,
+        system_admin=principal.system_admin,
+        demo_mode=settings.demo_mode,
+        memberships=[
+            AuthMembershipRead(
+                project_id=row.project_id,
+                project_slug=row.project.slug,
+                project_name=row.project.name,
+                role=row.role,
+            )
+            for row in memberships
+        ],
+    )
 
 
 def _cluster_summary(cluster: FailureCluster) -> ClusterSummary:
@@ -281,9 +447,167 @@ def ready(session: Session = Depends(get_session)) -> dict[str, str]:
     return {"status": "ready"}
 
 
+@app.post("/api/v1/auth/login", response_model=LoginResponse)
+def auth_login(
+    request: LoginRequest,
+    response: Response,
+    session: Session = Depends(get_session),
+) -> LoginResponse:
+    settings = get_settings()
+    try:
+        username = normalize_username(request.username)
+    except ValueError:
+        username = request.username.strip().casefold()
+    user = session.scalar(select(User).where(User.username == username))
+    if user is None or not user.is_active or not verify_password(
+        request.password, user.password_hash
+    ):
+        record_audit_event(
+            session,
+            Principal(kind="user", actor_id=None, display_name=username or "unknown login"),
+            action="auth.login_denied",
+            resource_type="authentication",
+            outcome="denied",
+            reason="invalid credentials",
+        )
+        session.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid username or password",
+        )
+    auth_session, raw_token = create_auth_session(session, user, settings=settings)
+    user.last_login_at = utcnow()
+    principal = Principal(
+        kind="user",
+        actor_id=user.id,
+        display_name=user.display_name,
+        user_id=user.id,
+        session_id=auth_session.id,
+        system_admin=user.is_system_admin,
+    )
+    record_audit_event(
+        session,
+        principal,
+        action="auth.login_succeeded",
+        resource_type="auth_session",
+        resource_id=auth_session.id,
+    )
+    session.commit()
+    session.refresh(auth_session)
+    response.set_cookie(
+        key=settings.session_cookie_name,
+        value=raw_token,
+        max_age=settings.session_ttl_hours * 3600,
+        httponly=True,
+        secure=settings.session_cookie_secure,
+        samesite="lax",
+        path="/",
+    )
+    return LoginResponse(
+        principal=_principal_schema(session, principal),
+        access_token=raw_token,
+        expires_at=auth_session.expires_at,
+    )
+
+
+@app.post("/api/v1/auth/logout", status_code=204)
+def auth_logout(
+    response: Response,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> Response:
+    require_user(principal)
+    if principal.session_id:
+        row = session.get(AuthSession, principal.session_id)
+        if row is not None and row.revoked_at is None:
+            row.revoked_at = utcnow()
+            record_audit_event(
+                session,
+                principal,
+                action="auth.logout",
+                resource_type="auth_session",
+                resource_id=row.id,
+            )
+            session.commit()
+    response.delete_cookie(get_settings().session_cookie_name, path="/")
+    response.status_code = status.HTTP_204_NO_CONTENT
+    return response
+
+
+@app.get("/api/v1/auth/me", response_model=PrincipalRead)
+def auth_me(
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> PrincipalRead:
+    require_user(principal)
+    return _principal_schema(session, principal)
+
+
+@app.get("/api/v1/users", response_model=list[UserRead])
+def users_list(
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> list[User]:
+    require_system_administrator(principal)
+    return list(session.scalars(select(User).order_by(User.username)).all())
+
+
+@app.post("/api/v1/users", response_model=UserRead, status_code=201)
+def users_create(
+    request: UserCreate,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> User:
+    require_system_administrator(principal)
+    try:
+        row = create_user(
+            session,
+            username=request.username,
+            display_name=request.display_name,
+            password=request.password,
+            system_admin=request.system_admin,
+        )
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    record_audit_event(
+        session,
+        principal,
+        action="user.created",
+        resource_type="user",
+        resource_id=row.id,
+        details={"username": row.username, "system_admin": row.is_system_admin},
+    )
+    session.commit()
+    session.refresh(row)
+    return row
+
+
 @app.get("/api/v1/overview")
-def overview(session: Session = Depends(get_session)) -> dict:
-    analyses = list(session.scalars(select(Analysis)).all())
+def overview(
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> dict:
+    project_ids = visible_project_ids(session, principal)
+
+    def scoped_count(model, project_column) -> int:
+        query = select(func.count(model.id))
+        if project_ids is not None:
+            if not project_ids:
+                return 0
+            query = query.where(project_column.in_(project_ids))
+        return int(session.scalar(query) or 0)
+
+    analysis_query = select(Analysis).join(Failure, Failure.id == Analysis.failure_id)
+    if project_ids is None:
+        analyses = list(session.scalars(analysis_query).all())
+    elif project_ids:
+        analyses = list(
+            session.scalars(
+                analysis_query.where(Failure.project_id.in_(project_ids))
+            ).all()
+        )
+    else:
+        analyses = []
     publication_categories = Counter(
         (
             item.category.value
@@ -292,39 +616,49 @@ def overview(session: Session = Depends(get_session)) -> dict:
         )
         for item in analyses
     )
+    active_query = select(func.count(Ingestion.id)).where(
+        Ingestion.state.in_([IngestionState.queued, IngestionState.running])
+    )
+    cluster_query = select(func.count(FailureCluster.id)).where(
+        FailureCluster.status == "active"
+    )
+    if project_ids is None:
+        active_ingestions = int(session.scalar(active_query) or 0)
+        cluster_count = int(session.scalar(cluster_query) or 0)
+        project_count = int(session.scalar(select(func.count(Project.id))) or 0)
+    elif project_ids:
+        active_ingestions = int(
+            session.scalar(active_query.where(Ingestion.project_id.in_(project_ids))) or 0
+        )
+        cluster_count = int(
+            session.scalar(
+                cluster_query.where(FailureCluster.project_id.in_(project_ids))
+            )
+            or 0
+        )
+        project_count = len(project_ids)
+    else:
+        active_ingestions = cluster_count = project_count = 0
     return {
-        "projects": session.scalar(select(func.count(Project.id))) or 0,
-        "runs": session.scalar(select(func.count(Run.id))) or 0,
-        "ingestions": session.scalar(select(func.count(Ingestion.id))) or 0,
-        "active_ingestions": session.scalar(
-            select(func.count(Ingestion.id)).where(
-                Ingestion.state.in_([IngestionState.queued, IngestionState.running])
-            )
-        )
-        or 0,
-        "failures": session.scalar(select(func.count(Failure.id))) or 0,
-        "clusters": session.scalar(
-            select(func.count(FailureCluster.id)).where(
-                FailureCluster.status == "active"
-            )
-        )
-        or 0,
-        "impact_recommendations": session.scalar(
-            select(func.count(ImpactRecommendation.id))
-        )
-        or 0,
-        "performance_comparisons": session.scalar(
-            select(func.count(PerformanceComparison.id))
-        )
-        or 0,
-        "infrastructure_events": session.scalar(
-            select(func.count(InfrastructureEvent.id))
-        )
-        or 0,
-        "infrastructure_correlations": session.scalar(
-            select(func.count(InfrastructureCorrelationSnapshot.id))
-        )
-        or 0,
+        "projects": project_count,
+        "runs": scoped_count(Run, Run.project_id),
+        "ingestions": scoped_count(Ingestion, Ingestion.project_id),
+        "active_ingestions": active_ingestions,
+        "failures": scoped_count(Failure, Failure.project_id),
+        "clusters": cluster_count,
+        "impact_recommendations": scoped_count(
+            ImpactRecommendation, ImpactRecommendation.project_id
+        ),
+        "performance_comparisons": scoped_count(
+            PerformanceComparison, PerformanceComparison.project_id
+        ),
+        "infrastructure_events": scoped_count(
+            InfrastructureEvent, InfrastructureEvent.project_id
+        ),
+        "infrastructure_correlations": scoped_count(
+            InfrastructureCorrelationSnapshot,
+            InfrastructureCorrelationSnapshot.project_id,
+        ),
         "analyses": len(analyses),
         "categories": {
             category.value: publication_categories.get(category.value, 0)
@@ -333,16 +667,33 @@ def overview(session: Session = Depends(get_session)) -> dict:
     }
 
 
-@app.post("/api/v1/demo/seed", dependencies=[Depends(authorized)])
-def demo_seed(session: Session = Depends(get_session)) -> dict:
+@app.post("/api/v1/demo/seed")
+def demo_seed(
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> dict:
     settings = get_settings()
     if not settings.demo_mode:
         raise HTTPException(403, "demo mode is disabled")
-    return seed_demo(session)
+    require_system_administrator(principal)
+    result = seed_demo(session)
+    record_audit_event(
+        session,
+        principal,
+        action="demo.seeded",
+        resource_type="project",
+        resource_id=result.get("project_id"),
+        project_id=result.get("project_id"),
+    )
+    session.commit()
+    return result
 
 
 @app.get("/api/v1/evaluations/latest")
-def evaluation_latest() -> dict:
+def evaluation_latest(
+    principal: Principal = Depends(current_principal),
+) -> dict:
+    require_user(principal)
     path = get_settings().evaluation_metrics_path
     if not path.exists():
         return {
@@ -355,25 +706,338 @@ def evaluation_latest() -> dict:
         raise HTTPException(503, f"evaluation metrics unavailable: {exc}") from exc
 
 
-@app.post(
-    "/api/v1/projects",
-    response_model=ProjectRead,
-    status_code=201,
-    dependencies=[Depends(authorized)],
-)
-def projects_create(request: ProjectCreate, session: Session = Depends(get_session)) -> Project:
-    return create_project(session, request.slug, request.name)
+@app.post("/api/v1/projects", response_model=ProjectRead, status_code=201)
+def projects_create(
+    request: ProjectCreate,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> Project:
+    require_system_administrator(principal)
+    try:
+        project = create_project(session, request.slug, request.name, commit=False)
+    except Exception as exc:
+        session.rollback()
+        raise HTTPException(409, "project slug already exists") from exc
+    if principal.user_id:
+        session.add(
+            ProjectMembership(
+                project_id=project.id,
+                user_id=principal.user_id,
+                role=ProjectRole.administrator,
+                granted_by_user_id=principal.user_id,
+            )
+        )
+    record_audit_event(
+        session,
+        principal,
+        action="project.created",
+        resource_type="project",
+        resource_id=project.id,
+        project_id=project.id,
+        details={"slug": project.slug, "name": project.name},
+    )
+    session.commit()
+    session.refresh(project)
+    return project
 
 
 @app.get("/api/v1/projects", response_model=list[ProjectRead])
-def projects_list(session: Session = Depends(get_session)) -> list[Project]:
-    return list(session.scalars(select(Project).order_by(Project.created_at)).all())
+def projects_list(
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> list[Project]:
+    ids = visible_project_ids(session, principal)
+    query = select(Project).order_by(Project.created_at)
+    if ids is not None:
+        if not ids:
+            return []
+        query = query.where(Project.id.in_(ids))
+    return list(session.scalars(query).all())
+
+
+@app.get(
+    "/api/v1/projects/{project_id}/members",
+    response_model=list[ProjectMembershipRead],
+)
+def project_members_list(
+    project_id: str,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> list[ProjectMembershipRead]:
+    _require_project(session, principal, project_id, ProjectRole.administrator)
+    rows = list(
+        session.scalars(
+            select(ProjectMembership)
+            .where(ProjectMembership.project_id == project_id)
+            .options(selectinload(ProjectMembership.user))
+            .order_by(ProjectMembership.created_at)
+        ).all()
+    )
+    return [_membership_schema(row) for row in rows]
+
+
+@app.post(
+    "/api/v1/projects/{project_id}/members",
+    response_model=ProjectMembershipRead,
+    status_code=201,
+)
+def project_members_create(
+    project_id: str,
+    request: ProjectMembershipCreate,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> ProjectMembershipRead:
+    _require_project(session, principal, project_id, ProjectRole.administrator)
+    username = normalize_username(request.username)
+    user = session.scalar(select(User).where(User.username == username))
+    if user is None:
+        raise HTTPException(404, "user not found")
+    if not user.is_active:
+        raise HTTPException(409, "user is disabled")
+    existing = session.scalar(
+        select(ProjectMembership).where(
+            ProjectMembership.project_id == project_id,
+            ProjectMembership.user_id == user.id,
+        )
+    )
+    if existing is not None:
+        raise HTTPException(409, "project membership already exists")
+    row = ProjectMembership(
+        project_id=project_id,
+        user_id=user.id,
+        role=request.role,
+        granted_by_user_id=principal.user_id,
+    )
+    session.add(row)
+    session.flush()
+    record_audit_event(
+        session,
+        principal,
+        action="project.membership_created",
+        resource_type="project_membership",
+        resource_id=row.id,
+        project_id=project_id,
+        details={"user_id": user.id, "role": request.role.value},
+    )
+    session.commit()
+    row = session.scalar(
+        select(ProjectMembership)
+        .where(ProjectMembership.id == row.id)
+        .options(selectinload(ProjectMembership.user))
+    )
+    assert row is not None
+    return _membership_schema(row)
+
+
+@app.patch(
+    "/api/v1/projects/{project_id}/members/{membership_id}",
+    response_model=ProjectMembershipRead,
+)
+def project_members_update(
+    project_id: str,
+    membership_id: str,
+    request: ProjectMembershipUpdate,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> ProjectMembershipRead:
+    _require_project(session, principal, project_id, ProjectRole.administrator)
+    row = session.scalar(
+        select(ProjectMembership)
+        .where(
+            ProjectMembership.id == membership_id,
+            ProjectMembership.project_id == project_id,
+        )
+        .options(selectinload(ProjectMembership.user))
+    )
+    if row is None:
+        raise HTTPException(404, "membership not found")
+    if row.role == ProjectRole.administrator and request.role != ProjectRole.administrator:
+        admin_count = int(
+            session.scalar(
+                select(func.count(ProjectMembership.id)).where(
+                    ProjectMembership.project_id == project_id,
+                    ProjectMembership.role == ProjectRole.administrator,
+                )
+            )
+            or 0
+        )
+        if admin_count <= 1:
+            raise HTTPException(409, "the last project administrator cannot be demoted")
+    previous = row.role
+    row.role = request.role
+    record_audit_event(
+        session,
+        principal,
+        action="project.membership_updated",
+        resource_type="project_membership",
+        resource_id=row.id,
+        project_id=project_id,
+        details={"from": previous.value, "to": request.role.value, "user_id": row.user_id},
+    )
+    session.commit()
+    session.refresh(row)
+    return _membership_schema(row)
+
+
+@app.delete(
+    "/api/v1/projects/{project_id}/members/{membership_id}",
+    status_code=204,
+)
+def project_members_delete(
+    project_id: str,
+    membership_id: str,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> Response:
+    _require_project(session, principal, project_id, ProjectRole.administrator)
+    row = session.get(ProjectMembership, membership_id)
+    if row is None or row.project_id != project_id:
+        raise HTTPException(404, "membership not found")
+    if row.role == ProjectRole.administrator:
+        admin_count = int(
+            session.scalar(
+                select(func.count(ProjectMembership.id)).where(
+                    ProjectMembership.project_id == project_id,
+                    ProjectMembership.role == ProjectRole.administrator,
+                )
+            )
+            or 0
+        )
+        if admin_count <= 1:
+            raise HTTPException(409, "the last project administrator cannot be removed")
+    user_id = row.user_id
+    session.delete(row)
+    record_audit_event(
+        session,
+        principal,
+        action="project.membership_deleted",
+        resource_type="project_membership",
+        resource_id=membership_id,
+        project_id=project_id,
+        details={"user_id": user_id},
+    )
+    session.commit()
+    return Response(status_code=204)
+
+
+@app.get(
+    "/api/v1/projects/{project_id}/ingestion-tokens",
+    response_model=list[IngestionTokenRead],
+)
+def ingestion_tokens_list(
+    project_id: str,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> list[IngestionTokenRead]:
+    _require_project(session, principal, project_id, ProjectRole.administrator)
+    rows = list(
+        session.scalars(
+            select(IngestionToken)
+            .where(IngestionToken.project_id == project_id)
+            .order_by(IngestionToken.created_at.desc())
+        ).all()
+    )
+    return [_ingestion_token_schema(row) for row in rows]
+
+
+@app.post(
+    "/api/v1/projects/{project_id}/ingestion-tokens",
+    response_model=IngestionTokenCreated,
+    status_code=201,
+)
+def ingestion_tokens_create(
+    project_id: str,
+    request: IngestionTokenCreate,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> IngestionTokenCreated:
+    _require_project(session, principal, project_id, ProjectRole.administrator)
+    expires_at = as_utc(request.expires_at) if request.expires_at is not None else None
+    if expires_at is not None and expires_at <= utcnow():
+        raise HTTPException(422, "expires_at must be in the future")
+    try:
+        row, raw_token = create_project_ingestion_token(
+            session,
+            project_id=project_id,
+            name=request.name,
+            created_by_user_id=principal.user_id,
+            expires_at=expires_at,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    record_audit_event(
+        session,
+        principal,
+        action="project.ingestion_token_created",
+        resource_type="ingestion_token",
+        resource_id=row.id,
+        project_id=project_id,
+        details={
+            "name": row.name,
+            "expires_at": row.expires_at.isoformat() if row.expires_at else None,
+        },
+    )
+    session.commit()
+    session.refresh(row)
+    return IngestionTokenCreated(**_ingestion_token_schema(row).model_dump(), token=raw_token)
+
+
+@app.post(
+    "/api/v1/projects/{project_id}/ingestion-tokens/{token_id}/revoke",
+    response_model=IngestionTokenRead,
+)
+def ingestion_tokens_revoke(
+    project_id: str,
+    token_id: str,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> IngestionTokenRead:
+    _require_project(session, principal, project_id, ProjectRole.administrator)
+    row = session.get(IngestionToken, token_id)
+    if row is None or row.project_id != project_id:
+        raise HTTPException(404, "ingestion token not found")
+    if row.revoked_at is None:
+        row.revoked_at = utcnow()
+        record_audit_event(
+            session,
+            principal,
+            action="project.ingestion_token_revoked",
+            resource_type="ingestion_token",
+            resource_id=row.id,
+            project_id=project_id,
+            details={"name": row.name},
+        )
+        session.commit()
+        session.refresh(row)
+    return _ingestion_token_schema(row)
+
+
+@app.get(
+    "/api/v1/projects/{project_id}/audit-events",
+    response_model=list[AuditEventRead],
+)
+def audit_events_list(
+    project_id: str,
+    action: str | None = Query(default=None, max_length=120),
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> list[AuditEvent]:
+    _require_project(session, principal, project_id, ProjectRole.reviewer)
+    query = select(AuditEvent).where(AuditEvent.project_id == project_id)
+    if action:
+        query = query.where(AuditEvent.action == action)
+    return list(
+        session.scalars(
+            query.order_by(AuditEvent.created_at.desc()).offset(offset).limit(limit)
+        ).all()
+    )
 
 
 @app.post(
     "/api/v1/projects/{project_id}/ingestions",
     status_code=202,
-    dependencies=[Depends(authorized)],
 )
 async def ingestions_create(
     project_id: str,
@@ -398,11 +1062,16 @@ async def ingestions_create(
     shard_count: int | None = Query(default=None, ge=1, le=100_000),
     expected_inputs: int | None = Query(default=None, ge=0),
     source_format: str = Query(default="auto", min_length=1, max_length=80),
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> RunRead | IngestionRead:
-    project = session.get(Project, project_id)
-    if not project:
-        raise HTTPException(404, "project not found")
+    project = _require_project(
+        session,
+        principal,
+        project_id,
+        ProjectRole.administrator,
+        ingestion_scope="ingestion:create",
+    )
 
     content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
     if content_type == "application/json" and filename is None:
@@ -411,7 +1080,18 @@ async def ingestions_create(
             normalized = IngestionRequest.model_validate(payload)
         except (json.JSONDecodeError, ValidationError) as exc:
             raise HTTPException(422, detail=str(exc)) from exc
-        return RunRead.model_validate(ingest_normalized(session, project, normalized))
+        run = ingest_normalized(session, project, normalized)
+        record_audit_event(
+            session,
+            principal,
+            action="ingestion.normalized_created",
+            resource_type="run",
+            resource_id=run.id,
+            project_id=project_id,
+            details={"external_id": run.external_id},
+        )
+        session.commit()
+        return RunRead.model_validate(run)
 
     if external_id is None or filename is None:
         raise HTTPException(
@@ -471,6 +1151,16 @@ async def ingestions_create(
         )
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
+    record_audit_event(
+        session,
+        principal,
+        action="ingestion.queued",
+        resource_type="ingestion",
+        resource_id=ingestion.id,
+        project_id=project_id,
+        details={"external_id": ingestion.external_id, "source_format": source_format},
+    )
+    session.commit()
     return IngestionRead.model_validate(ingestion)
 
 
@@ -481,8 +1171,10 @@ async def ingestions_create(
 def ingestions_list(
     project_id: str,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> list[Ingestion]:
+    _require_project(session, principal, project_id)
     return list(
         session.scalars(
             select(Ingestion)
@@ -494,46 +1186,85 @@ def ingestions_list(
 
 
 @app.get("/api/v1/ingestions/{ingestion_id}", response_model=IngestionRead)
-def ingestions_get(ingestion_id: str, session: Session = Depends(get_session)) -> Ingestion:
+def ingestions_get(
+    ingestion_id: str,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> Ingestion:
     ingestion = session.get(Ingestion, ingestion_id)
     if not ingestion:
         raise HTTPException(404, "ingestion not found")
+    require_project_role(session, principal, ingestion.project_id)
     return ingestion
 
 
 @app.post(
     "/api/v1/ingestions/{ingestion_id}/cancel",
     response_model=IngestionRead,
-    dependencies=[Depends(authorized)],
 )
-def ingestions_cancel(ingestion_id: str, session: Session = Depends(get_session)) -> Ingestion:
+def ingestions_cancel(
+    ingestion_id: str,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> Ingestion:
     ingestion = session.get(Ingestion, ingestion_id)
     if not ingestion:
         raise HTTPException(404, "ingestion not found")
-    return cancel_ingestion(session, ingestion)
+    require_project_role(
+        session, principal, ingestion.project_id, ProjectRole.administrator
+    )
+    result = cancel_ingestion(session, ingestion)
+    record_audit_event(
+        session,
+        principal,
+        action="ingestion.cancelled",
+        resource_type="ingestion",
+        resource_id=ingestion.id,
+        project_id=ingestion.project_id,
+    )
+    session.commit()
+    return result
 
 
 @app.post(
     "/api/v1/ingestions/{ingestion_id}/retry",
     response_model=IngestionRead,
-    dependencies=[Depends(authorized)],
 )
-def ingestions_retry(ingestion_id: str, session: Session = Depends(get_session)) -> Ingestion:
+def ingestions_retry(
+    ingestion_id: str,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> Ingestion:
     ingestion = session.get(Ingestion, ingestion_id)
     if not ingestion:
         raise HTTPException(404, "ingestion not found")
+    require_project_role(
+        session, principal, ingestion.project_id, ProjectRole.administrator
+    )
     try:
-        return retry_ingestion(session, ingestion)
+        result = retry_ingestion(session, ingestion)
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
+    record_audit_event(
+        session,
+        principal,
+        action="ingestion.retried",
+        resource_type="ingestion",
+        resource_id=ingestion.id,
+        project_id=ingestion.project_id,
+    )
+    session.commit()
+    return result
 
 
 @app.get("/api/v1/projects/{project_id}/runs", response_model=list[RunRead])
 def runs_list(
     project_id: str,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> list[Run]:
+    _require_project(session, principal, project_id)
     return list(
         session.scalars(
             select(Run)
@@ -545,10 +1276,15 @@ def runs_list(
 
 
 @app.get("/api/v1/runs/{run_id}")
-def runs_get(run_id: str, session: Session = Depends(get_session)) -> dict:
+def runs_get(
+    run_id: str,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> dict:
     run = session.get(Run, run_id)
     if not run:
         raise HTTPException(404, "run not found")
+    require_project_role(session, principal, run.project_id)
     counts = dict(
         session.execute(
             select(Failure.exception_type, func.count(Failure.id))
@@ -564,10 +1300,15 @@ def runs_get(run_id: str, session: Session = Depends(get_session)) -> dict:
 
 
 @app.get("/api/v1/runs/{run_id}/inputs", response_model=list[RunInputRead])
-def run_inputs_list(run_id: str, session: Session = Depends(get_session)) -> list[RunInput]:
+def run_inputs_list(
+    run_id: str,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> list[RunInput]:
     run = session.get(Run, run_id)
     if not run:
         raise HTTPException(404, "run not found")
+    require_project_role(session, principal, run.project_id)
     return list(
         session.scalars(
             select(RunInput)
@@ -581,16 +1322,16 @@ def run_inputs_list(run_id: str, session: Session = Depends(get_session)) -> lis
     "/api/v1/projects/{project_id}/impact-mappings",
     response_model=ImpactMappingSnapshotRead,
     status_code=201,
-    dependencies=[Depends(authorized)],
 )
 def impact_mappings_create(
     project_id: str,
     request: ImpactMappingSnapshotCreate,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> ImpactMappingSnapshotRead:
-    project = session.get(Project, project_id)
-    if project is None:
-        raise HTTPException(404, "project not found")
+    project = _require_project(
+        session, principal, project_id, ProjectRole.administrator
+    )
     try:
         snapshot = create_mapping_snapshot(session, project, request)
     except ValueError as exc:
@@ -606,10 +1347,10 @@ def impact_mappings_list(
     project_id: str,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> list[ImpactMappingSnapshotRead]:
-    if session.get(Project, project_id) is None:
-        raise HTTPException(404, "project not found")
+    _require_project(session, principal, project_id)
     return [
         mapping_snapshot_to_schema(snapshot)
         for snapshot in list_mapping_snapshots(
@@ -622,16 +1363,14 @@ def impact_mappings_list(
     "/api/v1/projects/{project_id}/impact-recommendations",
     response_model=ImpactRecommendationRead,
     status_code=201,
-    dependencies=[Depends(authorized)],
 )
 def impact_recommendations_create(
     project_id: str,
     request: ImpactRecommendationCreate,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> ImpactRecommendationRead:
-    project = session.get(Project, project_id)
-    if project is None:
-        raise HTTPException(404, "project not found")
+    project = _require_project(session, principal, project_id, ProjectRole.reviewer)
     try:
         recommendation = create_impact_recommendation(session, project, request)
     except ValueError as exc:
@@ -647,10 +1386,10 @@ def impact_recommendations_list(
     project_id: str,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> list[ImpactRecommendationRead]:
-    if session.get(Project, project_id) is None:
-        raise HTTPException(404, "project not found")
+    _require_project(session, principal, project_id)
     return [
         impact_recommendation_to_schema(recommendation)
         for recommendation in list_project_recommendations(
@@ -665,11 +1404,13 @@ def impact_recommendations_list(
 )
 def impact_recommendations_get(
     recommendation_id: str,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> ImpactRecommendationRead:
     recommendation = get_impact_recommendation(session, recommendation_id)
     if recommendation is None:
         raise HTTPException(404, "impact recommendation not found")
+    require_project_role(session, principal, recommendation.project_id)
     return impact_recommendation_to_schema(recommendation)
 
 
@@ -677,18 +1418,23 @@ def impact_recommendations_get(
     "/api/v1/impact-recommendations/{recommendation_id}/overrides",
     response_model=ImpactRecommendationRead,
     status_code=201,
-    dependencies=[Depends(authorized)],
 )
 def impact_overrides_create(
     recommendation_id: str,
     request: ImpactOverrideCreate,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> ImpactRecommendationRead:
     recommendation = get_impact_recommendation(session, recommendation_id)
     if recommendation is None:
         raise HTTPException(404, "impact recommendation not found")
+    require_project_role(
+        session, principal, recommendation.project_id, ProjectRole.reviewer
+    )
     try:
-        refreshed = apply_impact_override(session, recommendation, request)
+        refreshed = apply_impact_override(
+            session, recommendation, request, principal=principal
+        )
     except ValueError as exc:
         detail = str(exc)
         conflict_markers = (
@@ -706,16 +1452,16 @@ def impact_overrides_create(
     "/api/v1/projects/{project_id}/performance-policies",
     response_model=PerformancePolicyRead,
     status_code=201,
-    dependencies=[Depends(authorized)],
 )
 def performance_policies_create(
     project_id: str,
     request: PerformancePolicyCreate,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> PerformancePolicyRead:
-    project = session.get(Project, project_id)
-    if project is None:
-        raise HTTPException(404, "project not found")
+    project = _require_project(
+        session, principal, project_id, ProjectRole.administrator
+    )
     try:
         policy = create_performance_policy(session, project, request)
     except ValueError as exc:
@@ -731,10 +1477,10 @@ def performance_policies_list(
     project_id: str,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> list[PerformancePolicyRead]:
-    if session.get(Project, project_id) is None:
-        raise HTTPException(404, "project not found")
+    _require_project(session, principal, project_id)
     return [
         performance_policy_to_schema(item)
         for item in list_performance_policies(
@@ -751,10 +1497,13 @@ def performance_observations_list(
     run_id: str,
     limit: Annotated[int, Query(ge=1, le=5000)] = 1000,
     offset: Annotated[int, Query(ge=0)] = 0,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> list[PerformanceObservationRead]:
-    if session.get(Run, run_id) is None:
+    run = session.get(Run, run_id)
+    if run is None:
         raise HTTPException(404, "run not found")
+    require_project_role(session, principal, run.project_id)
     return [
         performance_observation_to_schema(item)
         for item in list_run_performance_observations(
@@ -767,16 +1516,14 @@ def performance_observations_list(
     "/api/v1/projects/{project_id}/performance-baselines",
     response_model=PerformanceBaselineRead,
     status_code=201,
-    dependencies=[Depends(authorized)],
 )
 def performance_baselines_create(
     project_id: str,
     request: PerformanceBaselineCreate,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> PerformanceBaselineRead:
-    project = session.get(Project, project_id)
-    if project is None:
-        raise HTTPException(404, "project not found")
+    project = _require_project(session, principal, project_id, ProjectRole.reviewer)
     observation = session.get(PerformanceObservation, request.current_observation_id)
     if observation is None or observation.project_id != project_id:
         raise HTTPException(404, "performance observation not found in project")
@@ -799,11 +1546,13 @@ def performance_baselines_create(
 )
 def performance_baselines_get(
     baseline_id: str,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> PerformanceBaselineRead:
     baseline = get_performance_baseline(session, baseline_id)
     if baseline is None:
         raise HTTPException(404, "performance baseline not found")
+    require_project_role(session, principal, baseline.project_id)
     return performance_baseline_to_schema(baseline)
 
 
@@ -811,16 +1560,17 @@ def performance_baselines_get(
     "/api/v1/runs/{run_id}/performance-comparisons",
     response_model=list[PerformanceComparisonRead],
     status_code=201,
-    dependencies=[Depends(authorized)],
 )
 def performance_comparisons_create(
     run_id: str,
     request: PerformanceComparisonCreate,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> list[PerformanceComparisonRead]:
     run = session.get(Run, run_id)
     if run is None:
         raise HTTPException(404, "run not found")
+    require_project_role(session, principal, run.project_id, ProjectRole.reviewer)
     project = session.get(Project, run.project_id)
     if project is None:
         raise HTTPException(404, "project not found")
@@ -850,10 +1600,13 @@ def performance_comparisons_list(
     run_id: str,
     limit: Annotated[int, Query(ge=1, le=5000)] = 1000,
     offset: Annotated[int, Query(ge=0)] = 0,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> list[PerformanceComparisonRead]:
-    if session.get(Run, run_id) is None:
+    run = session.get(Run, run_id)
+    if run is None:
         raise HTTPException(404, "run not found")
+    require_project_role(session, principal, run.project_id)
     return [
         performance_comparison_to_schema(item)
         for item in list_run_performance_comparisons(
@@ -868,11 +1621,13 @@ def performance_comparisons_list(
 )
 def performance_comparisons_get(
     comparison_id: str,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> PerformanceComparisonRead:
     row = get_performance_comparison(session, comparison_id)
     if row is None:
         raise HTTPException(404, "performance comparison not found")
+    require_project_role(session, principal, row.project_id)
     return performance_comparison_to_schema(row)
 
 
@@ -880,16 +1635,19 @@ def performance_comparisons_get(
     "/api/v1/projects/{project_id}/infrastructure-events",
     response_model=InfrastructureEventRead,
     status_code=201,
-    dependencies=[Depends(authorized)],
 )
 def infrastructure_events_create(
     project_id: str,
     request: InfrastructureEventCreate,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> InfrastructureEventRead:
-    project = session.get(Project, project_id)
-    if project is None:
-        raise HTTPException(404, "project not found")
+    project = _require_project(
+        session,
+        principal,
+        project_id,
+        ProjectRole.administrator,
+    )
     try:
         event = create_infrastructure_event(session, project, request)
     except ValueError as exc:
@@ -912,10 +1670,10 @@ def infrastructure_events_list(
     after: datetime | None = None,
     limit: Annotated[int, Query(ge=1, le=1000)] = 200,
     offset: Annotated[int, Query(ge=0)] = 0,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> list[InfrastructureEventRead]:
-    if session.get(Project, project_id) is None:
-        raise HTTPException(404, "project not found")
+    _require_project(session, principal, project_id)
     try:
         events = list_infrastructure_events(
             session,
@@ -940,11 +1698,13 @@ def infrastructure_events_list(
 )
 def infrastructure_events_get(
     event_id: str,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> InfrastructureEventRead:
     event = session.get(InfrastructureEvent, event_id)
     if event is None:
         raise HTTPException(404, "infrastructure event not found")
+    require_project_role(session, principal, event.project_id)
     return InfrastructureEventRead.model_validate(infrastructure_event_to_schema(event))
 
 
@@ -952,11 +1712,11 @@ def infrastructure_events_get(
     "/api/v1/tests/{execution_id}/infrastructure-correlations",
     response_model=InfrastructureCorrelationRead,
     status_code=201,
-    dependencies=[Depends(authorized)],
 )
 def infrastructure_correlations_create(
     execution_id: str,
     request: InfrastructureCorrelationCreate,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> InfrastructureCorrelationRead:
     execution = session.scalar(
@@ -969,6 +1729,9 @@ def infrastructure_correlations_create(
     )
     if execution is None:
         raise HTTPException(404, "test execution not found")
+    require_project_role(
+        session, principal, execution.run.project_id, ProjectRole.reviewer
+    )
     reference_cutoff = _utc_datetime(execution.run.started_at or execution.run.created_at)
     requested_cutoff = (
         _utc_datetime(request.before) if request.before is not None else reference_cutoff
@@ -1017,11 +1780,13 @@ def infrastructure_correlations_create(
 )
 def infrastructure_correlations_get(
     snapshot_id: str,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> InfrastructureCorrelationRead:
     snapshot = get_infrastructure_correlation(session, snapshot_id)
     if snapshot is None:
         raise HTTPException(404, "infrastructure correlation snapshot not found")
+    require_project_role(session, principal, snapshot.project_id)
     return InfrastructureCorrelationRead.model_validate(
         infrastructure_correlation_to_schema(session, snapshot)
     )
@@ -1036,10 +1801,10 @@ def clusters_list(
     include_superseded: bool = False,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> list[ClusterSummary]:
-    if session.get(Project, project_id) is None:
-        raise HTTPException(404, "project not found")
+    _require_project(session, principal, project_id)
     query = (
         select(FailureCluster)
         .where(FailureCluster.project_id == project_id)
@@ -1070,10 +1835,13 @@ def run_clusters_list(
     run_id: str,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> list[ClusterSummary]:
-    if session.get(Run, run_id) is None:
+    run = session.get(Run, run_id)
+    if run is None:
         raise HTTPException(404, "run not found")
+    require_project_role(session, principal, run.project_id)
     clusters = list(
         session.scalars(
             select(FailureCluster)
@@ -1112,6 +1880,7 @@ def run_clusters_list(
 @app.get("/api/v1/clusters/{cluster_id}", response_model=ClusterDetail)
 def clusters_get(
     cluster_id: str,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> ClusterDetail:
     cluster = session.scalar(
@@ -1125,6 +1894,7 @@ def clusters_get(
     )
     if cluster is None:
         raise HTTPException(404, "cluster not found")
+    require_project_role(session, principal, cluster.project_id)
     return _cluster_detail(session, cluster)
 
 
@@ -1136,10 +1906,13 @@ def cluster_revisions_list(
     cluster_id: str,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> list[ClusterRevisionRead]:
-    if session.get(FailureCluster, cluster_id) is None:
+    cluster = session.get(FailureCluster, cluster_id)
+    if cluster is None:
         raise HTTPException(404, "cluster not found")
+    require_project_role(session, principal, cluster.project_id)
     revisions = list(
         session.scalars(
             select(ClusterRevision)
@@ -1156,26 +1929,28 @@ def cluster_revisions_list(
     "/api/v1/clusters/{cluster_id}/reviews",
     response_model=ClusterDetail,
     status_code=201,
-    dependencies=[Depends(authorized)],
 )
 def cluster_reviews_create(
     cluster_id: str,
     request: ClusterReviewCreate,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> ClusterDetail:
     cluster = session.get(FailureCluster, cluster_id)
     if cluster is None:
         raise HTTPException(404, "cluster not found")
+    require_project_role(session, principal, cluster.project_id, ProjectRole.reviewer)
     try:
         review_cluster(
             session,
             cluster,
-            actor=request.actor,
+            actor=principal.display_name,
             decision=request.decision,
             reason=request.reason,
             expected_revision=request.expected_revision,
             failure_ids=request.failure_ids,
             target_cluster_id=request.target_cluster_id,
+            principal=principal,
         )
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
@@ -1215,6 +1990,7 @@ def test_history_get(
     shard_count: int | None = Query(default=None, ge=1, le=100_000),
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> TestHistoryRead:
     execution = session.scalar(
@@ -1227,6 +2003,7 @@ def test_history_get(
     )
     if execution is None:
         raise HTTPException(404, "test execution not found")
+    require_project_role(session, principal, execution.run.project_id)
 
     reference_cutoff = _utc_datetime(execution.run.started_at or execution.run.created_at)
     requested_cutoff = _utc_datetime(before) if before is not None else reference_cutoff
@@ -1297,7 +2074,15 @@ def test_history_get(
 
 
 @app.get("/api/v1/runs/{run_id}/failures")
-def failures_list(run_id: str, session: Session = Depends(get_session)) -> list[dict]:
+def failures_list(
+    run_id: str,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> list[dict]:
+    run = session.get(Run, run_id)
+    if run is None:
+        raise HTTPException(404, "run not found")
+    require_project_role(session, principal, run.project_id)
     failures = session.scalars(
         select(Failure)
         .where(Failure.run_id == run_id)
@@ -1324,9 +2109,12 @@ def failures_list(run_id: str, session: Session = Depends(get_session)) -> list[
     "/api/v1/failures/{failure_id}/analyses",
     response_model=AnalysisResult,
     status_code=201,
-    dependencies=[Depends(authorized)],
 )
-def analyses_create(failure_id: str, session: Session = Depends(get_session)) -> AnalysisResult:
+def analyses_create(
+    failure_id: str,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> AnalysisResult:
     failure = session.scalar(
         select(Failure)
         .where(Failure.id == failure_id)
@@ -1334,11 +2122,16 @@ def analyses_create(failure_id: str, session: Session = Depends(get_session)) ->
     )
     if not failure:
         raise HTTPException(404, "failure not found")
+    require_project_role(session, principal, failure.project_id, ProjectRole.reviewer)
     return analysis_to_schema(analyze_and_persist(session, failure))
 
 
 @app.get("/api/v1/analyses/{analysis_id}", response_model=AnalysisResult)
-def analyses_get(analysis_id: str, session: Session = Depends(get_session)) -> AnalysisResult:
+def analyses_get(
+    analysis_id: str,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> AnalysisResult:
     row = session.scalar(
         select(Analysis)
         .where(Analysis.id == analysis_id)
@@ -1346,37 +2139,137 @@ def analyses_get(analysis_id: str, session: Session = Depends(get_session)) -> A
     )
     if not row:
         raise HTTPException(404, "analysis not found")
+    require_project_role(session, principal, row.failure.project_id)
     return analysis_to_schema(row)
+
+
+@app.get(
+    "/api/v1/projects/{project_id}/review-queue",
+    response_model=list[ReviewQueueItem],
+)
+def review_queue_list(
+    project_id: str,
+    pending_only: bool = True,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> list[ReviewQueueItem]:
+    _require_project(session, principal, project_id, ProjectRole.reviewer)
+    latest_revision = (
+        select(
+            Analysis.failure_id.label("failure_id"),
+            func.max(Analysis.revision).label("revision"),
+        )
+        .join(Failure, Failure.id == Analysis.failure_id)
+        .where(Failure.project_id == project_id)
+        .group_by(Analysis.failure_id)
+        .subquery()
+    )
+    query = (
+        select(Analysis)
+        .join(
+            latest_revision,
+            (latest_revision.c.failure_id == Analysis.failure_id)
+            & (latest_revision.c.revision == Analysis.revision),
+        )
+        .options(
+            selectinload(Analysis.failure).selectinload(Failure.execution),
+            selectinload(Analysis.reviews),
+        )
+        .order_by(Analysis.created_at.desc())
+    )
+    analyses = list(session.scalars(query).unique().all())
+    rows: list[ReviewQueueItem] = []
+    for analysis in analyses:
+        latest_review = max(
+            analysis.reviews, key=lambda item: item.version, default=None
+        )
+        if pending_only and latest_review is not None and latest_review.decision in {
+            "accept",
+            "reject",
+            "category_correction",
+        }:
+            continue
+        rows.append(
+            ReviewQueueItem(
+                analysis_id=analysis.id,
+                failure_id=analysis.failure_id,
+                run_id=analysis.failure.run_id,
+                project_id=analysis.failure.project_id,
+                test_identity=analysis.failure.execution.test_identity,
+                category=analysis.category,
+                severity=analysis.severity,
+                summary=analysis.summary,
+                evidence_completeness=analysis.evidence_completeness,
+                policy_flags=analysis.policy_flags,
+                latest_review_version=latest_review.version if latest_review else 0,
+                latest_review_decision=latest_review.decision if latest_review else None,
+                created_at=analysis.created_at,
+            )
+        )
+    return rows[offset : offset + limit]
+
+
+@app.get(
+    "/api/v1/analyses/{analysis_id}/reviews",
+    response_model=list[ReviewEventRead],
+)
+def reviews_list(
+    analysis_id: str,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> list[ReviewEventRead]:
+    analysis = session.scalar(
+        select(Analysis)
+        .where(Analysis.id == analysis_id)
+        .options(selectinload(Analysis.failure))
+    )
+    if analysis is None:
+        raise HTTPException(404, "analysis not found")
+    require_project_role(session, principal, analysis.failure.project_id)
+    events = list(
+        session.scalars(
+            select(ReviewEvent)
+            .where(ReviewEvent.analysis_id == analysis_id)
+            .order_by(ReviewEvent.version)
+        ).all()
+    )
+    return [_review_event_schema(event) for event in events]
 
 
 @app.post(
     "/api/v1/analyses/{analysis_id}/reviews",
+    response_model=ReviewEventRead,
     status_code=201,
-    dependencies=[Depends(authorized)],
 )
 def reviews_create(
     analysis_id: str,
     request: ReviewCreate,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
-) -> dict:
-    row = session.get(Analysis, analysis_id)
+) -> ReviewEventRead:
+    row = session.scalar(
+        select(Analysis)
+        .where(Analysis.id == analysis_id)
+        .options(selectinload(Analysis.failure))
+    )
     if not row:
         raise HTTPException(404, "analysis not found")
+    require_project_role(session, principal, row.failure.project_id, ProjectRole.reviewer)
     try:
-        event = add_review(session, row, request)
+        event = add_review(session, row, request, principal=principal)
     except ValueError as exc:
-        raise HTTPException(409, str(exc)) from exc
-    return {
-        "id": event.id,
-        "version": event.version,
-        "decision": event.decision,
-        "created_at": event.created_at,
-    }
+        detail = str(exc)
+        code = 409 if "version conflict" in detail else 422
+        raise HTTPException(code, detail) from exc
+    return _review_event_schema(event)
 
 
 @app.get("/api/v1/evidence/{evidence_id}", response_model=EvidenceRead)
 def evidence_get(
     evidence_id: str,
+    principal: Principal = Depends(current_principal),
     session: Session = Depends(get_session),
 ) -> EvidenceRead:
     evidence = session.scalar(
@@ -1386,6 +2279,7 @@ def evidence_get(
     )
     if not evidence:
         raise HTTPException(404, "evidence not found")
+    require_project_role(session, principal, evidence.project_id)
     derivative = evidence.derivative
     if (
         derivative is None

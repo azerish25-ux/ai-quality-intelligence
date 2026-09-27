@@ -13,6 +13,7 @@
 - Change-impact development parent: exact source export of `48335b42c2da5b74bee0ce02aea471b987e5d416`
 - Performance-intelligence development parent: exact source export of `2324ea06aa0d4910e671d23dda36d817a108e05d`
 - Infrastructure-correlation development parent: exact source export of `76138480b81b4a6611d12043f36297d8bd5c0c8b`
+- Project-authorization/review development parent: exact source export of `e8d0d750f2a3f5306722f0eec58da14e6a1c2525`
 - Companion repositories remain read-only inputs:
   - `azerish25-ux/transaction-reliability-lab`
   - `azerish25-ux/playwright-quality-platform`
@@ -23,20 +24,20 @@
 |---|---|---|
 | M0 — preflight and delivery proof | PASS | Canonical repository/branch/head and exact source parent were verified. Remote publication and CI must still be reread for each delivered SHA. |
 | M1 — executable vertical slice | PASS | Raw upload -> stored ingestion/job -> leased worker -> run/evidence/failure -> automatic deterministic analysis -> dashboard. Recovery and browser path exist. |
-| M2 — full ingestion and safe evidence | PARTIAL | Manifest `2.0`, adapter registry, honest completeness, execution/input-scoped evidence, immutable safe text derivatives, source maps, independent digest/locator/quotation/observation checks, semantic classification-claim validation, safe degradation, and restricted screenshot/trace indexes exist. Producer-pinned fixtures, safe binary derivatives, broader predicates, project-scoped authorization and controlled artifact serving remain open. |
+| M2 — full ingestion and safe evidence | PARTIAL | Manifest `2.0`, adapter registry, honest completeness, execution/input-scoped evidence, immutable safe text derivatives, source maps, independent digest/locator/quotation/observation checks, semantic classification-claim validation, safe degradation, restricted screenshot/trace indexes, and project-scoped authorization exist. Producer-pinned fixtures, safe binary derivatives, broader predicates and bounded controlled artifact serving remain open. |
 | M3 — analytical core | PASS | Versioned strict fingerprints plus loose readable clustering features, bounded candidate generation, explainable multi-signal scoring, hard conflict preservation, complete-link bridge prevention, deterministic cluster identities, append-only membership revisions, reviewed confirm/split/merge corrections, conservative rules, contradiction handling, confidence semantics and safe abstention all have executable coverage. |
 | M4 — history, impact and performance | PASS | Prior-only exact-test history, independently recorded infrastructure-event correlation, deterministic change-impact recommendations and compatibility-gated performance regression analysis are implemented. Infrastructure analysis reuses the independent-run history cohort, applies strict trust/context/time compatibility, exposes exact exposed/unexposed denominators and immutable snapshots, and cannot independently authorize a diagnosis. History, infrastructure, impact and performance are available through the API/CLI/dashboard with executable safety coverage. |
-| M5 — review workflow and UI | PARTIAL | Append-only analysis reviews, cluster decisions and impact include/exclude overrides exist with optimistic conflict versions. Upload/status, per-input completeness, clustering, history, infrastructure context/snapshot persistence, impact, performance, overview/runs/failure/evaluation views and Chromium journey source exist. Roles, complete audit/settings views and broader accessibility/browser coverage remain open. |
+| M5 — review workflow and UI | PARTIAL | M5.1 adds salted human credentials, revocable hashed sessions, project-bound one-time ingestion tokens, project-scoped viewer/reviewer/administrator enforcement across every resource endpoint, server-derived reviewer identity, richer append-only review decisions, project audit events, a review queue, authenticated dashboard identity, membership/token settings and role-aware controls. Broader accessibility/browser coverage, deeper audit/settings operations, account lifecycle/recovery and remaining view completeness remain open. |
 | M6 — corpus and evaluation | PARTIAL | 200 synthetic classification cases, a 24-case/13-label clustering fixture, a 12-case/11-family deterministic impact fixture, a 20-case performance compatibility/regression fixture and an 18-case infrastructure-correlation fixture have executable harnesses and committed reports. Actual LedgerGuard executions remain 0; all specialized fixtures are controlled synthetic safety evidence rather than production measurements or causal validation. |
 | M7 — optional model boundary | NOT RUN | Deterministic mode is functional; provider adapter is not implemented. |
 | M8 — GitHub integration | PARTIAL | Composite Action uses durable ingestion, carries repository/base/head/run-scope/comparison-trust metadata through safe argument arrays and emits ingestion/run/report outputs. Authenticated comparison lookup, live idempotent PR publication and stale-head reconciliation remain open. |
 | M9 — hardening and packaging | PARTIAL | Docker/Compose, nonroot backend, CI, storage/archive/image bounds, recovery tests, browser E2E source and migration chain exist. Retention, backup/restore, telemetry export, load benchmarks and broader isolation evidence remain open. |
-| M10 — final audit and source delivery | PARTIAL | M1, M3 and M4 plus the M2 safety foundation are implemented. M2 closure, M5 roles/audit completion, actual companion-project M6 evidence, M7 provider boundary, M8 live publication, broader M9 operations and remaining final acceptance remain open. |
+| M10 — final audit and source delivery | PARTIAL | M1, M3 and M4 plus the M2 safety foundation and M5.1 identity/review foundation are implemented. M2 closure, remaining M5 accessibility/view depth, actual companion-project M6 evidence, M7 provider boundary, M8 live publication, broader M9 operations and remaining final acceptance remain open. |
 
-## Checks executed for the infrastructure-correlation checkpoint
+## Checks executed for the project-authorization/review checkpoint
 
-- `PYTHONPATH=src pytest -q`: **163 passed**.
-- `PYTHONPATH=src pytest --cov=failurelens --cov-branch --cov-fail-under=75 -q`: **163 passed, 85.10% total branch-aware coverage**.
+- `PYTHONPATH=src pytest -q`: **171 passed**.
+- `PYTHONPATH=src pytest --cov=failurelens --cov-branch --cov-fail-under=75 -q`: **171 passed, 84.18% total branch-aware coverage**.
 - `python -m compileall -q backend/src backend/tests evaluation`: **passed**.
 - Performance coverage includes final-attempt test durations and bounded k6 statistics, original/canonical units, exact evidence locators, immutable versioned policies, prior-only baselines, project/repository/workload/environment/producer/statistic/unit/trust/completeness gates, stale and future exclusion, deterministic replay, missing/incompatible statuses, lower- and higher-is-better metrics, zero baselines and run-level percentile anti-aggregation.
 - Impact coverage includes focused direct mappings, renamed/deleted paths, bounded reverse-dependency traversal with cycles, immutable mapping versions, project isolation, mandatory critical-test preservation, untrusted/incomplete/truncated/unmapped full-suite fallbacks, base/head mismatch rejection, deterministic replay, append-only overrides, stale-revision rejection and artifact self-trust prevention.
@@ -44,9 +45,10 @@
 - The controlled performance fixture contains **20 synthetic cases** and reports status accuracy **1.000**, regression recall **1.000**, compatibility-selection accuracy **1.000**, evidence-citation validity **1.000**, deterministic-repeat agreement **1.000**, **0/5** dangerous false negatives, **0** significance claims and **0** non-median baseline aggregations. It remains synthetic and agent-authored, not production workload evidence.
 - The controlled infrastructure fixture contains **18 synthetic cases** and reports status accuracy **1.000**, compatibility-selection accuracy **1.000**, event-provenance validity **1.000**, deterministic-repeat agreement **1.000**, **0** future-event leaks, **0** cross-project leaks, **0** unsupported causality claims and **0/1** dangerous product-defect downgrades. Every replay persisted/reused its immutable digest. It remains synthetic and does not establish causal validity or production prevalence.
 - The frozen clustering fixture remains **24 cases / 13 evaluation-only incident labels** with pairwise precision **1.000**, pairwise recall **1.000**, **0** false merges, **0** false splits and adjusted Rand index **1.000**.
-- SQLite Alembic empty-database upgrade, downgrade to the previous head `b2c8e5f1a730`, and re-upgrade through `c7a9e2f4b610`: **passed**.
+- SQLite Alembic empty-database upgrade, downgrade to the previous head `c7a9e2f4b610`, and re-upgrade through `a4f6e8c2d901`: **passed**.
 - `bash -n integrations/github-action/run.sh`: **passed**.
-- Locked npm restore/test/build could not be completed locally because package-registry access stalled in the isolated environment. PostgreSQL migration, frontend unit/build, Chromium, evaluation and Docker results must be taken from the exact delivered GitHub workflow run rather than inferred from workflow source.
+- Application and frontend test sources passed a local TypeScript static compile check. The locked npm unit/build suite could not be restored in this isolated container because the registry was unreachable.
+- Frontend unit/build, PostgreSQL migration, Chromium and Docker results must be taken from the exact delivered GitHub workflow run rather than inferred from source.
 
 ## M2 failure perspectives reviewed
 
@@ -54,7 +56,7 @@
 - **Missing evidence:** declared required paths persist as `missing`; present but unsafe/invalid inputs persist as `restricted`, `rejected` or `unsupported`; rejected/tampered derivatives force explicit missing validated evidence and abstention.
 - **Dangerous reassurance:** incomplete required scope blocks unsupported reassurance; invalid, modified or semantically irrelevant citations cannot retain a non-abstaining published category.
 - **Data leakage:** text/query evidence is redacted into immutable safe derivatives; raw storage paths are not returned by the evidence API; screenshot/trace originals stay restricted.
-- **Authorization:** uploaded GitHub metadata carries trust provenance but never authorizes publication; full project-scoped users/roles remain open.
+- **Authorization:** uploaded GitHub metadata carries trust provenance but never authorizes publication; every evidence/resource lookup now passes through project-scoped identity and role enforcement. Bounded artifact delivery remains open.
 - **Reproducibility:** source/input/derivative digests, manifest and adapter versions, parser/extractor/redaction/validation versions, evidence scope and analysis input digest are persisted.
 - **Usability:** dashboard shows expected/received counts and every input’s state plus accepted/rejected evidence validation counts and publication status.
 - **Recovery:** valid sibling artifacts survive a missing/rejected input; durable replay/idempotency remains tested.
@@ -102,7 +104,7 @@
 - **Missing evidence:** missing, incomplete, truncated, untrusted or unmapped change evidence produces `FULL_SUITE_REQUIRED` instead of a narrow recommendation.
 - **Dangerous reassurance:** recommendations are advisory only, never execute or skip tests, and always preserve mandatory smoke, security, transaction and explicitly critical tests.
 - **Trust boundary:** a changed-file artifact may declare trust, but effective trust is bound only by validated transport metadata; uploaded bytes cannot self-promote to `trusted_workflow`.
-- **Authorization/isolation:** snapshots, recommendations, tests, edges and overrides are project-scoped; cross-project IDs are rejected. Full project roles remain an M5 gap.
+- **Authorization/isolation:** snapshots, recommendations, tests, edges and overrides are project-scoped; cross-project IDs are hidden and viewer/reviewer/administrator roles are enforced.
 - **Reproducibility:** recommendations persist base/head, changed-input digest, mapping snapshot/policy/engine versions, stable reason components, exclusions and a canonical recommendation digest.
 - **Review/audit:** include/exclude overrides are append-only, attributed, reasoned and timestamped; optimistic revision updates reject stale reviewers. Mandatory/critical exclusions are blocked.
 - **Usability:** the dashboard displays changed files, selected and excluded tests, safety reasons, mapping provenance, confidence, revision and override history rather than only a selected count.
@@ -117,8 +119,22 @@
 - **Dangerous reassurance:** single current/baseline percentile pairs never produce significance claims; exported p95 values are compared as run-level observations and never averaged into an aggregate p95.
 - **Data leakage and isolation:** current/future runs and cross-project records are excluded; immutable snapshots persist cutoff, policy, accepted members, rejected candidates and a canonical digest.
 - **Uncertainty and confounders:** repeated observations expose median absolute deviation where available; small cohorts, producer threshold conflicts and limited samples remain visible with an explicit next-measurement recommendation.
-- **Authorization:** project isolation is enforced at every policy, observation, baseline and comparison lookup. Full viewer/reviewer/administrator roles remain an M5 gap.
+- **Authorization:** project isolation and viewer/reviewer/administrator permissions are enforced at every policy, observation, baseline and comparison lookup.
 - **Reproducibility:** policy, engine, normalized dimensions, observation/baseline digests, exact evidence IDs and deterministic comparison inputs are persisted.
 - **Usability:** API, CLI and dashboard expose deltas, counts, tolerances, baseline age/provenance, blockers, rejected compatibility reasons, confounders, evidence links and next measurements.
 - **Evaluation truthfulness:** the 20-case fixture is controlled synthetic safety evidence; it does not claim production prevalence, statistical power or independently blinded generalization.
 - **Delivery truthfulness:** local backend, migration, TypeScript, shell and deterministic evaluation results remain distinct from the exact delivered GitHub Actions evidence.
+
+## M5.1 identity, authorization, review and audit failure perspectives reviewed
+
+- **Functional correctness:** human sessions, project memberships, project ingestion credentials and actor attribution are relational records with explicit expiry/revocation and optimistic review versions; the dashboard consumes the same typed API.
+- **Missing evidence:** reviewer-supplied evidence IDs must exist in the analysis project, and category corrections require an explicit replacement category and engineering reason.
+- **Dangerous reassurance:** `NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE` is rejected when evidence is incomplete, product risk remains unresolved, or safety policy flags are active; a human record never executes release approval.
+- **Data leakage:** every project-owned lookup resolves the owning project before serialization; a non-member receives not-found behavior for a guessed cross-project UUID, and ingestion credentials cannot read project data.
+- **Authorization:** viewers are read-only, reviewers can record bounded human decisions, administrators manage memberships/credentials/policies, system administration is explicit, and client-supplied actor fields are rejected.
+- **Credential safety:** passwords use salted `scrypt`; session and ingestion secrets are stored only as digests; project token plaintext is returned once; expired, revoked, malformed and cross-project credentials are rejected.
+- **Auditability:** login outcomes, user/project membership changes, credential lifecycle operations, reviews, cluster corrections and impact overrides retain verified actor, reason, resource, project, timestamp and safe metadata. Application append-only records are not misrepresented as database-admin-proof immutability.
+- **Reproducibility:** review decisions retain expected/current versions, prior decisions and cited evidence IDs; automated reanalysis does not overwrite human history.
+- **Usability and accessibility:** the dashboard labels demo identity, exposes current role, removes actor text fields, disables unavailable controls, provides review/settings/audit workflows, labeled inputs and status messages. Broader automated accessibility and narrow-layout coverage remains open.
+- **Recovery:** administrators can revoke ingestion credentials immediately; logout revokes the current session; production refuses unsafe bootstrap or cookie settings.
+- **Delivery truthfulness:** local SQLite, backend, frontend and deterministic checks remain distinct from PostgreSQL, Chromium and Docker evidence on the exact delivered remote SHA.
