@@ -25,7 +25,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .delivery/failurelens-m4.part-* | base64 --decode > /tmp/failurelens-m4.tar.gz
+          for part in .delivery/failurelens-m4.part-*; do
+            base64 --decode "$part"
+          done > /tmp/failurelens-m4.tar.gz
           echo "131052e5f2be17d04efff62f4e6d1cc7915a52517b8c2a6f30d0ccf2086f7043  /tmp/failurelens-m4.tar.gz" | sha256sum --check --strict
           python - <<'PY'
           from pathlib import PurePosixPath
