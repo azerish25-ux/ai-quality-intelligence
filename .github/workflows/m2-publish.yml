@@ -1,0 +1,114 @@
+name: Publish verified M2 payload
+
+on:
+  push:
+    branches:
+      - m2-publisher-staging
+    paths:
+      - .github/workflows/m2-publish.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: failurelens-m2-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'azerish25-ux/ai-quality-intelligence'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact main base
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Assert publication base
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected=3ba6cc6a4f6f3f452244e8b010212a0eed14b8ae
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$expected" || {
+            echo "main moved: expected $expected, found $actual" >&2
+            exit 1
+          }
+
+      - name: Reassemble and verify payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin m2-publisher-staging
+          : > /tmp/m2-payload.b64
+          for part in $(seq -w 0 7); do
+            git show "origin/m2-publisher-staging:.github/m2-payload/part-${part}" >> /tmp/m2-payload.b64
+          done
+          base64 --decode /tmp/m2-payload.b64 > /tmp/m2-payload.tgz
+          echo '3dd3ab5718e399f5ae4fac83fda0a735b197f733652e35a85354e3d543347cb1  /tmp/m2-payload.tgz' | sha256sum --check --strict
+
+      - name: Validate and extract ordinary source files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path, PurePosixPath
+          import os
+          import shutil
+          import tarfile
+
+          archive = Path('/tmp/m2-payload.tgz')
+          root = Path.cwd().resolve()
+          expected_count = 34
+          with tarfile.open(archive, 'r:gz') as handle:
+              members = handle.getmembers()
+              if len(members) != expected_count:
+                  raise SystemExit(f'expected {expected_count} payload files, found {len(members)}')
+              seen: set[str] = set()
+              for member in members:
+                  path = PurePosixPath(member.name)
+                  if (
+                      not member.isfile()
+                      or path.is_absolute()
+                      or '..' in path.parts
+                      or member.name in seen
+                      or path.parts[:2] == ('.github', 'workflows')
+                  ):
+                      raise SystemExit(f'unsafe payload member: {member.name!r}')
+                  seen.add(member.name)
+                  target = (root / Path(*path.parts)).resolve()
+                  if root not in target.parents:
+                      raise SystemExit(f'payload escaped repository: {member.name!r}')
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  source = handle.extractfile(member)
+                  if source is None:
+                      raise SystemExit(f'unreadable payload member: {member.name!r}')
+                  with source, target.open('wb') as destination:
+                      shutil.copyfileobj(source, destination)
+                  os.chmod(target, member.mode & 0o777)
+          PY
+
+      - name: Verify extracted tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -tzf /tmp/m2-payload.tgz | LC_ALL=C sort > /tmp/expected-files
+          git diff --name-only | LC_ALL=C sort > /tmp/actual-files
+          diff -u /tmp/expected-files /tmp/actual-files
+          git diff --check
+          python3 -m compileall -q backend/src backend/tests backend/migrations
+          test "$(wc -l < /tmp/actual-files)" -eq 34
+
+      - name: Commit and fast-forward main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'failurelens-delivery[bot]'
+          git config user.email 'failurelens-delivery@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat: deliver M2 safe-evidence foundation'
+          test "$(git diff-tree --no-commit-id --name-only -r HEAD | wc -l)" -eq 34
+          git push origin HEAD:main
