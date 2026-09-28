@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type MouseEvent } from 'react';
 import {
   api,
   operations,
@@ -153,6 +153,10 @@ function App() {
   const authGeneration = useRef(0);
   const rootRequest = useRef(0);
   const projectRequest = useRef(0);
+  const selectionIntent = useRef({ projectId: searchParam('project'), runId: searchParam('run') });
+  const [navigationRevision, setNavigationRevision] = useState(0);
+  const [runLoading, setRunLoading] = useState(false);
+  const [runError, setRunError] = useState<string | null>(null);
   const [principal, setPrincipal] = useState<Principal | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [loginUsername, setLoginUsername] = useState('');
@@ -271,6 +275,44 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
 
+  const changeProject = useCallback((id: string, requestedRunId = '', requestedFailureId = '') => {
+    projectRequest.current += 1;
+    selectionIntent.current = { projectId: id, runId: requestedRunId };
+    setProjectId(id); setRunId(requestedRunId); setRuns([]); setIngestions([]);
+    setFailures([]); setRunInputs([]); setRunClusters([]); setClusters([]);
+    setSelectedFailureId(requestedFailureId); setSelectedClusterId(''); setSelectedCluster(null);
+    setSelectedImpactId(''); setSelectedImpact(null); setImpactMappings([]); setImpactRecommendations([]);
+    setPerformancePolicies([]); setPerformanceObservations([]); setPerformanceComparisons([]);
+    setTestHistory(null); setInfrastructureSnapshot(null); setAnalysisReviews([]);
+    setMembers([]); setIngestionTokens([]); setNewTokenSecret(null); setWatchedIngestionId(null);
+    setReviewQueue([]); setReviewTotal(null); setAuditEvents([]); setAuditTotal(null);
+    setRunError(null); setError(null);
+    setNavigationRevision(value => value + 1);
+  }, []);
+
+  const changeRun = (id: string) => {
+    selectionIntent.current = { projectId, runId: id };
+    setRunId(id); setSelectedFailureId(''); setSelectedClusterId('');
+    setFailures([]); setRunInputs([]); setRunClusters([]); setTestHistory(null);
+    setPerformanceObservations([]); setPerformanceComparisons([]); setRunError(null);
+  };
+
+  const navigateSection = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const target = document.getElementById(event.currentTarget.hash.slice(1));
+    if (!target) return;
+    event.preventDefault();
+    event.currentTarget.closest('details')?.removeAttribute('open');
+    const url = new URL(window.location.href);
+    url.hash = event.currentTarget.hash;
+    // An in-page anchor is not a project/run navigation. Native hash history
+    // would invoke popstate while asynchronous panels are still settling.
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    if (!target.hasAttribute('tabindex')) target.tabIndex = -1;
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ behavior: 'instant', block: 'start' });
+  };
+
   const currentRole = useMemo<ProjectRole | null>(() => {
     if (!principal) return null;
     if (principal.system_admin || principal.kind === 'demo') return 'administrator';
@@ -367,16 +409,25 @@ function App() {
     setOverview(nextOverview);
     setProjects(nextProjects);
     setEvaluation(evaluationResponse.metrics ?? null);
-    setProjectId((current) => (
-      current && nextProjects.some((project) => project.id === current)
-        ? current
-        : nextProjects[0]?.id ?? ''
-    ));
+    const intendedProject = selectionIntent.current.projectId;
+    if (intendedProject && !nextProjects.some(project => project.id === intendedProject)) {
+      setError('Requested project is unavailable or you do not have access. Select an available project.');
+    }
+    setProjectId(current => intendedProject || current || nextProjects[0]?.id || '');
   }, []);
 
   const refreshProject = useCallback(async (nextProjectId: string, preferredRunId?: string | null) => {
     const generation = authGeneration.current;
     const request = ++projectRequest.current;
+    if (preferredRunId !== undefined) {
+      if (selectionIntent.current.runId !== preferredRunId) setSelectedFailureId('');
+      selectionIntent.current = { projectId: nextProjectId, runId: preferredRunId ?? '' };
+    }
+    // Capture intent before awaiting requests. The URL can change during a
+    // seed, reload or Back/Forward transition and is not an async data store.
+    const requestedRunId = preferredRunId ?? (
+      selectionIntent.current.projectId === nextProjectId ? selectionIntent.current.runId : ''
+    );
     if (!nextProjectId) {
       setRuns([]);
       setIngestions([]);
@@ -405,7 +456,6 @@ function App() {
       api.impactRecommendations(nextProjectId),
       api.performancePolicies(nextProjectId)
     ]);
-    const requestedRunId = preferredRunId || searchParam('run');
     if (requestedRunId && !nextRuns.some(run => run.id === requestedRunId)) {
       try {
         const olderRun = await operations.run(requestedRunId);
@@ -435,11 +485,14 @@ function App() {
       if (current && nextClusters.some((cluster) => cluster.id === current)) return current;
       return nextClusters[0]?.id ?? '';
     });
-    setRunId((current) => {
-      if (requestedRunId && nextRuns.some((run) => run.id === requestedRunId)) return requestedRunId;
-      if (current && nextRuns.some((run) => run.id === current)) return current;
-      return nextRuns[0]?.id ?? '';
-    });
+    const currentIntent = selectionIntent.current;
+    const nextRunId = currentIntent.projectId === nextProjectId && currentIntent.runId
+      ? currentIntent.runId
+      : requestedRunId || nextRuns[0]?.id || '';
+    selectionIntent.current = { projectId: nextProjectId, runId: nextRunId };
+    // Keep a requested ID even when unavailable; the run resolver will show an
+    // explicit error rather than quietly opening an unrelated investigation.
+    setRunId(nextRunId);
   }, []);
 
   useEffect(() => {
@@ -464,9 +517,9 @@ function App() {
   }, [refreshRoot]);
 
   useEffect(() => {
-    if (!principal) return;
+    if (!principal || !projects.some(project => project.id === projectId)) return;
     refreshProject(projectId).catch((reason: unknown) => setError(String(reason)));
-  }, [principal, projectId, refreshProject, governanceRevision]);
+  }, [principal, projectId, projects, refreshProject, governanceRevision, navigationRevision]);
 
   useEffect(() => {
     if (!principal || !projectId) {
@@ -522,50 +575,42 @@ function App() {
   }, [principal, selectedFailure?.latest_analysis?.analysis_id, governanceRevision]);
 
   useEffect(() => {
-    if (!runId) {
-      setFailures([]);
-      setRunInputs([]);
-      setRunClusters([]);
-      setPerformanceObservations([]);
-      setPerformanceComparisons([]);
-      setSelectedFailureId('');
-      setPerformanceLoading(false);
+    if (!principal || !projectId || !runId) {
+      setFailures([]); setRunInputs([]); setRunClusters([]);
+      setPerformanceObservations([]); setPerformanceComparisons([]);
+      setPerformanceLoading(false); setRunLoading(false);
       return;
     }
     let cancelled = false;
-    setPerformanceLoading(true);
-    Promise.all([
-      api.failures(runId),
-      api.runInputs(runId),
-      api.runClusters(runId),
-      api.performanceObservations(runId),
-      api.performanceComparisons(runId)
-    ])
-      .then(([nextFailures, nextInputs, nextRunClusters, nextPerformanceObservations, nextPerformanceComparisons]) => {
-        if (cancelled) return;
-        setFailures(nextFailures);
-        setRunInputs(nextInputs);
-        setRunClusters(nextRunClusters);
-        setPerformanceObservations(nextPerformanceObservations);
-        setPerformanceComparisons(nextPerformanceComparisons);
-        setSelectedClusterId((current) => {
-          if (current && nextRunClusters.some((cluster) => cluster.id === current)) return current;
-          return nextRunClusters[0]?.id ?? '';
-        });
-        setSelectedFailureId((current) => (
-          current && nextFailures.some((item) => item.id === current)
-            ? current
-            : nextFailures[0]?.id ?? ''
-        ));
-      })
-      .catch((reason: unknown) => {
-        if (!cancelled) setError(String(reason));
-      })
-      .finally(() => {
-        if (!cancelled) setPerformanceLoading(false);
-      });
+    const generation = authGeneration.current;
+    const isCurrent = () => !cancelled && generation === authGeneration.current &&
+      selectionIntent.current.projectId === projectId && selectionIntent.current.runId === runId;
+    setRunLoading(true); setRunError(null); setPerformanceLoading(true);
+    operations.run(runId).then(async openedRun => {
+      if (!isCurrent()) return;
+      if (openedRun.project_id !== projectId) throw new Error('Run does not belong to the selected project.');
+      const [nextFailures, nextInputs, nextRunClusters, nextPerformanceObservations, nextPerformanceComparisons] = await Promise.all([
+        api.failures(runId), api.runInputs(runId), api.runClusters(runId),
+        api.performanceObservations(runId), api.performanceComparisons(runId)
+      ]);
+      if (!isCurrent()) return;
+      setRuns(current => [...current.filter(run => run.project_id === projectId && run.id !== runId), openedRun]);
+      setFailures(nextFailures); setRunInputs(nextInputs); setRunClusters(nextRunClusters);
+      setPerformanceObservations(nextPerformanceObservations); setPerformanceComparisons(nextPerformanceComparisons);
+      setSelectedClusterId(current => current && nextRunClusters.some(cluster => cluster.id === current)
+        ? current : nextRunClusters[0]?.id ?? '');
+      setSelectedFailureId(current => current || nextFailures[0]?.id || '');
+    }).catch((reason: unknown) => {
+      if (!isCurrent()) return;
+      setFailures([]); setRunInputs([]); setRunClusters([]);
+      setPerformanceObservations([]); setPerformanceComparisons([]);
+      setRuns(current => current.filter(run => run.id !== runId));
+      setRunError(`Requested investigation is unavailable in this project. ${String(reason)}`);
+    }).finally(() => {
+      if (isCurrent()) { setPerformanceLoading(false); setRunLoading(false); }
+    });
     return () => { cancelled = true; };
-  }, [runId, governanceRevision]);
+  }, [principal, projectId, runId, governanceRevision, navigationRevision]);
 
   const hasActiveIngestion = useMemo(
     () => ingestions.some((ingestion) => !terminalIngestionStates.has(ingestion.state)),
@@ -614,9 +659,10 @@ function App() {
   useEffect(() => {
     const clearSession = () => {
       authGeneration.current += 1;
+      selectionIntent.current = { projectId: '', runId: '' };
       rootRequest.current += 1;
       projectRequest.current += 1;
-      setProjects([]); setProjectId(''); setRunId(''); setSelectedFailureId('');
+      setProjects([]); setProjectId(''); setRunId(''); setSelectedFailureId(''); setRunError(null);
       setSelectedImpactId(''); setSelectedClusterId(''); setOverview(null); setEvaluation(null);
       setMembers([]); setIngestionTokens([]); setNewTokenSecret(null);
       setPrincipal(null); setFailures([]); setReviewQueue([]); setAuditEvents([]);
@@ -640,6 +686,7 @@ function App() {
 
 
   useEffect(() => {
+    if (authLoading || !principal) return;
     const url = new URL(window.location.href);
     const values: Record<string, string> = {
       project: projectId,
@@ -674,6 +721,8 @@ function App() {
       `${url.pathname}${url.search}${url.hash}`
     );
   }, [
+    authLoading,
+    principal,
     auditActionFilter,
     auditOutcomeFilter,
     auditPage,
@@ -705,32 +754,9 @@ function App() {
       const failureFromUrl = params.get('failure') ?? '';
       const clusterFromUrl = params.get('cluster') ?? '';
       const impactFromUrl = params.get('impact') ?? '';
-      const availableClusters = runClusters.length > 0 ? runClusters : clusters;
-      setProjectId(
-        projectFromUrl && projects.some((project) => project.id === projectFromUrl)
-          ? projectFromUrl
-          : projects[0]?.id ?? ''
-      );
-      setRunId(
-        runFromUrl && runs.some((run) => run.id === runFromUrl)
-          ? runFromUrl
-          : runs[0]?.id ?? ''
-      );
-      setSelectedFailureId(
-        failureFromUrl && failures.some((failure) => failure.id === failureFromUrl)
-          ? failureFromUrl
-          : failures[0]?.id ?? ''
-      );
-      setSelectedClusterId(
-        clusterFromUrl && availableClusters.some((cluster) => cluster.id === clusterFromUrl)
-          ? clusterFromUrl
-          : availableClusters[0]?.id ?? ''
-      );
-      setSelectedImpactId(
-        impactFromUrl && impactRecommendations.some((impact) => impact.id === impactFromUrl)
-          ? impactFromUrl
-          : impactRecommendations[0]?.id ?? ''
-      );
+      changeProject(projectFromUrl, runFromUrl, failureFromUrl);
+      setSelectedClusterId(clusterFromUrl);
+      setSelectedImpactId(impactFromUrl);
       setHistoryRunScope(params.get('history_scope') ?? '');
       setHistoryBrowser(params.get('history_browser') ?? '');
       setHistoryBranch(params.get('history_branch') ?? '');
@@ -763,7 +789,7 @@ function App() {
     };
     window.addEventListener('popstate', applyUrlState);
     return () => window.removeEventListener('popstate', applyUrlState);
-  }, [clusters, failures, impactRecommendations, projects, runClusters, runs]);
+  }, [changeProject]);
 
   useEffect(() => {
     if (reviewTotal !== null && !reviewLoading) setReviewPage((current) => Math.min(Math.max(current, 1), reviewPageCount));
@@ -890,8 +916,8 @@ function App() {
     setError(null);
     try {
       const seeded = await api.seedDemo();
+      changeProject(seeded.project_id, seeded.run_id);
       await refreshRoot();
-      setProjectId(seeded.project_id);
       await refreshProject(seeded.project_id, seeded.run_id);
       setStatusMessage('Synthetic demo data loaded.');
     } catch (reason) {
@@ -1322,7 +1348,7 @@ function App() {
       const [openedRun, nextFailures] = await Promise.all([operations.run(item.run_id), api.failures(item.run_id)]);
       if (openedRun.project_id !== projectId) throw new Error('Run does not belong to the selected project');
       setRuns(current => current.some(run => run.id === openedRun.id) ? current.map(run => run.id === openedRun.id ? openedRun : run) : [...current, openedRun]);
-      setRunId(item.run_id);
+      changeRun(item.run_id);
       setFailures(nextFailures);
       setSelectedFailureId(
         nextFailures.find((failure) => failure.id === item.failure_id)?.id ?? nextFailures[0]?.id ?? ''
@@ -1499,6 +1525,7 @@ function App() {
           <h1>Sign in</h1>
           <p>Use a self-hosted FailureLens account. Project permissions are applied after authentication.</p>
           {error && <div className="alert" role="alert">{error}</div>}
+        {runError && <div className="alert" role="alert">{runError}</div>}
           <label>Username<input autoComplete="username" value={loginUsername} onChange={(event: ChangeEvent<HTMLInputElement>) => setLoginUsername(event.target.value)} required /></label>
           <label>Password<input type="password" autoComplete="current-password" value={loginPassword} onChange={(event: ChangeEvent<HTMLInputElement>) => setLoginPassword(event.target.value)} required /></label>
           <button className="primary" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
@@ -1530,7 +1557,7 @@ function App() {
       <aside className="sidebar" aria-label="Application sidebar">
         <div className="brand"><span className="brand-mark">FL</span><div><strong>FailureLens</strong><small>Evidence-grounded triage</small></div></div>
         <nav aria-label="Primary navigation">
-          {navigationItems.map((item) => <a href={item.href} key={item.href}>{item.label}</a>)}
+          {navigationItems.map((item) => <a href={item.href} key={item.href} onClick={navigateSection}>{item.label}</a>)}
         </nav>
         <div className="sidebar-note">Durable deterministic mode<br/><span>No model API required</span></div>
       </aside>
@@ -1542,7 +1569,7 @@ function App() {
             <details className="mobile-navigation">
               <summary>Navigate</summary>
               <nav aria-label="Compact navigation">
-                {navigationItems.map((item) => <a href={item.href} key={item.href}>{item.label}</a>)}
+                {navigationItems.map((item) => <a href={item.href} key={item.href} onClick={navigateSection}>{item.label}</a>)}
               </nav>
             </details>
           </div>
@@ -1558,6 +1585,7 @@ function App() {
         {principal.demo_mode && <div className="demo-banner" role="status"><strong>Synthetic demo identity.</strong> This loopback-oriented mode bypasses normal login for a visibly labeled administrator and must not be exposed as production authentication.</div>}
 
         {error && <div className="alert" role="alert">{error}</div>}
+        {runError && <div className="alert" role="alert">{runError}</div>}
         <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{statusMessage}</div>
 
         <section id="overview" className="metric-grid" aria-label="Overview metrics">
@@ -1588,7 +1616,7 @@ function App() {
             <span className="pill insufficient-evidence">PostgreSQL-backed worker</span>
           </div>
           <form className="upload-form" onSubmit={uploadArtifact}>
-            <label>Project<select value={projectId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setProjectId(event.target.value)} required><option value="">Select project</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+            <label>Project<select value={projectId} onChange={(event: ChangeEvent<HTMLSelectElement>) => changeProject(event.target.value)} required><option value="">Select project</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
             <label>External run ID<input value={externalId} onChange={(event: ChangeEvent<HTMLInputElement>) => setExternalId(event.target.value)} minLength={1} maxLength={240} required/></label>
             <label>Run scope<select value={uploadRunScope} onChange={(event: ChangeEvent<HTMLSelectElement>) => setUploadRunScope(event.target.value as 'full_suite' | 'impact_selected' | 'unknown')}><option value="unknown">Unknown</option><option value="full_suite">Full suite</option><option value="impact_selected">Impact selected</option></select></label>
             <label>Environment<input placeholder="Optional, e.g. CI Linux" value={uploadEnvironment} onChange={(event: ChangeEvent<HTMLInputElement>) => setUploadEnvironment(event.target.value)}/></label>
@@ -1611,7 +1639,7 @@ function App() {
                   </div>
                   <div className="ingestion-stats"><span>{ingestion.received_inputs}/{ingestion.expected_inputs ?? '—'} inputs</span><code>{ingestion.source_digest.slice(0, 10)}</code></div>
                   <div className="ingestion-actions">
-                    {ingestion.run_id && <button type="button" onClick={() => setRunId(ingestion.run_id ?? '')}>Open run</button>}
+                    {ingestion.run_id && <button type="button" onClick={() => changeRun(ingestion.run_id ?? '')}>Open run</button>}
                     {!terminalIngestionStates.has(ingestion.state) && <button type="button" onClick={() => cancelIngestion(ingestion)} disabled={busy || !canAdminister}>Cancel</button>}
                     {['failed', 'dead_lettered', 'cancelled'].includes(ingestion.state) && <button type="button" onClick={() => retryIngestion(ingestion)} disabled={busy || !canAdminister || Boolean(ingestion.source_expired_at)}>Retry</button>}
                   </div>
@@ -1622,8 +1650,8 @@ function App() {
         </section>
 
         <section id="runs" className="panel filters">
-          <label>Project<select value={projectId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setProjectId(event.target.value)}><option value="">Select project</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
-          <label>Run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setRunId(event.target.value)}><option value="">Select run</option>{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.status}</option>)}</select></label>
+          <label>Project<select value={projectId} onChange={(event: ChangeEvent<HTMLSelectElement>) => changeProject(event.target.value)}><option value="">Select project</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+          <label>Run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => changeRun(event.target.value)}><option value="">Select run</option>{runId && !runs.some(run => run.id === runId) && <option value={runId}>{runLoading ? 'Loading requested run…' : 'Requested run unavailable'}</option>}{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.status}</option>)}</select></label>
           <div className="scope"><span>Input scope</span><strong>{selectedRun ? `${selectedRun.received_inputs}/${selectedRun.expected_inputs ?? 'unspecified'}` : '—'}</strong><small>{selectedRun?.evidence_expired_at ? 'evidence expired' : selectedRun?.completeness ?? 'no run selected'}</small></div>
           <div className="scope"><span>Execution cohort</span><strong>{selectedRun ? readableValue(selectedRun.run_scope) : '—'}</strong><small>{selectedRun?.environment ?? 'environment unknown'}</small></div>
           <div className="scope"><span>Revision</span><strong className="mono">{selectedRun?.commit_sha?.slice(0, 10) ?? 'unknown'}</strong><small>{selectedRun?.branch ?? 'branch unknown'}</small></div>
@@ -1667,7 +1695,7 @@ function App() {
           <p className="impact-advisory">Recommendations are deterministic and advisory. They never skip tests automatically; incomplete, untrusted, critical, or unmapped changes force broad execution.</p>
 
           <div className="impact-controls">
-            <label>Impact run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setRunId(event.target.value)}><option value="">Select a run</option>{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.commit_sha?.slice(0, 10) ?? 'head unknown'}</option>)}</select></label>
+            <label>Impact run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => changeRun(event.target.value)}><option value="">Select a run</option>{runId && !runs.some(run => run.id === runId) && <option value={runId}>{runLoading ? 'Loading requested run…' : 'Requested run unavailable'}</option>}{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.commit_sha?.slice(0, 10) ?? 'head unknown'}</option>)}</select></label>
             <label>Impact mapping<select value={impactMappingId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setImpactMappingId(event.target.value)}><option value="">Select mapping snapshot</option>{impactMappings.map((mapping) => <option key={mapping.id} value={mapping.id}>{mapping.version} · {mapping.test_count} tests · {mapping.trusted && mapping.coverage_complete ? 'trusted' : 'fallback only'}</option>)}</select></label>
             <button className="primary" type="button" onClick={generateImpactRecommendation} disabled={busy || !canReview || !runId || !impactMappingId}>Generate recommendation</button>
             <label>Saved recommendation<select value={selectedImpactId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setSelectedImpactId(event.target.value)}><option value="">Select recommendation</option>{impactRecommendations.map((recommendation) => <option key={recommendation.id} value={recommendation.id}>{recommendation.head_sha?.slice(0, 10) ?? 'unknown head'} · {readableValue(recommendation.status)}</option>)}</select></label>
@@ -1743,7 +1771,7 @@ function App() {
           </div>
           <p className="performance-advisory">Only prior observations with compatible workload, environment, producer, units, run scope, trust, and completeness may form a baseline. Missing or incompatible history is never presented as “no regression.”</p>
           <div className="performance-controls">
-            <label>Performance run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setRunId(event.target.value)}><option value="">Select a run</option>{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.commit_sha?.slice(0, 10) ?? 'head unknown'}</option>)}</select></label>
+            <label>Performance run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => changeRun(event.target.value)}><option value="">Select a run</option>{runId && !runs.some(run => run.id === runId) && <option value={runId}>{runLoading ? 'Loading requested run…' : 'Requested run unavailable'}</option>}{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.commit_sha?.slice(0, 10) ?? 'head unknown'}</option>)}</select></label>
             <label>Immutable policy<select value={performancePolicyId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setPerformancePolicyId(event.target.value)}><option value="">Default strict policy</option>{performancePolicies.map((policy) => <option key={policy.id} value={policy.id}>{policy.version} · {Math.round(policy.relative_tolerance * 100)}% · {policy.min_baseline_runs} runs</option>)}</select></label>
             {performancePolicies.length === 0 && <button type="button" onClick={registerDefaultPerformancePolicy} disabled={busy || !canAdminister || !projectId}>Register strict policy</button>}
             <button className="primary" type="button" onClick={generatePerformanceComparisons} disabled={busy || !canReview || performanceLoading || !runId || performanceObservations.length === 0}>Compare compatible baselines</button>
@@ -2103,7 +2131,7 @@ function App() {
                         <article className="history-row" key={`${observation.run_id}-${observation.browser ?? 'default'}`}>
                           <span className={`history-outcome ${statusClass(observation.final_outcome)}`}>{observation.final_outcome}</span>
                           <div><strong>{observation.external_id}</strong><small>{new Date(observation.observed_at).toLocaleString()} · {observation.browser ?? 'browser unknown'} · {readableValue(observation.run_scope)}</small><small>First {observation.first_outcome} → final {observation.final_outcome} · {observation.attempt_count} attempt{observation.attempt_count === 1 ? '' : 's'}{observation.retry_recovered ? ' · recovered on retry' : ''}</small></div>
-                          <button type="button" onClick={() => { setRunId(observation.run_id); document.getElementById('runs')?.scrollIntoView({ behavior: 'smooth' }); }}>Open run</button>
+                          <button type="button" onClick={() => { changeRun(observation.run_id); document.getElementById('runs')?.scrollIntoView({ behavior: 'smooth' }); }}>Open run</button>
                         </article>
                       ))}
                     </section>

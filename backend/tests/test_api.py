@@ -251,3 +251,53 @@ def test_cluster_detail_includes_incoming_merge_decision(client) -> None:
     assert decisions[0]["decision"] == "merge"
     assert decisions[0]["cluster_id"] == source["id"]
     assert decisions[0]["target_cluster_id"] == target["id"]
+
+
+def test_run_detail_envelope_matches_openapi_and_lifecycle_fields(client, session) -> None:
+    from datetime import timedelta
+    from failurelens.models import Run, utcnow
+    from failurelens.schemas import RunDetailRead
+
+    seeded = client.post('/api/v1/demo/seed').json()
+    run = session.get(Run, seeded['run_id'])
+    run.evidence_expired_at = utcnow() - timedelta(seconds=1)
+    session.commit()
+    response = client.get(f"/api/v1/runs/{run.id}")
+    assert response.status_code == 200
+    payload = response.json()
+    assert set(payload) == {'run', 'failure_types', 'failure_count'}
+    parsed = RunDetailRead.model_validate(payload)
+    assert parsed.run.id == run.id
+    assert parsed.run.project_id == seeded['project_id']
+    assert parsed.run.evidence_expired_at is not None
+    assert parsed.failure_count == 3
+    schema = client.get('/openapi.json').json()
+    response_schema = schema['paths']['/api/v1/runs/{run_id}']['get']['responses']['200']['content']['application/json']['schema']
+    assert response_schema['$ref'] == '#/components/schemas/RunDetailRead'
+
+
+def test_demo_seed_returns_its_own_run_when_newer_runs_exist(client) -> None:
+    seeded = client.post('/api/v1/demo/seed').json()
+    newer = client.post(f"/api/v1/projects/{seeded['project_id']}/ingestions", json={
+        'external_id': 'newer-non-demo-run',
+        'observations': [{'test_identity': 'passing-control', 'outcome': 'passed'}],
+    })
+    assert newer.status_code == 202
+    assert newer.json()['id'] != seeded['run_id']
+    repeated = client.post('/api/v1/demo/seed')
+    assert repeated.status_code == 200
+    assert repeated.json() == seeded
+    assert client.get(f"/api/v1/runs/{seeded['run_id']}").json()['failure_count'] == 3
+
+
+def test_run_detail_keeps_failures_without_exception_types(client) -> None:
+    project = client.post('/api/v1/projects', json={'slug': 'untyped-failure', 'name': 'Untyped'}).json()
+    response = client.post(f"/api/v1/projects/{project['id']}/ingestions", json={
+        'external_id': 'missing-exception-type',
+        'observations': [{'test_identity': 'unknown-error', 'outcome': 'failed', 'message': 'ambiguous failure'}],
+    })
+    assert response.status_code == 202
+    detail = client.get(f"/api/v1/runs/{response.json()['id']}")
+    assert detail.status_code == 200
+    assert detail.json()['failure_count'] == 1
+    assert sum(detail.json()['failure_types'].values()) == 1

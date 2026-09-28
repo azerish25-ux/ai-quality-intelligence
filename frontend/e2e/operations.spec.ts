@@ -53,7 +53,7 @@ test('old investigation remains reachable and retention expires its evidence thr
   await expect(panel).toContainText('Saved policy revision 2');
   await panel.getByRole('button', { name: 'Preview cleanup under saved policy', exact: true }).click();
   await panel.getByRole('button', { name: 'Confirm and queue cleanup', exact: true }).click();
-  await expect.poll(async () => (await (await request.get(`${API}/runs/${fixture.run_id}`)).json()).evidence_expired_at, { timeout: 30_000 }).toBeTruthy();
+  await expect.poll(async () => (await (await request.get(`${API}/runs/${fixture.run_id}`)).json()).run.evidence_expired_at, { timeout: 30_000 }).toBeTruthy();
   await expect(page.getByText(/^Evidence expired\. Recorded category:/)).toBeVisible();
   expect((await request.get(`${API}/evidence/${fixture.evidence_id}`)).status()).toBe(410);
   await page.reload();

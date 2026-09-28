@@ -13,6 +13,7 @@ const focusSkipLinkFromDocumentStart = async (page: Page) => {
 test('keeps every critical workflow reachable without horizontal page overflow', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Load synthetic demo' }).click();
+  await expect(page.locator('.sr-only[role="status"]')).toHaveText('Synthetic demo data loaded.');
 
   await expect(page.locator('.sidebar')).toBeHidden();
   const compactNavigation = page.locator('.mobile-navigation');
@@ -20,6 +21,8 @@ test('keeps every critical workflow reachable without horizontal page overflow',
   await compactNavigation.getByText('Navigate', { exact: true }).click();
   await compactNavigation.getByRole('link', { name: 'Review queue' }).click();
   await expect(page.locator('#reviews').getByRole('heading', { name: 'Review queue' })).toBeInViewport();
+  await expect(page.locator('#reviews')).toBeFocused();
+  await expect(compactNavigation).not.toHaveAttribute('open', '');
 
   await compactNavigation.evaluate((element: Element) => { (element as HTMLDetailsElement).open = true; });
   await compactNavigation.getByRole('link', { name: 'Settings' }).click();

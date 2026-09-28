@@ -59,3 +59,29 @@ describe('M5.3 operations client', () => {
     await expect(operations.exportAudit('project-1', {})).rejects.toThrow('413');
   });
 });
+
+describe('run-detail wire contract', () => {
+  const run = {
+    id: 'old-run', project_id: 'project-1', external_id: 'outside-recent-window',
+    evidence_expired_at: '2026-09-28T15:00:00Z', source_expired_at: null
+  };
+
+  it('unwraps the real API envelope and preserves lifecycle metadata', async () => {
+    const fetcher = mockFetch(new Response(JSON.stringify({ run, failure_types: { AssertionError: 1 }, failure_count: 1 })));
+    expect(await operations.run(run.id)).toEqual(run);
+    expect(fetcher.mock.calls[0][0]).toBe('/api/v1/runs/old-run');
+    expect(fetcher.mock.calls[0][1].credentials).toBe('include');
+  });
+
+  it.each([null, {}, { id: 'old-run', project_id: 'project-1' }, { run: { id: 'other-run', project_id: 'project-1' } }, { run: { id: 'old-run' } }])(
+    'rejects an invalid or mismatched run envelope: %j', async body => {
+      mockFetch(new Response(JSON.stringify(body)));
+      await expect(operations.run('old-run')).rejects.toThrow('Invalid run-detail response');
+    }
+  );
+
+  it('propagates unavailable runs instead of substituting another run', async () => {
+    mockFetch(new Response('run not found', { status: 404 }));
+    await expect(operations.run('missing')).rejects.toThrow('404');
+  });
+});

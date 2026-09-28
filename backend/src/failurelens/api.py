@@ -146,6 +146,7 @@ from .schemas import (
     RunInputRead,
     RunMetadata,
     RunRead,
+    RunDetailRead,
     TestHistoryRead,
     UserCreate,
     UserRead,
@@ -1307,7 +1308,7 @@ def runs_list(
     )
 
 
-@app.get("/api/v1/runs/{run_id}")
+@app.get("/api/v1/runs/{run_id}", response_model=RunDetailRead)
 def runs_get(
     run_id: str,
     principal: Principal = Depends(current_principal),
@@ -1317,13 +1318,16 @@ def runs_get(
     if not run:
         raise HTTPException(404, "run not found")
     require_project_role(session, principal, run.project_id)
-    counts = dict(
-        session.execute(
-            select(Failure.exception_type, func.count(Failure.id))
-            .where(Failure.run_id == run_id)
-            .group_by(Failure.exception_type)
-        ).all()
-    )
+    counts: dict[str, int] = {}
+    for exception_type, count in session.execute(
+        select(Failure.exception_type, func.count(Failure.id))
+        .where(Failure.run_id == run_id)
+        .group_by(Failure.exception_type)
+    ).all():
+        # A failure need not have an exception type. JSON object keys must be
+        # strings; retain these failures in an explicit unknown bucket.
+        key = exception_type or "unknown"
+        counts[key] = counts.get(key, 0) + count
     return {
         "run": RunRead.model_validate(run),
         "failure_types": counts,

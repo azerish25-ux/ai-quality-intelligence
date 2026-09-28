@@ -125,7 +125,7 @@ test('builds an explainable focused recommendation and records an attributed ove
   }).toBe('succeeded');
   expect(impactRunId).not.toBe('');
 
-  await page.goto('/');
+  await page.goto(`/?project=${seed.project_id}&run=${impactRunId}`);
   await expect(page.getByRole('heading', { name: 'Focused test recommendation' })).toBeVisible();
   await page.getByLabel('Impact run').selectOption(impactRunId);
 

@@ -173,6 +173,12 @@ export interface Run {
   created_at: string;
 }
 
+export interface RunDetail {
+  run: Run;
+  failure_types: Record<string, number>;
+  failure_count: number;
+}
+
 export interface RunInput {
   id: string;
   project_id: string;
@@ -1092,7 +1098,13 @@ const queryString = (filters: object): string => new URLSearchParams(
 ).toString();
 
 export const operations = {
-  run: (id: string) => json<Run>(`/api/v1/runs/${id}`),
+  run: async (id: string): Promise<Run> => {
+    const detail = await json<RunDetail>(`/api/v1/runs/${encodeURIComponent(id)}`);
+    if (!detail?.run || detail.run.id !== id || typeof detail.run.project_id !== 'string') {
+      throw new Error('Invalid run-detail response: expected an authorized run envelope.');
+    }
+    return detail.run;
+  },
   sessions: (offset = 0) => json<SessionRecord[]>(`/api/v1/auth/sessions?limit=10&offset=${offset}`),
   revokeSession: (id: string) => json<void>(`/api/v1/auth/sessions/${id}/revoke`, { method: 'POST' }),
   changePassword: (currentPassword: string, newPassword: string) => json<void>('/api/v1/auth/password', {
