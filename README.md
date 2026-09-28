@@ -1,18 +1,20 @@
 # FailureLens
 ## Evidence-Grounded Test Failure Triage and AI Evaluation
 
-> **M2.1 safe-binary implementation checkpoint:** screenshot decoding/review/masking,
+> **Current checkpoint: M2.1 safe binary evidence with M2.1.1 trace-text hardening.** Screenshot decoding/review/masking,
 > approved artifact serving, exact safe trace events and real producer conformance
-> are implemented. Current execution evidence and remaining scope are in
+> are implemented and verified. Current execution evidence and remaining scope are in
 > [`docs/PROGRESS.md`](docs/PROGRESS.md); the M5.3.1 verification below describes the
-> preceding accepted source, not automatic acceptance of this checkpoint.
+> preceding accepted source, not the current verification counts.
 > [`docs/safe-binary-evidence.md`](docs/safe-binary-evidence.md) documents the
-> no-retained-original policy, API, local trace inspection and limits.
+> no-retained-original policy, API, local trace inspection and limits. Existing trace
+> derivatives need the documented upgrade review; a code upgrade does not rewrite
+> previously cited evidence.
 
 
 FailureLens is a self-hosted quality-intelligence platform that turns automated-test artifacts into evidence-linked failure investigations. Its mandatory analysis path is deterministic and CPU-only: no paid model API, cloud account, GPU, or runtime model download is required.
 
-> **Current source checkpoint: M5.3.1 operational workflow stabilization is delivered on `main`. M1, M3 and M4 retain their previous delivered status; M2 and the complete M5/master specification remain partial.**
+> **Historical source checkpoint: M5.3.1 operational workflow stabilization is delivered on `main`. M1, M3 and M4 retain their previous delivered status; M2 and the complete M5/master specification remain partial.**
 >
 > M5.3 adds project retention previews/policies, leased cleanup and tombstones, expired-evidence handling, password rotation, one-time administrator-assisted recovery, session administration, startup-safe account deactivation, full-dataset SQL review/audit pagination, and server-governed audited CSV exports. M5.3.1 corrects the run-detail API/client contract, preserves explicit old-run and project selections, fixes demo and Back/Forward navigation races, and separates compact section navigation from investigation routing. Local verification: **200 backend tests passed, three PostgreSQL-only tests skipped, 85.59% branch-aware coverage**. The expanded browser suite retains the original 19 cases and adds 12 real-API regression cases. Exact source/CI evidence and remaining scope are recorded in [`docs/operations-stabilization.md`](docs/operations-stabilization.md); historical M5.2 results below are not substituted for current-revision verification.
 >
@@ -57,8 +59,8 @@ The versioned registry includes working foundations for:
 - k6 `handleSummary` JSON;
 - console UTF-8 text and JSONL;
 - HAR and normalized network JSONL;
-- PNG/JPEG metadata with pixel limits and restricted-original state;
-- bounded Playwright trace metadata/indexing with restricted-original state;
+- Fully decoded PNG/JPEG with bounded pixel/codec limits, reviewed opaque masks and immutable approved derivatives;
+- Version-pinned Playwright traces with bounded safe event derivatives, precise citations and restricted-original state;
 - GitHub commit/workflow metadata with explicit trust provenance; and
 - changed-file/base-head metadata with completeness warnings.
 
@@ -211,7 +213,7 @@ docs/                       Architecture, security, compatibility, progress, req
 
 ## Safety model
 
-All artifact bytes, filenames, manifest fields, logs, URLs, metadata and generated analysis are untrusted. Workers re-check size and SHA-256 before parsing. Unsafe XML/ZIP structures fail with explicit codes. Text observations are sanitized into immutable safe derivatives; the validator re-reads those bytes before publication. Screenshot and trace originals remain restricted and expose only bounded metadata/index records in this milestone.
+All artifact bytes, filenames, manifest fields, logs, URLs, metadata and generated analysis are untrusted. Workers re-check size and SHA-256 before parsing. Unsafe XML/ZIP structures fail with explicit codes. Text observations are sanitized into immutable safe derivatives; the validator re-reads those bytes before publication. Screenshot and trace originals remain restricted. Approved screenshot derivatives and version-pinned safe trace events are served through authorized, digest-verified endpoints; original HTML, DOM and resource content are not served. See the trace-text upgrade guidance before reusing pre-hardening trace derivatives.
 
 Human sessions and project ingestion credentials are stored only as hashes. Every project-owned resource is checked against the authenticated principal's project role. Reviewer identity is server-derived, and security-sensitive settings and human decisions append attributable audit events. Demo mode is a clearly labeled loopback-only convenience, not a production authentication configuration. See [`docs/security.md`](docs/security.md).
 
@@ -225,12 +227,10 @@ Historical definitions and safety rules are documented in [`docs/history.md`](do
 
 The classification corpus manifest currently records 200 synthetic cases, 100 scenario families and **0 actual LedgerGuard executions**. The clustering fixture records 24 synthetic observations across 13 independently stored incident labels; its controlled result is 1.000 pairwise precision, 1.000 pairwise recall, 0 false merges, 0 false splits and 1.000 adjusted Rand index. The impact fixture records 12 synthetic cases across 11 scenario families and reports 1.000 defect-revealing-test recall, 1.000 mandatory-critical-test recall and correct focused/fallback status for every controlled case. The performance fixture records 20 synthetic compatibility/regression cases and reports 1.000 status accuracy, regression recall, compatibility-selection accuracy, evidence-citation validity and deterministic repeat agreement, with zero dangerous false negatives across five regression cases. The infrastructure fixture records 18 synthetic cases and reports 1.000 status accuracy, compatibility-selection accuracy, provenance validity and deterministic repeat agreement, with zero future-event leakage, cross-project leakage, unsupported causality claims, or product-defect downgrades. All five datasets are agent-authored regression fixtures, not deployment guarantees, causal evidence, observed runtime-savings evidence or independently blinded studies. See the manifests and reports under [`evaluation/corpus/`](evaluation/corpus/) and [`evaluation/reports/latest/`](evaluation/reports/latest/).
 
-## Remaining M2 closure work
+## Remaining project work
 
-1. Generate and fixture-test every adapter from pinned real producers, including Java REST Assured, Playwright traces and screenshots.
-2. Create immutable reviewed/masked screenshot derivatives and richer safe trace derivatives with image/trace-specific source maps and retention controls.
-3. Add bounded artifact preview/download endpoints with authorization, range, expiry and retention controls.
-4. Expand claim predicates and validation metrics beyond the deterministic classification rules implemented here.
-5. M5.3.1 verification is tracked in the stabilization record. Finish remaining assignment/notification and operational scope, then M6 actual LedgerGuard execution, M7 optional provider boundary and M8 live idempotent GitHub publication.
+Full M2 still needs broader producer/dialect edge cases and application-specific sensitive-field policy. The executed producer fixtures, reviewed/masked screenshots, safe trace derivatives and controlled artifact serving are delivered at the scoped M2.1 checkpoints; see the current evidence ledger rather than treating them as missing foundations.
+
+Claim validation beyond the deterministic rules, any deliberately retained-original encryption profile, remaining review/operational scope, actual LedgerGuard evaluation, the optional provider boundary and live idempotent GitHub publication remain separate work. The real producer fixtures are not LedgerGuard executions and do not satisfy that mandatory M6 count.
 
 Factual progress is tracked in [`docs/PROGRESS.md`](docs/PROGRESS.md), with requirement status in [`docs/requirements-matrix.md`](docs/requirements-matrix.md).

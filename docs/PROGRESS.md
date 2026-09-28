@@ -1,6 +1,33 @@
 # FailureLens delivery ledger
 
-## Current checkpoint — M2.1 producer-verified safe binary evidence
+## Current checkpoint — M2.1.1 trace-text safety
+
+**M2.1.1: PASS for the scoped trace-text regressions and continued M2.1 acceptance. Full M2 and the full master project remain PARTIAL.**
+
+Delivered source: `bb532f0623773f2837dd3137f7005a4c4787fa6e`, tree `d2537cfda3eb372b1d691c4469689692bcf13405`, on `main`. This follows and preserves the M2.1 acceptance documentation at `5ecde92dfe7ad45c5314def934dae46326ed8ef8`. [CI run 36478244423](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36478244423) verifies this exact code revision. A later documentation commit has separate CI; this result does not substitute for that later run.
+
+The follow-up audit found three concrete trace publication failures: clipping before secret redaction could expose a long private-key prefix; arbitrary event types became unsanitized metadata keys; and malformed URL fallback could retain credentials. The fix sanitizes the complete bounded field before explicit clipping, withholds incomplete private keys, uses allowlisted event-count keys with visible unknown counts, and withholds malformed or unsupported network URLs. Summary and event locators record `trace-safe-text-v2.1`. The original schema, precise source positions, deterministic classifier, authorization, masks and retention contracts remain intact.
+
+`backend/tests/test_trace_safety.py` adds 12 synthetic-canary cases, including the real ingestion API, durable worker, aggregate derivative and individually cited content endpoints. The old code failed 11 of these cases; all 12 pass with the fix. No real secret was used.
+
+| Verification at the delivered source | Executed result |
+|---|---|
+| PostgreSQL/backend | 253 passed, no skips; 84.96% branch-aware coverage; existing 75% gate unchanged |
+| Producer conformance | Fresh exact-revision actual Playwright/Pytest/REST Assured/JUnit/k6 fixtures; 16 contract cases passed and included in the backend count |
+| Browsers | Chromium, Firefox and WebKit desktop: 11 cases each; narrow Chromium: 2 cases; all 35 passed |
+| Frontend | Unit tests, strict type-check and production build passed |
+| Evaluation | All five deterministic harnesses passed on the declared synthetic corpora |
+| Docker | Compose validation and application image builds passed; not offline/restore acceptance |
+
+All nine CI jobs passed without suppressing tests or increasing retry policy. Backend logs record migration through `c8f2e6a9d410`; no new schema change is required for this text-policy update. Local verification independently passed 249 tests with four PostgreSQL-only cases skipped, 82.36% branch-aware coverage, and a SQLite upgrade/downgrade/re-upgrade. Local tests replayed genuine producer artifacts from the preceding accepted source; CI regenerated them for this code revision instead of claiming the local replay was a fresh producer execution. Desktop and narrow approved/masked-evidence screenshots from the preceding M2.1 acceptance were inspected; the patch does not change UI code.
+
+**Upgrade boundary:** existing immutable trace derivatives are not rewritten or automatically revoked by this patch. Before exposing pre-hardening evidence, follow the review/revocation, run-metadata expiry where needed, and new-run re-ingestion guidance in [the trace contract](safe-binary-evidence.md#trace-text-policy-and-upgrade-guidance). Existing exports and backups require operator review. No universal PII removal or automatic historical-data cleanup is claimed.
+
+The M2.1 screenshot/trace workflow and real producer fixtures remain delivered, but they are not actual LedgerGuard cases. M6 still requires at least 60 real LedgerGuard controlled executions across 15 root-cause families. No companion repository, public deployment, release or paid model invocation was performed in this continuation.
+
+The historical checkpoints below retain their original execution counts and limitations. Their acceptance did not include the newly added adversarial cases.
+
+## Historical accepted checkpoint — M2.1 producer-verified safe binary evidence
 
 Repository: `azerish25-ux/ai-quality-intelligence`. Default and working branch: `main`.
 

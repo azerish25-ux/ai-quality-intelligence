@@ -4,7 +4,7 @@ This is a scoped M2 implementation, not completion of the entire master prompt.
 The deterministic analyzer, five-category policy and conservative completeness
 rules are unchanged. Real LedgerGuard evaluation remains a separate M6 gap.
 
-## Executed acceptance
+## Executed M2.1 acceptance
 
 The scoped requirements mapped below passed at source
 `a2e4be3e30bfb49e60f949e9ef2f52b2cdee545f` in
@@ -100,6 +100,42 @@ Attachment association requires one exact report attachment path, constrained by
 any supplied test/browser/attempt dimensions, or a unique explicit identity tuple.
 Ambiguous/unassociated inputs stay visibly unassociated. Basenames are not guessed.
 
+### Trace-text policy and upgrade guidance
+
+M2.1.1 records `trace-safe-text-v2.1` in each new trace summary and event source
+locator. The index schema remains `playwright-safe-index-v2`; the text policy is
+versioned separately so already-cited bytes are not silently reinterpreted.
+
+The complete bounded event field is stripped of terminal controls and redacted
+**before** the display limit is applied. Incomplete private-key blocks withhold
+the remaining suffix. Safe clipping adds an explicit `[TRUNCATED]` marker. This
+prevents removing a key's end marker, or splitting an email, before redaction.
+Unknown event types contribute to an `unknown` count and an omission warning,
+never artifact-controlled unsanitized keys in approved metadata. HTTP(S) URLs
+remove user information, query values and fragments; invalid authorities/ports,
+excessive query fields and unsupported schemes produce `[URL OMITTED]`, with no
+fallback to raw URL text. Method, route, status and timing remain available where
+safe and supported. These are bounded policy controls, not universal PII removal.
+
+**Upgrade:** earlier derivatives without `trace-safe-text-v2.1` are not made safe
+retroactively. Before exposing pre-hardening trace evidence, use the existing
+reviewer revoke action on the affected trace input (which closes aggregate and
+individual event derivatives), then ingest the exact local source in a new run
+with a new external ID. Reusing the original ingestion identity deliberately
+replays the old immutable result. Do not edit derivative bytes or digests in
+place. Revocation closes content URLs, not all previously stored run metadata.
+Review pre-hardening run-input metadata too; use the existing run-evidence expiry
+workflow where that metadata must be removed. Apply operator review to exports
+and backups. This patch cannot recall downloaded copies and does not perform a
+bulk data migration.
+
+`backend/tests/test_trace_safety.py` includes 12 regressions for complete and
+incomplete key blocks, clipping boundaries, unknown types, malformed/excessive/
+active-scheme URLs and the durable worker-to-authorized-content path. Canaries are
+synthetic. The original version failed 11 of these cases; all 12 pass after the
+fix. Existing binary, producer and browser checks remain enabled. Exact current
+execution evidence is recorded in `PROGRESS.md`.
+
 ### Local inspection
 
 ```bash
@@ -192,6 +228,7 @@ service is distinct from the application's retention behavior.
 | M2.1-IMAGE-DECODE | `image_codec.py`, `image_worker.py`, `ingestion.py` | `test_header_only_rasters_are_rejected`, image bounds/orientation/alpha tests |
 | M2.1-IMAGE-REVIEW | `binary_evidence.py`, `binary_schemas.py`, new migration | Actual pixel/metadata assertions, source digest mismatch, stale revision, immutable reapproval and revocation tests |
 | M2.1-TRACE | `trace_evidence.py`, `register_binary_inputs` | Unsupported declarations, bounded/full counts, actual producer entry digest/line checks |
+| M2.1.1-TRACE-TEXT | `trace_evidence.py`, policy `trace-safe-text-v2.1` | `test_trace_safety.py`: redaction-before-clipping, unknown type keys, fail-closed URLs, durable authorized serving |
 | M2.1-SCOPE | `binary_api.py`, `read_derivative`, `_correlate` | Guessed IDs, viewer mutation denial, missing-input sibling protection, ambiguous association tests |
 | M2.1-RETENTION | Existing deletion outbox and `retention.py` extension | Original discard, idempotent replay, derivative 410, decision/mask erasure, worker browser journey |
 | M2.1-CONCURRENCY | Project/input row locks, decision uniqueness | PostgreSQL two-reviewer race: one 201 and one 409; expiry prevents reapproval |

@@ -9,8 +9,10 @@ approved derivative preview/download with authorization, integrity and lifecycle
 checks. The default does not retain binary originals after successful processing.
 Raw queue/staging failure recovery still uses existing restricted-source policy;
 this is not a claim of universal encryption or instantaneous crash erasure.
-The older "still required" binary list below describes the M5.3-era foundation,
-not a replacement for the scoped current requirement matrix and CI evidence.
+Trace text is sanitized before bounded clipping. Unknown trace type names are
+counted without publishing their raw values; malformed network URLs are withheld.
+See the trace-text upgrade guidance in the binary-evidence contract: this code
+change does not rewrite or automatically revoke earlier immutable derivatives.
 
 
 ## Untrusted inputs
@@ -71,19 +73,15 @@ The old global `FAILURELENS_INGESTION_TOKEN` is rejected in production. Administ
 
 ## Safe derivative and binary evidence state
 
-Text and structured observations produce immutable approved JSON derivatives separate from restricted source storage. The evidence metadata endpoint returns the safe derivative identity and provenance but never its storage path. Screenshot and Playwright-trace adapters still produce bounded metadata/index records while marking the original artifact `restricted`; they do not yet satisfy the complete binary safe-derivative requirement.
+Text and structured observations produce immutable approved JSON derivatives separate from restricted source storage. Screenshot review burns opaque masks into newly encoded, metadata-stripped PNG derivatives; trace extraction creates bounded event derivatives with exact source locators. Original screenshot and trace artifacts remain restricted. Approving a derivative does not turn a restricted required input into a complete run.
 
-Still required:
+Approved content endpoints enforce project membership, approval and revocation state, source/derivative digests and retention, with bounded preview/download and single-range access. The evidence metadata endpoint never returns storage paths. The local trace workflow prints checked, pinned inspection instructions; it does not execute a viewer or host trace HTML on the authenticated origin.
 
-- immutable reviewed/masked screenshot derivatives and source maps;
-- perceptual comparison only across compatible approved images;
-- richer safe trace extraction and a controlled local viewing workflow;
-- explicit encrypted-original retention/key policy and cleanup audit; and
-- bounded preview/download endpoints with range, expiry, retention, and authorization controls for approved derivatives.
+The implemented binary policy discards successfully processed originals through the deletion outbox rather than retaining them under an unconfigured encryption scheme. Encrypted retained-original storage/key management is not implemented. Interrupted/failed raw staging, backups and existing downloads need operator lifecycle controls; revocation cannot retract exported files.
 
 ## Known gaps
 
-Automatic redaction remains incomplete for unknown free-text identifiers, names, arbitrary binary formats, DOM snapshots, and pixels. The semantic validator covers deterministic classification predicates, not arbitrary future free-form claims. Account recovery, MFA/SSO integration, request-rate limiting, retention/backup enforcement, independently exercised cross-project cache isolation, authenticated GitHub comparison lookup, masked screenshots, and richer trace derivatives remain incomplete.
+Automatic redaction remains incomplete for unknown free-text identifiers, names, arbitrary binary formats, DOM snapshots, and pixels. The semantic validator covers deterministic classification predicates, not arbitrary future free-form claims. MFA/SSO integration, request-rate limiting, backup/restore acceptance, independently exercised cross-project cache isolation, authenticated GitHub comparison lookup and broader producer/dialect and sensitive-field coverage remain incomplete. Account recovery and retention have scoped M5.3 implementations; they do not establish universal account security or data erasure. No universal PII detection or arbitrary trace-resource sanitization is claimed.
 
 ## No overclaim
 
