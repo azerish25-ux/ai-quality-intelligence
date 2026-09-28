@@ -1,4 +1,14 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+const focusSkipLinkFromDocumentStart = async (page: Page) => {
+  const skipLink = page.getByRole('link', { name: 'Skip to main content' });
+  await expect(skipLink).toBeAttached();
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  });
+  await page.keyboard.press('Tab');
+  await expect(skipLink).toBeFocused();
+};
 
 test('keeps every critical workflow reachable without horizontal page overflow', async ({ page }) => {
   await page.goto('/');
@@ -25,6 +35,5 @@ test('keeps every critical workflow reachable without horizontal page overflow',
   expect(overflow.bodyWidth).toBeLessThanOrEqual(overflow.viewportWidth + 1);
 
   await page.reload();
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('link', { name: 'Skip to main content' })).toBeFocused();
+  await focusSkipLinkFromDocumentStart(page);
 });

@@ -32,7 +32,7 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   await expect(cluster).toBeVisible();
   await cluster.click();
   await expect(page.locator('.cluster-detail')).toContainText('explainable-complete-link-v1');
-  await expect(page.locator('.cluster-detail').getByText('Candidate-generation reasons')).toBeVisible();
+  await expect(page.locator('.cluster-detail').getByText('Candidate-generation reasons', { exact: true }).first()).toBeVisible();
   await expect(page.locator('.cluster-workspace')).toContainText('Similarity groups investigation signals');
 
   const failure = page.locator('.failure-row', { hasText: 'Transfer::duplicate' });

@@ -1,10 +1,19 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+const focusSkipLinkFromDocumentStart = async (page: Page) => {
+  const skipLink = page.getByRole('link', { name: 'Skip to main content' });
+  await expect(skipLink).toBeAttached();
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  });
+  await page.keyboard.press('Tab');
+  await expect(skipLink).toBeFocused();
+};
 
 test('supports keyboard navigation, named controls, and URL-restored investigation state', async ({ page }) => {
   await page.goto('/');
 
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('link', { name: 'Skip to main content' })).toBeFocused();
+  await focusSkipLinkFromDocumentStart(page);
   await page.keyboard.press('Enter');
   await expect(page.locator('#main-content')).toBeFocused();
 

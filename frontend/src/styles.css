@@ -615,6 +615,19 @@ th {
 
 tbody tr:last-child td { border-bottom: 0; }
 
+/* Keep accessible action-column names in the scroll container's layout.
+   Absolutely positioned visually hidden text inside a wide table can enlarge
+   the root scroll width even when the table itself is correctly contained. */
+.table-wrap th > .sr-only {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
 .table-toolbar {
   display: grid;
   grid-template-columns: minmax(15rem, 1.4fr) repeat(3, minmax(9rem, 0.7fr));
