@@ -30,6 +30,17 @@ export async function evaluationJourney(page: Page, request: APIRequestContext, 
   const detail = panel.locator('details').filter({ has: page.locator('summary').filter({ hasText: 'Results by fault mechanism' }) });
   await expect(detail).toHaveAttribute('open', '');
   await expect(detail.getByRole('row')).toHaveCount(metrics.family_count + 1);
+  const integritySummary = panel.locator('summary').filter({ hasText: 'Execution and evidence-integrity checks' });
+  await integritySummary.focus();
+  await page.keyboard.press('Enter');
+  for (const table of await panel.getByRole('table').all()) {
+    await expect(table.locator('caption')).not.toBeEmpty();
+    const headers = table.locator('thead th');
+    expect(await headers.count()).toBeGreaterThan(0);
+    for (const header of await headers.all()) await expect(header).toHaveAttribute('scope', 'col');
+  }
+  await integritySummary.focus();
+  await page.keyboard.press('Enter');
   const width = await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
   expect(width[0]).toBeLessThanOrEqual(width[1] + 1);
   const scrollRegion = detail.getByRole('region', { name: 'Fault mechanism results; scroll horizontally for all columns' });
