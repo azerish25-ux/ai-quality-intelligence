@@ -80,6 +80,7 @@ class User(Base):
     is_system_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    lifecycle_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
     memberships: Mapped[list[ProjectMembership]] = relationship(
         back_populates="user",
@@ -189,6 +190,56 @@ class AuditEvent(Base):
     actor_user: Mapped[User | None] = relationship(foreign_keys=[actor_user_id])
 
 
+class AccountRecovery(Base):
+    """Only a one-time token digest is retained; never a temporary password."""
+    __tablename__ = "account_recoveries"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    issued_by_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class RetentionPolicy(Base):
+    __tablename__ = "retention_policies"
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    source_days: Mapped[int] = mapped_column(Integer, default=7)
+    evidence_days: Mapped[int] = mapped_column(Integer, default=90)
+    audit_days: Mapped[int] = mapped_column(Integer, default=365)
+    export_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    export_max_rows: Mapped[int] = mapped_column(Integer, default=10000)
+    last_scanned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class RetentionTombstone(Base):
+    __tablename__ = "retention_tombstones"
+    __table_args__ = (UniqueConstraint("project_id", "resource_type", "resource_id", name="uq_retention_tombstone"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    resource_type: Mapped[str] = mapped_column(String(80))
+    resource_id: Mapped[str] = mapped_column(String(240))
+    policy_version: Mapped[int] = mapped_column(Integer)
+    reason: Mapped[str] = mapped_column(String(120), default="retention_expired")
+    expired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class StorageDeletion(Base):
+    """Transactional deletion outbox. Tombstone first, unlink after commit."""
+    __tablename__ = "storage_deletions"
+    __table_args__ = (UniqueConstraint("project_id", "storage_path", name="uq_storage_deletion_path"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    storage_path: Mapped[str] = mapped_column(String(2048))
+    state: Mapped[str] = mapped_column(String(40), default="pending")
+    error_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class Project(Base):
     __tablename__ = "projects"
 
@@ -269,6 +320,9 @@ class Run(Base):
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     source_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    source_expired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    evidence_expired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    retention_policy_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     project: Mapped[Project] = relationship(back_populates="runs")
     executions: Mapped[list[TestExecution]] = relationship(back_populates="run", cascade="all, delete-orphan")
@@ -358,6 +412,7 @@ class Ingestion(Base):
     media_type: Mapped[str] = mapped_column(String(160), default="application/octet-stream")
     source_digest: Mapped[str] = mapped_column(String(64))
     source_size_bytes: Mapped[int] = mapped_column(Integer)
+    source_expired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     storage_path: Mapped[str] = mapped_column(String(2048))
     expected_inputs: Mapped[int | None] = mapped_column(Integer, nullable=True)
     received_inputs: Mapped[int] = mapped_column(Integer, default=0)

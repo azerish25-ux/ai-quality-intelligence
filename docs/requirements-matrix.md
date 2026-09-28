@@ -42,3 +42,15 @@
 | R-EVAL-02 | Independent/generalizable evaluation claim | NOT RUN | Public synthetic corpus only; limitation documented |
 | R-OPS-01 | Docker startup and PostgreSQL | PARTIAL | Compose, migrations, worker and CI PostgreSQL/browser paths; broader recovery/load/backup evidence pending |
 | R-CI-01 | Verification workflows | PASS | GitHub Actions CI run `36411668610` passed on exact M5.2 source commit `1de53024a9a22eb405e4aa0a7484016070e2ef36`: backend PostgreSQL migration/coverage, deterministic evaluation, locked frontend tests/type-check/build, Docker/Compose validation and image builds, and 13 API-backed Playwright journeys across Chromium desktop, Firefox desktop, WebKit desktop and narrow Chromium. Exact source-export run `36411668584` also passed. |
+
+## M5.3 checkpoint overlay — local evidence, not remote CI
+
+The rows above record the previously delivered baseline. This overlay supersedes its descriptions of account/session lifecycle, retention and the review queue's bounded window; it does not claim that the complete M5/master scope or remote delivery is finished.
+
+| ID | Requirement | Status | Evidence and limits |
+|---|---|---|---|
+| R-M53-ACCOUNT | Recovery, session administration and startup-safe deactivation | PARTIAL | `accounts.py`, operational API, CLI and `AccountPanel`; SQLite/API tests pass, including reauthentication, last-admin protection, one-time token use and stale-principal rejection. Real PostgreSQL locking tests are present but locally skipped; browser execution pending. |
+| R-M53-RETENTION | Policy-bound expiry, tombstones and retryable deletion | PARTIAL | `retention.py`, migration, worker and `RetentionPanel`; exact candidate previews, shared references, two crash boundaries, source replay prevention, expired citations and release-advice blocking tested locally. Actual browser/PostgreSQL lanes pending. Global security-audit policy and backups are outside project retention. |
+| R-M53-QUEUE | Full authorized review dataset, filtered before pagination | PASS | SQL latest-analysis/latest-review query, exact totals, stable order and escaped search; test with 505 analyses reaches the old record and offset 500. PostgreSQL enum text cast is explicit. UI/URL integration source and browser journey present; browser lane pending. |
+| R-M53-EXPORT | Server-governed filtered CSV and export audit | PASS | Administrator gate, saved enable/row-limit policy, 413 rather than truncation, formula escaping, filtered result and attributed export event have API tests. CSV policy does not prevent an authorized reader copying permitted API records. |
+| R-M53-VERIFY | Full new-checkpoint verification and publication | PARTIAL | 197 backend tests passed, 3 PostgreSQL tests skipped, 85.50% coverage; SQLite migration check and five synthetic harnesses passed. Strict standalone API-client compile plus six Node checks passed. Locked frontend, Playwright, PostgreSQL and Docker not run locally; remote commit/CI verification required after a successful push. |

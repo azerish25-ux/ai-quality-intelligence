@@ -3,9 +3,11 @@
 
 FailureLens is a self-hosted quality-intelligence platform that turns automated-test artifacts into evidence-linked failure investigations. Its mandatory analysis path is deterministic and CPU-only: no paid model API, cloud account, GPU, or runtime model download is required.
 
-> **Current delivery status: M1, M3, and M4 are complete; M2 and M5 remain partial. FailureLens now provides prior-only historical intelligence, evidence-grounded infrastructure-event correlations, explainable change-impact recommendations, compatibility-gated performance-regression analysis, and M5.1/M5.2 project-scoped review, governance, accessibility, URL-state, and cross-browser foundations. The full master specification remains incomplete.**
+> **Current source checkpoint: M5.3 operational lifecycle is implemented with local backend/API verification. M1, M3 and M4 retain their previous delivered status; M2 and the complete M5/master specification remain partial.**
 >
-> M5.1 adds authenticated human sessions, project-scoped viewer/reviewer/administrator roles, one-time project ingestion credentials, verified reviewer attribution, append-only application audit events, a review queue, and role-aware dashboard settings. M5.2 adds URL-restored investigation state, searchable/sortable/paginated review and audit views, filtered audit CSV export, live health/policy status, skip-link and focus handling, compact narrow-layout navigation, reduced-motion behavior, and Playwright projects for Chromium, Firefox, WebKit, and a narrow Chromium viewport. Account recovery/session administration, reviewer assignment/notifications, retention/tombstones, safe binary derivatives, producer-pinned integration fixtures, actual LedgerGuard evaluation cases, and live idempotent PR publication remain open.
+> M5.3 adds project retention previews/policies, leased cleanup and tombstones, expired-evidence handling, password rotation, one-time administrator-assisted recovery, session administration, startup-safe account deactivation, full-dataset SQL review/audit pagination, and server-governed audited CSV exports. Local verification: **197 backend tests passed, three PostgreSQL-only tests skipped, 85.50% branch-aware coverage**. The standalone API client passed strict TypeScript checking and six executable request-contract checks. Full frontend build/browser, PostgreSQL and Docker verification for this new checkpoint remains pending; prior M5.2 green CI is not evidence for M5.3.
+>
+> **Before rollout:** inspect retention before starting the worker on existing data. Defaults are 7 days for restricted sources, 90 days for evidence bodies, and 365 days for project audit events. Expiry is irreversible. See [`docs/operations-lifecycle.md`](docs/operations-lifecycle.md) for rollout, recovery, evidence-unavailable behavior and exact limitations.
 
 ## What works
 
@@ -91,7 +93,7 @@ Support depth and known limits are documented in [`docs/input-compatibility.md`]
 - Separate 20-case performance fixture measuring regression recall, compatibility-selection accuracy, evidence linkage, future-data isolation, percentile anti-aggregation and deterministic repeatability.
 - Separate 18-case infrastructure fixture measuring status/compatibility accuracy, provenance, cutoff and project isolation, deterministic snapshot replay, unsupported-causality prevention and dangerous product-defect downgrade safety.
 
-## Verification for this checkpoint
+## Historical verification for the delivered M5.2 checkpoint
 
 ```text
 171 backend tests passed
@@ -220,6 +222,6 @@ The classification corpus manifest currently records 200 synthetic cases, 100 sc
 2. Create immutable reviewed/masked screenshot derivatives and richer safe trace derivatives with image/trace-specific source maps and retention controls.
 3. Add bounded artifact preview/download endpoints with authorization, range, expiry and retention controls.
 4. Expand claim predicates and validation metrics beyond the deterministic classification rules implemented here.
-5. Complete remaining M5 account/session recovery, assignment/notification and retention/tombstone work; then complete M6 actual LedgerGuard corpus execution, M7 optional provider boundary, and M8 live idempotent GitHub publication.
+5. Verify M5.3 against the locked frontend/browser/PostgreSQL/Docker lanes and publish its actual commit; finish remaining assignment/notification and operational scope, then M6 actual LedgerGuard execution, M7 optional provider boundary and M8 live idempotent GitHub publication.
 
 Factual progress is tracked in [`docs/PROGRESS.md`](docs/PROGRESS.md), with requirement status in [`docs/requirements-matrix.md`](docs/requirements-matrix.md).

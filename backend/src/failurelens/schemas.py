@@ -57,6 +57,106 @@ class UserRead(BaseModel):
     is_system_admin: bool
     created_at: datetime
     last_login_at: datetime | None
+    lifecycle_version: int = 0
+
+
+class PasswordChange(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    current_password: str = Field(min_length=1, max_length=1024)
+    new_password: str = Field(min_length=14, max_length=1024)
+
+
+class AdminAccountChange(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    current_password: str = Field(default="", max_length=1024)
+    reason: str = Field(min_length=1, max_length=2000)
+    expected_version: int = Field(ge=0)
+    is_active: bool
+
+
+class RecoveryCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    current_password: str = Field(default="", max_length=1024)
+    reason: str = Field(min_length=1, max_length=2000)
+    expected_version: int = Field(ge=0)
+
+
+class RecoveryRedeem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: str = Field(min_length=20, max_length=200)
+    new_password: str = Field(min_length=14, max_length=1024)
+
+
+class RecoveryCreated(BaseModel):
+    token: str
+    expires_at: datetime
+    user_id: str
+    lifecycle_version: int
+
+
+class SessionRead(BaseModel):
+    id: str
+    user_id: str
+    created_at: datetime
+    last_used_at: datetime | None
+    expires_at: datetime
+    revoked_at: datetime | None
+    current: bool
+    state: Literal["active", "expired", "revoked"]
+
+
+class RetentionPolicyRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    project_id: str
+    version: int
+    source_days: int
+    evidence_days: int
+    audit_days: int
+    export_enabled: bool
+    export_max_rows: int
+    updated_at: datetime
+
+
+class RetentionPolicyChange(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_version: int = Field(ge=1)
+    source_days: int = Field(ge=1, le=3650)
+    evidence_days: int = Field(ge=1, le=3650)
+    audit_days: int = Field(ge=1, le=3650)
+    export_enabled: bool = True
+    export_max_rows: int = Field(default=10000, ge=1, le=10000)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class RetentionPreview(BaseModel):
+    project_id: str
+    policy_version: int
+    as_of: datetime
+    cutoff_source: datetime
+    cutoff_evidence: datetime
+    cutoff_audit: datetime
+    source_ingestions: int
+    source_runs: int
+    evidence_runs: int
+    audit_events: int
+    blocked_by_ingestion: bool
+    sample_run_ids: list[str]
+    confirmation_digest: str
+
+
+class RetentionCleanupCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_version: int = Field(ge=1)
+    as_of: datetime
+    confirmation_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class RetentionCleanupRead(BaseModel):
+    job_id: str
+    state: str
+    policy_version: int
+    progress: dict[str, Any] = Field(default_factory=dict)
+    error_code: str | None = None
 
 
 class ProjectMembershipCreate(BaseModel):
@@ -189,6 +289,9 @@ class IngestionRequest(RunMetadata):
 
 
 class RunRead(BaseModel):
+    source_expired_at: datetime | None = None
+    evidence_expired_at: datetime | None = None
+
     model_config = ConfigDict(from_attributes=True)
     id: str
     project_id: str
@@ -267,6 +370,7 @@ class EvidenceRead(BaseModel):
 
 
 class IngestionRead(BaseModel):
+    source_expired_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
     id: str
     project_id: str
@@ -769,6 +873,9 @@ class Confidence(BaseModel):
 
 
 class AnalysisResult(BaseModel):
+    evidence_state: Literal["active", "expired"] = "active"
+    recorded_category: Category | None = None
+
     analysis_id: str
     analysis_version: str
     failure_id: str
@@ -843,6 +950,23 @@ class ReviewQueueItem(BaseModel):
     latest_review_version: int
     latest_review_decision: str | None
     created_at: datetime
+
+
+class ReviewQueuePage(BaseModel):
+    items: list[ReviewQueueItem]
+    total: int
+    limit: int
+    offset: int
+
+
+class AuditPage(BaseModel):
+    items: list[AuditEventRead]
+    total: int
+    limit: int
+    offset: int
+    actions: list[str]
+    outcomes: list[str]
+    export_enabled: bool
 
 
 class ClusterMemberRead(BaseModel):

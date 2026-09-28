@@ -8,6 +8,8 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -159,6 +161,9 @@ from .service import (
     retry_ingestion,
 )
 from .storage import StorageError, store_stream
+from .operations_api import router as operations_router
+from .retention import lock_project
+from .governance import review_queue_page
 
 
 @asynccontextmanager
@@ -187,6 +192,29 @@ app.add_middleware(
     allow_headers=["*"],
     allow_credentials=True,
 )
+
+app.include_router(operations_router)
+
+
+@app.exception_handler(RequestValidationError)
+async def safe_request_validation(_: Request, exc: RequestValidationError):
+    # Pydantic's input field can otherwise echo a password or recovery token.
+    return JSONResponse(status_code=422, content={"detail": [
+        {"type": error["type"], "loc": list(error["loc"]), "msg": error["msg"]}
+        for error in exc.errors()
+    ]})
+
+
+@app.middleware("http")
+async def private_api_responses(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/api/"):
+        # Responses can contain approved evidence and one-time credentials. They
+        # must not survive logout or expiry in browser/shared HTTP caches.
+        response.headers["Cache-Control"] = "no-store, private"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 def _require_project(
@@ -458,7 +486,8 @@ def auth_login(
         username = normalize_username(request.username)
     except ValueError:
         username = request.username.strip().casefold()
-    user = session.scalar(select(User).where(User.username == username))
+    user = session.scalar(select(User).where(User.username == username).with_for_update()
+                          .execution_options(populate_existing=True))
     if user is None or not user.is_active or not verify_password(
         request.password, user.password_hash
     ):
@@ -789,7 +818,8 @@ def project_members_create(
 ) -> ProjectMembershipRead:
     _require_project(session, principal, project_id, ProjectRole.administrator)
     username = normalize_username(request.username)
-    user = session.scalar(select(User).where(User.username == username))
+    user = session.scalar(select(User).where(User.username == username).with_for_update()
+                          .execution_options(populate_existing=True))
     if user is None:
         raise HTTPException(404, "user not found")
     if not user.is_active:
@@ -1129,6 +1159,8 @@ async def ingestions_create(
         except ValueError as exc:
             raise HTTPException(400, "invalid content-length header") from exc
     try:
+        # Serialize final source creation/reference registration with project cleanup.
+        lock_project(session, project.id)
         stored = await store_stream(
             request.stream(),
             root=settings.artifact_root,
@@ -2156,59 +2188,8 @@ def review_queue_list(
     session: Session = Depends(get_session),
 ) -> list[ReviewQueueItem]:
     _require_project(session, principal, project_id, ProjectRole.reviewer)
-    latest_revision = (
-        select(
-            Analysis.failure_id.label("failure_id"),
-            func.max(Analysis.revision).label("revision"),
-        )
-        .join(Failure, Failure.id == Analysis.failure_id)
-        .where(Failure.project_id == project_id)
-        .group_by(Analysis.failure_id)
-        .subquery()
-    )
-    query = (
-        select(Analysis)
-        .join(
-            latest_revision,
-            (latest_revision.c.failure_id == Analysis.failure_id)
-            & (latest_revision.c.revision == Analysis.revision),
-        )
-        .options(
-            selectinload(Analysis.failure).selectinload(Failure.execution),
-            selectinload(Analysis.reviews),
-        )
-        .order_by(Analysis.created_at.desc())
-    )
-    analyses = list(session.scalars(query).unique().all())
-    rows: list[ReviewQueueItem] = []
-    for analysis in analyses:
-        latest_review = max(
-            analysis.reviews, key=lambda item: item.version, default=None
-        )
-        if pending_only and latest_review is not None and latest_review.decision in {
-            "accept",
-            "reject",
-            "category_correction",
-        }:
-            continue
-        rows.append(
-            ReviewQueueItem(
-                analysis_id=analysis.id,
-                failure_id=analysis.failure_id,
-                run_id=analysis.failure.run_id,
-                project_id=analysis.failure.project_id,
-                test_identity=analysis.failure.execution.test_identity,
-                category=analysis.category,
-                severity=analysis.severity,
-                summary=analysis.summary,
-                evidence_completeness=analysis.evidence_completeness,
-                policy_flags=analysis.policy_flags,
-                latest_review_version=latest_review.version if latest_review else 0,
-                latest_review_decision=latest_review.decision if latest_review else None,
-                created_at=analysis.created_at,
-            )
-        )
-    return rows[offset : offset + limit]
+    return review_queue_page(session, project_id, status="pending" if pending_only else "all",
+                             limit=limit, offset=offset).items
 
 
 @app.get(
@@ -2281,6 +2262,9 @@ def evidence_get(
         raise HTTPException(404, "evidence not found")
     require_project_role(session, principal, evidence.project_id)
     derivative = evidence.derivative
+    run = session.get(Run, evidence.run_id)
+    if (run and run.evidence_expired_at is not None) or (derivative and derivative.retention_state == "expired"):
+        raise HTTPException(410, detail={"code": "evidence_expired", "message": "Evidence expired under project retention policy."})
     if (
         derivative is None
         or not derivative.approved

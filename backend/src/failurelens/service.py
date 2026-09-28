@@ -638,6 +638,8 @@ def ingest_parsed_report(
     manifest_version: str = "standalone",
     restricted: bool = True,
 ) -> Run:
+    from .retention import lock_project
+    lock_project(session, project.id)
     input_records = _bind_changed_file_trust(
         input_records, effective_trust=metadata.comparison_trust
     )
@@ -1086,6 +1088,8 @@ def enqueue_artifact_ingestion(
     source_format: str = "auto",
     settings: Settings | None = None,
 ) -> Ingestion:
+    from .retention import lock_project, _delete_later, flush_deletions
+    lock_project(session, project.id)
     existing = session.scalar(
         select(Ingestion).where(
             Ingestion.project_id == project.id,
@@ -1095,6 +1099,13 @@ def enqueue_artifact_ingestion(
         )
     )
     if existing:
+        if existing.source_expired_at is not None:
+            # A replay might just have recreated the content-addressed source.
+            # It cannot revive an expired ingestion or leave an untracked copy.
+            _delete_later(session, project.id, stored.relative_path)
+            session.commit()
+            flush_deletions(session, project.id, settings or get_settings())
+            raise ValueError("source expired; submit a new external ID or attempt")
         _validate_ingestion_idempotency(
             existing, metadata, source_format=source_format
         )
@@ -1169,6 +1180,11 @@ def retry_ingestion(
     *,
     settings: Settings | None = None,
 ) -> Ingestion:
+    from .retention import lock_project
+    lock_project(session, ingestion.project_id)
+    session.refresh(ingestion)
+    if ingestion.source_expired_at is not None:
+        raise ValueError("source expired; retry cannot resurrect retained evidence")
     if ingestion.state not in {
         IngestionState.failed,
         IngestionState.dead_lettered,
@@ -1419,6 +1435,12 @@ def select_failure_evidence(session: Session, failure: Failure) -> list[Evidence
 
 
 def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
+    from fastapi import HTTPException
+    from .retention import lock_project
+    lock_project(session, failure.project_id)
+    session.refresh(failure.run)
+    if failure.run.evidence_expired_at is not None:
+        raise HTTPException(410, "evidence expired; submit a new run rather than resurrecting old evidence")
     evidence_rows = select_failure_evidence(session, failure)
     historical = history_context_for_failure(session, failure)
     settings = get_settings()
@@ -1588,6 +1610,17 @@ def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
 
 
 def analysis_to_schema(row: Analysis) -> AnalysisResult:
+    if row.failure.run.evidence_expired_at is not None:
+        reason = "Evidence expired under the project retention policy. The recorded category is historical, not a current verified diagnosis."
+        return AnalysisResult(analysis_id=row.id, analysis_version=row.analysis_version,
+            failure_id=row.failure_id, run_id=row.failure.run_id, evidence_state="expired", recorded_category=row.category,
+            category=Category.insufficient_evidence, severity=row.severity,
+            confidence=Confidence(value=None, kind="unavailable", explanation=reason), evidence_completeness="expired",
+            summary=reason, claims=[], supporting_evidence_ids=[], contradictory_evidence_ids=[],
+            missing_evidence=["evidence_expired"], hypotheses=[], next_investigation=[{
+                "action": "Collect fresh evidence in a new run", "rationale": reason, "evidence_ids": []}],
+            abstention_reason=reason, policy_flags=["evidence_expired"], provenance={"retention_state": "expired"},
+            validation_version=row.validation_version, validation_results={"status": "expired"})
     publication_validated = persisted_analysis_is_publication_validated(row)
     if publication_validated:
         category = row.category
@@ -1688,6 +1721,11 @@ def add_review(
     principal: Principal | None = None,
     actor: str | None = None,
 ) -> ReviewEvent:
+    from .retention import lock_project
+    lock_project(session, analysis.failure.project_id)
+    session.refresh(analysis)
+    session.refresh(analysis.failure.run)
+    expired = analysis.failure.run.evidence_expired_at is not None
     current_version = session.scalar(
         select(func.max(ReviewEvent.version)).where(ReviewEvent.analysis_id == analysis.id)
     ) or 0
@@ -1702,7 +1740,8 @@ def add_review(
     if (
         request.release_advice == "NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE"
         and (
-            analysis.evidence_completeness != "complete"
+            expired
+            or analysis.evidence_completeness != "complete"
             or analysis.category in {Category.product_defect, Category.insufficient_evidence}
             or bool(analysis.policy_flags)
         )
@@ -1722,7 +1761,8 @@ def add_review(
         rows = list(
             session.scalars(select(Evidence).where(Evidence.id.in_(sorted(cited_ids)))).all()
         )
-        found = {row.id for row in rows if row.project_id == failure.project_id}
+        found = {row.id for row in rows if row.project_id == failure.project_id
+                 and row.derivative is not None and row.derivative.retention_state == "active"}
         missing = sorted(cited_ids - found)
         if missing:
             raise ValueError(

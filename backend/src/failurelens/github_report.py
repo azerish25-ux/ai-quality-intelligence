@@ -19,7 +19,7 @@ def render_markdown(run: Run, analyses: list[Analysis]) -> str:
         str((item.validation_results or {}).get("status", "not_validated"))
         for item in analyses
     )
-    completeness = run.completeness.upper()
+    completeness = "EVIDENCE_EXPIRED" if getattr(run, "evidence_expired_at", None) else run.completeness.upper()
     expected = run.expected_inputs if run.expected_inputs is not None else "unspecified"
     lines = [
         MARKER,
@@ -55,6 +55,8 @@ def render_markdown(run: Run, analyses: list[Analysis]) -> str:
         )
 
     hold = (
+        getattr(run, "evidence_expired_at", None) is not None
+        or
         any(
             category in {"product_defect", "insufficient_evidence"}
             for category in publication_categories
