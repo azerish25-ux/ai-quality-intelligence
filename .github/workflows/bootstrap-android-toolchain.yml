@@ -1,0 +1,182 @@
+name: Bootstrap portable Android toolchain
+
+on:
+  push:
+    branches:
+      - tooling/android-sdk-bootstrap
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Install JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android command-line tools
+        shell: bash
+        run: |
+          set -euxo pipefail
+          SDK="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$SDK/cmdline-tools/latest"
+          curl -fL --retry 3 -o "$RUNNER_TEMP/cmdline-tools.zip" \
+            https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip
+          unzip -q "$RUNNER_TEMP/cmdline-tools.zip" -d "$RUNNER_TEMP/cmdline-tools-extract"
+          mv "$RUNNER_TEMP/cmdline-tools-extract/cmdline-tools/"* "$SDK/cmdline-tools/latest/"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          echo "$SDK/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$SDK/platform-tools" >> "$GITHUB_PATH"
+
+      - name: Install Android SDK components
+        shell: bash
+        run: |
+          set -euxo pipefail
+          yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null || true
+          sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --install \
+            "cmdline-tools;latest" \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "ndk;28.2.13676358" \
+            "cmake;3.22.1" \
+            "emulator" \
+
+      - name: Download Gradle 9.8.0
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -fL --retry 3 -o /tmp/gradle-9.8.0-bin.zip \
+            https://services.gradle.org/distributions/gradle-9.8.0-bin.zip
+
+      - name: Verify Android build and warm Gradle cache
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/gradle-dist /tmp/android-smoke
+          mkdir -p /tmp/gradle-dist /tmp/android-smoke/app/src/main
+          unzip -q /tmp/gradle-9.8.0-bin.zip -d /tmp/gradle-dist
+          cat > /tmp/android-smoke/settings.gradle.kts <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "AndroidSmoke"
+          include(":app")
+          EOF
+          cat > /tmp/android-smoke/build.gradle.kts <<'EOF'
+          plugins {
+              id("com.android.application") version "9.4.0" apply false
+          }
+          EOF
+          mkdir -p /tmp/android-smoke/app
+          cat > /tmp/android-smoke/app/build.gradle.kts <<'EOF'
+          plugins {
+              id("com.android.application")
+          }
+          android {
+              namespace = "dev.android.smoke"
+              compileSdk = 36
+              defaultConfig {
+                  applicationId = "dev.android.smoke"
+                  minSdk = 23
+                  targetSdk = 36
+                  versionCode = 1
+                  versionName = "1.0"
+              }
+          }
+          EOF
+          cat > /tmp/android-smoke/app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application android:label="Android Smoke" />
+          </manifest>
+          EOF
+          /tmp/gradle-dist/gradle-9.8.0/bin/gradle -p /tmp/android-smoke --no-daemon :app:assembleDebug
+          test -s /tmp/android-smoke/app/build/outputs/apk/debug/app-debug.apk
+          tar -C "$HOME" -czf /tmp/android-gradle-cache.tar.gz .gradle/caches
+          cp -a /tmp/android-smoke /tmp/android-smoke-project
+          rm -rf /tmp/android-smoke-project/.gradle /tmp/android-smoke-project/app/build
+          tar -C /tmp -czf /tmp/android-smoke-project.tar.gz android-smoke-project
+
+      - name: Package toolchain
+        shell: bash
+        run: |
+          set -euxo pipefail
+          SDK="$ANDROID_SDK_ROOT"
+          tar -C "$SDK" -cf /tmp/android-sdk-core.tar \
+            cmdline-tools platform-tools platforms build-tools licenses
+          tar -C "$SDK" -cf /tmp/android-sdk-native.tar ndk cmake
+          tar -C "$SDK" -cf /tmp/android-sdk-emulator.tar emulator
+          tar -C "$(dirname "$JAVA_HOME")" -cf /tmp/jdk17.tar "$(basename "$JAVA_HOME")"
+          sha256sum \
+            /tmp/android-sdk-core.tar \
+            /tmp/android-sdk-native.tar \
+            /tmp/android-sdk-emulator.tar \
+            /tmp/jdk17.tar \
+            /tmp/gradle-9.8.0-bin.zip > /tmp/SHA256SUMS
+          du -h /tmp/android-sdk-*.tar /tmp/jdk17.tar /tmp/gradle-9.8.0-bin.zip
+
+      - name: Upload Android SDK core
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-core
+          path: |
+            /tmp/android-sdk-core.tar
+            /tmp/SHA256SUMS
+          compression-level: 0
+          retention-days: 1
+
+      - name: Upload Android native toolchain
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-native
+          path: /tmp/android-sdk-native.tar
+          compression-level: 0
+          retention-days: 1
+
+      - name: Upload Android emulator toolchain
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-emulator
+          path: /tmp/android-sdk-emulator.tar
+          compression-level: 0
+          retention-days: 1
+
+      - name: Upload JDK 17
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-jdk17
+          path: /tmp/jdk17.tar
+          compression-level: 0
+          retention-days: 1
+
+      - name: Upload Gradle
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-9.8.0
+          path: /tmp/gradle-9.8.0-bin.zip
+          compression-level: 0
+          retention-days: 1
+
+      - name: Upload Gradle offline cache
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-gradle-cache
+          path: |
+            /tmp/android-gradle-cache.tar.gz
+            /tmp/android-smoke-project.tar.gz
+          compression-level: 0
+          retention-days: 1
