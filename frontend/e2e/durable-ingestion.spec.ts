@@ -8,6 +8,7 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   await page.goto('/');
   await expect(page.getByText('Synthetic demo identity.')).toBeVisible();
   await page.getByRole('button', { name: 'Load synthetic demo' }).click();
+  await expect(page.locator('.sr-only[role="status"]')).toHaveText('Synthetic demo data loaded.');
   await expect(page.getByRole('heading', { name: 'Upload an actual test report' })).toBeVisible();
 
   await page.getByLabel('External run ID').fill(externalRunId);
@@ -30,9 +31,10 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   await expect(page.locator('.input-summary')).toContainText('1');
 
   await expect(page.getByRole('heading', { name: 'Failure clusters' })).toBeVisible();
-  const cluster = page.locator('.cluster-row', { hasText: testIdentity });
-  await expect(cluster).toBeVisible();
-  await cluster.click();
+  const clusters = page.locator('.cluster-row');
+  await expect(clusters).toHaveCount(1);
+  await clusters.first().click();
+  await expect(page.locator('.cluster-detail')).toContainText(testIdentity);
   await expect(page.locator('.cluster-detail')).toContainText('explainable-complete-link-v1');
   await expect(page.locator('.cluster-detail').getByText('Candidate-generation reasons', { exact: true }).first()).toBeVisible();
   await expect(page.locator('.cluster-workspace')).toContainText('Similarity groups investigation signals');
