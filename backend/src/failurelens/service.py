@@ -1050,7 +1050,6 @@ def _validate_ingestion_idempotency(
         "commit_sha": metadata.commit_sha,
         "base_sha": metadata.base_sha,
         "branch": metadata.branch,
-        "expected_inputs": metadata.expected_inputs,
         "source_format": source_format,
     }
     conflicts = [
@@ -1058,6 +1057,11 @@ def _validate_ingestion_idempotency(
         for field, value in supplied.items()
         if value != getattr(existing, field)
     ]
+    # Processing derives the effective count from the manifest; retries must
+    # compare the original transport declaration, not that derived count.
+    declared_expected = existing.source_metadata.get("declared_expected_inputs", existing.expected_inputs)
+    if metadata.expected_inputs != declared_expected:
+        conflicts.append("expected_inputs")
     context = {
         "run_scope": metadata.run_scope,
         "comparison_trust": metadata.comparison_trust,
@@ -1108,6 +1112,17 @@ def enqueue_artifact_ingestion(
             _delete_later(session, project.id, stored.relative_path)
             session.commit()
             flush_deletions(session, project.id, settings or get_settings())
+            _validate_ingestion_idempotency(existing, metadata, source_format=source_format)
+            # Deliberately discarded binary originals are not a failed/expired
+            # investigation. A retry acknowledges its durable result without
+            # requeueing work or retaining newly submitted source bytes. Actual
+            # retention expiry keeps the established conflict behavior.
+            from .binary_evidence import BINARY_POLICY
+            run = session.get(Run, existing.run_id) if existing.run_id else None
+            if (run is not None and run.evidence_expired_at is None
+                    and run.source_metadata.get("binary_original_policy") == BINARY_POLICY
+                    and existing.state in (IngestionState.succeeded, IngestionState.partial)):
+                return existing
             raise ValueError("source expired; submit a new external ID or attempt")
         _validate_ingestion_idempotency(
             existing, metadata, source_format=source_format
@@ -1126,6 +1141,7 @@ def enqueue_artifact_ingestion(
         source_format=source_format,
         source_metadata={
             **metadata.source_metadata,
+            "declared_expected_inputs": metadata.expected_inputs,
             "run_scope": metadata.run_scope,
             "comparison_trust": metadata.comparison_trust,
             "environment": metadata.environment,
