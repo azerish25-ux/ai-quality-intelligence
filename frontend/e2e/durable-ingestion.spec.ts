@@ -29,6 +29,10 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   await expect(page.getByRole('heading', { name: 'Run inputs and completeness' })).toBeVisible();
   await expect(page.locator('.input-row', { hasText: 'browser-junit.xml' })).toContainText('accepted');
   await expect(page.locator('.input-summary')).toContainText('1');
+  // Explicitly reopen the same run after its panels have loaded. Auto-selection
+  // may already have selected it before the first click, so test both paths.
+  await ingestion.getByRole('button', { name: 'Open run' }).click();
+  await expect(page.locator('.input-row', { hasText: 'browser-junit.xml' })).toContainText('accepted');
 
   await expect(page.getByRole('heading', { name: 'Failure clusters' })).toBeVisible();
   const clusters = page.locator('.cluster-row');

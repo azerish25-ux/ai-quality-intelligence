@@ -295,6 +295,8 @@ function App() {
     setRunId(id); setSelectedFailureId(''); setSelectedClusterId('');
     setFailures([]); setRunInputs([]); setRunClusters([]); setTestHistory(null);
     setPerformanceObservations([]); setPerformanceComparisons([]); setRunError(null);
+    // Reopening an already selected run must reload the panels we just cleared.
+    setNavigationRevision(value => value + 1);
   };
 
   const navigateSection = (event: MouseEvent<HTMLAnchorElement>) => {

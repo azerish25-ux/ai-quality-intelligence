@@ -11,8 +11,8 @@ const fixtureFor = (testInfo: TestInfo): Fixture => {
   expect(fixture).toBeTruthy();
   return fixture;
 };
-const runSelect = (page: Page) => page.locator('#runs').getByLabel('Run', { exact: true });
-const projectSelect = (page: Page) => page.locator('#runs').getByLabel('Project', { exact: true });
+const runSelect = (page: Page) => page.locator('#runs').getByRole('combobox', { name: 'Run', exact: true });
+const projectSelect = (page: Page) => page.locator('#runs').getByRole('combobox', { name: 'Project', exact: true });
 
 // All responses come from the actual API. No route is fulfilled with invented
 // project, run, failure, retention or authorization data.
