@@ -6,6 +6,6 @@ export default defineConfig({
   outputDir: path.join(output, 'browser-results'),
   reporter: [['json', { outputFile: path.join(output, 'playwright.json') }], ['junit', { outputFile: path.join(output, 'playwright.junit.xml') }]],
   use: { browserName: 'chromium', viewport: { width: 640, height: 480 }, deviceScaleFactor: 1,
-    trace: 'on', recordHar: { path: path.join(output, 'network.har'), content: 'omit' } },
+    trace: 'on', contextOptions: { recordHar: { path: path.join(output, 'network.har'), content: 'omit' } } },
   projects: [{ name: 'chromium' }]
 });
