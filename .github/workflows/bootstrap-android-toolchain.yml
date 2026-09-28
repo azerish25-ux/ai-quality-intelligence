@@ -43,7 +43,7 @@ jobs:
             "build-tools;36.0.0" \
             "ndk;28.2.13676358" \
             "cmake;3.22.1" \
-            "emulator" \
+            "emulator"
 
       - name: Download Gradle 9.8.0
         shell: bash
@@ -61,18 +61,11 @@ jobs:
           unzip -q /tmp/gradle-9.8.0-bin.zip -d /tmp/gradle-dist
           cat > /tmp/android-smoke/settings.gradle.kts <<'EOF'
           pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
           }
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
+              repositories { google(); mavenCentral() }
           }
           rootProject.name = "AndroidSmoke"
           include(":app")
@@ -84,9 +77,7 @@ jobs:
           EOF
           mkdir -p /tmp/android-smoke/app
           cat > /tmp/android-smoke/app/build.gradle.kts <<'EOF'
-          plugins {
-              id("com.android.application")
-          }
+          plugins { id("com.android.application") }
           android {
               namespace = "dev.android.smoke"
               compileSdk = 36
@@ -111,55 +102,153 @@ jobs:
           rm -rf /tmp/android-smoke-project/.gradle /tmp/android-smoke-project/app/build
           tar -C /tmp -czf /tmp/android-smoke-project.tar.gz android-smoke-project
 
-      - name: Package toolchain
+      - name: Package and split toolchain
         shell: bash
         run: |
           set -euxo pipefail
           SDK="$ANDROID_SDK_ROOT"
-          tar -C "$SDK" -cf /tmp/android-sdk-core.tar \
+          tar -C "$SDK" -czf /tmp/android-sdk-core.tar.gz \
             cmdline-tools platform-tools platforms build-tools licenses
-          tar -C "$SDK" -cf /tmp/android-sdk-native.tar ndk cmake
-          tar -C "$SDK" -cf /tmp/android-sdk-emulator.tar emulator
-          tar -C "$(dirname "$JAVA_HOME")" -cf /tmp/jdk17.tar "$(basename "$JAVA_HOME")"
+          tar -C "$SDK" -czf /tmp/android-sdk-native.tar.gz ndk cmake
+          tar -C "$SDK" -czf /tmp/android-sdk-emulator.tar.gz emulator
+          tar -C "$JAVA_HOME" -czf /tmp/jdk17.tar.gz .
           sha256sum \
-            /tmp/android-sdk-core.tar \
-            /tmp/android-sdk-native.tar \
-            /tmp/android-sdk-emulator.tar \
-            /tmp/jdk17.tar \
-            /tmp/gradle-9.8.0-bin.zip > /tmp/SHA256SUMS
-          du -h /tmp/android-sdk-*.tar /tmp/jdk17.tar /tmp/gradle-9.8.0-bin.zip
+            /tmp/android-sdk-core.tar.gz \
+            /tmp/android-sdk-native.tar.gz \
+            /tmp/android-sdk-emulator.tar.gz \
+            /tmp/jdk17.tar.gz \
+            /tmp/gradle-9.8.0-bin.zip \
+            /tmp/android-gradle-cache.tar.gz > /tmp/SHA256SUMS
+          split -b 350M -d -a 2 /tmp/android-sdk-core.tar.gz /tmp/core.part-
+          split -b 350M -d -a 2 /tmp/android-sdk-native.tar.gz /tmp/native.part-
+          split -b 350M -d -a 2 /tmp/android-sdk-emulator.tar.gz /tmp/emulator.part-
+          split -b 350M -d -a 2 /tmp/jdk17.tar.gz /tmp/jdk17.part-
+          sha256sum /tmp/*.part-* > /tmp/PART_SHA256SUMS
+          ls -lh /tmp/*.part-* /tmp/gradle-9.8.0-bin.zip /tmp/android-gradle-cache.tar.gz
 
-      - name: Upload Android SDK core
+      - name: Upload manifest
         uses: actions/upload-artifact@v4
         with:
-          name: android-sdk-core
+          name: android-toolchain-manifest
           path: |
-            /tmp/android-sdk-core.tar
             /tmp/SHA256SUMS
+            /tmp/PART_SHA256SUMS
           compression-level: 0
           retention-days: 1
 
-      - name: Upload Android native toolchain
+      - name: Upload core 00
         uses: actions/upload-artifact@v4
         with:
-          name: android-sdk-native
-          path: /tmp/android-sdk-native.tar
+          name: android-sdk-core-00
+          path: /tmp/core.part-00
+          if-no-files-found: ignore
+          compression-level: 0
+          retention-days: 1
+      - name: Upload core 01
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-core-01
+          path: /tmp/core.part-01
+          if-no-files-found: ignore
+          compression-level: 0
+          retention-days: 1
+      - name: Upload core 02
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-core-02
+          path: /tmp/core.part-02
+          if-no-files-found: ignore
           compression-level: 0
           retention-days: 1
 
-      - name: Upload Android emulator toolchain
+      - name: Upload native 00
         uses: actions/upload-artifact@v4
         with:
-          name: android-sdk-emulator
-          path: /tmp/android-sdk-emulator.tar
+          name: android-sdk-native-00
+          path: /tmp/native.part-00
+          if-no-files-found: ignore
+          compression-level: 0
+          retention-days: 1
+      - name: Upload native 01
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-native-01
+          path: /tmp/native.part-01
+          if-no-files-found: ignore
+          compression-level: 0
+          retention-days: 1
+      - name: Upload native 02
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-native-02
+          path: /tmp/native.part-02
+          if-no-files-found: ignore
+          compression-level: 0
+          retention-days: 1
+      - name: Upload native 03
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-native-03
+          path: /tmp/native.part-03
+          if-no-files-found: ignore
+          compression-level: 0
+          retention-days: 1
+      - name: Upload native 04
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-native-04
+          path: /tmp/native.part-04
+          if-no-files-found: ignore
+          compression-level: 0
+          retention-days: 1
+      - name: Upload native 05
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-native-05
+          path: /tmp/native.part-05
+          if-no-files-found: ignore
           compression-level: 0
           retention-days: 1
 
-      - name: Upload JDK 17
+      - name: Upload emulator 00
         uses: actions/upload-artifact@v4
         with:
-          name: android-jdk17
-          path: /tmp/jdk17.tar
+          name: android-sdk-emulator-00
+          path: /tmp/emulator.part-00
+          if-no-files-found: ignore
+          compression-level: 0
+          retention-days: 1
+      - name: Upload emulator 01
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-emulator-01
+          path: /tmp/emulator.part-01
+          if-no-files-found: ignore
+          compression-level: 0
+          retention-days: 1
+      - name: Upload emulator 02
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-emulator-02
+          path: /tmp/emulator.part-02
+          if-no-files-found: ignore
+          compression-level: 0
+          retention-days: 1
+
+      - name: Upload JDK 00
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-jdk17-00
+          path: /tmp/jdk17.part-00
+          if-no-files-found: ignore
+          compression-level: 0
+          retention-days: 1
+      - name: Upload JDK 01
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-jdk17-01
+          path: /tmp/jdk17.part-01
+          if-no-files-found: ignore
           compression-level: 0
           retention-days: 1
 
