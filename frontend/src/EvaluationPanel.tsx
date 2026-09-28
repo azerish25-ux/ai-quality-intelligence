@@ -1,20 +1,22 @@
 import { evaluationFraction, evaluationNumber, evaluationProvenance, evaluationRate, evaluationRecord } from './evaluation';
 
-type Props = { metrics: Record<string, unknown> | null };
+type Props = { metrics: Record<string, unknown> | null; id?: string; title?: string };
 const count = (value: unknown): string => {
   const n = evaluationNumber(value);
   return n === null ? 'Not established' : String(n);
 };
 
-export function EvaluationPanel({ metrics }: Props) {
+export function EvaluationPanel({ metrics, id = "evaluation", title = "Deterministic evaluation" }: Props) {
   const sources = evaluationRecord(metrics?.source_counts);
   const targets = evaluationRecord(metrics?.quality_targets ?? metrics?.acceptance);
   const integrity = evaluationRecord(metrics?.integrity_acceptance);
   const families = Object.entries(evaluationRecord(metrics?.by_family)).slice(0, 100);
   const limits = Array.isArray(metrics?.limitations) ? metrics.limitations.filter((v): v is string => typeof v === 'string') : [];
+  const fullstack = metrics?.evaluation_scope === 'http_postgresql_fault_proxy';
+  const observations = Array.isArray(metrics?.inspection) ? metrics.inspection.map(evaluationRecord) : [];
   const legacy = metrics?.evaluation_version === 'harness-v1';
-  return <section id="evaluation" className="panel evaluation" aria-labelledby="evaluation-heading">
-    <div className="panel-heading"><div><p className="eyebrow">CONTROLLED EVIDENCE · DECLARED SCOPE</p><h2 id="evaluation-heading">Deterministic evaluation</h2></div>
+  return <section id={id} className="panel evaluation" aria-labelledby={`${id}-heading`}>
+    <div className="panel-heading"><div><p className="eyebrow">CONTROLLED EVIDENCE · DECLARED SCOPE</p><h2 id={`${id}-heading`}>{title}</h2></div>
       <span className="pill insufficient-evidence">{metrics ? evaluationProvenance(metrics) : 'No evaluation loaded'}</span></div>
     {!metrics ? <div className="empty">Executed evaluation metrics are not mounted in this runtime.</div> : <>
       <div className="eval-grid">
@@ -25,6 +27,22 @@ export function EvaluationPanel({ metrics }: Props) {
       </div>
       <p>LedgerGuard executions: <strong>{count(sources.ledgerguard_executed)}</strong>. Synthetic cases in this report: <strong>{count(sources.synthetic)}</strong>.
         {' '}Product abstentions requiring review: <strong>{count(metrics.product_abstentions)}</strong>.</p>
+      {fullstack && <>
+        <p>Paired scenarios: <strong>{count(metrics.paired_scenarios)}</strong>. Independent mechanism families: <strong>{count(metrics.family_count)}</strong>.
+          {' '}Transport-only controls correctly left for review: <strong>{count(metrics.control_abstentions)}/{count(metrics.control_case_count)}</strong>.</p>
+        <p className="limitation">The injected defect is in the retry proxy, not the unmodified LedgerGuard service. A balanced ledger can still contain two effects for one logical request. This development slice does not replace the component benchmark or establish five-category acceptance.</p>
+        <details><summary>Inspect control and intervention observations</summary>
+          <div className="table-wrap" role="region" aria-label="Full-stack observed effects" tabIndex={0}>
+            <table><caption>Actual committed effects and persisted classifications</caption><thead><tr>
+              <th scope="col">Case</th><th scope="col">Role</th><th scope="col">Committed effects</th><th scope="col">Published category</th>
+            </tr></thead><tbody>{observations.map((item, index) => <tr key={index}>
+              <td><code>{String(item.case_id ?? 'Unknown')}</code></td><td>{String(item.role ?? 'Unknown')}</td>
+              <td>{count(item.committed_effects)}</td><td>{String(item.category ?? 'Not established').replaceAll('_', ' ')}</td>
+            </tr>)}</tbody></table>
+          </div>
+          <p className="limitation">Retained run and evidence identifiers refer to the originating database. Safe derivatives and report exports preserve offline inspection.</p>
+        </details>
+      </>}
       {legacy ? <p className="limitation">Legacy rule regression: numbered family identifiers do not establish independent mechanisms or a leakage-free held-out benchmark. These historical scores are not full-pipeline or deployment performance.</p>
         : <p className="limitation">This report covers the declared execution scope only. Passing artifact-integrity checks is not full-project acceptance or a guarantee of deployment reliability.</p>}
       {typeof metrics.source_revision === 'string' && <p>Tested FailureLens source: <code>{metrics.source_revision}</code>. Database: <strong>{String(metrics.database_dialect ?? 'Not established')}</strong>.</p>}

@@ -736,6 +736,23 @@ def evaluation_latest(
         raise HTTPException(503, f"evaluation metrics unavailable: {exc}") from exc
 
 
+@app.get("/api/v1/evaluations/fullstack")
+def evaluation_fullstack(principal: Principal = Depends(current_principal)) -> dict:
+    require_user(principal)
+    path = get_settings().fullstack_evaluation_metrics_path
+    if not path.exists():
+        return {"status": "not_loaded", "message": "Full-stack development evaluation is not mounted."}
+    try:
+        if path.stat().st_size > 2 * 1024 * 1024:
+            raise ValueError("evaluation report exceeds limit")
+        metrics = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(metrics, dict) or metrics.get("evaluation_scope") != "http_postgresql_fault_proxy":
+            raise ValueError("evaluation scope differs")
+        return {"status": "available", "metrics": metrics}
+    except (OSError, ValueError) as exc:
+        raise HTTPException(503, "full-stack evaluation metrics unavailable") from exc
+
+
 @app.post("/api/v1/projects", response_model=ProjectRead, status_code=201)
 def projects_create(
     request: ProjectCreate,

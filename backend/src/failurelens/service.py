@@ -951,6 +951,9 @@ def ingest_parsed_report(
         settings=settings,
     )
 
+    from .transaction_evidence import register_transaction_inputs
+    register_transaction_inputs(session, project, run, artifact, settings)
+
     from .binary_evidence import register_binary_inputs
     register_binary_inputs(session, project, run, artifact, settings)
 

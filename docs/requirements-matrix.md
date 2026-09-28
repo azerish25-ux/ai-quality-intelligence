@@ -70,3 +70,13 @@ Implementation paths below are relative to `backend/src/failurelens/` unless a f
 ## History and later milestones
 
 The preceding matrix is preserved byte-for-byte in [requirements-through-M6.1.md](requirements-through-M6.1.md), original blob `b21332d811f5dbd92c65a402d17d9fb0ed171bad`. Its earlier pending descriptions are historical, not current missing-feature claims. M7 optional-provider contracts, M8 complete GitHub publication, M9 hardening/packaging and M10 final audit remain unfinished. No green scoped CI job overrides a failed quality target or implies full-project acceptance.
+
+## M6.2 implementation checkpoint — verification pending
+
+| ID | Requirement | Status | Implementation / verification boundary |
+|---|---|---|---|
+| R-M62-EXEC | Real HTTP/PostgreSQL control and faulty retry boundary | NOT RUN | `integrations/ledgerguard/fullstack.py`, clean pinned source, disposable stack, actual lost response and independent SQL/receipt oracle; exact-source CI pending. |
+| R-M62-BUNDLE | Preserve related artifacts in one run and isolate paired roles | PARTIAL | Replay v2 plus bounded measurement adapter; real API/worker synthetic regression passes locally, PostgreSQL acceptance pending. |
+| R-M62-CLAIM | Recomputed numeric diagnosis with verified evidence | PARTIAL | `transaction_evidence.py`, analyzer/publication predicates; missing/conflicting/forged-measurement tests pass, executed producer acceptance pending. |
+| R-M62-REVIEW | Scoped, inspectable results and advisory reports | PARTIAL | Separate evaluation API/panel, independent scorer, desktop/narrow browser journey; exact-source browser execution pending. |
+| R-M62-ACCEPT | Exact-source delivery, retained results and unchanged historical failures | NOT RUN | New permanent workflow; existing component reports and targets unchanged. Not full M6 acceptance. |

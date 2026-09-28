@@ -8,9 +8,10 @@ from typing import Any
 from .analysis import DeterministicDecision, EvidenceView, rule_signal_counts
 from .config import Settings, get_settings
 from .models import Category, Evidence, Failure
+from .transaction_evidence import inspect_multiplicity
 from .storage import StorageError, read_stored_bytes
 
-VALIDATION_VERSION = "evidence-validation-v1"
+VALIDATION_VERSION = "evidence-validation-v2"
 _ALLOWED_DERIVATIVE_MEDIA_TYPES = {
     "application/json",
     "application/vnd.failurelens.evidence+json",
@@ -422,6 +423,22 @@ def _claim_validation(
             and aggregate_score >= int(predicate["minimum_score"])
             and not irrelevant_reference_ids
         )
+
+    if isinstance(predicate, dict) and predicate.get("kind") == "committed_effect_multiplicity":
+        typed_predicate_valid = (set(predicate) == {"kind", "count"}
+                                 and type(predicate.get("count")) is int and 2 <= predicate["count"] <= 8)
+        findings = {item.id: inspect_multiplicity(item.observation.get("transaction_observation"))
+                    for item in valid_rows if item.kind == "transaction_observation"}
+        irrelevant_reference_ids = [identifier for identifier in validated_ids
+                                    if identifier not in findings or findings[identifier].status != "duplicate"
+                                    or findings[identifier].count != predicate.get("count")]
+        semantic_support = bool(typed_predicate_valid and decision.category == Category.product_defect
+                                and validated_ids and not irrelevant_reference_ids
+                                and claim.get("text") == (
+                                    f"Reported request and database measurements reconcile {predicate.get('count')} committed effects "
+                                    "for one retried logical request; this supports a product-defect investigation "
+                                    "without establishing the responsible component."
+                                ))
 
     text = str(claim.get("text", ""))
     policy_safe = bool(

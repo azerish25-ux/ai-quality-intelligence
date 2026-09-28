@@ -215,6 +215,7 @@ function App() {
   const [historyShardCount, setHistoryShardCount] = useState(
     () => new URLSearchParams(window.location.search).get('history_shards') ?? ''
   );
+  const [fullstackEvaluation, setFullstackEvaluation] = useState<Record<string, unknown> | null>(null);
   const [evaluation, setEvaluation] = useState<Record<string, unknown> | null>(null);
   const [reviewQueue, setReviewQueue] = useState<ReviewQueueItem[]>([]);
   const [reviewTotal, setReviewTotal] = useState<number | null>(null);
@@ -404,15 +405,17 @@ function App() {
   const refreshRoot = useCallback(async () => {
     const generation = authGeneration.current;
     const request = ++rootRequest.current;
-    const [nextOverview, nextProjects, evaluationResponse] = await Promise.all([
+    const [nextOverview, nextProjects, evaluationResponse, fullstackResponse] = await Promise.all([
       api.overview(),
       api.projects(),
-      api.evaluation()
+      api.evaluation(),
+      api.fullstackEvaluation()
     ]);
     if (generation !== authGeneration.current || request !== rootRequest.current) return;
     setOverview(nextOverview);
     setProjects(nextProjects);
     setEvaluation(evaluationResponse.metrics ?? null);
+    setFullstackEvaluation(fullstackResponse.metrics ?? null);
     const intendedProject = selectionIntent.current.projectId;
     if (intendedProject && !nextProjects.some(project => project.id === intendedProject)) {
       setError('Requested project is unavailable or you do not have access. Select an available project.');
@@ -667,7 +670,7 @@ function App() {
       rootRequest.current += 1;
       projectRequest.current += 1;
       setProjects([]); setProjectId(''); setRunId(''); setSelectedFailureId(''); setRunError(null);
-      setSelectedImpactId(''); setSelectedClusterId(''); setOverview(null); setEvaluation(null);
+      setSelectedImpactId(''); setSelectedClusterId(''); setOverview(null); setEvaluation(null); setFullstackEvaluation(null);
       setMembers([]); setIngestionTokens([]); setNewTokenSecret(null);
       setPrincipal(null); setFailures([]); setReviewQueue([]); setAuditEvents([]);
       setSelectedCluster(null); setTestHistory(null); setRuns([]); setIngestions([]);
@@ -2298,6 +2301,7 @@ function App() {
         )}
 
         <EvaluationPanel metrics={evaluation} />
+        {fullstackEvaluation && <EvaluationPanel metrics={fullstackEvaluation} id="fullstack-evaluation" title="HTTP and database retry evaluation" />}
       </main>
       </div>
     </>

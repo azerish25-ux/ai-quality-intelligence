@@ -12,6 +12,7 @@ export const evaluationFraction = (value: unknown): string => {
   return n === null || d === null || d <= 0 ? 'Not established' : `${n}/${d}`;
 };
 export const evaluationProvenance = (metrics: Record<string, unknown>): string => {
+  if (metrics.evaluation_scope === 'http_postgresql_fault_proxy') return 'Executed HTTP/PostgreSQL · development only';
   if (metrics.evaluation_scope === 'production_component_challenge') return 'Executed LedgerGuard components';
   const sources = evaluationRecord(metrics.source_counts);
   const executed = evaluationNumber(sources.ledgerguard_executed);

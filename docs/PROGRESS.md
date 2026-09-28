@@ -64,3 +64,22 @@ The next substantive extension is a development-only full-stack LedgerGuard cont
 ### Preserved history
 
 The preceding ledger is preserved byte-for-byte in [PROGRESS-through-M6.1.md](PROGRESS-through-M6.1.md), original Git blob `d6933079dafe82cb19bebcc97829840a064321ca`. Earlier pending states and counts apply to their named revisions, not this accepted source. See the consolidated [requirements matrix](requirements-matrix.md).
+
+## M6.2 implementation checkpoint — exact-source execution pending
+
+Started from `076b42a5f76d41c457ed9bcefb3830ad533b36b7` on `main`.
+Adds the development-only full-stack retry-boundary experiment, multi-artifact
+replay, scoped numeric evidence, independent HTTP/SQL scoring and a separate
+reviewer view. See [fullstack-evaluation.md](fullstack-evaluation.md).
+
+The healthy control loses a committed response but preserves its key; the faulty
+proxy corrupts the forwarded retry key. LedgerGuard itself is not modified or
+alleged defective. Four amounts are one mechanism. The original component 80%
+recall failure and all retained results remain unchanged.
+
+Local targeted regression tests pass. The first full-suite attempt reported 328
+passes, four PostgreSQL-only skips and sixteen failures because producer fixtures
+were absent. The exact baseline CI fixture artifact was then restored with its
+GitHub-recorded SHA-256 verified; no test was skipped or weakened to hide that
+failure. Docker/PostgreSQL and browser acceptance must be recorded from the new
+source's actual CI, not inferred from earlier green runs or synthetic unit tests.

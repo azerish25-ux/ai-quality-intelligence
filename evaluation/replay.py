@@ -73,33 +73,48 @@ def replay(inputs: Path, output: Path, repeats: int = 5) -> dict:
             started = time.perf_counter()
             project = request("POST", "/api/v1/projects", 201, json={"slug": "eval-" + case.case_id, "name": "Controlled artifact replay"}).json()
             result = {"case_id": case.case_id, "inputs": [], "analyses": [], "evidence": [], "ablation_categories": {}}
+            if manifest.schema_version == "artifact-replay-v2":
+                result["role_analyses"] = {}
+                result["run_links"] = {}
+                result["repeat_digests"] = {}
             for ordinal, artifact in enumerate(case.inputs):
                 content = read_artifact(inputs, artifact)
-                params = {"external_id": case.case_id + "-" + str(ordinal), "filename": "report.xml", "repository": case.repository,
-                    "commit_sha": case.source_revision, "branch": "evaluation", "run_scope": "full_suite", "expected_inputs": 1, "source_format": "junit-xml",
-                    "environment": "controlled-component-measurement"}
+                params = {"external_id": case.case_id + "-" + str(ordinal), "filename": "bundle.zip" if artifact.source_format == "failurelens-bundle-v2" else "report.xml", "repository": case.repository,
+                    "commit_sha": case.source_revision, "branch": "evaluation", "run_scope": "full_suite", "expected_inputs": artifact.expected_inputs, "source_format": artifact.source_format,
+                    "environment": "controlled-http-database-measurement" if manifest.schema_version == "artifact-replay-v2" else "controlled-component-measurement"}
                 path = f"/api/v1/projects/{project['id']}/ingestions"
-                queued = request("POST", path, 202, params=params, content=content, headers={"content-type": "application/xml"}).json()
+                queued = request("POST", path, 202, params=params, content=content, headers={"content-type": "application/zip" if artifact.source_format == "failurelens-bundle-v2" else "application/xml"}).json()
                 with SessionLocal() as worker:
                     if not process_next(worker, "artifact-replay-worker", settings=settings):
                         raise RuntimeError("ingestion job was not claimed")
                 state = request("GET", f"/api/v1/ingestions/{queued['id']}").json()
                 if state["state"] != "succeeded":
                     raise RuntimeError(f"artifact ingestion did not complete: {state['state']}")
-                duplicate = request("POST", path, 202, params=params, content=content, headers={"content-type": "application/xml"}).json()
+                duplicate = request("POST", path, 202, params=params, content=content, headers={"content-type": "application/zip" if artifact.source_format == "failurelens-bundle-v2" else "application/xml"}).json()
                 if duplicate["id"] != queued["id"]:
                     raise RuntimeError("identical ingestion was not idempotent")
                 run_id = state["run_id"]
                 failures = request("GET", f"/api/v1/runs/{run_id}/failures").json()
+                if manifest.schema_version == "artifact-replay-v2":
+                    run = request("GET", f"/api/v1/runs/{run_id}").json()["run"]
+                    if run["completeness"] != "complete" or run["received_inputs"] != artifact.expected_inputs:
+                        raise RuntimeError("multi-artifact run is incomplete")
+                    result["role_analyses"][artifact.role] = []
+                    result["run_links"][artifact.role] = run_id
                 result["inputs"].append({"role": artifact.role, "sha256": artifact.sha256, "state": state["state"], "failure_count": len(failures), "idempotent_replay": True})
                 for failure in failures:
                     published = request("GET", "/api/v1/analyses/" + failure["latest_analysis"]["analysis_id"]).json()
                     substantive = {k: published[k] for k in ("category", "severity", "confidence", "summary", "claims", "policy_flags", "abstention_reason", "supporting_evidence_ids", "contradictory_evidence_ids")}
+                    repetition_hashes = [hashlib.sha256(json.dumps(substantive,sort_keys=True).encode()).hexdigest()]
                     for _ in range(repeats - 1):
                         again = request("POST", f"/api/v1/failures/{failure['id']}/analyses", 201).json()
                         if {k: again[k] for k in substantive} != substantive:
                             raise RuntimeError("substantive deterministic analysis changed during replay")
+                        repetition_hashes.append(hashlib.sha256(json.dumps({k:again[k] for k in substantive},sort_keys=True).encode()).hexdigest())
                     result["analyses"].append(published)
+                    if manifest.schema_version == "artifact-replay-v2":
+                        result["role_analyses"][artifact.role].append(published)
+                        result["repeat_digests"].setdefault(artifact.role, []).append(repetition_hashes)
                     with SessionLocal() as session:
                         row = session.get(m.Failure, failure["id"])
                         evidence_rows = select_failure_evidence(session, row)
@@ -123,7 +138,7 @@ def replay(inputs: Path, output: Path, repeats: int = 5) -> dict:
                             result["evidence"].append({"id": ev.id, "path": str(target.relative_to(output)), "sha256": ev.content_digest, "excerpt": safe["excerpt"], "locator": safe["locator"]})
                         analyses = list(session.scalars(select(m.Analysis).where(m.Analysis.failure_id == row.id)))
                         markdown = render_markdown(row.run, analyses)
-                        report = output / "reports" / (case.case_id + ".md")
+                        report = output / "reports" / (case.case_id + ("-" + artifact.role if manifest.schema_version == "artifact-replay-v2" else "") + ".md")
                         report.parent.mkdir(parents=True, exist_ok=True); report.write_text(markdown)
                         result["report"] = str(report.relative_to(output))
                         result["advisory_hold"] = "HOLD_FOR_REVIEW" in markdown

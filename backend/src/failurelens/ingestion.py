@@ -1145,7 +1145,19 @@ def _detect_github_metadata(content: bytes, filename: str) -> bool:
     )
 
 
+def _transaction_adapter(content: bytes, _: str, __: Settings) -> AdapterResult:
+    from .transaction_evidence import parse_transaction_observation
+    try:
+        observation = parse_transaction_observation(content)
+    except (ValueError, UnicodeDecodeError, RecursionError) as exc:
+        raise IngestionError("malformed_report", "Invalid bounded transaction observation") from exc
+    return AdapterResult(metadata={"transaction_observation": observation},
+                         warnings=("producer_reported_measurements_not_causal_proof",))
+
+
 def _register_adapters() -> None:
+    _register(AdapterSpec(kind="transaction-observations-json", parser_version="transaction-observations-v1",
+                          parser=_transaction_adapter))
     _register(
         AdapterSpec(
             kind="junit-xml",

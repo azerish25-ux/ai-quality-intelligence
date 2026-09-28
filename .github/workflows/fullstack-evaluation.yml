@@ -1,0 +1,105 @@
+name: FailureLens Full-stack Evaluation
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: failurelens-fullstack-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ledgerguard-http-postgresql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: failurelens_fullstack
+          POSTGRES_USER: failurelens
+          POSTGRES_PASSWORD: failurelens
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U failurelens -d failurelens_fullstack"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      FAILURELENS_DATABASE_URL: postgresql+psycopg://failurelens:failurelens@127.0.0.1:5432/failurelens_fullstack
+      FAILURELENS_DEMO_MODE: 'true'
+      FAILURELENS_ARTIFACT_ROOT: /tmp/failurelens-m62-private-artifacts
+      FAILURELENS_FULLSTACK_EVALUATION_METRICS_PATH: /tmp/failurelens-m62/report/metrics.json
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: azerish25-ux/transaction-reliability-lab
+          ref: 13bdd62c924a3230825b6d9304f449f887c8e7fe
+          path: .ledgerguard-evaluation-source
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Install and migrate the real FailureLens pipeline
+        run: |
+          python -m pip install './backend[dev]'
+          (cd backend && alembic upgrade head)
+      - name: Execute healthy and faulty HTTP retry boundaries against pinned LedgerGuard
+        run: >-
+          python integrations/ledgerguard/fullstack.py
+          --ledgerguard-source .ledgerguard-evaluation-source
+          --output /tmp/failurelens-m62/corpus --confirm-disposable-stack
+      - name: Replay grouped artifact bundles without oracle access
+        run: >-
+          python evaluation/replay.py --inputs /tmp/failurelens-m62/corpus/inputs
+          --output /tmp/failurelens-m62/replay --repeats 5 --confirm-disposable-database
+      - name: Independently score persisted decisions and enforce scoped targets
+        run: >-
+          python evaluation/fullstack_harness.py --corpus /tmp/failurelens-m62/corpus
+          --replay /tmp/failurelens-m62/replay --output /tmp/failurelens-m62/report
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install browser verification dependencies
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npm run build
+      - name: Inspect real full-stack results through API-backed desktop and narrow views
+        run: |
+          (cd backend && python -m uvicorn failurelens.api:app --host 127.0.0.1 --port 8000) > /tmp/m62-api.log 2>&1 &
+          API_PID=$!
+          (cd frontend && npm run dev -- --host 127.0.0.1) > /tmp/m62-ui.log 2>&1 &
+          UI_PID=$!
+          trap 'kill "$API_PID" "$UI_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8000/health/ready > /dev/null && curl --fail --silent http://127.0.0.1:5173 > /dev/null; then break; fi
+            sleep 1
+          done
+          cd frontend
+          npx playwright test --config playwright.fullstack.config.ts
+      - name: Retain browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fullstack-browser-${{ github.sha }}
+          path: frontend/test-results
+          if-no-files-found: error
+          retention-days: 7
+      - name: Retain bounded public measurements, predictions and provenance
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ledgerguard-fullstack-${{ github.sha }}
+          path: /tmp/failurelens-m62
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish scoped results
+        if: always()
+        run: |
+          if test -f /tmp/failurelens-m62/report/report.md; then
+            cat /tmp/failurelens-m62/report/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi

@@ -1047,6 +1047,7 @@ export const api = {
     json<InfrastructureCorrelation>(`/api/v1/infrastructure-correlations/${snapshotId}`),
   analyze: (failureId: string) => json<Analysis>(`/api/v1/failures/${failureId}/analyses`, { method: 'POST' }),
   seedDemo: () => json<{ project_id: string; run_id: string }>('/api/v1/demo/seed', { method: 'POST' }),
+  fullstackEvaluation: () => json<{ status: string; metrics?: Record<string, unknown>; message?: string }>('/api/v1/evaluations/fullstack'),
   evaluation: () => json<{ status: string; metrics?: Record<string, unknown>; message?: string }>('/api/v1/evaluations/latest')
 };
 
