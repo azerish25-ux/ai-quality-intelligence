@@ -1,0 +1,45 @@
+name: M2 replay source delivery
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/_m2-replay-delivery.yml]
+permissions:
+  contents: write
+jobs:
+  deliver:
+    if: github.repository == 'azerish25-ux/ai-quality-intelligence' && github.actor == 'azerish25-ux' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 2
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - name: Apply exact reviewed patch
+        run: |
+          test "$(git rev-parse HEAD^)" = b00978693e310380ba6dff1e5ebd4689abb362d6
+          python - <<'PY'
+          import base64, hashlib, lzma, os, pathlib, subprocess
+          encoded = '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'
+          patch = lzma.decompress(base64.b64decode(encoded))
+          assert hashlib.sha256(patch).hexdigest() == '273597b1a4e8323759866f5e705b81e5ce3abda177cabf3783fea382ebe45740'
+          path = pathlib.Path(os.environ['RUNNER_TEMP'])/'replay.patch'
+          path.write_bytes(patch)
+          subprocess.run(['git','apply','--index','--check',str(path)],check=True)
+          subprocess.run(['git','apply','--index','--whitespace=error',str(path)],check=True)
+          assert set(subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines()) == {'backend/src/failurelens/service.py','backend/tests/test_binary_evidence.py'}
+          PY
+      - name: Verify regression without weakening retention behavior
+        run: |
+          python -m pip install './backend[dev]'
+          python -m pytest backend/tests/test_binary_evidence.py backend/tests/test_operations.py --no-cov -q
+      - name: Commit and fast-forward exact main
+        run: |
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
+          git config user.name azerish25-ux
+          git config user.email azerish25@gmail.com
+          git commit -m 'fix(ingestion): preserve idempotent replay after binary source disposal'
+          git push origin HEAD:main
