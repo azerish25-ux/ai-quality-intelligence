@@ -3,6 +3,8 @@ import { expect, test } from '@playwright/test';
 test('uploads a real JUnit report and opens the automatically analyzed run', async ({ page }, testInfo) => {
   const projectSuffix = `${testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${testInfo.retry}`;
   const externalRunId = `browser-e2e-${projectSuffix}`;
+  const testClassName = `Transfer-${projectSuffix}`;
+  const testIdentity = `${testClassName}::duplicate`;
   await page.goto('/');
   await expect(page.getByText('Synthetic demo identity.')).toBeVisible();
   await page.getByRole('button', { name: 'Load synthetic demo' }).click();
@@ -14,7 +16,7 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
     name: 'browser-junit.xml',
     mimeType: 'application/xml',
     buffer: Buffer.from(
-      '<testsuite name="payments"><testcase classname="Transfer" name="duplicate" time="0.12"><failure type="LedgerInvariantError" message="duplicate committed transfer">ledger unbalanced after double charge</failure></testcase></testsuite>'
+      `<testsuite name="payments"><testcase classname="${testClassName}" name="duplicate" time="0.12"><failure type="LedgerInvariantError" message="duplicate committed transfer">ledger unbalanced after double charge</failure></testcase></testsuite>`
     )
   });
   await page.getByRole('button', { name: 'Queue ingestion' }).click();
@@ -28,14 +30,14 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   await expect(page.locator('.input-summary')).toContainText('1');
 
   await expect(page.getByRole('heading', { name: 'Failure clusters' })).toBeVisible();
-  const cluster = page.locator('.cluster-row', { hasText: 'Transfer::duplicate' });
+  const cluster = page.locator('.cluster-row', { hasText: testIdentity });
   await expect(cluster).toBeVisible();
   await cluster.click();
   await expect(page.locator('.cluster-detail')).toContainText('explainable-complete-link-v1');
   await expect(page.locator('.cluster-detail').getByText('Candidate-generation reasons', { exact: true }).first()).toBeVisible();
   await expect(page.locator('.cluster-workspace')).toContainText('Similarity groups investigation signals');
 
-  const failure = page.locator('.failure-row', { hasText: 'Transfer::duplicate' });
+  const failure = page.locator('.failure-row', { hasText: testIdentity });
   await expect(failure).toBeVisible();
   await failure.click();
   await expect(

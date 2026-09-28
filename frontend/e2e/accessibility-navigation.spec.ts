@@ -17,7 +17,9 @@ test('supports keyboard navigation, named controls, and URL-restored investigati
   await page.keyboard.press('Enter');
   await expect(page.locator('#main-content')).toBeFocused();
 
-  await page.getByRole('button', { name: 'Load synthetic demo' }).click();
+  const loadDemo = page.getByRole('button', { name: 'Load synthetic demo' });
+  await loadDemo.click();
+  await expect(page.locator('.sr-only[role="status"]')).toHaveText('Synthetic demo data loaded.');
   await expect(page.getByRole('heading', { name: 'Upload an actual test report' })).toBeVisible();
 
   const issues = await page.evaluate(() => {
@@ -57,6 +59,8 @@ test('supports keyboard navigation, named controls, and URL-restored investigati
 
   const projectSelect = page.locator('#ingestion').getByLabel('Project');
   const runSelect = page.locator('#runs').getByLabel('Run');
+  await expect(projectSelect).toHaveValue(/.+/);
+  await expect(runSelect).toHaveValue(/.+/);
   const projectId = await projectSelect.inputValue();
   const runId = await runSelect.inputValue();
   expect(projectId).not.toBe('');
@@ -68,6 +72,8 @@ test('supports keyboard navigation, named controls, and URL-restored investigati
   const historyBranch = page.locator('#history').getByLabel('Branch');
   await historyBranch.fill('main/accessibility');
   await expect.poll(() => new URL(page.url()).searchParams.get('history_branch')).toBe('main/accessibility');
+  await expect(runSelect).toHaveValue(runId);
+  await expect.poll(() => new URL(page.url()).searchParams.get('run')).toBe(runId);
 
   await page.reload();
   await expect(page.locator('#ingestion').getByLabel('Project')).toHaveValue(projectId);

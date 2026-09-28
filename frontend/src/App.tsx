@@ -1490,7 +1490,22 @@ function App() {
 
   return (
     <>
-      <a className="skip-link" href="#main-content" onClick={() => window.requestAnimationFrame(() => document.getElementById('main-content')?.focus())}>Skip to main content</a>
+      <a
+        className="skip-link"
+        href="#main-content"
+        onClick={(event) => {
+          event.preventDefault();
+          const mainContent = document.getElementById('main-content');
+          if (!mainContent) return;
+          const url = new URL(window.location.href);
+          url.hash = 'main-content';
+          window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+          mainContent.focus({ preventScroll: true });
+          mainContent.scrollIntoView({ block: 'start' });
+        }}
+      >
+        Skip to main content
+      </a>
       <div className="app-shell">
       <aside className="sidebar" aria-label="Application sidebar">
         <div className="brand"><span className="brand-mark">FL</span><div><strong>FailureLens</strong><small>Evidence-grounded triage</small></div></div>
