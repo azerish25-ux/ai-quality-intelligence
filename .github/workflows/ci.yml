@@ -120,6 +120,77 @@ jobs:
           PYTHONPATH=backend/src python evaluation/performance_harness.py --output evaluation/reports/ci
           PYTHONPATH=backend/src python evaluation/infrastructure_harness.py --output evaluation/reports/ci
 
+  ledgerguard-evaluation:
+    name: LedgerGuard execution and evidence integrity (quality targets reported separately)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: failurelens_evaluation
+          POSTGRES_USER: failurelens
+          POSTGRES_PASSWORD: failurelens
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U failurelens -d failurelens_evaluation"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      FAILURELENS_DATABASE_URL: postgresql+psycopg://failurelens:failurelens@127.0.0.1:5432/failurelens_evaluation
+      FAILURELENS_ARTIFACT_ROOT: /tmp/failurelens-m6-private
+      FAILURELENS_DEMO_MODE: "true"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: azerish25-ux/transaction-reliability-lab
+          ref: 13bdd62c924a3230825b6d9304f449f887c8e7fe
+          path: .ledgerguard-evaluation-source
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Install the locked-compatible application
+        run: python -m pip install './backend[dev]'
+      - name: Migrate disposable PostgreSQL
+        working-directory: backend
+        run: alembic upgrade head
+      - name: Execute pinned production components and independent oracles
+        run: |
+          export JAVA_HOME="$JAVA_HOME_21_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          python integrations/ledgerguard/run.py --ledgerguard-source .ledgerguard-evaluation-source --output /tmp/failurelens-m6/corpus
+      - name: Replay public artifacts through API and durable worker without labels
+        run: python evaluation/replay.py --inputs /tmp/failurelens-m6/corpus/inputs --output /tmp/failurelens-m6/replay --repeats 5 --confirm-disposable-database
+      - name: Score immutable predictions and enforce integrity and safety
+        run: python evaluation/executed_harness.py --corpus /tmp/failurelens-m6/corpus --replay /tmp/failurelens-m6/replay --output /tmp/failurelens-m6/report
+      - name: Audit legacy family independence without rewriting historical scores
+        run: |
+          python evaluation/generate_corpus.py
+          python evaluation/corpus_audit.py --output /tmp/failurelens-m6/legacy-audit.json
+      - name: Publish measured targets including failures
+        if: always()
+        run: |
+          if test -f /tmp/failurelens-m6/report/report.md; then
+            cat /tmp/failurelens-m6/report/report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'M6 execution did not produce a complete report; inspect failed steps.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Preserve exact-revision executed corpus and inspectable evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ledgerguard-evaluation-${{ github.sha }}
+          path: /tmp/failurelens-m6
+          if-no-files-found: error
+          retention-days: 30
+
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 12
@@ -139,7 +210,7 @@ jobs:
         run: npm run build
 
   browser-e2e:
-    needs: producer-fixtures
+    needs: [producer-fixtures, ledgerguard-evaluation]
     name: browser-e2e (${{ matrix.project }})
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -173,6 +244,7 @@ jobs:
       FAILURELENS_DATABASE_URL: postgresql+psycopg://failurelens:failurelens@127.0.0.1:5432/failurelens_browser
       FAILURELENS_PRODUCER_FIXTURES: /tmp/failurelens-producer-fixtures
       FAILURELENS_ARTIFACT_ROOT: /tmp/failurelens-browser-artifacts
+      FAILURELENS_EVALUATION_METRICS_PATH: /tmp/failurelens-m6-browser/report/metrics.json
       FAILURELENS_OPERATIONS_FIXTURES: /tmp/failurelens-operations-fixtures.json
       FAILURELENS_DEMO_MODE: "true"
     steps:
@@ -197,6 +269,11 @@ jobs:
       - name: Migrate PostgreSQL
         working-directory: backend
         run: alembic upgrade head
+      - name: Load this revision's real evaluation results
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ledgerguard-evaluation-${{ github.sha }}
+          path: /tmp/failurelens-m6-browser
       - name: Seed disposable operational browser fixtures
         run: python scripts/seed_operations_browser.py --confirm-disposable-database --output "$FAILURELENS_OPERATIONS_FIXTURES"
       - name: Start API, durable worker, and dashboard
