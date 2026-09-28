@@ -1,0 +1,64 @@
+name: M5.3.1 verified navigation correction
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/m531-correction.yml]
+permissions:
+  contents: read
+jobs:
+  publish:
+    if: github.repository == 'azerish25-ux/ai-quality-intelligence' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Apply three exact checked corrections
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          changes = json.loads(r'''[{"path":"frontend/src/App.tsx","before_sha256":"8eab96106d3aa05dff7e6464cab7949a84a28bb2360d42e7fe944aeef02b7cd3","old":"    setPerformanceObservations([]); setPerformanceComparisons([]); setRunError(null);\n  };","new":"    setPerformanceObservations([]); setPerformanceComparisons([]); setRunError(null);\n    // Reopening an already selected run must reload the panels we just cleared.\n    setNavigationRevision(value => value + 1);\n  };","after_sha256":"9bf7bf6e4c0232d20ce16ca86e575c3dc07aa5ab4e9e1551a5c5a6d828c08d6f"},{"path":"frontend/e2e/navigation-regressions.spec.ts","before_sha256":"57a6907ff9e7f59919accd48e368aa2da5274f3d27e330b5382d0a69ed4d264c","old":"const runSelect = (page: Page) => page.locator('#runs').getByLabel('Run', { exact: true });\nconst projectSelect = (page: Page) => page.locator('#runs').getByLabel('Project', { exact: true });","new":"const runSelect = (page: Page) => page.locator('#runs').getByRole('combobox', { name: 'Run', exact: true });\nconst projectSelect = (page: Page) => page.locator('#runs').getByRole('combobox', { name: 'Project', exact: true });","after_sha256":"83a65e9a08a23f6961915048edd5b9476f805dcf0951e4df0bd646f7b3eac720"},{"path":"frontend/e2e/durable-ingestion.spec.ts","before_sha256":"bc54373d7cd9a50857e0314e15e3f72c88a545329859a16a55773a9681cd7b95","old":"  await expect(page.locator('.input-summary')).toContainText('1');\n","new":"  await expect(page.locator('.input-summary')).toContainText('1');\n  // Explicitly reopen the same run after its panels have loaded. Auto-selection\n  // may already have selected it before the first click, so test both paths.\n  await ingestion.getByRole('button', { name: 'Open run' }).click();\n  await expect(page.locator('.input-row', { hasText: 'browser-junit.xml' })).toContainText('accepted');\n","after_sha256":"ca523578d21e5714d47b737f15abefbde35d58bf6f12a5a1817f771c8a6cc25b"}]''')
+          outputs = []
+          for entry in changes:
+              path = Path(entry['path'])
+              assert path.is_file() and not path.is_symlink()
+              before = path.read_text()
+              assert hashlib.sha256(before.encode()).hexdigest() == entry['before_sha256'], f'Source changed: {path}'
+              assert before.count(entry['old']) == 1, f'Ambiguous edit: {path}'
+              after = before.replace(entry['old'], entry['new'])
+              assert hashlib.sha256(after.encode()).hexdigest() == entry['after_sha256']
+              outputs.append((path, after))
+          for path, after in outputs:
+              path.write_text(after)
+          PY
+          git diff --check
+      - name: Locked frontend tests and production build
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+          npm run build
+      - name: Publish the checked source without overwriting concurrent work
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          current=$(git ls-remote origin refs/heads/main | cut -f1)
+          test "$current" = "$EXPECTED_HEAD" || { echo 'main changed; refusing to overwrite concurrent work'; exit 1; }
+          git add -- frontend/src/App.tsx frontend/e2e/navigation-regressions.spec.ts frontend/e2e/durable-ingestion.spec.ts
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(m5.3.1): reload repeated run selections and target accessible controls'
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin HEAD:main
+          git rev-parse HEAD
