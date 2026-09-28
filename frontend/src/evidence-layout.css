@@ -1,0 +1,30 @@
+/* Expired evidence retains opaque producer test identities. Those unbroken IDs
+   must wrap inside the investigation grid instead of setting its minimum width. */
+.workspace > *,
+.workspace .panel-heading > *,
+.failure-row > span {
+  min-width: 0;
+}
+.workspace .panel-heading,
+.failure-row strong,
+.failure-row small {
+  overflow-wrap: anywhere;
+}
+.failure-row {
+  grid-template-columns: 5px minmax(0, 1fr) auto;
+}
+@media (max-width: 1100px) {
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+}
+.workspace .analysis-grid > *,
+.workspace .analysis-grid dl > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.workspace .analysis-grid dl {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 480px) {
+  .panel-heading { flex-wrap: wrap; }
+  .panel-heading > * { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+}
