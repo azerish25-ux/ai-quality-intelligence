@@ -17,6 +17,8 @@ const projectSelect = (page: Page) => page.locator('#runs').getByLabel('Project'
 // All responses come from the actual API. No route is fulfilled with invented
 // project, run, failure, retention or authorization data.
 test('loading the demo selects its returned run despite newer failure-free runs and other projects', async ({ page }, testInfo) => {
+  const browserErrors: string[] = [];
+  page.on('pageerror', error => browserErrors.push(error.message));
   const fixture = fixtureFor(testInfo);
   const seedResponse = await page.request.post(`${API}/demo/seed`);
   expect(seedResponse.ok()).toBeTruthy();
@@ -36,6 +38,8 @@ test('loading the demo selects its returned run despite newer failure-free runs 
   await page.reload();
   await expect(runSelect(page)).toHaveValue(seed.run_id);
   await expect(page.locator('#history').getByLabel('Branch', { exact: true })).toBeVisible();
+  expect(browserErrors).toEqual([]);
+  await page.screenshot({ path: testInfo.outputPath('m531-dashboard.png'), fullPage: true });
 });
 
 test('Back and Forward restore an old investigation outside the recent-run page', async ({ page }, testInfo) => {

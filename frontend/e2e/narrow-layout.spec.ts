@@ -10,7 +10,7 @@ const focusSkipLinkFromDocumentStart = async (page: Page) => {
   await expect(skipLink).toBeFocused();
 };
 
-test('keeps every critical workflow reachable without horizontal page overflow', async ({ page }) => {
+test('keeps every critical workflow reachable without horizontal page overflow', async ({ page }, testInfo) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Load synthetic demo' }).click();
   await expect(page.locator('.sr-only[role="status"]')).toHaveText('Synthetic demo data loaded.');
@@ -37,6 +37,7 @@ test('keeps every critical workflow reachable without horizontal page overflow',
   expect(overflow.documentWidth).toBeLessThanOrEqual(overflow.viewportWidth + 1);
   expect(overflow.bodyWidth).toBeLessThanOrEqual(overflow.viewportWidth + 1);
 
+  await page.screenshot({ path: testInfo.outputPath('m531-narrow-settings.png') });
   await page.reload();
   await focusSkipLinkFromDocumentStart(page);
 });
