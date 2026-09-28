@@ -5,7 +5,9 @@ import hashlib
 import io
 import json
 import math
+import re
 import time
+import urllib.parse
 import zipfile
 from collections import Counter
 from typing import Any
@@ -18,14 +20,58 @@ TRACE_INDEX_VERSION = "playwright-safe-index-v2"
 MAX_INDEX_EVENTS = 256
 MAX_STREAM_EVENTS = 50_000
 MAX_EVENT_BYTES = 1_000_000
+TRACE_TEXT_POLICY = "trace-safe-text-v2.1"
+# Artifact-controlled event names must never become unsanitized metadata keys.
+KNOWN_EVENT_TYPES = frozenset({
+    "context-options", "before", "after", "input", "log", "console", "error",
+    "event", "resource-snapshot", "frame-snapshot", "screencast-frame", "object", "action",
+})
+_PRIVATE_KEY_START = re.compile(r"-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----", re.I)
 
 
 def _text(value: Any, limit: int = 1000) -> str:
     from .ingestion import _strip_terminal_controls
     if not isinstance(value, str):
         return ""
-    clean, _ = _strip_terminal_controls(value[:limit])
-    return redact_text(clean).text
+    # The caller already bounds source event bytes. Truncating before redaction
+    # can remove a key's END marker or split a credential across the boundary.
+    if len(value) > MAX_EVENT_BYTES:
+        return "[TEXT OMITTED]"[:limit]
+    clean, _ = _strip_terminal_controls(value)
+    safe = redact_text(clean).text
+    # A producer can itself have truncated a key. Withhold its remaining suffix
+    # instead of trusting a complete-block regex to recognize an incomplete key.
+    start = _PRIVATE_KEY_START.search(safe)
+    if start:
+        safe = safe[:start.start()] + "[REDACTED:private_key:incomplete]"
+    safe = safe.encode("utf-8", errors="replace").decode("utf-8")
+    if len(safe) > limit:
+        marker = " [TRUNCATED]"
+        return safe[:max(0, limit - len(marker))] + marker[:limit]
+    return safe
+
+
+def _url(value: Any) -> str:
+    """Keep HTTP route/status context without ever falling back to the raw URL."""
+    if not isinstance(value, str) or len(value) > MAX_EVENT_BYTES:
+        return "[URL OMITTED]"
+    try:
+        parsed = urllib.parse.urlsplit(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            return "[URL OMITTED]"
+        port = parsed.port  # Validate ports before formatting a safe authority.
+        host = parsed.hostname
+        if ":" in host:
+            host = f"[{host}]"
+        authority = host + (f":{port}" if port is not None else "")
+        query = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True, max_num_fields=500)
+        # Both keys and path are untrusted text; values and fragments are omitted.
+        safe_query = urllib.parse.urlencode([(_text(key, 240), "[REDACTED]") for key, _ in query])
+        return _text(urllib.parse.urlunsplit((parsed.scheme, authority, _text(parsed.path, 2048), safe_query, "")), 2048)
+    except ValueError:
+        # Invalid IPv6, authority, port or excessive query fields must not turn
+        # malformed credentials into approved text through a permissive fallback.
+        return "[URL OMITTED]"
 
 
 def _number(value: Any) -> int | float | None:
@@ -35,7 +81,6 @@ def _number(value: Any) -> int | float | None:
 
 
 def _safe_event(event: dict[str, Any]) -> dict[str, Any] | None:
-    from .ingestion import _sanitize_url
     kind = event.get("type")
     if kind not in {"before", "after", "input", "log", "console", "error", "event", "resource-snapshot"}:
         return None
@@ -68,7 +113,7 @@ def _safe_event(event: dict[str, Any]) -> dict[str, Any] | None:
         request = request if isinstance(request, dict) else {}
         response = response if isinstance(response, dict) else {}
         result["method"] = _text(request.get("method"), 16)
-        result["url"] = _text(_sanitize_url(str(request.get("url") or "")), 2048)
+        result["url"] = _url(request.get("url"))
         status = response.get("status")
         result["status"] = status if type(status) is int and 0 <= status <= 599 else None
         result["duration_ms"] = _number(snapshot.get("time"))
@@ -150,7 +195,7 @@ def build_trace_index(content: bytes, settings: Settings) -> tuple[dict[str, Any
                         raise IngestionError("unsupported_trace_version", "Trace has conflicting version declarations")
                 total += 1
                 stream_events += 1
-                counts[event["type"]] += 1
+                counts[event["type"] if event["type"] in KNOWN_EVENT_TYPES else "unknown"] += 1
                 safe = _safe_event(event)
                 if safe is None:
                     continue
@@ -160,7 +205,8 @@ def build_trace_index(content: bytes, settings: Settings) -> tuple[dict[str, Any
                     continue
                 locator = {"kind": "trace-event", "entry": _text(info.filename, 1024),
                            "line": line_number, "entry_digest": entry_digest,
-                           "source_digest": source_digest, "entry_index": archive.infolist().index(info)}
+                           "source_digest": source_digest, "entry_index": archive.infolist().index(info),
+                           "text_policy": TRACE_TEXT_POLICY}
                 events.append({"event": safe, "source_locator": locator,
                                "text": json.dumps(safe, ensure_ascii=False, sort_keys=True)})
             if not header_seen:
@@ -170,8 +216,10 @@ def build_trace_index(content: bytes, settings: Settings) -> tuple[dict[str, Any
     warnings = ["trace_original_restricted", "trace_dom_and_network_not_sanitized"]
     if omitted:
         warnings.append("trace_index_truncated")
+    if counts["unknown"]:
+        warnings.append("trace_unknown_event_types_omitted")
     metadata = {
-        "producer": "playwright-trace", "index_version": TRACE_INDEX_VERSION,
+        "producer": "playwright-trace", "index_version": TRACE_INDEX_VERSION, "text_policy": TRACE_TEXT_POLICY,
         "producer_versions": sorted(producers), "schema_versions": sorted(versions),
         "archive_entries": len(names), "trace_streams": len(trace_names), "streams": streams,
         "event_count": total, "event_type_counts": dict(counts),
