@@ -14,7 +14,47 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  producer-fixtures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FAILURELENS_DATABASE_URL: "sqlite+pysqlite:///:memory:"
+      FAILURELENS_DEMO_MODE: "true"
+      FAILURELENS_PRODUCER_FIXTURES: /tmp/failurelens-producer-fixtures
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      - name: Install pinned producer tools and application
+        run: |
+          python -m pip install './backend[dev]' pytest==9.0.2 pytest-json-report==1.5.0
+          cd frontend
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Execute actual producers and independently verify expected faults
+        run: |
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          python integrations/producer-fixtures/run.py --output "$FAILURELENS_PRODUCER_FIXTURES"
+      - name: Verify actual exports through parsers and durable API
+        run: python -m pytest backend/tests/test_producer_contracts.py
+      - name: Preserve executed producer provenance and fixtures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: producer-fixtures-${{ github.sha }}
+          path: /tmp/failurelens-producer-fixtures
+          if-no-files-found: error
+          retention-days: 30
+
   backend:
+    needs: producer-fixtures
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -33,6 +73,7 @@ jobs:
           --health-retries 20
     env:
       FAILURELENS_DATABASE_URL: postgresql+psycopg://failurelens:failurelens@127.0.0.1:5432/failurelens_test
+      FAILURELENS_PRODUCER_FIXTURES: /tmp/failurelens-producer-fixtures
       FAILURELENS_ARTIFACT_ROOT: /tmp/failurelens-artifacts
       FAILURELENS_DEMO_MODE: "true"
     steps:
@@ -42,6 +83,11 @@ jobs:
           python-version: "3.13"
       - name: Install
         run: python -m pip install './backend[dev]'
+      - name: Download exact-revision executed producer fixtures
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: producer-fixtures-${{ github.sha }}
+          path: /tmp/failurelens-producer-fixtures
       - name: Migrate PostgreSQL
         working-directory: backend
         run: alembic upgrade head
@@ -91,6 +137,7 @@ jobs:
         run: npm run build
 
   browser-e2e:
+    needs: producer-fixtures
     name: browser-e2e (${{ matrix.project }})
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -122,6 +169,7 @@ jobs:
           --health-retries 20
     env:
       FAILURELENS_DATABASE_URL: postgresql+psycopg://failurelens:failurelens@127.0.0.1:5432/failurelens_browser
+      FAILURELENS_PRODUCER_FIXTURES: /tmp/failurelens-producer-fixtures
       FAILURELENS_ARTIFACT_ROOT: /tmp/failurelens-browser-artifacts
       FAILURELENS_OPERATIONS_FIXTURES: /tmp/failurelens-operations-fixtures.json
       FAILURELENS_DEMO_MODE: "true"
@@ -139,6 +187,11 @@ jobs:
           cd frontend
           npm ci --no-audit --no-fund
           npx playwright install --with-deps "${{ matrix.browser }}"
+      - name: Download exact-revision executed producer fixtures
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: producer-fixtures-${{ github.sha }}
+          path: /tmp/failurelens-producer-fixtures
       - name: Migrate PostgreSQL
         working-directory: backend
         run: alembic upgrade head
