@@ -4,6 +4,23 @@ This is a scoped M2 implementation, not completion of the entire master prompt.
 The deterministic analyzer, five-category policy and conservative completeness
 rules are unchanged. Real LedgerGuard evaluation remains a separate M6 gap.
 
+## Executed acceptance
+
+The scoped requirements mapped below passed at source
+`a2e4be3e30bfb49e60f949e9ef2f52b2cdee545f` in
+[CI run 36475782858](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36475782858)
+on September 28, 2026. All nine jobs passed: 241 PostgreSQL/backend tests,
+84.93% branch-aware coverage, 16 actual-producer contracts, 35 browser cases
+(11 in each desktop engine and two in narrow Chromium), frontend verification,
+five deterministic harnesses and Docker configuration/builds. The 16 producer
+contracts are also included in the backend suite; the counts are not additive.
+The existing 31 browser cases and all their assertions remain enabled.
+
+Actual approved/masked-evidence screenshots were inspected from both the desktop
+and narrow artifacts of that run. See [the delivery ledger](PROGRESS.md) for
+separate local checks, superseded failure/fix history and remaining scope. This
+records the accepted source, not an unexecuted future documentation commit.
+
 ## Screenshot lifecycle
 
 PNG/JPEG uploads are decoded, not merely accepted from their headers. A separate
