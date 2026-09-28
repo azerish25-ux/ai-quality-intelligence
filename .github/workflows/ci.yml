@@ -52,6 +52,8 @@ jobs:
           path: /tmp/failurelens-producer-fixtures
           if-no-files-found: error
           retention-days: 30
+          # This dedicated output contains only our controlled producer fixtures.
+          include-hidden-files: true
 
   backend:
     needs: producer-fixtures
