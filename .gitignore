@@ -17,3 +17,6 @@ frontend/dist/
 
 evaluation/corpus/cases.jsonl
 evaluation/reports/**/predictions.jsonl
+
+# Read-only pinned companion checkout used only by evaluation CI.
+.ledgerguard-evaluation-source/

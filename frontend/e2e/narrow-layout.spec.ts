@@ -47,3 +47,8 @@ import { binaryEvidenceJourney } from './binary-journey';
 test('safe binary evidence remains usable on a narrow viewport', async ({ page, request }, info) => {
   await binaryEvidenceJourney(page, request, info);
 });
+
+import { evaluationJourney } from './evaluation-journey';
+test('executed evaluation evidence and limitations remain readable on narrow screens', async ({ page, request }, info) => {
+  await evaluationJourney(page, request, info);
+});

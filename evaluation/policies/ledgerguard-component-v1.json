@@ -1,0 +1,13 @@
+{
+  "version": "ledgerguard-component-policy-v1",
+  "scope": "production-component challenge; not the full five-category test split",
+  "minimum_executed_cases": 60,
+  "minimum_executed_families": 15,
+  "dangerous_dismissal_maximum": 0.05,
+  "critical_high_dangerous_dismissals_maximum": 0,
+  "product_defect_recall_target": 0.90,
+  "non_abstained_coverage_target": 0.75,
+  "repeats": 5,
+  "frozen_before_final_test_evaluation": false,
+  "interpretation": "Targets copied from the master prompt. This public development challenge is not a frozen final test split; passing its infrastructure gate is not full M6 acceptance. --enforce-quality exits nonzero for unmet quality targets."
+}

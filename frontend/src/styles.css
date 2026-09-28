@@ -832,3 +832,9 @@ tbody tr:last-child td { border-bottom: 0; }
   .binary-mask-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .binary-toolbar > button { flex: 1 1 10rem; }
 }
+
+/* Evaluation provenance remains inspectable at narrow widths. */
+.evaluation code, .evaluation .pill { overflow-wrap: anywhere; word-break: break-word; }
+.evaluation details { margin-block: 1rem; min-width: 0; }
+.evaluation summary { cursor: pointer; font-weight: 600; }
+.evaluation table caption { text-align: left; margin-bottom: .75rem; font-weight: 600; }

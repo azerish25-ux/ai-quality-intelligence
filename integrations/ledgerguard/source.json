@@ -1,8 +1,24 @@
 {
-  "schema_version": "1.0",
+  "files": {
+    "backend/src/main/java/lab/ledgerguard/core/CurrencyUnit.java": "426ef591e54faf124a0c15923af4384d3ef346cd70c1e26f24c220757abe2bc6",
+    "backend/src/main/java/lab/ledgerguard/core/DomainFailure.java": "2cbaa63bd5b10d37e1ee63320cd917797aa5d08c30cf471aff12e2459edf36d8",
+    "backend/src/main/java/lab/ledgerguard/core/Idempotency.java": "596a093ad30d70a2a0b9460e045608e4aba4d295e298fd79117b287017008369",
+    "backend/src/main/java/lab/ledgerguard/core/Journal.java": "7eaf47c3bc22afb494c5211da3d3d46d81414935f327b486cb75df7b0f5c9bc8",
+    "backend/src/main/java/lab/ledgerguard/core/Money.java": "be658b6434dec42f24c15af8b87a6e816c3fb6024609f5a6ee2c8f42225630e9",
+    "backend/src/main/java/lab/ledgerguard/core/PaymentRules.java": "f9ca472061e766163aa263b1216f524d7bd2b80607e7120a78520947a8d1326f",
+    "backend/src/main/java/lab/ledgerguard/core/Projection.java": "c1c0793b31627bec8e6f98e7b25ae99c7a840493090c0ede778d3f3b21abbe3c",
+    "backend/src/main/java/lab/ledgerguard/core/SchedulePolicy.java": "ba503d13d9625f9cc6152fe2d088e1e1dfa9b875293094196b2fa51729792443",
+    "backend/src/main/java/lab/ledgerguard/core/SecretBox.java": "6e6fe17bfca8cd3d537bcf7476dd4d58b9f9a496dd42191d15468204a48fe489",
+    "backend/src/main/java/lab/ledgerguard/core/SqlRetry.java": "d5af44bea54b7cf7638e27bbd5ba0aa019344a6e588cb368d9eaf1e252807208",
+    "backend/src/main/java/lab/ledgerguard/core/WalletBalance.java": "1bd77de511546334a3a0e1fda1fb310662c6c7d26b55e5e367982b742323ea7f",
+    "backend/src/main/java/lab/ledgerguard/core/WebhookDestination.java": "2e99d7a5783e0d86a35f2e4a12974ad4f9daedb62aa280d7444a83aae7ebb0c7",
+    "backend/src/main/java/lab/ledgerguard/core/WebhookPolicy.java": "19001c50d93bd03a0bf771617eb82d901a0d16f00186078479a79ce2053fc7e2",
+    "backend/src/main/java/lab/ledgerguard/core/WebhookSignature.java": "14dd6f17c1dab167dfce1d43a157173b533a71c1d0257c3b14c6d01a34dce960"
+  },
+  "isolation": "disposable execution only; never publish mutations to the companion repository",
+  "purpose": "FailureLens M6 controlled execution and artifact provenance",
   "repository": "azerish25-ux/transaction-reliability-lab",
   "revision": "13bdd62c924a3230825b6d9304f449f887c8e7fe",
-  "verified_control_run": 36464316280,
-  "isolation": "disposable execution only; never publish mutations to the companion repository",
-  "purpose": "FailureLens M6 controlled execution and artifact provenance"
+  "schema_version": "1.0",
+  "verified_control_run": 36464316280
 }

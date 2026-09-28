@@ -32,6 +32,7 @@ import {
 } from './api';
 import { AccountPanel, RecoveryForm, RetentionPanel } from './Operations';
 import { BinaryEvidencePanel } from './BinaryEvidence';
+import { EvaluationPanel } from './EvaluationPanel';
 
 const categoryLabel: Record<string, string> = {
   product_defect: 'Probable product defect',
@@ -2296,18 +2297,7 @@ function App() {
           </section>
         )}
 
-        <section id="evaluation" className="panel evaluation">
-          <div className="panel-heading"><div><p className="eyebrow">FROZEN CONTROLLED CORPUS</p><h2>Deterministic evaluation</h2></div><span className="pill insufficient-evidence">Synthetic evidence only</span></div>
-          {!evaluation ? <div className="empty">Executed evaluation metrics are not mounted in this runtime.</div> : (
-            <div className="eval-grid">
-              <div><span>Cases</span><strong>{String(evaluation.case_count)}</strong></div>
-              <div><span>Macro F1</span><strong>{Number(evaluation.macro_f1).toFixed(3)}</strong></div>
-              <div><span>Product recall</span><strong>{Number(evaluation.product_defect_recall).toFixed(3)}</strong></div>
-              <div><span>Dangerous dismissals</span><strong>{String((evaluation.dangerous_dismissal as { numerator: number }).numerator)}</strong></div>
-            </div>
-          )}
-          <p className="limitation">The committed benchmark is agent-authored and synthetic. It does not include the prompt-required actual LedgerGuard executions and must not be presented as deployment performance.</p>
-        </section>
+        <EvaluationPanel metrics={evaluation} />
       </main>
       </div>
     </>

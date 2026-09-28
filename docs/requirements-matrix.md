@@ -1,5 +1,20 @@
 # Requirement-to-evidence matrix
 
+## M6.1 current overlay (supersedes stale descriptions below)
+
+The historical rows below preserve earlier checkpoints; their pending screenshot, trace, producer and browser descriptions are superseded by the M2.1/M2.1.1 acceptance in `PROGRESS.md` and `safe-binary-evidence.md`.
+
+| Requirement | Current status | Evidence / boundary |
+|---|---|---|
+| Actual LedgerGuard executions | PARTIAL pending exact-revision CI | 60 paired component interventions across 15 mechanisms execute locally; source/hash checks, independent control/fault oracles and command provenance. Not DB/HTTP transaction scenarios. |
+| Independent family diversity | FAIL for legacy corpus; PARTIAL overall | `corpus_audit.py`: 100 legacy family IDs collapse to five templates with cross-split reuse. The new 15-mechanism challenge does not satisfy 80 independent families overall. |
+| Full application evaluation | PARTIAL | Strict label-free manifest; real API, leased worker, evidence authorization/publication validation and exports; five repeat analyses. New PostgreSQL CI and four browser lanes are pending publication at this checkpoint. |
+| Product recall acceptance | FAIL in initial local measurement | 48/60 = 80%, below unchanged 90% target; 12 explicit abstentions. No inspected-test tuning or target reduction. |
+| Dangerous dismissal | PASS on local declared slice only | 0/60; no population or complete five-category claim. |
+| Dashboard truthfulness | PARTIAL pending browser CI | Executed-vs-synthetic provenance, undefined macro F1, numerator/denominator, failed quality targets, family breakdown and limitations are rendered from real API metrics. |
+| Full M6 / full project | PARTIAL | Original category, independent-family, holdout, temporal, adversarial, final-delivery and other milestone requirements remain open. |
+
+
 `PASS` means the required behavior has executable evidence. `PARTIAL` means useful implementation exists but the full master requirement is not closed. The matrix intentionally distinguishes adapter foundations from producer-backed, safety-complete support.
 
 | ID | Requirement | Status | Implementation/evidence |

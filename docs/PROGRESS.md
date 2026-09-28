@@ -1,3 +1,13 @@
+# M6.1 implementation checkpoint — execution-backed component challenge
+
+Work starts from `d05fc5297498004a8488c7d379248912479bafe8`; source pin was delivered as `1657eed1ca06e5aa5a0e6f8aeed85b3c590b3994` on `main`. The implementation adds 60 paired executed LedgerGuard component faults across 15 actual mechanisms, label-free API/worker replay, digest-checked exported evidence, independent outcome scoring, honest comparisons, family-level uncertainty and legacy-template leakage auditing. The evaluation dashboard reads real metrics and displays failed targets and undefined five-class metrics explicitly.
+
+Local JDK 21 execution: 60 healthy controls pass and all 60 interventions fail the independent contracts. SQLite API/worker replay ingests all 120 reports, verifies idempotency and evidence, and retains substantive decisions across five analysis requests. Local measured product recall is **48/60 (80%)**, 12 abstentions and 0/60 dangerous dismissals. The unchanged 90% recall target **FAILS**. Thirty new evaluation regression tests pass locally. These local results use an uncommitted worktree; PostgreSQL, browser and exact-revision remote acceptance must be recorded separately after publication.
+
+This is real production-component execution, not LedgerGuard HTTP/database/committed-economic-effects verification. Full M6 remains **PARTIAL**, including the 200-case/80-independent-family five-category held-out benchmark. The old manifest's 100 IDs represent only five generator templates crossing splits; it is retained as a legacy regression fixture, not credited as independent families. No companion repository modification, public deployment or paid model invocation occurs. See [the execution contract](ledgerguard-evaluation.md).
+
+---
+
 # FailureLens delivery ledger
 
 ## Current checkpoint — M2.1.1 trace-text safety
