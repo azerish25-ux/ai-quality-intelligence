@@ -3,9 +3,9 @@
 
 FailureLens is a self-hosted quality-intelligence platform that turns automated-test artifacts into evidence-linked failure investigations. Its mandatory analysis path is deterministic and CPU-only: no paid model API, cloud account, GPU, or runtime model download is required.
 
-> **Current source checkpoint: M5.3 operational lifecycle is implemented with local backend/API verification. M1, M3 and M4 retain their previous delivered status; M2 and the complete M5/master specification remain partial.**
+> **Current source checkpoint: M5.3.1 operational workflow stabilization is delivered on `main`. M1, M3 and M4 retain their previous delivered status; M2 and the complete M5/master specification remain partial.**
 >
-> M5.3 adds project retention previews/policies, leased cleanup and tombstones, expired-evidence handling, password rotation, one-time administrator-assisted recovery, session administration, startup-safe account deactivation, full-dataset SQL review/audit pagination, and server-governed audited CSV exports. Local verification: **197 backend tests passed, three PostgreSQL-only tests skipped, 85.50% branch-aware coverage**. The standalone API client passed strict TypeScript checking and six executable request-contract checks. Full frontend build/browser, PostgreSQL and Docker verification for this new checkpoint remains pending; prior M5.2 green CI is not evidence for M5.3.
+> M5.3 adds project retention previews/policies, leased cleanup and tombstones, expired-evidence handling, password rotation, one-time administrator-assisted recovery, session administration, startup-safe account deactivation, full-dataset SQL review/audit pagination, and server-governed audited CSV exports. M5.3.1 corrects the run-detail API/client contract, preserves explicit old-run and project selections, fixes demo and Back/Forward navigation races, and separates compact section navigation from investigation routing. Local verification: **200 backend tests passed, three PostgreSQL-only tests skipped, 85.59% branch-aware coverage**. The expanded browser suite retains the original 19 cases and adds 12 real-API regression cases. Exact source/CI evidence and remaining scope are recorded in [`docs/operations-stabilization.md`](docs/operations-stabilization.md); historical M5.2 results below are not substituted for current-revision verification.
 >
 > **Before rollout:** inspect retention before starting the worker on existing data. Defaults are 7 days for restricted sources, 90 days for evidence bodies, and 365 days for project audit events. Expiry is irreversible. See [`docs/operations-lifecycle.md`](docs/operations-lifecycle.md) for rollout, recovery, evidence-unavailable behavior and exact limitations.
 
@@ -222,6 +222,6 @@ The classification corpus manifest currently records 200 synthetic cases, 100 sc
 2. Create immutable reviewed/masked screenshot derivatives and richer safe trace derivatives with image/trace-specific source maps and retention controls.
 3. Add bounded artifact preview/download endpoints with authorization, range, expiry and retention controls.
 4. Expand claim predicates and validation metrics beyond the deterministic classification rules implemented here.
-5. Verify M5.3 against the locked frontend/browser/PostgreSQL/Docker lanes and publish its actual commit; finish remaining assignment/notification and operational scope, then M6 actual LedgerGuard execution, M7 optional provider boundary and M8 live idempotent GitHub publication.
+5. M5.3.1 verification is tracked in the stabilization record. Finish remaining assignment/notification and operational scope, then M6 actual LedgerGuard execution, M7 optional provider boundary and M8 live idempotent GitHub publication.
 
 Factual progress is tracked in [`docs/PROGRESS.md`](docs/PROGRESS.md), with requirement status in [`docs/requirements-matrix.md`](docs/requirements-matrix.md).
