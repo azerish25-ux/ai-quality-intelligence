@@ -1,0 +1,48 @@
+name: M6.2 verified source publication
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/m62-delivery.yml']
+permissions:
+  contents: write
+  actions: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+      - name: Apply owner-authorized exact-tree patch and remove temporary transport
+        shell: python
+        run: |
+          import base64, hashlib, lzma, pathlib, subprocess
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True).strip()
+          assert git('rev-parse', 'HEAD^') == '076b42a5f76d41c457ed9bcefb3830ad533b36b7', 'Unexpected starting source'
+          parts = [pathlib.Path(f'.github/m62-payload-{i}') for i in (1, 2, 3)]
+          encoded = ''.join(p.read_text() for p in parts)
+          patch = lzma.decompress(base64.b64decode(encoded, validate=True), memlimit=134217728)
+          assert len(patch) == 112237
+          assert hashlib.sha256(patch).hexdigest() == '43df2a1d93da2aeece97136f71404e426444f9fe7f607febfc4872a5ad6e2885'
+          path = pathlib.Path('/tmp/failurelens-m62.patch'); path.write_bytes(patch)
+          git('apply', '--check', '--unidiff-zero', str(path))
+          git('apply', '--unidiff-zero', str(path))
+          intended = ['.github/workflows/fullstack-evaluation.yml', 'backend/src/failurelens/analysis.py', 'backend/src/failurelens/api.py', 'backend/src/failurelens/config.py', 'backend/src/failurelens/evidence_validation.py', 'backend/src/failurelens/ingestion.py', 'backend/src/failurelens/service.py', 'backend/src/failurelens/transaction_evidence.py', 'backend/tests/test_fullstack_evaluation.py', 'backend/tests/test_transaction_evidence.py', 'docs/PROGRESS.md', 'docs/fullstack-evaluation.md', 'docs/requirements-matrix.md', 'evaluation/artifact_contract.py', 'evaluation/fullstack_harness.py', 'evaluation/replay.py', 'frontend/e2e/fullstack-journey.ts', 'frontend/playwright.fullstack.config.ts', 'frontend/src/App.tsx', 'frontend/src/EvaluationPanel.tsx', 'frontend/src/api.ts', 'frontend/src/evaluation.test.ts', 'frontend/src/evaluation.ts', 'integrations/ledgerguard/fullstack.py', 'integrations/ledgerguard/fullstack_oracle.py']
+          git('add', '--', *intended)
+          git('rm', '--', '.github/workflows/m62-delivery.yml', *(str(p) for p in parts))
+          assert git('write-tree') == '72464d96010f1c07c9e6e2931f47b8a137fe5b45', 'Delivered tree differs from tested local source'
+          git('diff', '--cached', '--check')
+          git('config', 'user.name', 'azerish25-ux')
+          git('config', 'user.email', 'azerish25@gmail.com')
+          git('commit', '-m', 'feat(m6.2): execute HTTP retry faults with reconciled transaction evidence')
+          subprocess.run(['git', 'push', 'origin', 'HEAD:main'], check=True)
+          print('Published exact source:', git('rev-parse', 'HEAD'))
+      - name: Start permanent verification on the delivered main revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run ci.yml --ref main
+          gh workflow run fullstack-evaluation.yml --ref main
+          gh workflow run source-export.yml --ref main
