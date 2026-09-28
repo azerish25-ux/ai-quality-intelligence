@@ -8,8 +8,12 @@ import math
 from pathlib import Path
 import random
 import statistics
+import sys
 
 ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT.parent))
+from evaluation.artifact_contract import load_manifest, read_artifact
+
 CATEGORIES = ("product_defect", "test_defect", "infrastructure_failure", "known_flake", "insufficient_evidence")
 
 
@@ -85,7 +89,15 @@ def evaluate(corpus: Path, replay_dir: Path, policy: dict) -> tuple[dict, list[d
         raise ValueError("frozen corpus provenance mismatch")
     if replay["input_manifest_sha256"] != provenance["input_manifest_sha256"]:
         raise ValueError("predictions were produced from a different input manifest")
+    public_manifest = load_manifest(corpus / "inputs")
+    for case in public_manifest.cases:
+        for artifact in case.inputs:
+            read_artifact(corpus / "inputs", artifact)
     labels = json.loads(truth_bytes)["cases"]
+    if (replay.get("schema_version") != "artifact-replay-result-v1"
+            or replay.get("case_count") != len(labels)
+            or type(replay.get("repeats")) is not int or not 1 <= replay["repeats"] <= 10):
+        raise ValueError("invalid replay count or version contract")
     if not labels or len(labels) != provenance["case_count"]:
         raise ValueError("empty corpus or inconsistent provenance count")
     predictions = {r["case_id"]: r for r in replay["cases"]}
@@ -94,6 +106,12 @@ def evaluate(corpus: Path, replay_dir: Path, policy: dict) -> tuple[dict, list[d
     if set(predictions) != {c["case_id"] for c in labels}:
         raise ValueError("missing or unexpected predictions")
     public_cases = {r["case_id"]: r for r in json.loads(manifest_bytes)["cases"]}
+    if set(public_cases) != set(predictions):
+        raise ValueError("public manifest and prediction cases differ")
+    if (provenance.get("family_count") != len({c["scenario_family_id"] for c in labels})
+            or provenance.get("control_passes") != len(labels)
+            or provenance.get("intervention_failures") != len(labels)):
+        raise ValueError("producer family/control/intervention counts differ")
     rows = []
     citations = Counter()
     forbidden = 0
@@ -104,6 +122,11 @@ def evaluate(corpus: Path, replay_dir: Path, policy: dict) -> tuple[dict, list[d
         if not label["control_passed"] or not label["intervention_failed"] or label["control"] != label["expected"] or label["observed"] == label["expected"]:
             raise ValueError("independent control/intervention oracle did not establish the fault")
         prediction = predictions[label["case_id"]]
+        if prediction.get("repeat_count") != replay["repeats"]:
+            raise ValueError("per-case repetition evidence differs from aggregate")
+        if ({i.get("role") for i in prediction["inputs"]} != {"control", "observation"}
+                or set(prediction["ablation_categories"]) != {"rules_only", "rules_with_history", "full_deterministic"}):
+            raise ValueError("incomplete control/observation or comparison contract")
         if len(prediction["inputs"]) != 2 or len(prediction["analyses"]) != 1:
             raise ValueError("expected one control and one failed intervention")
         public = public_cases[label["case_id"]]

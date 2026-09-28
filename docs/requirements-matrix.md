@@ -6,12 +6,13 @@ The historical rows below preserve earlier checkpoints; their pending screenshot
 
 | Requirement | Current status | Evidence / boundary |
 |---|---|---|
-| Actual LedgerGuard executions | PARTIAL pending exact-revision CI | 60 paired component interventions across 15 mechanisms execute locally; source/hash checks, independent control/fault oracles and command provenance. Not DB/HTTP transaction scenarios. |
+| Actual LedgerGuard executions | PASS for component execution only | 60 paired component interventions across 15 mechanisms executed at `7405d923` in CI run `36489651488`; source/hash checks, independent control/fault oracles and command provenance. Not DB/HTTP transaction scenarios. |
 | Independent family diversity | FAIL for legacy corpus; PARTIAL overall | `corpus_audit.py`: 100 legacy family IDs collapse to five templates with cross-split reuse. The new 15-mechanism challenge does not satisfy 80 independent families overall. |
-| Full application evaluation | PARTIAL | Strict label-free manifest; real API, leased worker, evidence authorization/publication validation and exports; five repeat analyses. New PostgreSQL CI and four browser lanes are pending publication at this checkpoint. |
-| Product recall acceptance | FAIL in initial local measurement | 48/60 = 80%, below unchanged 90% target; 12 explicit abstentions. No inspected-test tuning or target reduction. |
-| Dangerous dismissal | PASS on local declared slice only | 0/60; no population or complete five-category claim. |
-| Dashboard truthfulness | PARTIAL pending browser CI | Executed-vs-synthetic provenance, undefined macro F1, numerator/denominator, failed quality targets, family breakdown and limitations are rendered from real API metrics. |
+| Full application evaluation | PARTIAL | Strict label-free manifest; real API, leased worker, evidence authorization/publication validation and exports; five repeat analyses. PostgreSQL execution passed at `7405d923`; the four new browser journeys exposed a nested locator defect. Corrected locator and final browser verification remain pending at this checkpoint. |
+| Product recall acceptance | FAIL in local and PostgreSQL measurement | 48/60 = 80%, below unchanged 90% target; 12 explicit abstentions. No inspected-test tuning or target reduction. |
+| Dangerous dismissal | PASS on declared PostgreSQL component slice only | 0/60; no population or complete five-category claim. |
+| Dashboard truthfulness | PARTIAL pending corrected browser CI | Executed-vs-synthetic provenance, undefined macro F1, numerator/denominator, failed quality targets, family breakdown and limitations are rendered from real API metrics. |
+| Retained corpus and immutable report | PASS for offline validation | Compact original CI archive, digest-checked reports and `verify_snapshot.py`; 54 focused tests passed locally. No fresh-execution claim for an offline rescore. |
 | Full M6 / full project | PARTIAL | Original category, independent-family, holdout, temporal, adversarial, final-delivery and other milestone requirements remain open. |
 
 

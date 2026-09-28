@@ -14,7 +14,7 @@ RUN python -m pip install --upgrade pip \
 
 ENV FAILURELENS_DATABASE_URL=postgresql+psycopg://failurelens:failurelens@db:5432/failurelens \
     FAILURELENS_ARTIFACT_ROOT=/var/lib/failurelens/artifacts \
-    FAILURELENS_EVALUATION_METRICS_PATH=/app/evaluation/reports/latest/metrics.json
+    FAILURELENS_EVALUATION_METRICS_PATH=/app/evaluation/reports/ledgerguard-component-v1-7405d923/metrics.json
 
 RUN mkdir -p /var/lib/failurelens/artifacts && chown -R failurelens:failurelens /var/lib/failurelens /app
 USER failurelens

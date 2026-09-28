@@ -1,0 +1,2612 @@
+{
+  "abstentions": {
+    "denominator": 60,
+    "numerator": 12,
+    "rate": 0.2,
+    "wilson_95": [
+      0.11828505322897494,
+      0.317818058056279
+    ]
+  },
+  "by_family": {
+    "available-balance-ignores-reservations": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 4,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 1.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 0,
+      "product_defect_recall": 1.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "decimal-conversion-wrong-scale": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 4,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 1.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 0,
+      "product_defect_recall": 1.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "hold-release-increases-reservation": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 4,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 1.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 0,
+      "product_defect_recall": 1.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "idempotency-fingerprint-omits-actor": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 4,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 1.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 0,
+      "product_defect_recall": 1.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "idempotency-fingerprint-omits-operation": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 4,
+        "rate": 1.0,
+        "wilson_95": [
+          0.5101091635454027,
+          1
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 4,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 0.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 0.0,
+          "precision": null,
+          "recall": 0.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 4,
+      "product_defect_recall": 0.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "journal-accepts-unbalanced-entries": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 4,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 1.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 0,
+      "product_defect_recall": 1.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "journal-mixes-currency-units": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 4,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 1.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 0,
+      "product_defect_recall": 1.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "money-addition-subtracts": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 4,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 1.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 0,
+      "product_defect_recall": 1.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "projection-replaces-newer-state-with-stale-event": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 4,
+        "rate": 1.0,
+        "wilson_95": [
+          0.5101091635454027,
+          1
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 4,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 0.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 0.0,
+          "precision": null,
+          "recall": 0.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 4,
+      "product_defect_recall": 0.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "refund-forgets-prior-adjustments": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 4,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 1.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 0,
+      "product_defect_recall": 1.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "reversal-allows-refunded-payment": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 4,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 1.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 0,
+      "product_defect_recall": 1.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "settlement-does-not-consume-hold": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 4,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 1.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 0,
+      "product_defect_recall": 1.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "wallet-credit-off-by-one": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 4,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 1.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 0,
+      "product_defect_recall": 1.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "webhook-verifier-accepts-forged-signature": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 4,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 1.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 0,
+      "product_defect_recall": 1.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    },
+    "weekly-schedule-advances-six-days": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 4,
+        "rate": 1.0,
+        "wilson_95": [
+          0.5101091635454027,
+          1
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 4,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 0.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 0.0,
+          "precision": null,
+          "recall": 0.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 4,
+      "product_defect_recall": 0.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    }
+  },
+  "by_severity": {
+    "critical": {
+      "abstentions": {
+        "denominator": 52,
+        "numerator": 4,
+        "rate": 0.07692307692307693,
+        "wilson_95": [
+          0.030319345184930124,
+          0.1817356238429534
+        ]
+      },
+      "case_count": 52,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 4,
+          "known_flake": 0,
+          "product_defect": 48,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 52,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06879223612386234
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 52,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06879223612386234
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 0.9230769230769231,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 0.96,
+          "precision": 1.0,
+          "recall": 0.9230769230769231,
+          "support": 52
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 4,
+      "product_defect_recall": 0.9230769230769231,
+      "product_misrouting": {
+        "denominator": 52,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06879223612386234
+        ]
+      }
+    },
+    "high": {
+      "abstentions": {
+        "denominator": 8,
+        "numerator": 8,
+        "rate": 1.0,
+        "wilson_95": [
+          0.6755924351161198,
+          1
+        ]
+      },
+      "case_count": 8,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 8,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 8,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.32440756488388023
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 8,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.32440756488388023
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 0.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 0.0,
+          "precision": null,
+          "recall": 0.0,
+          "support": 8
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 8,
+      "product_defect_recall": 0.0,
+      "product_misrouting": {
+        "denominator": 8,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.32440756488388023
+        ]
+      }
+    }
+  },
+  "canary_scope": "No canary challenge is included in this production-component slice; zero is not a redaction-recall claim.",
+  "case_count": 60,
+  "citation_checks": {
+    "quotation_accurate": {
+      "denominator": 60,
+      "numerator": 60,
+      "rate": 1.0,
+      "wilson_95": [
+        0.93982814785791,
+        0.9999999999999998
+      ]
+    },
+    "reference_valid": {
+      "denominator": 60,
+      "numerator": 60,
+      "rate": 1.0,
+      "wilson_95": [
+        0.93982814785791,
+        0.9999999999999998
+      ]
+    },
+    "typed_observation_valid": {
+      "denominator": 60,
+      "numerator": 60,
+      "rate": 1.0,
+      "wilson_95": [
+        0.93982814785791,
+        0.9999999999999998
+      ]
+    }
+  },
+  "claim_checks": {
+    "rubric": "application typed predicates, not independent causal adjudication",
+    "typed_supported_published_claims": {
+      "denominator": 48,
+      "numerator": 48,
+      "rate": 1.0,
+      "wilson_95": [
+        0.9258998703338824,
+        0.9999999999999999
+      ]
+    }
+  },
+  "comparisons": {
+    "constant_product_baseline": {
+      "abstentions": {
+        "denominator": 60,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06017185214208986
+        ]
+      },
+      "case_count": 60,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 60,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 60,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06017185214208986
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 60,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06017185214208986
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 1.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 60
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 0,
+      "product_defect_recall": 1.0,
+      "product_misrouting": {
+        "denominator": 60,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06017185214208986
+        ]
+      }
+    },
+    "full_deterministic": {
+      "abstentions": {
+        "denominator": 60,
+        "numerator": 12,
+        "rate": 0.2,
+        "wilson_95": [
+          0.11828505322897494,
+          0.317818058056279
+        ]
+      },
+      "case_count": 60,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 12,
+          "known_flake": 0,
+          "product_defect": 48,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 60,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06017185214208986
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 60,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06017185214208986
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 0.8,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 0.8888888888888888,
+          "precision": 1.0,
+          "recall": 0.8,
+          "support": 60
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 12,
+      "product_defect_recall": 0.8,
+      "product_misrouting": {
+        "denominator": 60,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06017185214208986
+        ]
+      }
+    },
+    "rules_only": {
+      "abstentions": {
+        "denominator": 60,
+        "numerator": 12,
+        "rate": 0.2,
+        "wilson_95": [
+          0.11828505322897494,
+          0.317818058056279
+        ]
+      },
+      "case_count": 60,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 12,
+          "known_flake": 0,
+          "product_defect": 48,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 60,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06017185214208986
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 60,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06017185214208986
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 0.8,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 0.8888888888888888,
+          "precision": 1.0,
+          "recall": 0.8,
+          "support": 60
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 12,
+      "product_defect_recall": 0.8,
+      "product_misrouting": {
+        "denominator": 60,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06017185214208986
+        ]
+      }
+    },
+    "rules_with_history": {
+      "abstentions": {
+        "denominator": 60,
+        "numerator": 12,
+        "rate": 0.2,
+        "wilson_95": [
+          0.11828505322897494,
+          0.317818058056279
+        ]
+      },
+      "case_count": 60,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 12,
+          "known_flake": 0,
+          "product_defect": 48,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 60,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06017185214208986
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 60,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06017185214208986
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 0.8,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 0.8888888888888888,
+          "precision": 1.0,
+          "recall": 0.8,
+          "support": 60
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 12,
+      "product_defect_recall": 0.8,
+      "product_misrouting": {
+        "denominator": 60,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.06017185214208986
+        ]
+      }
+    }
+  },
+  "confusion_matrix": {
+    "infrastructure_failure": {
+      "infrastructure_failure": 0,
+      "insufficient_evidence": 0,
+      "known_flake": 0,
+      "product_defect": 0,
+      "test_defect": 0
+    },
+    "insufficient_evidence": {
+      "infrastructure_failure": 0,
+      "insufficient_evidence": 0,
+      "known_flake": 0,
+      "product_defect": 0,
+      "test_defect": 0
+    },
+    "known_flake": {
+      "infrastructure_failure": 0,
+      "insufficient_evidence": 0,
+      "known_flake": 0,
+      "product_defect": 0,
+      "test_defect": 0
+    },
+    "product_defect": {
+      "infrastructure_failure": 0,
+      "insufficient_evidence": 12,
+      "known_flake": 0,
+      "product_defect": 48,
+      "test_defect": 0
+    },
+    "test_defect": {
+      "infrastructure_failure": 0,
+      "insufficient_evidence": 0,
+      "known_flake": 0,
+      "product_defect": 0,
+      "test_defect": 0
+    }
+  },
+  "control_passes": 60,
+  "cost": {
+    "compute_cost": "not_measured",
+    "currency": "USD",
+    "external_api_calls": 0,
+    "external_api_spend": 0,
+    "provider_mode": "deterministic"
+  },
+  "critical_high_dangerous_dismissal": {
+    "denominator": 60,
+    "numerator": 0,
+    "rate": 0.0,
+    "wilson_95": [
+      0,
+      0.06017185214208986
+    ]
+  },
+  "dangerous_dismissal": {
+    "denominator": 60,
+    "numerator": 0,
+    "rate": 0.0,
+    "wilson_95": [
+      0,
+      0.06017185214208986
+    ]
+  },
+  "database_dialect": "postgresql",
+  "evaluation_scope": "production_component_challenge",
+  "evaluation_version": "executed-component-v1",
+  "family_count": 15,
+  "family_recall_uncertainty": {
+    "families": 15,
+    "interval": [
+      0.6,
+      1.0
+    ],
+    "limitation": "Descriptive resampling of agent-selected mechanisms, not a population guarantee or blinded benchmark.",
+    "mean": 0.8,
+    "method": "equal-family percentile bootstrap; 2000 draws; seed 20260928"
+  },
+  "forbidden_claim_occurrences": 0,
+  "full_m6_complete": false,
+  "generalization_claim_allowed": false,
+  "ground_truth_sha256": "454a09f89c2bf8913c9d073e718410151053f4a37396abbd6fd456e2d79f6846",
+  "harness_digests": {
+    "Probe.java": "d94373bfd5cd044835191a91ea0f9f6d5f1bcfebfcbbfb8b6f8350aeabe39600",
+    "catalog.py": "40519577196e83df1912a9834e9ec6a4cfca477aba30306970bea01506d29c8f",
+    "run.py": "c973c27fab862f450d86fb70adb96097a9a1187b8cb51de6d9dda6d3fb694546",
+    "source.json": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6"
+  },
+  "integrity_acceptance": {
+    "all_citations_verified": true,
+    "all_controls_pass_and_interventions_fail": true,
+    "all_failures_hold_for_review": true,
+    "all_published_claims_typed_verified": true,
+    "five_repeated_analyses": true,
+    "minimum_executed_cases": true,
+    "minimum_executed_families": true,
+    "no_critical_high_dangerous_dismissal": true,
+    "no_forbidden_claims": true
+  },
+  "intervention_failures": 60,
+  "ledgerguard_revision": "13bdd62c924a3230825b6d9304f449f887c8e7fe",
+  "limitations": [
+    "Real production-component execution only: no HTTP, PostgreSQL business transactions, rollback, concurrency, or committed-money oracle in LedgerGuard.",
+    "All 60 cases are product defects. Five-class macro F1 and nonproduct precision/generalization are not established by this slice.",
+    "The constant-product baseline is intentionally trivial on this one-category challenge; a perfect baseline does not validate diagnosis.",
+    "This agent-authored public challenge is not a blinded/frozen test split. Inspected failures become regression evidence, never fresh held-out evidence.",
+    "Four variants share each of 15 mechanisms. Case-level Wilson intervals assume independence and are only an illustration; family resampling is also limited.",
+    "The old 200-case synthetic regression suite is not silently relabeled as real execution or independent scenario families.",
+    "The full M6 200-case/80-independent-family, five-category leakage-controlled benchmark remains incomplete.",
+    "Repeated API analysis recomputes the deterministic decision, but is not five independent whole-stack performance runs.",
+    "Raw controlled producer artifacts and exported safe derivatives have finite CI retention; API UUID links require the originating database."
+  ],
+  "macro_f1": null,
+  "macro_f1_status": "not_applicable_missing_true_categories",
+  "manifest_sha256": "cbb2f94eb4b2566bb0b489072b02183175843f528d0cca52f91d72ff555b457d",
+  "non_abstained_coverage": 0.8,
+  "per_case_p95_seconds": 0.32456976099999224,
+  "per_category": {
+    "infrastructure_failure": {
+      "f1": null,
+      "precision": null,
+      "recall": null,
+      "support": 0
+    },
+    "insufficient_evidence": {
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": null,
+      "support": 0
+    },
+    "known_flake": {
+      "f1": null,
+      "precision": null,
+      "recall": null,
+      "support": 0
+    },
+    "product_defect": {
+      "f1": 0.8888888888888888,
+      "precision": 1.0,
+      "recall": 0.8,
+      "support": 60
+    },
+    "test_defect": {
+      "f1": null,
+      "precision": null,
+      "recall": null,
+      "support": 0
+    }
+  },
+  "policy_sha256": "29db79761f6f9322e352c397ba46e56be37585464b2868111e772b818b766537",
+  "producer_java_version": "openjdk version \"21.0.12.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)",
+  "product_abstentions": 12,
+  "product_defect_recall": 0.8,
+  "product_misrouting": {
+    "denominator": 60,
+    "numerator": 0,
+    "rate": 0.0,
+    "wilson_95": [
+      0,
+      0.06017185214208986
+    ]
+  },
+  "quality_targets": {
+    "dangerous_dismissal_lte_5_percent": true,
+    "non_abstained_coverage_gte_75_percent": true,
+    "product_recall_gte_90_percent": false
+  },
+  "repeated_analysis_count": 5,
+  "semantic_support_scope": "Application deterministic typed-predicate validation, not independent universal semantic/hallucination scoring.",
+  "sensitive_canary_leaks": 0,
+  "source_counts": {
+    "ledgerguard_executed": 60,
+    "other_executed": 0,
+    "synthetic": 0
+  },
+  "source_provenance_verified": true,
+  "source_revision": "7405d923e453a00e3460101bb9800fcfe2a8fb30",
+  "source_worktree_dirty": false,
+  "substantive_repeat_agreement": true,
+  "wall_seconds": 18.779853081
+}

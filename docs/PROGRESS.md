@@ -1,4 +1,44 @@
-# M6.1 implementation checkpoint — execution-backed component challenge
+# M6.1 exact-source execution and retained evidence
+
+**M6.1 implementation is delivered; final browser acceptance is pending correction. Full M6/master remain PARTIAL.**
+
+Work began at `d05fc5297498004a8488c7d379248912479bafe8` on `main`. Source pin
+`1657eed1ca06e5aa5a0e6f8aeed85b3c590b3994` and feature commit
+`bbccd4dda0a2cd0ef79a177d6a589b2a6f68bf06` preserve the existing branch/history.
+At `7405d923e453a00e3460101bb9800fcfe2a8fb30`, CI run `36489651488` passed
+PostgreSQL/backend (283 tests, no skips, 84.96% branch-aware coverage), actual
+producer contracts, all five legacy harnesses, frontend tests/type-check/build,
+Docker configuration/build, and the new LedgerGuard execution/evidence job.
+
+The new job actually compiled pinned LedgerGuard production components and
+executed 60 passing controls and 60 detected interventions over 15 mechanisms.
+All 120 reports traversed FailureLens API/durable-worker ingestion in PostgreSQL;
+authorized evidence and five repeated substantive analyses were verified.
+The result is **48/60 product recognition, 12 abstentions, 0/60 dangerous dismissals**.
+**80% recall fails the unchanged 90% target.** The product-only challenge does not
+establish five-category macro F1 or complete M6 acceptance.
+
+The same run's four browser lanes failed at a wrongly nested locator in the new
+evaluation journey; its screenshot and DOM showed the expanded mechanism table.
+The correction preserves keyboard activation, row counts, API comparisons and
+page-overflow assertions, adds keyboard-scroll verification and makes two-column
+quality checks fit narrow screens. Those corrections require their own final CI.
+
+The exact original execution archive and reports are retained in Git with
+artifact/source digests. `evaluation/verify_snapshot.py` verifies and rescores them
+without silently rewriting the original results. Default Docker/API report paths
+now point at that immutable measured report. Fifty-four focused evaluation and
+snapshot tests passed locally; final full-suite evidence is recorded separately.
+
+This is production-component execution, not LedgerGuard DB/HTTP financial-effect
+verification. The old 200 synthetic cases retain their original bytes/scores;
+family auditing exposes only five templates crossing all three splits. Full M6
+still needs genuine five-category/80-family diversity, valid held-out and temporal
+challenges, broader adversarial/claim metrics and passing quality acceptance.
+No companion repository, public deployment, release or paid model was modified or
+invoked. Historical checkpoints below retain their original limits.
+
+# Historical M6.1 pre-publication checkpoint — execution-backed component challenge
 
 Work starts from `d05fc5297498004a8488c7d379248912479bafe8`; source pin was delivered as `1657eed1ca06e5aa5a0e6f8aeed85b3c590b3994` on `main`. The implementation adds 60 paired executed LedgerGuard component faults across 15 actual mechanisms, label-free API/worker replay, digest-checked exported evidence, independent outcome scoring, honest comparisons, family-level uncertainty and legacy-template leakage auditing. The evaluation dashboard reads real metrics and displays failed targets and undefined five-class metrics explicitly.
 

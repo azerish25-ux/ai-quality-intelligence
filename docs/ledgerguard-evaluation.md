@@ -62,7 +62,7 @@ The scorer's default exit code enforces **execution, evidence integrity and no d
 
 This public, agent-authored challenge is not a frozen or blinded five-category test set. Four variants per mechanism are dependent; 60 cases are not 60 independent causes. Case-level Wilson intervals are only an independence illustration. Equal-family bootstrap intervals also do not establish deployment risk. Labels are agent-reviewed, not independently human-adjudicated.
 
-A correct abstention is not a dangerous dismissal, but it reduces product recall. The implementation's initial local SQLite replay recognizes 48/60 product defects, abstains on 12 and records 0/60 dangerous dismissals. **80% recall fails the unchanged 90% target.** Do not alter rules using these inspected examples and then describe them as fresh held-out evidence. These preliminary local measurements have a dirty source tree and are not substituted for exact-revision PostgreSQL CI.
+A correct abstention is not a dangerous dismissal, but it reduces product recall. Both the initial local SQLite replay and exact-source PostgreSQL CI at `7405d923e453a00e3460101bb9800fcfe2a8fb30` recognize 48/60 product defects, abstain on 12 and record 0/60 dangerous dismissals. **80% recall fails the unchanged 90% target.** Do not alter rules using these inspected examples and then describe them as fresh held-out evidence. The retained report records a clean tested source tree and actual PostgreSQL replay. The initial local run is retained separately and is not substituted for CI.
 
 Five-class macro F1 is null because this slice contains only product-defect ground truth. Zero canary leakage is not redaction recall: no new canary slice is included here. Semantic claim checks use the application's deterministic typed predicates, not independent universal causal adjudication. Deterministic mode makes zero model requests, but compute cost is not measured.
 
@@ -76,3 +76,33 @@ Full M6 still needs a diverse five-category corpus with at least 200 cases and 8
 python evaluation/generate_corpus.py
 python evaluation/corpus_audit.py --output /tmp/failurelens-legacy-audit.json
 ```
+
+## Retained exact-source evidence
+
+The default dashboard now reads the immutable report in
+`evaluation/reports/ledgerguard-component-v1-7405d923/`. Its provenance names the
+revision actually tested, not the current application revision. The originating
+execution job `109154923770` passed in run `36489651488`; that run's four browser
+lanes failed a newly introduced nested test locator and are **not** represented
+as passing. Later browser acceptance is recorded separately in `PROGRESS.md`.
+
+The 191,834-byte original controlled-data archive is retained at
+`evaluation/corpus/ledgerguard-component-v1/execution.zip`; the adjacent report's
+`retention.json` records GitHub's original digest, artifact ID and expiry. It
+contains compact measurements and safe evidence, not compiled classes, banking
+source, credentials or private runtime databases. Retaining it makes the cases
+inspectable after the 30-day CI artifact expires.
+
+```bash
+python evaluation/verify_snapshot.py
+```
+
+This command verifies archive and report digests, applies bounded safe extraction,
+rechecks every public artifact, independently rescores the saved API output, and
+requires exact agreement with the original metrics, including the failed recall
+target. It is an offline verification/rescore, **not** a fresh execution of Java or
+PostgreSQL. Run the permanent CI lane for fresh execution at a new source revision.
+
+Snapshot regression tests also reject changed XML, forged counts/repetitions,
+missing control roles, mismatched reports, unsafe paths and special ZIP entries.
+The scorer now revalidates actual public producer bytes, not just their manifest.

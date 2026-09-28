@@ -1,0 +1,32 @@
+{
+  "artifact": {
+    "bytes": 191834,
+    "id": 11001426439,
+    "original_expires_at": "2026-10-28T22:00:43Z",
+    "retained_path": "evaluation/corpus/ledgerguard-component-v1/execution.zip",
+    "sha256": "41e585e8d0af08b335e67fe46e46a0b5ac37d23904b26c89a35b3207de96d448"
+  },
+  "complete_m6": false,
+  "corpus": {
+    "cases": 60,
+    "execution_scope": "production_component",
+    "families": 15,
+    "label_review_status": "agent-reviewed",
+    "passing_controls": 60,
+    "source_kind": "ledgerguard_executed",
+    "split": "challenge"
+  },
+  "job_id": 109154923770,
+  "license": "MIT: FailureLens-authored test data and reports only. No LedgerGuard source, class files, dependency caches, private runtime databases or actual customer data are included.",
+  "report_sha256": {
+    "metrics.json": "d4a0aa97fd1a962c254d31fd4e153468a6995ec570140a3b234c619c5c3f6d17",
+    "predictions.jsonl": "e42129f36b52de81aaa493b7a6007a3df35f1a6a3afe55f6ba1b2f3511450827",
+    "report.md": "95600b52c387483fb3a500d323365c07445dd1d37b56ab1788f3647865d833fe"
+  },
+  "repository": "azerish25-ux/ai-quality-intelligence",
+  "retention": "This small controlled-data archive is retained in Git independently of the expiring GitHub artifact. Internal API IDs require the original database; exported safe evidence remains readable offline.",
+  "schema_version": "retained-execution-v1",
+  "scope": "Actual LedgerGuard production-component intervention executions; FailureLens API/worker replay on PostgreSQL. Not LedgerGuard database or full-system business transactions.",
+  "tested_source_revision": "7405d923e453a00e3460101bb9800fcfe2a8fb30",
+  "workflow_run_id": 36489651488
+}

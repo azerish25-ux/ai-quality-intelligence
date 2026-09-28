@@ -1,15 +1,19 @@
 # FailureLens
 ## Evidence-Grounded Test Failure Triage and AI Evaluation
 
-> **Current checkpoint: M2.1 safe binary evidence with M2.1.1 trace-text hardening.** Screenshot decoding/review/masking,
-> approved artifact serving, exact safe trace events and real producer conformance
-> are implemented and verified. Current execution evidence and remaining scope are in
-> [`docs/PROGRESS.md`](docs/PROGRESS.md); the M5.3.1 verification below describes the
-> preceding accepted source, not the current verification counts.
-> [`docs/safe-binary-evidence.md`](docs/safe-binary-evidence.md) documents the
-> no-retained-original policy, API, local trace inspection and limits. Existing trace
-> derivatives need the documented upgrade review; a code upgrade does not rewrite
-> previously cited evidence.
+> **Current checkpoint: M6.1 executed LedgerGuard component evaluation.**
+> Sixty actual controlled interventions across fifteen fault mechanisms now run
+> through the FailureLens API, durable worker, PostgreSQL and evidence-publication
+> checks. The measured result is **48/60 product defects recognized, 12 abstentions,
+> and 0/60 dangerous dismissals**. The unchanged 90% recall target **FAILS**; full M6
+> and the complete project remain partial. This is component execution, not a
+> claim of LedgerGuard database/HTTP transaction verification.
+> See [execution, reproduction and limits](docs/ledgerguard-evaluation.md),
+> [the retained exact-source report](evaluation/reports/ledgerguard-component-v1-7405d923/report.md),
+> and [current delivery/CI status](docs/PROGRESS.md).
+> Previous screenshot/trace safety behavior is preserved. Existing trace
+> derivatives still need the documented [upgrade review](docs/safe-binary-evidence.md).
+
 
 
 FailureLens is a self-hosted quality-intelligence platform that turns automated-test artifacts into evidence-linked failure investigations. Its mandatory analysis path is deterministic and CPU-only: no paid model API, cloud account, GPU, or runtime model download is required.

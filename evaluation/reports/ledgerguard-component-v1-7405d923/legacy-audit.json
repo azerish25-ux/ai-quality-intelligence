@@ -1,0 +1,65 @@
+{
+  "audit_version": "legacy-generator-v1-mechanism-audit",
+  "case_count": 200,
+  "classification": "legacy rule-regression fixture, not independent held-out families",
+  "conservative_mechanism_count": 5,
+  "corpus_sha256": "39e5e657cbae3a48d48b619c8d3883731e91a41a192a30db951efc49be00ce56",
+  "cross_split_mechanisms": [
+    {
+      "case_count": 80,
+      "mechanism": "duplicate event committed twice",
+      "splits": [
+        "calibration",
+        "development",
+        "test"
+      ]
+    },
+    {
+      "case_count": 30,
+      "mechanism": "reviewed nondeterministic test harness ordering",
+      "splits": [
+        "calibration",
+        "development",
+        "test"
+      ]
+    },
+    {
+      "case_count": 30,
+      "mechanism": "runner network resolution failure",
+      "splits": [
+        "calibration",
+        "development",
+        "test"
+      ]
+    },
+    {
+      "case_count": 30,
+      "mechanism": "stale test expectation",
+      "splits": [
+        "calibration",
+        "development",
+        "test"
+      ]
+    },
+    {
+      "case_count": 30,
+      "mechanism": "unknown-timeout-observation-template",
+      "splits": [
+        "calibration",
+        "development",
+        "test"
+      ]
+    }
+  ],
+  "declared_family_ids": 100,
+  "generalization_claim_allowed": false,
+  "limitations": [
+    "Mechanisms are grouped by reviewed generator-v1 root-cause templates; different family IDs do not establish diversity.",
+    "Historical metrics and fixtures are retained unchanged. This audit does not create new independent cases."
+  ],
+  "source_counts": {
+    "ledgerguard_executed": 0,
+    "other_executed": 0,
+    "synthetic": 200
+  }
+}

@@ -26,10 +26,19 @@ export async function evaluationJourney(page: Page, request: APIRequestContext, 
   const mechanismSummary = panel.locator('summary').filter({ hasText: 'Results by fault mechanism' });
   await mechanismSummary.focus();
   await page.keyboard.press('Enter');
-  const detail = panel.locator('details').filter({ has: mechanismSummary });
+  // The inner locator must be relative to each details element, not #evaluation.
+  const detail = panel.locator('details').filter({ has: page.locator('summary').filter({ hasText: 'Results by fault mechanism' }) });
   await expect(detail).toHaveAttribute('open', '');
   await expect(detail.getByRole('row')).toHaveCount(metrics.family_count + 1);
   const width = await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
   expect(width[0]).toBeLessThanOrEqual(width[1] + 1);
+  const scrollRegion = detail.getByRole('region', { name: 'Fault mechanism results; scroll horizontally for all columns' });
+  const hasOverflow = await scrollRegion.evaluate((element) => element.scrollWidth > element.clientWidth);
+  if (hasOverflow) {
+    await scrollRegion.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect.poll(() => scrollRegion.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+    await scrollRegion.evaluate((element) => { element.scrollLeft = 0; });
+  }
   await panel.screenshot({ path: info.outputPath('m6-executed-evaluation.png') });
 }

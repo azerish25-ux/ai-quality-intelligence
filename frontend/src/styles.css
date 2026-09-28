@@ -838,3 +838,7 @@ tbody tr:last-child td { border-bottom: 0; }
 .evaluation details { margin-block: 1rem; min-width: 0; }
 .evaluation summary { cursor: pointer; font-weight: 600; }
 .evaluation table caption { text-align: left; margin-bottom: .75rem; font-weight: 600; }
+
+.evaluation .evaluation-checks table { min-width: 0; table-layout: fixed; }
+.evaluation .evaluation-checks th:last-child { width: 6rem; }
+.evaluation .evaluation-checks td, .evaluation caption { overflow-wrap: anywhere; }

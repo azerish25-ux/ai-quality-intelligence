@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     analysis_text_budget: int = Field(default=40_000, ge=1000)
     job_lease_seconds: int = Field(default=60, ge=5)
     job_max_attempts: int = Field(default=3, ge=1, le=20)
-    evaluation_metrics_path: Path = Path("../evaluation/reports/latest/metrics.json")
+    evaluation_metrics_path: Path = Path("../evaluation/reports/ledgerguard-component-v1-7405d923/metrics.json")
 
     def ensure_directories(self) -> None:
         self.artifact_root.mkdir(parents=True, exist_ok=True, mode=0o700)
