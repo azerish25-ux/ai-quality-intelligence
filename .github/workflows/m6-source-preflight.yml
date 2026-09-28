@@ -1,0 +1,43 @@
+name: M6 source preflight
+on:
+  push:
+    branches: [main]
+    paths:
+      - integrations/ledgerguard/source.json
+      - .github/workflows/m6-source-preflight.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: azerish25-ux/transaction-reliability-lab
+          ref: 13bdd62c924a3230825b6d9304f449f887c8e7fe
+          path: .m6-companion
+          persist-credentials: false
+      - name: Verify pinned source and export read-only development inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/m6-source
+          test "$(git -C .m6-companion rev-parse HEAD)" = "$(python -c 'import json; print(json.load(open("integrations/ledgerguard/source.json"))["revision"])')"
+          test -z "$(git -C .m6-companion status --porcelain)"
+          git -C .m6-companion archive HEAD | gzip -n > /tmp/m6-source/ledgerguard-source.tgz
+          git bundle create /tmp/m6-source/failurelens.bundle main
+          cp integrations/ledgerguard/source.json /tmp/m6-source/source.json
+          cd /tmp/m6-source
+          sha256sum ledgerguard-source.tgz failurelens.bundle > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: failurelens-m6-source-${{ github.sha }}
+          path: /tmp/m6-source
+          if-no-files-found: error
+          retention-days: 1

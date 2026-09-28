@@ -1,0 +1,8 @@
+{
+  "schema_version": "1.0",
+  "repository": "azerish25-ux/transaction-reliability-lab",
+  "revision": "13bdd62c924a3230825b6d9304f449f887c8e7fe",
+  "verified_control_run": 36464316280,
+  "isolation": "disposable execution only; never publish mutations to the companion repository",
+  "purpose": "FailureLens M6 controlled execution and artifact provenance"
+}
