@@ -3,9 +3,9 @@
 
 FailureLens is a self-hosted quality-intelligence platform that turns automated-test artifacts into evidence-linked failure investigations. Its mandatory analysis path is deterministic and CPU-only: no paid model API, cloud account, GPU, or runtime model download is required.
 
-> **Current delivery status: M1, M3, and M4 are complete; M2 and M5 remain partial. FailureLens now provides prior-only historical intelligence, evidence-grounded infrastructure-event correlations, explainable change-impact recommendations, compatibility-gated performance-regression analysis, and an M5.1 project-scoped identity/review foundation. The full master specification remains incomplete.**
+> **Current delivery status: M1, M3, and M4 are complete; M2 and M5 remain partial. FailureLens now provides prior-only historical intelligence, evidence-grounded infrastructure-event correlations, explainable change-impact recommendations, compatibility-gated performance-regression analysis, and M5.1/M5.2 project-scoped review, governance, accessibility, URL-state, and cross-browser foundations. The full master specification remains incomplete.**
 >
-> This revision adds authenticated human sessions, project-scoped viewer/reviewer/administrator roles, one-time project ingestion credentials, verified reviewer attribution, append-only application audit events, a review queue, and role-aware dashboard settings. Safe binary derivatives, producer-pinned integration fixtures, broader accessibility/browser coverage, actual LedgerGuard evaluation cases, and live idempotent PR publication remain open.
+> M5.1 adds authenticated human sessions, project-scoped viewer/reviewer/administrator roles, one-time project ingestion credentials, verified reviewer attribution, append-only application audit events, a review queue, and role-aware dashboard settings. M5.2 adds URL-restored investigation state, searchable/sortable/paginated review and audit views, filtered audit CSV export, live health/policy status, skip-link and focus handling, compact narrow-layout navigation, reduced-motion behavior, and Playwright projects for Chromium, Firefox, WebKit, and a narrow Chromium viewport. Account recovery/session administration, reviewer assignment/notifications, retention/tombstones, safe binary derivatives, producer-pinned integration fixtures, actual LedgerGuard evaluation cases, and live idempotent PR publication remain open.
 
 ## What works
 
@@ -103,7 +103,7 @@ Performance benchmark: 20/20 status decisions correct, 1.000 regression recall a
 Infrastructure benchmark: 18/18 status decisions correct, 1.000 compatibility/provenance accuracy, 0 future/cross-project leaks, 0 unsupported causality claims and 0/1 product-defect downgrades
 ```
 
-Exact backend/frontend/browser/PostgreSQL/Docker verification for the delivered revision is recorded in the GitHub workflow. Local checks are reported separately and are not used as a substitute for delivered CI.
+The GitHub workflow is authoritative for exact frontend/browser/PostgreSQL/Docker verification of any delivered revision. Local checks are reported separately and are not used as a substitute for rereading the workflow attached to the final delivered SHA.
 
 Synthetic benchmark results apply only to the committed public synthetic corpus; they are not deployment guarantees and do not satisfy the requirement for actual executed LedgerGuard cases.
 
@@ -192,7 +192,7 @@ backend/src/failurelens/    API, authentication/RBAC/audit, storage, adapters, e
 backend/migrations/         Versioned relational schema
 backend/tests/              Unit, adversarial, API and durable integration tests
 evaluation/                 Corpus generator, labeled corpus, harness, reports
-frontend/                   React/Vite dashboard, unit tests, Chromium E2E
+frontend/                   React/Vite dashboard, unit tests, cross-browser and narrow-layout Playwright E2E
 integrations/github-action/ Reusable composite Action and report runner
 .github/workflows/          PostgreSQL, evaluation, frontend, browser, Docker CI
 docs/                       Architecture, security, compatibility, progress, requirements
@@ -208,7 +208,7 @@ The deterministic analyzer separates observations, inferences, hypotheses, missi
 
 The system never approves releases, merges pull requests, deletes tests, suppresses product-risk flags or rewrites code.
 
-Historical definitions and safety rules are documented in [`docs/history.md`](docs/history.md). Infrastructure trust, compatibility, cutoff and association semantics are documented in [`docs/infrastructure.md`](docs/infrastructure.md). Change-impact trust, mapping, fallback and override semantics are documented in [`docs/impact.md`](docs/impact.md). Compatible baseline, unit, percentile and uncertainty semantics are documented in [`docs/performance.md`](docs/performance.md).
+Historical definitions and safety rules are documented in [`docs/history.md`](docs/history.md). Infrastructure trust, compatibility, cutoff and association semantics are documented in [`docs/infrastructure.md`](docs/infrastructure.md). Change-impact trust, mapping, fallback and override semantics are documented in [`docs/impact.md`](docs/impact.md). Compatible baseline, unit, percentile and uncertainty semantics are documented in [`docs/performance.md`](docs/performance.md). Dashboard keyboard, URL-state, responsive, and browser-acceptance behavior is documented in [`docs/accessibility-and-browser.md`](docs/accessibility-and-browser.md).
 
 ## Evaluation truthfulness
 
@@ -220,6 +220,6 @@ The classification corpus manifest currently records 200 synthetic cases, 100 sc
 2. Create immutable reviewed/masked screenshot derivatives and richer safe trace derivatives with image/trace-specific source maps and retention controls.
 3. Add bounded artifact preview/download endpoints with authorization, range, expiry and retention controls.
 4. Expand claim predicates and validation metrics beyond the deterministic classification rules implemented here.
-5. Complete remaining M5 accessibility/browser/view-depth work, M6 actual LedgerGuard corpus execution, M7 optional provider boundary, and M8 live idempotent GitHub publication.
+5. Complete remaining M5 account/session recovery, assignment/notification and retention/tombstone work; then complete M6 actual LedgerGuard corpus execution, M7 optional provider boundary, and M8 live idempotent GitHub publication.
 
 Factual progress is tracked in [`docs/PROGRESS.md`](docs/PROGRESS.md), with requirement status in [`docs/requirements-matrix.md`](docs/requirements-matrix.md).

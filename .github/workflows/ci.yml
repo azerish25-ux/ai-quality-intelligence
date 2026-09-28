@@ -92,7 +92,7 @@ jobs:
 
   browser-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     services:
       postgres:
         image: postgres:17-alpine
@@ -124,7 +124,7 @@ jobs:
           python -m pip install './backend[dev]'
           cd frontend
           npm ci --no-audit --no-fund
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium firefox webkit
       - name: Migrate PostgreSQL
         working-directory: backend
         run: alembic upgrade head
@@ -143,7 +143,7 @@ jobs:
           done
           cat /tmp/failurelens-api.log /tmp/failurelens-worker.log /tmp/failurelens-vite.log
           exit 1
-      - name: Browser upload-to-analysis journey
+      - name: Cross-browser accessibility and API-backed journeys
         working-directory: frontend
         run: npm run test:e2e
       - name: Upload browser diagnostics

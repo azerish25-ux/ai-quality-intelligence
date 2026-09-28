@@ -7,6 +7,7 @@ import {
   type ClusterRevision,
   type ClusterSummary,
   type Failure,
+  type HealthStatus,
   type Ingestion,
   type ImpactMappingInput,
   type ImpactMappingSnapshot,
@@ -73,6 +74,34 @@ const formatPerformanceDelta = (value: number | null): string => {
 };
 
 const newExternalId = (): string => `manual-${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}`;
+const tablePageSize = 10;
+const terminalReviewDecisions = new Set(['accept', 'reject', 'category_correction']);
+const severityRank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+
+const searchParam = (key: string): string => new URLSearchParams(window.location.search).get(key) ?? '';
+const searchPage = (key: string): number => {
+  const value = Number(searchParam(key));
+  return Number.isInteger(value) && value > 0 ? value : 1;
+};
+const searchChoice = <T extends string>(key: string, values: readonly T[], fallback: T): T => {
+  const value = searchParam(key) as T;
+  return values.includes(value) ? value : fallback;
+};
+const csvCell = (value: unknown): string => {
+  const raw = String(value ?? '');
+  const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
+  return `"${safe.replaceAll('"', '""')}"`;
+};
+const downloadText = (filename: string, value: string, mediaType: string): void => {
+  const url = URL.createObjectURL(new Blob([value], { type: mediaType }));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+};
 
 const defaultImpactMapping = JSON.stringify({
   version: 'mapping-v1',
@@ -132,9 +161,9 @@ function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [overview, setOverview] = useState<Overview | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [projectId, setProjectId] = useState('');
+  const [projectId, setProjectId] = useState(() => searchParam('project'));
   const [runs, setRuns] = useState<Run[]>([]);
-  const [runId, setRunId] = useState('');
+  const [runId, setRunId] = useState(() => searchParam('run'));
   const [ingestions, setIngestions] = useState<Ingestion[]>([]);
   const [watchedIngestionId, setWatchedIngestionId] = useState<string | null>(null);
   const [failures, setFailures] = useState<Failure[]>([]);
@@ -147,19 +176,19 @@ function App() {
   const [impactMappings, setImpactMappings] = useState<ImpactMappingSnapshot[]>([]);
   const [impactMappingId, setImpactMappingId] = useState('');
   const [impactRecommendations, setImpactRecommendations] = useState<ImpactRecommendation[]>([]);
-  const [selectedImpactId, setSelectedImpactId] = useState('');
+  const [selectedImpactId, setSelectedImpactId] = useState(() => searchParam('impact'));
   const [selectedImpact, setSelectedImpact] = useState<ImpactRecommendation | null>(null);
   const [impactMappingJson, setImpactMappingJson] = useState(defaultImpactMapping);
   const [impactReviewReason, setImpactReviewReason] = useState('');
   const [clusters, setClusters] = useState<ClusterSummary[]>([]);
   const [runClusters, setRunClusters] = useState<ClusterSummary[]>([]);
-  const [selectedClusterId, setSelectedClusterId] = useState('');
+  const [selectedClusterId, setSelectedClusterId] = useState(() => searchParam('cluster'));
   const [selectedCluster, setSelectedCluster] = useState<ClusterDetail | null>(null);
   const [clusterRevisions, setClusterRevisions] = useState<ClusterRevision[]>([]);
   const [selectedClusterMembers, setSelectedClusterMembers] = useState<string[]>([]);
   const [clusterReviewReason, setClusterReviewReason] = useState('');
   const [mergeTargetId, setMergeTargetId] = useState('');
-  const [selectedFailure, setSelectedFailure] = useState<Failure | null>(null);
+  const [selectedFailureId, setSelectedFailureId] = useState(() => searchParam('failure'));
   const [testHistory, setTestHistory] = useState<TestHistory | null>(null);
   const [infrastructureSnapshot, setInfrastructureSnapshot] = useState<InfrastructureCorrelation | null>(null);
   const [infrastructureLoading, setInfrastructureLoading] = useState(false);
@@ -184,6 +213,21 @@ function App() {
   );
   const [evaluation, setEvaluation] = useState<Record<string, unknown> | null>(null);
   const [reviewQueue, setReviewQueue] = useState<ReviewQueueItem[]>([]);
+  const [reviewStatusFilter, setReviewStatusFilter] = useState<'all' | 'pending' | 'reviewed'>(
+    () => searchChoice('review_status', ['all', 'pending', 'reviewed'] as const, 'pending')
+  );
+  const [reviewCategoryFilter, setReviewCategoryFilter] = useState<'all' | Category>(
+    () => searchChoice(
+      'review_category',
+      ['all', 'product_defect', 'test_defect', 'infrastructure_failure', 'known_flake', 'insufficient_evidence'] as const,
+      'all'
+    )
+  );
+  const [reviewSearch, setReviewSearch] = useState(() => searchParam('review_search'));
+  const [reviewSort, setReviewSort] = useState<'newest' | 'oldest' | 'severity' | 'test'>(
+    () => searchChoice('review_sort', ['newest', 'oldest', 'severity', 'test'] as const, 'newest')
+  );
+  const [reviewPage, setReviewPage] = useState(() => searchPage('review_page'));
   const [analysisReviews, setAnalysisReviews] = useState<ReviewEvent[]>([]);
   const [reviewDecision, setReviewDecision] = useState<'accept' | 'reject' | 'needs_more_evidence' | 'category_correction'>('needs_more_evidence');
   const [reviewCategory, setReviewCategory] = useState<Category>('insufficient_evidence');
@@ -193,6 +237,20 @@ function App() {
   const [members, setMembers] = useState<ProjectMembership[]>([]);
   const [ingestionTokens, setIngestionTokens] = useState<IngestionTokenRecord[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
+  const [auditSearch, setAuditSearch] = useState(() => searchParam('audit_search'));
+  const [auditActionFilter, setAuditActionFilter] = useState(() => searchParam('audit_action'));
+  const [auditOutcomeFilter, setAuditOutcomeFilter] = useState(() => searchParam('audit_outcome'));
+  const [auditSort, setAuditSort] = useState<'newest' | 'oldest'>(
+    () => searchChoice('audit_sort', ['newest', 'oldest'] as const, 'newest')
+  );
+  const [auditPage, setAuditPage] = useState(() => searchPage('audit_page'));
+  const [systemHealth, setSystemHealth] = useState<{
+    live: HealthStatus | null;
+    ready: HealthStatus | null;
+    checkedAt: string | null;
+    error: string | null;
+  }>({ live: null, ready: null, checkedAt: null, error: null });
+  const [healthLoading, setHealthLoading] = useState(false);
   const [memberUsername, setMemberUsername] = useState('');
   const [memberRole, setMemberRole] = useState<ProjectRole>('viewer');
   const [tokenName, setTokenName] = useState('');
@@ -205,6 +263,7 @@ function App() {
   const [fileInputKey, setFileInputKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState('');
 
   const currentRole = useMemo<ProjectRole | null>(() => {
     if (!principal) return null;
@@ -213,6 +272,97 @@ function App() {
   }, [principal, projectId]);
   const canReview = currentRole !== null && roleRank[currentRole] >= roleRank.reviewer;
   const canAdminister = currentRole === 'administrator';
+  const selectedFailure = useMemo(
+    () => failures.find((failure) => failure.id === selectedFailureId) ?? null,
+    [failures, selectedFailureId]
+  );
+  const navigationItems = useMemo(() => [
+    { href: '#overview', label: 'Overview' },
+    { href: '#ingestion', label: 'Ingestion' },
+    { href: '#runs', label: 'Runs' },
+    { href: '#impact', label: 'Change impact' },
+    { href: '#performance', label: 'Performance' },
+    { href: '#clusters', label: 'Clusters' },
+    { href: '#workspace', label: 'Failure workspace' },
+    { href: '#history', label: 'Test history' },
+    ...(canReview ? [{ href: '#reviews', label: 'Review queue' }] : []),
+    ...(canAdminister ? [{ href: '#settings', label: 'Settings' }] : []),
+    ...(canReview ? [{ href: '#audit', label: 'Audit' }] : []),
+    { href: '#evaluation', label: 'Evaluation' }
+  ], [canAdminister, canReview]);
+
+  const filteredReviewQueue = useMemo(() => {
+    const query = reviewSearch.trim().toLocaleLowerCase();
+    return reviewQueue
+      .filter((item) => {
+        const terminal = item.latest_review_decision !== null
+          && terminalReviewDecisions.has(item.latest_review_decision);
+        if (reviewStatusFilter === 'pending' && terminal) return false;
+        if (reviewStatusFilter === 'reviewed' && !terminal) return false;
+        if (reviewCategoryFilter !== 'all' && item.category !== reviewCategoryFilter) return false;
+        if (!query) return true;
+        return [item.test_identity, item.summary, item.category, item.severity, item.latest_review_decision ?? 'unreviewed']
+          .some((value) => value.toLocaleLowerCase().includes(query));
+      })
+      .sort((left, right) => {
+        if (reviewSort === 'oldest') return Date.parse(left.created_at) - Date.parse(right.created_at);
+        if (reviewSort === 'severity') {
+          const difference = (severityRank[left.severity] ?? 99) - (severityRank[right.severity] ?? 99);
+          return difference || left.test_identity.localeCompare(right.test_identity);
+        }
+        if (reviewSort === 'test') return left.test_identity.localeCompare(right.test_identity);
+        return Date.parse(right.created_at) - Date.parse(left.created_at);
+      });
+  }, [reviewCategoryFilter, reviewQueue, reviewSearch, reviewSort, reviewStatusFilter]);
+  const reviewPageCount = Math.max(1, Math.ceil(filteredReviewQueue.length / tablePageSize));
+  const pagedReviewQueue = filteredReviewQueue.slice(
+    (reviewPage - 1) * tablePageSize,
+    reviewPage * tablePageSize
+  );
+
+  const auditActions = useMemo(
+    () => [...new Set(auditEvents.map((event) => event.action))].sort(),
+    [auditEvents]
+  );
+  const auditOutcomes = useMemo(
+    () => [...new Set(auditEvents.map((event) => event.outcome))].sort(),
+    [auditEvents]
+  );
+  const filteredAuditEvents = useMemo(() => {
+    const query = auditSearch.trim().toLocaleLowerCase();
+    return auditEvents
+      .filter((event) => {
+        if (auditActionFilter && event.action !== auditActionFilter) return false;
+        if (auditOutcomeFilter && event.outcome !== auditOutcomeFilter) return false;
+        if (!query) return true;
+        return [event.actor_display, event.actor_kind, event.action, event.resource_type, event.resource_id ?? '', event.reason ?? '']
+          .some((value) => value.toLocaleLowerCase().includes(query));
+      })
+      .sort((left, right) => auditSort === 'oldest'
+        ? Date.parse(left.created_at) - Date.parse(right.created_at)
+        : Date.parse(right.created_at) - Date.parse(left.created_at));
+  }, [auditActionFilter, auditEvents, auditOutcomeFilter, auditSearch, auditSort]);
+  const auditPageCount = Math.max(1, Math.ceil(filteredAuditEvents.length / tablePageSize));
+  const pagedAuditEvents = filteredAuditEvents.slice(
+    (auditPage - 1) * tablePageSize,
+    auditPage * tablePageSize
+  );
+
+  const refreshSystemHealth = useCallback(async () => {
+    setHealthLoading(true);
+    const [live, ready] = await Promise.allSettled([api.healthLive(), api.healthReady()]);
+    const errors = [live, ready]
+      .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+      .map((result) => String(result.reason));
+    setSystemHealth({
+      live: live.status === 'fulfilled' ? live.value : null,
+      ready: ready.status === 'fulfilled' ? ready.value : null,
+      checkedAt: new Date().toISOString(),
+      error: errors.length > 0 ? errors.join(' · ') : null
+    });
+    setStatusMessage(errors.length > 0 ? 'System health check completed with errors.' : 'System health check completed.');
+    setHealthLoading(false);
+  }, []);
 
   const refreshRoot = useCallback(async () => {
     const [nextOverview, nextProjects, evaluationResponse] = await Promise.all([
@@ -223,7 +373,11 @@ function App() {
     setOverview(nextOverview);
     setProjects(nextProjects);
     setEvaluation(evaluationResponse.metrics ?? null);
-    setProjectId((current) => current || nextProjects[0]?.id || '');
+    setProjectId((current) => (
+      current && nextProjects.some((project) => project.id === current)
+        ? current
+        : nextProjects[0]?.id ?? ''
+    ));
   }, []);
 
   const refreshProject = useCallback(async (nextProjectId: string, preferredRunId?: string | null) => {
@@ -243,6 +397,7 @@ function App() {
       setSelectedImpact(null);
       setSelectedClusterId('');
       setSelectedCluster(null);
+      setSelectedFailureId('');
       setRunId('');
       return;
     }
@@ -289,8 +444,8 @@ function App() {
     api.me()
       .then(async (nextPrincipal) => {
         if (cancelled) return;
-        setPrincipal(nextPrincipal);
         await refreshRoot();
+        if (!cancelled) setPrincipal(nextPrincipal);
       })
       .catch((reason: unknown) => {
         if (cancelled) return;
@@ -321,7 +476,7 @@ function App() {
     const tasks: Promise<void>[] = [];
     if (canReview) {
       tasks.push(
-        Promise.all([api.reviewQueue(projectId), api.auditEvents(projectId)]).then(
+        Promise.all([api.reviewQueue(projectId, false), api.auditEvents(projectId)]).then(
           ([queue, audit]) => {
             if (!cancelled) {
               setReviewQueue(queue);
@@ -356,6 +511,11 @@ function App() {
   }, [canAdminister, canReview, principal, projectId]);
 
   useEffect(() => {
+    if (!principal) return;
+    void refreshSystemHealth();
+  }, [principal, refreshSystemHealth]);
+
+  useEffect(() => {
     const analysisId = selectedFailure?.latest_analysis?.analysis_id;
     if (!principal || !analysisId) {
       setAnalysisReviews([]);
@@ -379,7 +539,7 @@ function App() {
       setRunClusters([]);
       setPerformanceObservations([]);
       setPerformanceComparisons([]);
-      setSelectedFailure(null);
+      setSelectedFailureId('');
       setPerformanceLoading(false);
       return;
     }
@@ -401,12 +561,13 @@ function App() {
         setPerformanceComparisons(nextPerformanceComparisons);
         setSelectedClusterId((current) => {
           if (current && nextRunClusters.some((cluster) => cluster.id === current)) return current;
-          return nextRunClusters[0]?.id ?? current;
+          return nextRunClusters[0]?.id ?? '';
         });
-        setSelectedFailure((current) => {
-          if (current) return nextFailures.find((item) => item.id === current.id) ?? nextFailures[0] ?? null;
-          return nextFailures[0] ?? null;
-        });
+        setSelectedFailureId((current) => (
+          current && nextFailures.some((item) => item.id === current)
+            ? current
+            : nextFailures[0]?.id ?? ''
+        ));
       })
       .catch((reason: unknown) => {
         if (!cancelled) setError(String(reason));
@@ -464,12 +625,27 @@ function App() {
   useEffect(() => {
     const url = new URL(window.location.href);
     const values: Record<string, string> = {
+      project: projectId,
+      run: runId,
+      failure: selectedFailureId,
+      cluster: selectedClusterId,
+      impact: selectedImpactId,
       history_scope: historyRunScope,
       history_browser: historyBrowser,
       history_branch: historyBranch,
       history_environment: historyEnvironment,
       history_workers: historyWorkerCount,
-      history_shards: historyShardCount
+      history_shards: historyShardCount,
+      review_status: reviewStatusFilter === 'pending' ? '' : reviewStatusFilter,
+      review_category: reviewCategoryFilter === 'all' ? '' : reviewCategoryFilter,
+      review_search: reviewSearch,
+      review_sort: reviewSort === 'newest' ? '' : reviewSort,
+      review_page: reviewPage > 1 ? String(reviewPage) : '',
+      audit_search: auditSearch,
+      audit_action: auditActionFilter,
+      audit_outcome: auditOutcomeFilter,
+      audit_sort: auditSort === 'newest' ? '' : auditSort,
+      audit_page: auditPage > 1 ? String(auditPage) : ''
     };
     Object.entries(values).forEach(([key, value]) => {
       if (value.trim()) url.searchParams.set(key, value.trim());
@@ -481,13 +657,104 @@ function App() {
       `${url.pathname}${url.search}${url.hash}`
     );
   }, [
+    auditActionFilter,
+    auditOutcomeFilter,
+    auditPage,
+    auditSearch,
+    auditSort,
     historyBranch,
     historyBrowser,
     historyEnvironment,
     historyRunScope,
     historyShardCount,
-    historyWorkerCount
+    historyWorkerCount,
+    projectId,
+    reviewCategoryFilter,
+    reviewPage,
+    reviewSearch,
+    reviewSort,
+    reviewStatusFilter,
+    runId,
+    selectedClusterId,
+    selectedFailureId,
+    selectedImpactId
   ]);
+
+  useEffect(() => {
+    const applyUrlState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const projectFromUrl = params.get('project') ?? '';
+      const runFromUrl = params.get('run') ?? '';
+      const failureFromUrl = params.get('failure') ?? '';
+      const clusterFromUrl = params.get('cluster') ?? '';
+      const impactFromUrl = params.get('impact') ?? '';
+      const availableClusters = runClusters.length > 0 ? runClusters : clusters;
+      setProjectId(
+        projectFromUrl && projects.some((project) => project.id === projectFromUrl)
+          ? projectFromUrl
+          : projects[0]?.id ?? ''
+      );
+      setRunId(
+        runFromUrl && runs.some((run) => run.id === runFromUrl)
+          ? runFromUrl
+          : runs[0]?.id ?? ''
+      );
+      setSelectedFailureId(
+        failureFromUrl && failures.some((failure) => failure.id === failureFromUrl)
+          ? failureFromUrl
+          : failures[0]?.id ?? ''
+      );
+      setSelectedClusterId(
+        clusterFromUrl && availableClusters.some((cluster) => cluster.id === clusterFromUrl)
+          ? clusterFromUrl
+          : availableClusters[0]?.id ?? ''
+      );
+      setSelectedImpactId(
+        impactFromUrl && impactRecommendations.some((impact) => impact.id === impactFromUrl)
+          ? impactFromUrl
+          : impactRecommendations[0]?.id ?? ''
+      );
+      setHistoryRunScope(params.get('history_scope') ?? '');
+      setHistoryBrowser(params.get('history_browser') ?? '');
+      setHistoryBranch(params.get('history_branch') ?? '');
+      setHistoryEnvironment(params.get('history_environment') ?? '');
+      setHistoryWorkerCount(params.get('history_workers') ?? '');
+      setHistoryShardCount(params.get('history_shards') ?? '');
+      const reviewStatus = params.get('review_status');
+      setReviewStatusFilter(reviewStatus === 'all' || reviewStatus === 'reviewed' ? reviewStatus : 'pending');
+      const reviewCategory = params.get('review_category');
+      setReviewCategoryFilter(
+        reviewCategory && Object.prototype.hasOwnProperty.call(categoryLabel, reviewCategory)
+          ? reviewCategory as Category
+          : 'all'
+      );
+      setReviewSearch(params.get('review_search') ?? '');
+      const nextReviewSort = params.get('review_sort');
+      setReviewSort(
+        nextReviewSort === 'oldest' || nextReviewSort === 'severity' || nextReviewSort === 'test'
+          ? nextReviewSort
+          : 'newest'
+      );
+      const nextReviewPage = Number(params.get('review_page'));
+      setReviewPage(Number.isInteger(nextReviewPage) && nextReviewPage > 0 ? nextReviewPage : 1);
+      setAuditSearch(params.get('audit_search') ?? '');
+      setAuditActionFilter(params.get('audit_action') ?? '');
+      setAuditOutcomeFilter(params.get('audit_outcome') ?? '');
+      setAuditSort(params.get('audit_sort') === 'oldest' ? 'oldest' : 'newest');
+      const nextAuditPage = Number(params.get('audit_page'));
+      setAuditPage(Number.isInteger(nextAuditPage) && nextAuditPage > 0 ? nextAuditPage : 1);
+    };
+    window.addEventListener('popstate', applyUrlState);
+    return () => window.removeEventListener('popstate', applyUrlState);
+  }, [clusters, failures, impactRecommendations, projects, runClusters, runs]);
+
+  useEffect(() => {
+    setReviewPage((current) => Math.min(Math.max(current, 1), reviewPageCount));
+  }, [reviewPageCount]);
+
+  useEffect(() => {
+    setAuditPage((current) => Math.min(Math.max(current, 1), auditPageCount));
+  }, [auditPageCount]);
 
   useEffect(() => {
     if (!selectedFailure) {
@@ -608,6 +875,7 @@ function App() {
       await refreshRoot();
       setProjectId(seeded.project_id);
       await refreshProject(seeded.project_id, seeded.run_id);
+      setStatusMessage('Synthetic demo data loaded.');
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -652,6 +920,7 @@ function App() {
       setUploadEnvironment('');
       setFileInputKey((value) => value + 1);
       await refreshRoot();
+      setStatusMessage(`Ingestion ${queued.external_id} queued.`);
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -708,8 +977,9 @@ function App() {
       const analysis = await api.analyze(failure.id);
       const next = failures.map((item) => item.id === failure.id ? { ...item, latest_analysis: analysis } : item);
       setFailures(next);
-      setSelectedFailure(next.find((item) => item.id === failure.id) ?? null);
+      setSelectedFailureId(failure.id);
       await refreshRoot();
+      setStatusMessage(`Analysis revision created for ${failure.test_identity}.`);
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -750,6 +1020,7 @@ function App() {
       );
       setInfrastructureSnapshot(snapshot);
       await refreshRoot();
+      setStatusMessage('Immutable infrastructure-correlation snapshot persisted.');
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -780,6 +1051,7 @@ function App() {
       });
       setPerformancePolicies((current) => [policy, ...current.filter((item) => item.id !== policy.id)]);
       setPerformancePolicyId(policy.id);
+      setStatusMessage(`Performance policy ${policy.version} registered.`);
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -815,6 +1087,7 @@ function App() {
         setPerformancePolicyId((current) => current || policies[0]?.id || '');
       }
       await refreshRoot();
+      setStatusMessage(`${comparisons.length} performance comparison${comparisons.length === 1 ? '' : 's'} persisted.`);
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -840,6 +1113,7 @@ function App() {
       const snapshot = await api.createImpactMapping(projectId, parsed);
       setImpactMappings((current) => [snapshot, ...current.filter((item) => item.id !== snapshot.id)]);
       setImpactMappingId(snapshot.id);
+      setStatusMessage(`Impact mapping ${snapshot.version} registered.`);
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -874,6 +1148,7 @@ function App() {
       setSelectedImpact(recommendation);
       setSelectedImpactId(recommendation.id);
       await refreshRoot();
+      setStatusMessage('Impact recommendation generated.');
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -909,6 +1184,7 @@ function App() {
         entry.id === recommendation.id ? recommendation : entry
       )));
       setImpactReviewReason('');
+      setStatusMessage(`${action === 'include' ? 'Included' : 'Excluded'} ${item.test_identity} with an audited override.`);
     } catch (reasonValue) {
       setError(String(reasonValue));
     } finally {
@@ -965,6 +1241,7 @@ function App() {
       setClusterReviewReason('');
       await Promise.all([refreshRoot(), refreshProject(projectId, runId)]);
       if (runId) setRunClusters(await api.runClusters(runId));
+      setStatusMessage(`Cluster review recorded: ${decision}.`);
     } catch (reasonValue) {
       setError(String(reasonValue));
     } finally {
@@ -978,9 +1255,10 @@ function App() {
     setError(null);
     try {
       const response = await api.login(loginUsername.trim(), loginPassword);
-      setPrincipal(response.principal);
       setLoginPassword('');
       await refreshRoot();
+      setPrincipal(response.principal);
+      setStatusMessage('Signed in successfully.');
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -998,6 +1276,7 @@ function App() {
       setProjectId('');
       setRuns([]);
       setRunId('');
+      setStatusMessage('Signed out.');
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -1009,7 +1288,7 @@ function App() {
     if (!projectId || !principal) return;
     const tasks: Promise<unknown>[] = [];
     if (canReview) {
-      tasks.push(api.reviewQueue(projectId).then(setReviewQueue));
+      tasks.push(api.reviewQueue(projectId, false).then(setReviewQueue));
       tasks.push(api.auditEvents(projectId).then(setAuditEvents));
     }
     if (canAdminister) {
@@ -1025,10 +1304,15 @@ function App() {
     try {
       const nextFailures = await api.failures(item.run_id);
       setFailures(nextFailures);
-      setSelectedFailure(
-        nextFailures.find((failure) => failure.id === item.failure_id) ?? nextFailures[0] ?? null
+      setSelectedFailureId(
+        nextFailures.find((failure) => failure.id === item.failure_id)?.id ?? nextFailures[0]?.id ?? ''
       );
-      document.getElementById('workspace')?.scrollIntoView({ behavior: 'smooth' });
+      window.requestAnimationFrame(() => {
+        const workspace = document.getElementById('workspace');
+        workspace?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        workspace?.focus({ preventScroll: true });
+      });
+      setStatusMessage(`Opened ${item.test_identity} from the review queue.`);
     } catch (reason) {
       setError(String(reason));
     }
@@ -1065,6 +1349,7 @@ function App() {
       setReviewReason('');
       setReviewOutcome('');
       await refreshGovernance();
+      setStatusMessage(`Review decision ${readableValue(created.decision)} recorded as version ${created.version}.`);
     } catch (reasonValue) {
       setError(String(reasonValue));
     } finally {
@@ -1082,6 +1367,7 @@ function App() {
       setMembers((current) => [...current, created].sort((left, right) => left.username.localeCompare(right.username)));
       setMemberUsername('');
       await api.auditEvents(projectId).then(setAuditEvents);
+      setStatusMessage(`${created.display_name} added as ${readableValue(created.role)}.`);
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -1097,6 +1383,7 @@ function App() {
       const updated = await api.updateProjectMember(projectId, membershipId, role);
       setMembers((current) => current.map((member) => member.id === updated.id ? updated : member));
       await api.auditEvents(projectId).then(setAuditEvents);
+      setStatusMessage(`${updated.display_name}'s role changed to ${readableValue(updated.role)}.`);
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -1112,6 +1399,7 @@ function App() {
       await api.removeProjectMember(projectId, membershipId);
       setMembers((current) => current.filter((member) => member.id !== membershipId));
       await api.auditEvents(projectId).then(setAuditEvents);
+      setStatusMessage('Project membership removed.');
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -1135,6 +1423,7 @@ function App() {
       setIngestionTokens((current) => [created, ...current.filter((token) => token.id !== created.id)]);
       setTokenName('');
       await api.auditEvents(projectId).then(setAuditEvents);
+      setStatusMessage(`Ingestion credential ${created.name} created. Copy the secret now.`);
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -1150,11 +1439,33 @@ function App() {
       const updated = await api.revokeIngestionToken(projectId, tokenId);
       setIngestionTokens((current) => current.map((token) => token.id === updated.id ? updated : token));
       await api.auditEvents(projectId).then(setAuditEvents);
+      setStatusMessage(`Ingestion credential ${updated.name} revoked.`);
     } catch (reason) {
       setError(String(reason));
     } finally {
       setBusy(false);
     }
+  };
+
+  const exportAuditCsv = () => {
+    const header = ['created_at', 'actor', 'actor_kind', 'action', 'outcome', 'resource_type', 'resource_id', 'reason'];
+    const rows = filteredAuditEvents.map((event) => [
+      event.created_at,
+      event.actor_display,
+      event.actor_kind,
+      event.action,
+      event.outcome,
+      event.resource_type,
+      event.resource_id ?? '',
+      event.reason ?? ''
+    ]);
+    const csv = [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
+    downloadText(
+      `failurelens-audit-${projectId || 'project'}-${new Date().toISOString().slice(0, 10)}.csv`,
+      `${csv}\n`,
+      'text/csv;charset=utf-8'
+    );
+    setStatusMessage(`${rows.length} filtered audit event${rows.length === 1 ? '' : 's'} exported.`);
   };
 
   if (authLoading) {
@@ -1178,29 +1489,28 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
+    <>
+      <a className="skip-link" href="#main-content" onClick={() => window.requestAnimationFrame(() => document.getElementById('main-content')?.focus())}>Skip to main content</a>
+      <div className="app-shell">
+      <aside className="sidebar" aria-label="Application sidebar">
         <div className="brand"><span className="brand-mark">FL</span><div><strong>FailureLens</strong><small>Evidence-grounded triage</small></div></div>
         <nav aria-label="Primary navigation">
-          <a href="#overview">Overview</a>
-          <a href="#ingestion">Ingestion</a>
-          <a href="#runs">Runs</a>
-          <a href="#impact">Change impact</a>
-          <a href="#performance">Performance</a>
-          <a href="#clusters">Clusters</a>
-          <a href="#workspace">Failure workspace</a>
-          <a href="#history">Test history</a>
-          {canReview && <a href="#reviews">Review queue</a>}
-          {canAdminister && <a href="#settings">Settings</a>}
-          {canReview && <a href="#audit">Audit</a>}
-          <a href="#evaluation">Evaluation</a>
+          {navigationItems.map((item) => <a href={item.href} key={item.href}>{item.label}</a>)}
         </nav>
         <div className="sidebar-note">Durable deterministic mode<br/><span>No model API required</span></div>
       </aside>
 
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <header className="topbar">
-          <div><p className="eyebrow">QUALITY INTELLIGENCE</p><h1>Failure investigation console</h1></div>
+          <div>
+            <p className="eyebrow">QUALITY INTELLIGENCE</p><h1>Failure investigation console</h1>
+            <details className="mobile-navigation">
+              <summary>Navigate</summary>
+              <nav aria-label="Compact navigation">
+                {navigationItems.map((item) => <a href={item.href} key={item.href}>{item.label}</a>)}
+              </nav>
+            </details>
+          </div>
           <div>
             {principal.demo_mode && canAdminister && <button className="primary" onClick={seedDemo} disabled={busy}>{busy ? 'Working…' : 'Load synthetic demo'}</button>}
             <div className="identity-bar" aria-label="Authenticated identity">
@@ -1213,6 +1523,7 @@ function App() {
         {principal.demo_mode && <div className="demo-banner" role="status"><strong>Synthetic demo identity.</strong> This loopback-oriented mode bypasses normal login for a visibly labeled administrator and must not be exposed as production authentication.</div>}
 
         {error && <div className="alert" role="alert">{error}</div>}
+        <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{statusMessage}</div>
 
         <section id="overview" className="metric-grid" aria-label="Overview metrics">
           {[
@@ -1574,12 +1885,12 @@ function App() {
           </article>
         </section>
 
-        <section id="workspace" className="workspace">
+        <section id="workspace" className="workspace" tabIndex={-1}>
           <article className="panel failure-list">
             <div className="panel-heading"><div><p className="eyebrow">CURRENT RUN</p><h2>Failures</h2></div><span className="count">{failures.length}</span></div>
             {failures.length === 0 && <div className="empty">No failures are available for the selected run.</div>}
             {failures.map((failure) => (
-              <button className={`failure-row ${selectedFailure?.id === failure.id ? 'active' : ''}`} key={failure.id} onClick={() => setSelectedFailure(failure)}>
+              <button className={`failure-row ${selectedFailure?.id === failure.id ? 'active' : ''}`} key={failure.id} onClick={() => setSelectedFailureId(failure.id)}>
                 <span className={`severity ${failure.latest_analysis?.severity ?? 'unknown'}`}/>
                 <span><strong>{failure.test_identity}</strong><small>{failure.message.slice(0, 110)}</small></span>
                 <em>{failure.latest_analysis ? categoryLabel[failure.latest_analysis.category] : 'Not analyzed'}</em>
@@ -1783,23 +2094,38 @@ function App() {
 
         {canReview && (
           <section id="reviews" className="panel review-queue-panel">
-            <div className="panel-heading"><div><p className="eyebrow">VERIFIED HUMAN WORKFLOW</p><h2>Review queue</h2></div><span className="count">{reviewQueue.length}</span></div>
-            <p className="limitation">The queue contains latest analyses without a terminal accept, reject, or category-correction decision. Opening an item preserves the machine result and prior review history.</p>
-            {reviewQueue.length === 0 ? <div className="empty">No pending analyses are available for this project.</div> : (
-              <div className="table-wrap">
-                <table>
-                  <thead><tr><th>Test</th><th>Machine category</th><th>Evidence</th><th>Latest decision</th><th/></tr></thead>
-                  <tbody>{reviewQueue.map((item) => (
-                    <tr key={item.analysis_id}>
-                      <td><strong>{item.test_identity}</strong><small>{item.summary}</small></td>
-                      <td><span className={`pill ${statusClass(item.category)}`}>{categoryLabel[item.category]}</span><small>{item.severity} severity</small></td>
-                      <td>{readableValue(item.evidence_completeness)}<small>{item.policy_flags.length > 0 ? item.policy_flags.join(' · ') : 'No active policy flags'}</small></td>
-                      <td>{item.latest_review_decision ? readableValue(item.latest_review_decision) : 'Unreviewed'}<small>version {item.latest_review_version}</small></td>
-                      <td><button type="button" onClick={() => openReviewQueueItem(item)}>Open failure</button></td>
-                    </tr>
-                  ))}</tbody>
-                </table>
-              </div>
+            <div className="panel-heading"><div><p className="eyebrow">VERIFIED HUMAN WORKFLOW</p><h2>Review queue</h2></div><span className="count">{filteredReviewQueue.length}/{reviewQueue.length}</span></div>
+            <p className="limitation">The latest authorized analysis window is bounded to 500 records. Pending, reviewed, and evidence-requested decisions can be filtered without rewriting the machine result or prior review history.</p>
+            <div className="table-toolbar" aria-label="Review queue filters">
+              <label>Search<input type="search" value={reviewSearch} onChange={(event: ChangeEvent<HTMLInputElement>) => { setReviewSearch(event.target.value); setReviewPage(1); }} placeholder="Test, summary, category, or decision" /></label>
+              <label>Status<select value={reviewStatusFilter} onChange={(event: ChangeEvent<HTMLSelectElement>) => { setReviewStatusFilter(event.target.value as 'all' | 'pending' | 'reviewed'); setReviewPage(1); }}><option value="pending">Pending action</option><option value="reviewed">Terminally reviewed</option><option value="all">All analyses</option></select></label>
+              <label>Category<select value={reviewCategoryFilter} onChange={(event: ChangeEvent<HTMLSelectElement>) => { setReviewCategoryFilter(event.target.value as 'all' | Category); setReviewPage(1); }}><option value="all">All categories</option>{Object.entries(categoryLabel).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+              <label>Sort<select value={reviewSort} onChange={(event: ChangeEvent<HTMLSelectElement>) => { setReviewSort(event.target.value as 'newest' | 'oldest' | 'severity' | 'test'); setReviewPage(1); }}><option value="newest">Newest analysis</option><option value="oldest">Oldest analysis</option><option value="severity">Highest severity</option><option value="test">Test identity</option></select></label>
+            </div>
+            <p className="result-summary" aria-live="polite">Showing {pagedReviewQueue.length} of {filteredReviewQueue.length} matching analyses.</p>
+            {filteredReviewQueue.length === 0 ? <div className="empty">No analyses match the current review filters.</div> : (
+              <>
+                <div className="table-wrap">
+                  <table>
+                    <caption className="sr-only">Filtered review queue</caption>
+                    <thead><tr><th scope="col">Test</th><th scope="col">Machine category</th><th scope="col">Evidence</th><th scope="col">Latest decision</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+                    <tbody>{pagedReviewQueue.map((item) => (
+                      <tr key={item.analysis_id}>
+                        <td><strong>{item.test_identity}</strong><small>{item.summary}</small></td>
+                        <td><span className={`pill ${statusClass(item.category)}`}>{categoryLabel[item.category]}</span><small>{item.severity} severity</small></td>
+                        <td>{readableValue(item.evidence_completeness)}<small>{item.policy_flags.length > 0 ? item.policy_flags.join(' · ') : 'No active policy flags'}</small></td>
+                        <td>{item.latest_review_decision ? readableValue(item.latest_review_decision) : 'Unreviewed'}<small>version {item.latest_review_version}</small></td>
+                        <td><button type="button" onClick={() => openReviewQueueItem(item)} aria-label={`Open failure ${item.test_identity}`}>Open failure</button></td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+                <nav className="pagination" aria-label="Review queue pages">
+                  <button type="button" onClick={() => setReviewPage((page) => Math.max(1, page - 1))} disabled={reviewPage <= 1}>Previous</button>
+                  <span>Page {reviewPage} of {reviewPageCount}</span>
+                  <button type="button" onClick={() => setReviewPage((page) => Math.min(reviewPageCount, page + 1))} disabled={reviewPage >= reviewPageCount}>Next</button>
+                </nav>
+              </>
             )}
           </section>
         )}
@@ -1816,7 +2142,7 @@ function App() {
                   <button type="submit" disabled={busy || !memberUsername.trim()}>Add member</button>
                 </form>
                 {members.length === 0 ? <div className="empty">No explicit memberships exist. System administrators retain bootstrap access.</div> : (
-                  <div className="table-wrap"><table><thead><tr><th>User</th><th>Role</th><th/></tr></thead><tbody>{members.map((member) => (
+                  <div className="table-wrap"><table><caption className="sr-only">Project members and roles</caption><thead><tr><th scope="col">User</th><th scope="col">Role</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead><tbody>{members.map((member) => (
                     <tr key={member.id}>
                       <td><strong>{member.display_name}</strong><small>{member.username}</small></td>
                       <td><select aria-label={`Role for ${member.username}`} value={member.role} onChange={(event: ChangeEvent<HTMLSelectElement>) => changeProjectMemberRole(member.id, event.target.value as ProjectRole)} disabled={busy}><option value="viewer">Viewer</option><option value="reviewer">Reviewer</option><option value="administrator">Administrator</option></select></td>
@@ -1844,24 +2170,55 @@ function App() {
                 </ul>
                 {ingestionTokens.length === 0 && <div className="empty">No project ingestion credentials exist.</div>}
               </section>
+
+              <section className="settings-block system-status-block" aria-labelledby="system-status-heading">
+                <div><h3 id="system-status-heading">System status and policy versions</h3><p>Health checks are read-only and expose no credentials. Unknown states remain explicit instead of being shown as healthy.</p></div>
+                <div className="status-grid" aria-live="polite" aria-busy={healthLoading}>
+                  <article><span>API liveness</span><strong className={`state ${systemHealth.live?.status === 'live' ? 'succeeded' : systemHealth.live ? 'failed' : 'unknown'}`}>{systemHealth.live?.status ?? 'Unknown'}</strong></article>
+                  <article><span>Database readiness</span><strong className={`state ${systemHealth.ready?.status === 'ready' ? 'succeeded' : systemHealth.ready ? 'failed' : 'unknown'}`}>{systemHealth.ready?.status ?? 'Unknown'}</strong></article>
+                  <article><span>Analysis mode</span><strong>Deterministic</strong><small>No model API required</small></article>
+                  <article><span>Project role</span><strong>{readableValue(currentRole ?? 'none')}</strong></article>
+                  <article><span>Clustering engine</span><strong>{selectedCluster?.algorithm_version ?? runClusters[0]?.algorithm_version ?? 'Not yet persisted'}</strong></article>
+                  <article><span>Impact policy</span><strong>{selectedImpact?.policy_version ?? 'Not yet persisted'}</strong></article>
+                  <article><span>Performance policy</span><strong>{performancePolicies[0]?.version ?? 'Default strict policy'}</strong></article>
+                  <article><span>Evidence inputs</span><strong>{runInputs.length}</strong><small>for selected run</small></article>
+                </div>
+                {systemHealth.error && <div className="alert compact-alert" role="alert">{systemHealth.error}</div>}
+                <div className="status-actions"><button type="button" onClick={refreshSystemHealth} disabled={healthLoading}>{healthLoading ? 'Checking…' : 'Refresh health'}</button>{systemHealth.checkedAt && <small>Checked {new Date(systemHealth.checkedAt).toLocaleString()}</small>}</div>
+              </section>
             </div>
           </section>
         )}
 
         {canReview && (
           <section id="audit" className="panel audit-panel">
-            <div className="panel-heading"><div><p className="eyebrow">APPEND-ONLY APPLICATION HISTORY</p><h2>Project audit events</h2></div><span className="count">{auditEvents.length}</span></div>
+            <div className="panel-heading"><div><p className="eyebrow">APPEND-ONLY APPLICATION HISTORY</p><h2>Project audit events</h2></div><span className="count">{filteredAuditEvents.length}/{auditEvents.length}</span></div>
             <p className="limitation">These events preserve verified application actors and reasons. They are not represented as cryptographically immutable against a database administrator.</p>
-            {auditEvents.length === 0 ? <div className="empty">No project audit events are available.</div> : (
-              <div className="table-wrap"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Resource</th><th>Reason</th></tr></thead><tbody>{auditEvents.map((event) => (
-                <tr key={event.id}>
-                  <td>{new Date(event.created_at).toLocaleString()}</td>
-                  <td><strong>{event.actor_display}</strong><small>{readableValue(event.actor_kind)}</small></td>
-                  <td>{readableValue(event.action)}<small>{readableValue(event.outcome)}</small></td>
-                  <td>{readableValue(event.resource_type)}<small>{event.resource_id ?? 'No resource identifier'}</small></td>
-                  <td>{event.reason ?? 'No free-text reason'} </td>
-                </tr>
-              ))}</tbody></table></div>
+            <div className="table-toolbar audit-toolbar" aria-label="Audit event filters">
+              <label>Search<input type="search" value={auditSearch} onChange={(event: ChangeEvent<HTMLInputElement>) => { setAuditSearch(event.target.value); setAuditPage(1); }} placeholder="Actor, action, resource, or reason" /></label>
+              <label>Action<select value={auditActionFilter} onChange={(event: ChangeEvent<HTMLSelectElement>) => { setAuditActionFilter(event.target.value); setAuditPage(1); }}><option value="">All actions</option>{auditActions.map((action) => <option value={action} key={action}>{readableValue(action)}</option>)}</select></label>
+              <label>Outcome<select value={auditOutcomeFilter} onChange={(event: ChangeEvent<HTMLSelectElement>) => { setAuditOutcomeFilter(event.target.value); setAuditPage(1); }}><option value="">All outcomes</option>{auditOutcomes.map((outcome) => <option value={outcome} key={outcome}>{readableValue(outcome)}</option>)}</select></label>
+              <label>Sort<select value={auditSort} onChange={(event: ChangeEvent<HTMLSelectElement>) => { setAuditSort(event.target.value as 'newest' | 'oldest'); setAuditPage(1); }}><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label>
+              <button type="button" onClick={exportAuditCsv} disabled={filteredAuditEvents.length === 0}>Export filtered CSV</button>
+            </div>
+            <p className="result-summary" aria-live="polite">Showing {pagedAuditEvents.length} of {filteredAuditEvents.length} matching audit events.</p>
+            {filteredAuditEvents.length === 0 ? <div className="empty">No project audit events match the current filters.</div> : (
+              <>
+                <div className="table-wrap"><table><caption className="sr-only">Filtered project audit events</caption><thead><tr><th scope="col">Time</th><th scope="col">Actor</th><th scope="col">Action</th><th scope="col">Resource</th><th scope="col">Reason</th></tr></thead><tbody>{pagedAuditEvents.map((event) => (
+                  <tr key={event.id}>
+                    <td>{new Date(event.created_at).toLocaleString()}</td>
+                    <td><strong>{event.actor_display}</strong><small>{readableValue(event.actor_kind)}</small></td>
+                    <td>{readableValue(event.action)}<small>{readableValue(event.outcome)}</small></td>
+                    <td>{readableValue(event.resource_type)}<small>{event.resource_id ?? 'No resource identifier'}</small></td>
+                    <td>{event.reason ?? 'No free-text reason'} </td>
+                  </tr>
+                ))}</tbody></table></div>
+                <nav className="pagination" aria-label="Audit event pages">
+                  <button type="button" onClick={() => setAuditPage((page) => Math.max(1, page - 1))} disabled={auditPage <= 1}>Previous</button>
+                  <span>Page {auditPage} of {auditPageCount}</span>
+                  <button type="button" onClick={() => setAuditPage((page) => Math.min(auditPageCount, page + 1))} disabled={auditPage >= auditPageCount}>Next</button>
+                </nav>
+              </>
             )}
           </section>
         )}
@@ -1879,7 +2236,8 @@ function App() {
           <p className="limitation">The committed benchmark is agent-authored and synthetic. It does not include the prompt-required actual LedgerGuard executions and must not be presented as deployment performance.</p>
         </section>
       </main>
-    </div>
+      </div>
+    </>
   );
 }
 

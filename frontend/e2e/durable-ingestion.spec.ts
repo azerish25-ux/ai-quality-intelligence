@@ -1,12 +1,14 @@
 import { expect, test } from '@playwright/test';
 
-test('uploads a real JUnit report and opens the automatically analyzed run', async ({ page }) => {
+test('uploads a real JUnit report and opens the automatically analyzed run', async ({ page }, testInfo) => {
+  const projectSuffix = `${testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${testInfo.retry}`;
+  const externalRunId = `browser-e2e-${projectSuffix}`;
   await page.goto('/');
   await expect(page.getByText('Synthetic demo identity.')).toBeVisible();
   await page.getByRole('button', { name: 'Load synthetic demo' }).click();
   await expect(page.getByRole('heading', { name: 'Upload an actual test report' })).toBeVisible();
 
-  await page.getByLabel('External run ID').fill('browser-e2e-1');
+  await page.getByLabel('External run ID').fill(externalRunId);
   await page.getByLabel('Expected required inputs').fill('1');
   await page.getByLabel('Report file').setInputFiles({
     name: 'browser-junit.xml',
@@ -17,7 +19,7 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
   });
   await page.getByRole('button', { name: 'Queue ingestion' }).click();
 
-  const ingestion = page.locator('.ingestion-row', { hasText: 'browser-e2e-1' });
+  const ingestion = page.locator('.ingestion-row', { hasText: externalRunId });
   await expect(ingestion).toBeVisible();
   await expect(ingestion.getByText('Succeeded')).toBeVisible();
   await ingestion.getByRole('button', { name: 'Open run' }).click();
@@ -61,17 +63,20 @@ test('uploads a real JUnit report and opens the automatically analyzed run', asy
     'The approved evidence supports the deterministic category for this controlled run.'
   );
   await analysisReview.getByRole('button', { name: 'Record append-only decision' }).click();
-  await expect(analysisReview).toContainText('Synthetic demo administrator · version 1');
+  await expect(analysisReview).toContainText(/Synthetic demo administrator · version \d+/);
 
   await page.locator('#settings').scrollIntoViewIfNeeded();
-  await page.getByLabel('Credential name').fill('browser-ingestion-check');
+  const credentialName = `browser-ingestion-${projectSuffix}`;
+  await page.getByLabel('Credential name').fill(credentialName);
   await page.getByRole('button', { name: 'Create token' }).click();
   await expect(page.getByText('Copy this secret now. It will not be shown again.')).toBeVisible();
-  await page.getByRole('button', { name: 'Revoke' }).click();
-  await expect(page.getByText('Revoked', { exact: true })).toBeVisible();
+  const credentialRow = page.locator('.token-list li', { hasText: credentialName });
+  await credentialRow.getByRole('button', { name: 'Revoke' }).click();
+  await expect(credentialRow.getByText('Revoked', { exact: true })).toBeVisible();
 });
 
-test('builds an explainable focused recommendation and records an attributed override', async ({ page }) => {
+test('builds an explainable focused recommendation and records an attributed override', async ({ page }, testInfo) => {
+  const projectSuffix = `${testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${testInfo.retry}`;
   const seedResponse = await page.request.post('http://127.0.0.1:5173/api/v1/demo/seed');
   expect(seedResponse.ok()).toBeTruthy();
   const seed = await seedResponse.json() as { project_id: string };
@@ -79,7 +84,7 @@ test('builds an explainable focused recommendation and records an attributed ove
   const baseSha = '1'.repeat(40);
   const headSha = '2'.repeat(40);
   const query = new URLSearchParams({
-    external_id: 'impact-browser-e2e-1',
+    external_id: `impact-browser-e2e-${projectSuffix}`,
     filename: 'changes.json',
     repository: 'owner/repo',
     base_sha: baseSha,
@@ -123,11 +128,11 @@ test('builds an explainable focused recommendation and records an attributed ove
   const editor = page.locator('details.impact-mapping-editor');
   await editor.getByText('Register an immutable mapping snapshot').click();
   const manifest = JSON.parse(await editor.getByLabel('Impact mapping manifest').inputValue()) as Record<string, unknown>;
-  manifest.version = 'mapping-browser-e2e-v1';
+  manifest.version = `mapping-browser-e2e-${projectSuffix}-v1`;
   await editor.getByLabel('Impact mapping manifest').fill(JSON.stringify(manifest, null, 2));
   await editor.getByRole('button', { name: 'Register mapping snapshot' }).click();
 
-  await expect(page.getByRole('combobox', { name: /Impact mapping/i })).toContainText('mapping-browser-e2e-v1');
+  await expect(page.getByRole('combobox', { name: /Impact mapping/i })).toContainText(`mapping-browser-e2e-${projectSuffix}-v1`);
   await page.getByRole('button', { name: 'Generate recommendation' }).click();
   await expect(page.locator('.impact-summary')).toContainText('FOCUSED SUBSET');
   await expect(page.getByRole('region', { name: 'Selected impact tests' })).toContainText('submits payment');

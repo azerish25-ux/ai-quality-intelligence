@@ -701,3 +701,63 @@ describe('compatible performance intelligence client', () => {
     });
   });
 });
+
+describe('M5.2 governance and status client', () => {
+  it('requests both public health probes without dropping credential policy', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'live' }), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'ready' }), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(api.healthLive()).resolves.toEqual({ status: 'live' });
+    await expect(api.healthReady()).resolves.toEqual({ status: 'ready' });
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/health/live', {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/health/ready', {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
+  });
+
+  it('can load the complete review queue for client-side filtering and pagination', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(api.reviewQueue('project-1', false)).resolves.toEqual([]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/projects/project-1/review-queue?pending_only=false&limit=500',
+      {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+  });
+
+  it('loads the bounded audit window used by client-side filtering and export', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(api.auditEvents('project-1')).resolves.toEqual([]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/projects/project-1/audit-events?limit=500&offset=0',
+      {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+  });
+});

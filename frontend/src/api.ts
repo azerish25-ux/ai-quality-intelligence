@@ -40,6 +40,10 @@ export interface LoginResponse {
   expires_at: string;
 }
 
+export interface HealthStatus {
+  status: 'live' | 'ready' | string;
+}
+
 export interface UserRecord {
   id: string;
   username: string;
@@ -854,6 +858,8 @@ const historyUrl = (executionId: string, filters: HistoryFilters = {}): string =
 };
 
 export const api = {
+  healthLive: () => json<HealthStatus>('/health/live'),
+  healthReady: () => json<HealthStatus>('/health/ready'),
   me: () => json<Principal>('/api/v1/auth/me'),
   login: (username: string, password: string) => json<LoginResponse>('/api/v1/auth/login', {
     method: 'POST',
@@ -899,9 +905,9 @@ export const api = {
       method: 'POST'
     }),
   auditEvents: (projectId: string) =>
-    json<AuditEvent[]>(`/api/v1/projects/${projectId}/audit-events`),
+    json<AuditEvent[]>(`/api/v1/projects/${projectId}/audit-events?limit=500&offset=0`),
   reviewQueue: (projectId: string, pendingOnly = true) =>
-    json<ReviewQueueItem[]>(`/api/v1/projects/${projectId}/review-queue?pending_only=${pendingOnly}`),
+    json<ReviewQueueItem[]>(`/api/v1/projects/${projectId}/review-queue?pending_only=${pendingOnly}&limit=500`),
   analysisReviews: (analysisId: string) =>
     json<ReviewEvent[]>(`/api/v1/analyses/${analysisId}/reviews`),
   reviewAnalysis: (analysisId: string, review: ReviewRequest) =>
