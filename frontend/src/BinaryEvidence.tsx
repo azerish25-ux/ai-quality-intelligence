@@ -71,7 +71,7 @@ export function BinaryEvidencePanel({ runId, canReview }: { runId: string; canRe
     {!page && !error && <p role="status">Loading binary evidence…</p>}
     {page && <>
       {page.total === 0 ? <div className="empty">This run has no declared screenshot or trace inputs.</div> : <div className="binary-toolbar">
-        <label>Binary evidence input<select value={selected} onChange={event => pick(event.target.value)}>
+        <label>Binary evidence input<select aria-label="Binary evidence input" value={selected} onChange={event => pick(event.target.value)}>
           <option value="">Select an input</option>
           {selected && !items.some(item => item.input_id === selected) && <option value={selected}>Linked evidence outside this page</option>}
           {items.map(item => <option key={item.input_id} value={item.input_id}>{item.manifest_input_id} · {item.state}</option>)}
@@ -84,10 +84,10 @@ export function BinaryEvidencePanel({ runId, canReview }: { runId: string; canRe
       <details className="binary-comparison"><summary>Compare approved expected and actual images</summary>
         <p>Choose images on this input page. Both must belong to the same explicitly associated execution and compatible browser, operating system, viewport, scale, and comparison group.</p>
         <form onSubmit={compare} className="binary-toolbar">
-          <label>Expected approved image<select value={expectedId} onChange={event => { setExpectedId(event.target.value); setComparison(null); comparisonEpoch.current++; setComparing(false); }}>
+          <label>Expected approved image<select aria-label="Expected approved image" value={expectedId} onChange={event => { setExpectedId(event.target.value); setComparison(null); comparisonEpoch.current++; setComparing(false); }}>
             <option value="">Select expected image</option>{approved.filter(item => item.relationship === 'expected').map(item => <option key={item.input_id} value={item.derivative!.id}>{item.manifest_input_id}</option>)}
           </select></label>
-          <label>Actual approved image<select value={actualId} onChange={event => { setActualId(event.target.value); setComparison(null); comparisonEpoch.current++; setComparing(false); }}>
+          <label>Actual approved image<select aria-label="Actual approved image" value={actualId} onChange={event => { setActualId(event.target.value); setComparison(null); comparisonEpoch.current++; setComparing(false); }}>
             <option value="">Select actual image</option>{approved.filter(item => item.relationship === 'actual').map(item => <option key={item.input_id} value={item.derivative!.id}>{item.manifest_input_id}</option>)}
           </select></label>
           <button type="submit" disabled={!expectedId || !actualId || comparing}>Compare approved images</button>
