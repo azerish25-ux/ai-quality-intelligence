@@ -951,6 +951,9 @@ def ingest_parsed_report(
         settings=settings,
     )
 
+    from .binary_evidence import register_binary_inputs
+    register_binary_inputs(session, project, run, artifact, settings)
+
     run.status = RunStatus.complete if completeness == "complete" else RunStatus.partial
     run.ended_at = datetime.now(UTC)
     try:
@@ -1378,6 +1381,8 @@ def process_artifact_ingestion(
             "failures": len(failures),
         },
     ]
+    from .binary_evidence import discard_binary_source
+    discard_binary_source(session, ingestion, run)
     session.commit()
     session.refresh(ingestion)
     return run
@@ -1422,6 +1427,7 @@ def select_failure_evidence(session: Session, failure: Failure) -> list[Evidence
             .where(
                 Evidence.project_id == failure.project_id,
                 Evidence.run_id == failure.run_id,
+                Evidence.provenance_kind != "supplemental_trace",
                 or_(*conditions),
             )
             .options(

@@ -7,6 +7,7 @@ import struct
 import zipfile
 
 import pytest
+from PIL import Image
 
 import failurelens.ingestion as ingestion
 from failurelens.config import Settings, get_settings
@@ -25,21 +26,14 @@ def _bundle(manifest: dict, files: dict[str, bytes | str]) -> bytes:
 def _trace_zip(payload: bytes = b'{"type":"before"}\n') -> bytes:
     target = io.BytesIO()
     with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr("trace.trace", payload)
+        archive.writestr("trace.trace", b'{"type":"context-options","version":9,"playwrightVersion":"1.63.0"}\n' + payload)
     return target.getvalue()
 
 
 def _jpeg(width: int, height: int) -> bytes:
-    # Minimal SOI + baseline SOF segment; the adapter intentionally reads metadata only.
-    return (
-        b"\xff\xd8"
-        + b"\xff\xc0"
-        + b"\x00\x11"
-        + b"\x08"
-        + struct.pack(">HH", height, width)
-        + b"\x03\x01\x11\x00\x02\x11\x00\x03\x11\x00"
-        + b"\xff\xd9"
-    )
+    output = io.BytesIO()
+    Image.new("RGB", (width, height), (41, 92, 177)).save(output, format="JPEG")
+    return output.getvalue()
 
 
 def test_junit_preserves_properties_skips_and_captured_output() -> None:

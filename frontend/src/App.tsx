@@ -31,6 +31,7 @@ import {
   type TestHistory
 } from './api';
 import { AccountPanel, RecoveryForm, RetentionPanel } from './Operations';
+import { BinaryEvidencePanel } from './BinaryEvidence';
 
 const categoryLabel: Record<string, string> = {
   product_defect: 'Probable product defect',
@@ -1686,6 +1687,8 @@ function App() {
             </>
           )}
         </section>
+
+        {selectedRun && <BinaryEvidencePanel key={`${selectedRun.id}:${selectedRun.evidence_expired_at ?? 'active'}`} runId={selectedRun.id} canReview={canReview} />}
 
         <section id="impact" className="panel impact-panel">
           <div className="panel-heading">

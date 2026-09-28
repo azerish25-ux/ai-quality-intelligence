@@ -199,7 +199,7 @@ def _sanitize_url(value: str) -> str:
         return redact_text(value[:2048]).text
     safe_query = urllib.parse.urlencode([(key[:240], "[REDACTED]") for key, _ in query])
     return urllib.parse.urlunsplit(
-        (parsed.scheme, parsed.netloc, parsed.path, safe_query, "")
+        (parsed.scheme, parsed.netloc.rsplit("@", 1)[-1], redact_text(parsed.path).text, safe_query, "")
     )[:2048]
 
 
@@ -1030,71 +1030,27 @@ def _changed_files_adapter(content: bytes, _: str, __: Settings) -> AdapterResul
 
 
 def _image_dimensions(content: bytes) -> tuple[str, int, int]:
-    if content.startswith(b"\x89PNG\r\n\x1a\n"):
-        if len(content) < 24 or content[12:16] != b"IHDR":
-            raise IngestionError("malformed_report", "PNG is missing a valid IHDR")
-        width, height = struct.unpack(">II", content[16:24])
-        return "image/png", width, height
-    if content.startswith(b"\xff\xd8"):
-        position = 2
-        while position + 4 <= len(content):
-            if content[position] != 0xFF:
-                position += 1
-                continue
-            marker = content[position + 1]
-            position += 2
-            if marker in {0xD8, 0xD9}:
-                continue
-            if position + 2 > len(content):
-                break
-            length = int.from_bytes(content[position : position + 2], "big")
-            if length < 2 or position + length > len(content):
-                break
-            if marker in {
-                0xC0,
-                0xC1,
-                0xC2,
-                0xC3,
-                0xC5,
-                0xC6,
-                0xC7,
-                0xC9,
-                0xCA,
-                0xCB,
-                0xCD,
-                0xCE,
-                0xCF,
-            }:
-                if length < 7:
-                    break
-                height = int.from_bytes(content[position + 3 : position + 5], "big")
-                width = int.from_bytes(content[position + 5 : position + 7], "big")
-                return "image/jpeg", width, height
-            position += length
-        raise IngestionError("malformed_report", "JPEG dimensions could not be decoded")
-    raise IngestionError("unsupported_format", "Screenshot must be PNG or JPEG")
+    # Kept as a compatibility helper; validation must also decode the full raster.
+    from .image_codec import ImageCodecError, decode_image
+    try:
+        metadata, _ = decode_image(content, Settings())
+    except ImageCodecError as exc:
+        raise IngestionError(exc.code, "Screenshot validation failed") from exc
+    return metadata["media_type"], metadata["width"], metadata["height"]
 
 
 def _screenshot_adapter(content: bytes, _: str, settings: Settings) -> AdapterResult:
-    media_type, width, height = _image_dimensions(content)
-    if width <= 0 or height <= 0:
-        raise IngestionError("malformed_report", "Screenshot dimensions must be positive")
-    pixels = width * height
-    if pixels > settings.max_image_pixels:
-        raise IngestionError(
-            "limit_exceeded",
-            f"Screenshot has {pixels} pixels, exceeding {settings.max_image_pixels}",
-        )
+    from .image_codec import ImageCodecError, decode_image
+    try:
+        metadata, _ = decode_image(content, settings)
+    except ImageCodecError as exc:
+        code = "malformed_report" if exc.code == "malformed_image" else exc.code
+        raise IngestionError(code, "Screenshot could not be safely decoded") from exc
+    # A perceptual descriptor is derived from pixels too: do not expose it until review.
+    metadata.pop("dhash", None)
     return AdapterResult(
-        metadata={
-            "producer": "screenshot",
-            "media_type": media_type,
-            "width": width,
-            "height": height,
-            "pixels": pixels,
-            "review_state": "restricted",
-            "safe_derivative": "metadata-only",
-        },
+        metadata={**metadata, "producer": "screenshot", "review_state": "restricted",
+                  "safe_derivative": "metadata-only"},
         warnings=("pixel_content_not_sanitized", "review_required_before_display"),
         restricted=True,
     )
@@ -1142,59 +1098,9 @@ def _validate_zip_infos(
 
 
 def _trace_adapter(content: bytes, _: str, settings: Settings) -> AdapterResult:
-    try:
-        archive = zipfile.ZipFile(io.BytesIO(content))
-    except zipfile.BadZipFile as exc:
-        raise IngestionError("malformed_report", "Playwright trace archive is malformed") from exc
-    with archive:
-        names = _validate_zip_infos(archive.infolist(), settings)
-        trace_candidates = [
-            info for name, info in names.items() if name.endswith("trace.trace") or name == "trace.trace"
-        ]
-        if not trace_candidates:
-            raise IngestionError("unsupported_format", "Playwright trace archive has no trace.trace")
-        event_count = 0
-        error_count = 0
-        action_count = 0
-        for trace_info in trace_candidates[:20]:
-            if trace_info.file_size > settings.max_file_bytes:
-                raise IngestionError("limit_exceeded", "Trace event stream exceeds file limit")
-            raw = archive.read(trace_info)
-            try:
-                text = raw.decode("utf-8")
-            except UnicodeDecodeError as exc:
-                raise IngestionError("malformed_encoding", "Trace event stream must be UTF-8") from exc
-            for line in text.splitlines()[:50_000]:
-                if not line.strip():
-                    continue
-                event_count += 1
-                try:
-                    event = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if not isinstance(event, dict):
-                    continue
-                event_type = str(event.get("type") or "").lower()
-                if event_type in {"before", "after", "action"}:
-                    action_count += 1
-                if event_type in {"error", "console"} and (
-                    event_type == "error" or str(event.get("messageType") or "").lower() == "error"
-                ):
-                    error_count += 1
-        return AdapterResult(
-            metadata={
-                "producer": "playwright-trace",
-                "archive_entries": len(names),
-                "trace_streams": len(trace_candidates),
-                "event_count": event_count,
-                "action_count": action_count,
-                "error_event_count": error_count,
-                "review_state": "restricted",
-                "safe_derivative": "bounded-metadata-index",
-            },
-            warnings=("trace_original_restricted", "trace_dom_and_network_not_sanitized"),
-            restricted=True,
-        )
+    from .trace_evidence import build_trace_index
+    metadata, warnings = build_trace_index(content, settings)
+    return AdapterResult(metadata=metadata, warnings=warnings, restricted=True)
 
 
 def _json_pointer_escape(value: str) -> str:
@@ -1360,7 +1266,7 @@ def _register_adapters() -> None:
     _register(
         AdapterSpec(
             kind="screenshot",
-            parser_version="screenshot-metadata-v1",
+            parser_version="screenshot-decoded-v2",
             parser=_screenshot_adapter,
             aliases=("png", "jpeg", "image"),
             suffixes=(".png", ".jpg", ".jpeg"),
@@ -1371,7 +1277,7 @@ def _register_adapters() -> None:
     _register(
         AdapterSpec(
             kind="playwright-trace",
-            parser_version="playwright-trace-index-v1",
+            parser_version="playwright-safe-index-v2",
             parser=_trace_adapter,
             aliases=("trace",),
             suffixes=(".zip",),
@@ -1675,7 +1581,7 @@ def _parse_manifest_v2(
         except IngestionError as exc:
             if required:
                 required_complete = False
-            status = "unsupported" if exc.code in {"unsupported_format", "unsupported_schema"} else "rejected"
+            status = "unsupported" if exc.code in {"unsupported_format", "unsupported_schema", "unsupported_trace_version", "unsupported_trace_producer"} else "rejected"
             parsed_inputs.append(
                 ParsedInput(
                     input_id=input_id,
@@ -1817,7 +1723,7 @@ def parse_zip_bundle(content: bytes, filename: str, settings: Settings) -> Parse
 
         # A standalone Playwright trace ZIP is not a FailureLens bundle.
         lowered_names = set(normalized_names)
-        if any(name.endswith("trace.trace") or name == "trace.trace" for name in lowered_names):
+        if any(name.endswith(".trace") for name in lowered_names):
             return _standalone_artifact(
                 content,
                 filename,

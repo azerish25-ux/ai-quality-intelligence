@@ -1,5 +1,22 @@
 # FailureLens delivery ledger
 
+## M2.1 safe binary evidence — implementation checkpoint
+
+The scoped implementation adds fully decoded and reviewed/masked screenshots,
+version-pinned safe trace event derivatives, authorized digest-verified previews,
+revocation, retention integration, conservative visual comparison, real producer
+fixture generation, and API-backed dashboard acceptance cases. See
+[safe-binary-evidence.md](safe-binary-evidence.md) for contracts, policy limits and
+requirement-to-test mapping.
+
+Local pre-publication checks: all 220 non-PostgreSQL backend cases then present
+passed, with three existing PostgreSQL-only cases not run locally. The 20 new
+binary regression cases passed. Strict frontend/browser and newly added actual
+producer/PG-concurrency verification are pending remote execution at this checkpoint.
+No fixture has been relabeled as a LedgerGuard execution. Full M2/master remain
+PARTIAL. The historical M5.3.1 evidence below is preserved and is not substituted
+for verification of this new source.
+
 ## Current checkpoint — M5.3.1 operational workflow stabilization
 
 Repository: `azerish25-ux/ai-quality-intelligence`. Default and working branch: `main`.

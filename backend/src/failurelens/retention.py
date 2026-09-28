@@ -182,6 +182,10 @@ def _scrub_run(session: Session, run: m.Run, version: int) -> None:
     session.execute(update(m.AuditEvent).where(m.AuditEvent.project_id == run.project_id,
         or_(m.AuditEvent.resource_id == run.id, m.AuditEvent.resource_id.in_(review_ids),
             m.AuditEvent.resource_id.in_(analysis_ids))).values(reason=EXPIRED, details={"retention_state": "expired"}))
+    binary_ids = select(m.BinaryEvidence.input_id).where(m.BinaryEvidence.run_id == run.id)
+    session.execute(update(m.BinaryEvidenceDecision).where(m.BinaryEvidenceDecision.input_id.in_(binary_ids)).values(
+        reason=EXPIRED, masks=[]))
+    session.execute(update(m.BinaryEvidence).where(m.BinaryEvidence.run_id == run.id).values(state="expired"))
     for derivative in session.scalars(select(m.ArtifactDerivative).where(m.ArtifactDerivative.run_id == run.id)):
         derivative.retention_state = "expired"
         derivative.source_map, derivative.metadata_json = {}, {}

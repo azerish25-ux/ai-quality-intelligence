@@ -1,5 +1,18 @@
 # Security and trust boundaries
 
+## M2.1 current binary-evidence boundary
+
+See [safe-binary-evidence.md](safe-binary-evidence.md). This checkpoint supplies
+immutable reviewed pixel masks, conservative compatible-image comparison,
+version-pinned safe trace event extraction, controlled local inspection, and
+approved derivative preview/download with authorization, integrity and lifecycle
+checks. The default does not retain binary originals after successful processing.
+Raw queue/staging failure recovery still uses existing restricted-source policy;
+this is not a claim of universal encryption or instantaneous crash erasure.
+The older "still required" binary list below describes the M5.3-era foundation,
+not a replacement for the scoped current requirement matrix and CI evidence.
+
+
 ## Untrusted inputs
 
 Every artifact field is untrusted: filenames, manifests, XML/JSON/JSONL, test names, logs, URLs, request/response evidence, commit metadata, screenshots, trace snapshots, report prose, and model output. A string that looks like an instruction has no authority.

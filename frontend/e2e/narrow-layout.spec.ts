@@ -41,3 +41,9 @@ test('keeps every critical workflow reachable without horizontal page overflow',
   await page.reload();
   await focusSkipLinkFromDocumentStart(page);
 });
+
+// Retain the original compact-navigation case and exercise the new evidence flow separately.
+import { binaryEvidenceJourney } from './binary-journey';
+test('safe binary evidence remains usable on a narrow viewport', async ({ page, request }, info) => {
+  await binaryEvidenceJourney(page, request, info);
+});

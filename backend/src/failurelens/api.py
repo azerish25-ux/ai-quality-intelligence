@@ -2310,3 +2310,8 @@ def evidence_get(
             retention_state=derivative.retention_state,
         ),
     )
+
+
+# Keep binary handling separate from test-outcome analysis and never expose source storage.
+from .binary_api import router as binary_router
+app.include_router(binary_router)

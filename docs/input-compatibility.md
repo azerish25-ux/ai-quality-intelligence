@@ -1,5 +1,17 @@
 # Input compatibility matrix
 
+## M2.1 support overlay
+
+The historical foundation matrix below is superseded for screenshots/traces and
+producer fixtures by [safe-binary-evidence.md](safe-binary-evidence.md). Screenshots
+now require actual bounded decoding and have a reviewer-controlled immutable mask
+workflow. Playwright trace schema 9 / producer 1.63.0 supplies bounded safe event
+citations and a digest-verified local-inspection command. Approved derivatives have
+authorized preview/download, expiry and revocation. Originals remain restricted and
+are not offered for download. Real producer execution is checked by the CI fixture
+job; exact passing execution must be read from the delivered revision's CI/ledger.
+
+
 Support depth is stated explicitly. “Working adapter” means the format is parsed, bounded, assigned a stable input record, and exercised by automated fixtures. It does **not** imply universal producer compatibility or that every binary artifact is safe to display.
 
 | Input | Current support | Evidence retained | Important limits |

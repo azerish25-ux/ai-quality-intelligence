@@ -2,6 +2,7 @@ import hashlib
 import io
 import json
 import struct
+from PIL import Image
 import zipfile
 
 import pytest
@@ -246,8 +247,9 @@ def test_k6_thresholds_are_preserved_without_inventing_quantiles() -> None:
 
 
 def test_screenshot_metadata_is_restricted_and_pixel_bounded() -> None:
-    # The metadata adapter intentionally does not decode or expose pixel content.
-    png = b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\rIHDR" + struct.pack(">II", 320, 200) + b"\x08\x06\x00\x00\x00"
+    output = io.BytesIO()
+    Image.new("RGB", (320, 200), (23, 91, 171)).save(output, format="PNG")
+    png = output.getvalue()
     parsed = parse_artifact(png, "failure.png", get_settings())
     assert parsed.inputs[0].status == "restricted"
     assert parsed.completeness == "partial"
@@ -263,6 +265,7 @@ def test_manifest_allows_only_declared_playwright_trace_archives() -> None:
             "trace.trace",
             '\n'.join(
                 [
+                    json.dumps({"type": "context-options", "version": 9, "playwrightVersion": "1.63.0"}),
                     json.dumps({"type": "before", "apiName": "page.click"}),
                     json.dumps({"type": "error", "message": "selector failed"}),
                 ]
@@ -288,7 +291,7 @@ def test_manifest_allows_only_declared_playwright_trace_archives() -> None:
     assert parsed.expected_inputs == 1
     assert parsed.received_inputs == 1
     assert parsed.inputs[0].status == "restricted"
-    assert parsed.inputs[0].metadata["event_count"] == 2
+    assert parsed.inputs[0].metadata["event_count"] == 3
     assert parsed.inputs[0].metadata["error_event_count"] == 1
 
 
@@ -313,7 +316,9 @@ def test_registry_exposes_declared_m2_adapter_families() -> None:
 
 
 def test_manifest_v2_required_restricted_input_is_partial() -> None:
-    image = b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\rIHDR" + struct.pack(">II", 2, 2) + b"\x08\x06\x00\x00\x00"
+    output = io.BytesIO()
+    Image.new("RGB", (2, 2), (23, 91, 171)).save(output, format="PNG")
+    image = output.getvalue()
     manifest = {
         "schema_version": "2.0",
         "inputs": [

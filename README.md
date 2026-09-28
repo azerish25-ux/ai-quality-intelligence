@@ -1,6 +1,15 @@
 # FailureLens
 ## Evidence-Grounded Test Failure Triage and AI Evaluation
 
+> **M2.1 safe-binary implementation checkpoint:** screenshot decoding/review/masking,
+> approved artifact serving, exact safe trace events and real producer conformance
+> are implemented. Current execution evidence and remaining scope are in
+> [`docs/PROGRESS.md`](docs/PROGRESS.md); the M5.3.1 verification below describes the
+> preceding accepted source, not automatic acceptance of this checkpoint.
+> [`docs/safe-binary-evidence.md`](docs/safe-binary-evidence.md) documents the
+> no-retained-original policy, API, local trace inspection and limits.
+
+
 FailureLens is a self-hosted quality-intelligence platform that turns automated-test artifacts into evidence-linked failure investigations. Its mandatory analysis path is deterministic and CPU-only: no paid model API, cloud account, GPU, or runtime model download is required.
 
 > **Current source checkpoint: M5.3.1 operational workflow stabilization is delivered on `main`. M1, M3 and M4 retain their previous delivered status; M2 and the complete M5/master specification remain partial.**

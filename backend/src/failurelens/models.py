@@ -1558,3 +1558,33 @@ class InfrastructureCorrelationMember(Base):
     run: Mapped[Run] = relationship(
         back_populates="infrastructure_correlation_members"
     )
+
+
+class BinaryEvidence(Base):
+    """An input-bound binary evidence workflow; the source itself stays restricted."""
+    __tablename__ = "binary_evidence"
+    input_id: Mapped[str] = mapped_column(ForeignKey("run_inputs.id", ondelete="CASCADE"), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
+    artifact_id: Mapped[str] = mapped_column(ForeignKey("artifacts.id", ondelete="CASCADE"))
+    execution_id: Mapped[str | None] = mapped_column(ForeignKey("test_executions.id", ondelete="SET NULL"), nullable=True)
+    current_derivative_id: Mapped[str | None] = mapped_column(ForeignKey("artifact_derivatives.id", ondelete="SET NULL"), nullable=True)
+    version: Mapped[int] = mapped_column(Integer, default=0)
+    state: Mapped[str] = mapped_column(String(40), default="restricted")
+    correlation: Mapped[str] = mapped_column(String(80), default="unassociated")
+
+
+class BinaryEvidenceDecision(Base):
+    __tablename__ = "binary_evidence_decisions"
+    __table_args__ = (UniqueConstraint("input_id", "version", name="uq_binary_decision_version"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    input_id: Mapped[str] = mapped_column(ForeignKey("binary_evidence.input_id", ondelete="CASCADE"), index=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    derivative_id: Mapped[str | None] = mapped_column(ForeignKey("artifact_derivatives.id", ondelete="SET NULL"), nullable=True)
+    version: Mapped[int] = mapped_column(Integer)
+    decision: Mapped[str] = mapped_column(String(40))
+    actor_id: Mapped[str] = mapped_column(String(240))
+    actor_display: Mapped[str] = mapped_column(String(240))
+    reason: Mapped[str] = mapped_column(Text)
+    masks: Mapped[list[dict[str, int]]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

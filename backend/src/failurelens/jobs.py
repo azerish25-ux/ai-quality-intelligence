@@ -18,6 +18,8 @@ from .storage import StorageError
 
 
 PERMANENT_INGESTION_ERRORS = {
+    "unsupported_trace_version", "unsupported_trace_producer", "unsupported_image_frames",
+    "image_processing_failed", "image_processing_timeout",
     "ambiguous_bundle",
     "digest_mismatch",
     "empty_report",
@@ -198,6 +200,8 @@ def process_claimed(
         session.commit()
         return
     complete(session, job, partial=run.completeness != "complete")
+    from .retention import flush_deletions
+    flush_deletions(session, ingestion.project_id, settings)
 
 
 def process_next(

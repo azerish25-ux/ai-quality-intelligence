@@ -142,3 +142,54 @@ def test_postgres_native_enum_review_search_and_retention_worker(pg_factory, mon
             assert review_queue_page(session, project.id, search="older-payment").items[0].evidence_completeness == "expired"
     finally:
         get_settings.cache_clear()
+
+
+def test_postgres_binary_review_optimistic_revision_and_expiry_serialization(pg_factory, monkeypatch):
+    from failurelens.binary_evidence import review_screenshot, decide
+    from failurelens.binary_schemas import ScreenshotReview, BinaryDecisionCreate
+    from failurelens.service import enqueue_artifact_ingestion
+    from failurelens.schemas import RunMetadata
+    from failurelens.storage import store_bytes
+    from failurelens.config import get_settings
+    from test_binary_evidence import image_bytes
+    factory, settings = pg_factory
+    monkeypatch.setenv('FAILURELENS_ARTIFACT_ROOT', str(settings.artifact_root))
+    get_settings.cache_clear()
+    image = image_bytes()
+    try:
+        with factory() as session:
+            project = create_project(session, 'binary-contention', 'Binary contention')
+            stored = store_bytes(image, root=settings.artifact_root, project_id=project.id, filename='actual.png',
+                                 media_type='image/png', max_bytes=settings.max_file_bytes)
+            ingestion = enqueue_artifact_ingestion(session, project, RunMetadata(external_id='binary-concurrency'), stored, settings=settings)
+            assert process_next(session, 'pg-binary-worker', settings=settings)
+            session.refresh(ingestion)
+            state = session.scalar(select(m.BinaryEvidence).where(m.BinaryEvidence.run_id == ingestion.run_id))
+            input_id, run_id, project_id = state.input_id, state.run_id, project.id
+        barrier = Barrier(2)
+        def submit():
+            with factory() as session:
+                barrier.wait(timeout=10)
+                try:
+                    review_screenshot(session, DEMO_PRINCIPAL, input_id, ScreenshotReview(
+                        expected_version=0, reason='Concurrent approved screenshot review', confirm_safe=True), image, settings)
+                    return 201
+                except HTTPException as exc:
+                    session.rollback(); return exc.status_code
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            first, second = executor.submit(submit), executor.submit(submit)
+            assert sorted([first.result(timeout=30), second.result(timeout=30)]) == [201, 409]
+        with factory() as session:
+            assert session.scalar(select(func.count()).select_from(m.BinaryEvidenceDecision)) == 1
+            retention.lock_project(session, project_id)
+            retention._scrub_run(session, session.get(m.Run, run_id), 1)
+            session.commit()
+        with factory() as session:
+            with pytest.raises(HTTPException) as error:
+                review_screenshot(session, DEMO_PRINCIPAL, input_id, ScreenshotReview(
+                    expected_version=1, reason='Expired screenshot must not be approved', confirm_safe=True), image, settings)
+            assert error.value.status_code == 410
+            session.rollback()
+            assert not session.scalar(select(m.ArtifactDerivative).where(m.ArtifactDerivative.approved.is_(True), m.ArtifactDerivative.retention_state == "active"))
+    finally:
+        get_settings.cache_clear()

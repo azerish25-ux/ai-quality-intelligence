@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import re
 import json
 import socket
 import time
@@ -136,7 +138,37 @@ def main() -> None:
     recovery.add_argument("--activate", action="store_true", help="explicitly reactivate an inactive account")
     recovery.add_argument("--confirm-local-administrator-access", action="store_true", required=True)
 
+    trace_inspect = sub.add_parser("trace-inspect", help="Validate a local original and print pinned, local-only viewer instructions")
+    trace_inspect.add_argument("trace", type=Path)
+    trace_inspect.add_argument("--sha256", required=True)
     args = parser.parse_args()
+    if args.command == "trace-inspect":
+        from .ingestion import IngestionError
+        from .trace_evidence import build_trace_index
+        if not re.fullmatch(r"[0-9a-fA-F]{64}", args.sha256):
+            raise SystemExit("Expected a 64-character SHA-256 digest")
+        settings = get_settings()
+        try:
+            with args.trace.open("rb") as handle:
+                content = handle.read(settings.max_file_bytes + 1)
+        except OSError:
+            raise SystemExit("Local trace could not be read") from None
+        if len(content) > settings.max_file_bytes:
+            raise SystemExit("Local trace exceeds the configured file limit")
+        if hashlib.sha256(content).hexdigest() != args.sha256.lower():
+            raise SystemExit("Local trace digest does not match the recorded original")
+        try:
+            index, warnings = build_trace_index(content, settings)
+        except IngestionError as exc:
+            raise SystemExit(f"Local trace rejected: {exc.code}") from None
+        print(json.dumps({"status": "verified_local_original", "sha256": args.sha256.lower(),
+            "producer_versions": index["producer_versions"], "schema_versions": index["schema_versions"],
+            "events": index["event_count"], "warnings": warnings,
+            "viewer_argv": ["npx", "--no-install", "playwright", "show-trace", str(args.trace.resolve())],
+            "instructions": "Use an isolated local workspace with Playwright 1.63.0 already installed and network disabled. "
+                "Original DOM, network and image content has NOT been sanitized. Do not host it on the dashboard origin. "
+                "This command has not installed software, fetched resources, or launched a viewer."}, indent=2))
+        return
     initialize_database()
     settings = get_settings()
     with SessionLocal() as session:
