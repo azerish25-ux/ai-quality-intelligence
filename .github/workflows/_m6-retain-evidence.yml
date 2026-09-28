@@ -1,0 +1,79 @@
+name: M6 fixed-source evidence retention
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/_m6-retain-evidence.yml]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  retain:
+    if: github.repository == 'azerish25-ux/ai-quality-intelligence' && github.actor == 'azerish25-ux' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Retain reviewed patch and exact controlled-data archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = 7405d923e453a00e3460101bb9800fcfe2a8fb30
+          gh api repos/azerish25-ux/ai-quality-intelligence/actions/artifacts/11001426439/zip > "$RUNNER_TEMP/execution.zip"
+          python - <<'PY'
+          import base64, hashlib, io, json, lzma, os, pathlib, subprocess, urllib.request, zipfile
+          request = urllib.request.Request('https://api.github.com/repos/azerish25-ux/ai-quality-intelligence/git/blobs/bd21f177d69c3167a328a9af23a6a0832c8bd7e1', headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json'})
+          with urllib.request.urlopen(request, timeout=30) as response:
+              packed = base64.b64decode(json.load(response)['content'])
+          assert len(packed) == 11328 and hashlib.sha256(packed).hexdigest() == 'e1e5cb14cc158a1c6e2972b5d40da0b405209a9bdfe1d399aa722d72ab06c21f'
+          patch = lzma.decompress(packed)
+          assert len(patch) == 37725 and hashlib.sha256(patch).hexdigest() == '0b4154b1da1a2c895a8ea373abf4a3589dc6e77098e3e17b76f4f6a565dbd1c6'
+          p = pathlib.Path(os.environ['RUNNER_TEMP']) / 'retention.patch'; p.write_bytes(patch)
+          subprocess.run(['git', 'apply', '--index', '--exclude=.github/*', '--check', str(p)], check=True)
+          subprocess.run(['git', 'apply', '--index', '--exclude=.github/*', '--whitespace=error', str(p)], check=True)
+          staged = subprocess.check_output(['git', 'diff', '--cached', '--binary'])
+          assert hashlib.sha256(staged).hexdigest() == hashlib.sha256(patch).hexdigest()
+          archive = pathlib.Path(os.environ['RUNNER_TEMP']) / 'execution.zip'
+          data = archive.read_bytes()
+          assert len(data) == 191834 and hashlib.sha256(data).hexdigest() == '41e585e8d0af08b335e67fe46e46a0b5ac37d23904b26c89a35b3207de96d448'
+          base = pathlib.Path('evaluation/reports/ledgerguard-component-v1-7405d923')
+          retained = json.loads((base / 'retention.json').read_bytes())
+          assert retained['tested_source_revision'] == '7405d923e453a00e3460101bb9800fcfe2a8fb30'
+          assert retained['workflow_run_id'] == 36489651488 and retained['job_id'] == 109154923770
+          added = []
+          with zipfile.ZipFile(io.BytesIO(data)) as source:
+              for name in ['metrics.json', 'report.md', 'predictions.jsonl', 'legacy-audit.json']:
+                  content = source.read('legacy-audit.json' if name == 'legacy-audit.json' else 'report/' + name)
+                  if name in retained['report_sha256']:
+                      assert hashlib.sha256(content).hexdigest() == retained['report_sha256'][name]
+                  target = base / name
+                  with target.open('xb') as stream: stream.write(content)
+                  added.append(str(target))
+          target = pathlib.Path('evaluation/corpus/ledgerguard-component-v1/execution.zip')
+          target.parent.mkdir(parents=True, exist_ok=True)
+          with target.open('xb') as stream: stream.write(data)
+          added.append(str(target))
+          subprocess.run(['git', 'add', '-f', '--', *added], check=True)
+          names = subprocess.check_output(['git', 'diff', '--cached', '--name-only'], text=True).splitlines()
+          assert len(names) == 20 and not any(n.startswith('.github/') for n in names)
+          subprocess.run(['git', 'diff', '--cached', '--check'], check=True)
+          print('Retained exactly reviewed source changes and verified controlled evidence. No artifact code executed.')
+          PY
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(m6.1): retain verified corpus and complete accessible evaluation flow'
+          git push origin HEAD:main
+          mkdir -p /tmp/m6-retained
+          git bundle create /tmp/m6-retained/failurelens.bundle HEAD
+          git rev-parse HEAD > /tmp/m6-retained/commit.txt
+          git rev-parse HEAD^{tree} > /tmp/m6-retained/tree.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: m6-retained-source-${{ github.sha }}
+          path: /tmp/m6-retained
+          if-no-files-found: error
+          retention-days: 1
