@@ -75,3 +75,15 @@ Automatic redaction remains incomplete for unknown free-text identifiers, names,
 ## No overclaim
 
 The adversarial tests cover declared text secret classes, terminal controls, URL query handling, unsafe XML/ZIP structures, malformed manifests, digest mismatch, binary limits, incomplete-input behavior, cross-failure evidence isolation, derivative tampering, invalid safe-artifact access, irrelevant citations, session/token expiry and revocation, project-role enforcement, actor spoofing, and guessed cross-project identifiers. They do not establish universal PII detection, prompt-injection immunity, or that restricted screenshots/traces are safe to publish. No real credentials or customer data are included.
+
+## M5.3 lifecycle and retention boundary
+
+See [Operational lifecycle](operations-lifecycle.md). The retention worker is an
+explicit system audit actor; it is not an HTTP credential type. Startup cannot
+reactivate or promote users. Account mutation reauthentication is repeated under
+ordered user/session locks, and normal request-validation errors omit raw inputs.
+Project evidence expiry clears the covered evidence bodies and creates tombstones;
+recorded outcomes/identities/decisions, metadata and independently retained history
+remain. Retention is therefore not a claim of universal personal-data erasure or
+cryptographic immutability. Global security-audit data, backups and exported files
+require a separate operator retention process.

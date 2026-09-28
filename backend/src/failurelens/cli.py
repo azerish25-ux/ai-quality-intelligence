@@ -130,6 +130,12 @@ def main() -> None:
     infrastructure_correlation.add_argument("--window-seconds", type=int, default=900)
     infrastructure_correlation.add_argument("--minimum-support", type=int, default=3)
 
+    recovery = sub.add_parser("recover-account", help="explicit local database-operator recovery; never a startup action")
+    recovery.add_argument("--username", required=True)
+    recovery.add_argument("--reason", required=True)
+    recovery.add_argument("--activate", action="store_true", help="explicitly reactivate an inactive account")
+    recovery.add_argument("--confirm-local-administrator-access", action="store_true", required=True)
+
     args = parser.parse_args()
     initialize_database()
     settings = get_settings()
@@ -146,6 +152,13 @@ def main() -> None:
                     }
                 )
             )
+        elif args.command == "recover-account":
+            from .accounts import operator_recovery
+            if not args.reason.strip():
+                raise SystemExit("a non-empty audit reason is required")
+            user, record, raw = operator_recovery(session, args.username, reason=args.reason, activate=args.activate)
+            print(json.dumps({"user_id": user.id, "token": raw, "expires_at": record.expires_at.isoformat(),
+                              "notice": "Shown once. Redeem in the recovery form; keep this output private."}))
         elif args.command == "demo":
             print(json.dumps(seed_demo(session), indent=2))
         elif args.command == "ingest":
@@ -165,6 +178,8 @@ def main() -> None:
                 ".json": "application/json",
                 ".zip": "application/zip",
             }.get(args.report.suffix.lower(), "application/octet-stream")
+            from .retention import lock_project
+            lock_project(session, project.id)
             stored = store_bytes(
                 content,
                 root=settings.artifact_root,

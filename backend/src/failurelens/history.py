@@ -250,6 +250,7 @@ def _reviewed_known_flake_events(
         return [], False
 
     conditions = [
+        Run.evidence_expired_at.is_(None),
         Failure.project_id == selected_run.project_id,
         Failure.strict_fingerprint == strict_fingerprint,
         _nullable_equal(Run.repository, selected_run.repository),
@@ -498,7 +499,7 @@ def build_test_history(
                 "browser": browser_key or None,
                 "environment": run.environment,
                 "run_scope": _normalize_scope(run.run_scope),
-                "run_completeness": run.completeness,
+                "run_completeness": "expired" if run.evidence_expired_at else run.completeness,
                 "timezone": run.timezone,
                 "worker_count": run.worker_count,
                 "shard_count": run.shard_count,

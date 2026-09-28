@@ -110,6 +110,7 @@ jobs:
     env:
       FAILURELENS_DATABASE_URL: postgresql+psycopg://failurelens:failurelens@127.0.0.1:5432/failurelens_browser
       FAILURELENS_ARTIFACT_ROOT: /tmp/failurelens-browser-artifacts
+      FAILURELENS_OPERATIONS_FIXTURES: /tmp/failurelens-operations-fixtures.json
       FAILURELENS_DEMO_MODE: "true"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -128,6 +129,8 @@ jobs:
       - name: Migrate PostgreSQL
         working-directory: backend
         run: alembic upgrade head
+      - name: Seed disposable operational browser fixtures
+        run: python scripts/seed_operations_browser.py --confirm-disposable-database --output "$FAILURELENS_OPERATIONS_FIXTURES"
       - name: Start API, durable worker, and dashboard
         run: |
           set -euo pipefail
@@ -155,6 +158,7 @@ jobs:
             /tmp/failurelens-api.log
             /tmp/failurelens-worker.log
             /tmp/failurelens-vite.log
+            /tmp/failurelens-operations-fixtures.json
             frontend/test-results
           if-no-files-found: warn
           retention-days: 7

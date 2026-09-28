@@ -148,6 +148,10 @@ def process_claimed(
     worker_id: str,
     settings: Settings,
 ) -> None:
+    from .retention import RETENTION_JOB_KIND, process_cleanup
+    if job.kind == RETENTION_JOB_KIND:
+        process_cleanup(session, job, worker_id, settings)
+        return
     if job.kind == "noop":
         complete(session, job)
         return
@@ -211,19 +215,20 @@ def process_next(
     except (IngestionError, StorageError) as exc:
         session.rollback()
         current = session.get(Job, job.id)
-        if current is not None:
+        if current is not None and (current.lease_owner == worker_id or current.state == JobState.cancelled):
             fail(
                 session,
                 current,
-                str(exc),
+                exc.code if current.kind == "retention_cleanup_v1" else str(exc),
                 error_code=exc.code,
                 permanent=exc.code in PERMANENT_INGESTION_ERRORS or exc.code == "missing_ingestion",
             )
     except Exception as exc:  # worker boundary
         session.rollback()
         current = session.get(Job, job.id)
-        if current is not None:
-            fail(session, current, str(exc))
+        if current is not None and (current.lease_owner == worker_id or current.state == JobState.cancelled):
+            message = "retention_worker_error" if current.kind == "retention_cleanup_v1" else str(exc)
+            fail(session, current, message)
     return True
 
 
@@ -244,7 +249,13 @@ def main() -> None:
     args = parser.parse_args()
     initialize_database()
     worker_id = f"{socket.gethostname()}-{int(time.time())}"
+    next_retention_sweep = 0.0
     while True:
+        if time.monotonic() >= next_retention_sweep:
+            from .retention import schedule_due
+            with SessionLocal() as maintenance_session:
+                schedule_due(maintenance_session)
+            next_retention_sweep = time.monotonic() + 60
         worked = run_once(worker_id)
         if args.once:
             return

@@ -45,6 +45,7 @@ export interface HealthStatus {
 }
 
 export interface UserRecord {
+  lifecycle_version: number;
   id: string;
   username: string;
   display_name: string;
@@ -149,6 +150,8 @@ export interface Project {
 }
 
 export interface Run {
+  evidence_expired_at?: string | null;
+  source_expired_at?: string | null;
   id: string;
   project_id: string;
   external_id: string;
@@ -189,6 +192,7 @@ export interface RunInput {
 }
 
 export interface Ingestion {
+  source_expired_at?: string | null;
   id: string;
   project_id: string;
   external_id: string;
@@ -230,6 +234,8 @@ export interface Failure {
 }
 
 export interface Analysis {
+  evidence_state?: 'active' | 'expired';
+  recorded_category?: Category | null;
   analysis_id: string;
   category: Category;
   severity: string;
@@ -788,6 +794,7 @@ export interface UploadMetadata {
 
 const parseResponse = async <T>(response: Response): Promise<T> => {
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== 'undefined') window.dispatchEvent(new Event('failurelens:session-expired'));
     const body = await response.text();
     throw new Error(`${response.status} ${response.statusText}: ${body}`);
   }
@@ -807,6 +814,7 @@ const json = async <T>(url: string, init?: RequestInit): Promise<T> => {
 const noContent = async (url: string, init?: RequestInit): Promise<void> => {
   const response = await fetch(url, { ...init, credentials: 'include' });
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== 'undefined') window.dispatchEvent(new Event('failurelens:session-expired'));
     const body = await response.text();
     throw new Error(`${response.status} ${response.statusText}: ${body}`);
   }
@@ -1034,4 +1042,102 @@ export const api = {
   analyze: (failureId: string) => json<Analysis>(`/api/v1/failures/${failureId}/analyses`, { method: 'POST' }),
   seedDemo: () => json<{ project_id: string; run_id: string }>('/api/v1/demo/seed', { method: 'POST' }),
   evaluation: () => json<{ status: string; metrics?: Record<string, unknown>; message?: string }>('/api/v1/evaluations/latest')
+};
+
+export interface SessionRecord {
+  id: string; user_id: string; created_at: string; last_used_at: string | null;
+  expires_at: string; revoked_at: string | null; current: boolean;
+  state: 'active' | 'expired' | 'revoked';
+}
+export interface RetentionPolicy {
+  project_id: string; version: number; source_days: number; evidence_days: number;
+  audit_days: number; export_enabled: boolean; export_max_rows: number; updated_at: string;
+}
+export interface RetentionChange {
+  expected_version: number; source_days: number; evidence_days: number; audit_days: number;
+  export_enabled: boolean; export_max_rows: number; reason: string;
+}
+export interface RetentionPreview {
+  project_id: string; policy_version: number; as_of: string; cutoff_source: string;
+  cutoff_evidence: string; cutoff_audit: string; source_ingestions: number; source_runs: number;
+  evidence_runs: number; audit_events: number; blocked_by_ingestion: boolean;
+  sample_run_ids: string[]; confirmation_digest: string;
+}
+export interface RetentionJob {
+  job_id: string; state: IngestionState; policy_version: number;
+  progress: Record<string, number>; error_code: string | null;
+}
+export interface Tombstone {
+  id: string; resource_type: string; resource_id: string; policy_version: number; reason: string; expired_at: string;
+}
+export interface ReviewPage {
+  items: ReviewQueueItem[]; total: number; limit: number; offset: number;
+}
+export interface ReviewFilters {
+  status: 'pending' | 'reviewed' | 'all' | 'needs_more_evidence';
+  category?: Category; search?: string; sort?: 'newest' | 'oldest' | 'severity' | 'test';
+  limit?: number; offset?: number;
+}
+export interface AuditFilters {
+  action?: string; outcome?: string; search?: string; sort?: 'newest' | 'oldest';
+  limit?: number; offset?: number;
+}
+export interface AuditPage {
+  items: AuditEvent[]; total: number; limit: number; offset: number;
+  actions: string[]; outcomes: string[]; export_enabled: boolean;
+}
+const queryString = (filters: object): string => new URLSearchParams(
+  Object.entries(filters).filter(([, value]) => value !== undefined && value !== null)
+    .map(([key, value]) => [key, String(value)])
+).toString();
+
+export const operations = {
+  run: (id: string) => json<Run>(`/api/v1/runs/${id}`),
+  sessions: (offset = 0) => json<SessionRecord[]>(`/api/v1/auth/sessions?limit=10&offset=${offset}`),
+  revokeSession: (id: string) => json<void>(`/api/v1/auth/sessions/${id}/revoke`, { method: 'POST' }),
+  changePassword: (currentPassword: string, newPassword: string) => json<void>('/api/v1/auth/password', {
+    method: 'POST', body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+  }),
+  changeAccount: (user: UserRecord, active: boolean, password: string, reason: string) =>
+    json<UserRecord>(`/api/v1/users/${user.id}`, { method: 'PATCH', body: JSON.stringify({
+      expected_version: user.lifecycle_version, current_password: password, reason, is_active: active
+    }) }),
+  issueRecovery: (user: UserRecord, password: string, reason: string) =>
+    json<{ token: string; expires_at: string; user_id: string; lifecycle_version: number }>(`/api/v1/users/${user.id}/recovery`, {
+      method: 'POST', body: JSON.stringify({ current_password: password, reason, expected_version: user.lifecycle_version })
+    }),
+  redeemRecovery: (token: string, newPassword: string) => json<void>('/api/v1/auth/recovery', {
+    method: 'POST', body: JSON.stringify({ token, new_password: newPassword })
+  }),
+  userSessions: (id: string, offset = 0) => json<SessionRecord[]>(`/api/v1/users/${id}/sessions?limit=10&offset=${offset}`),
+  revokeUserSessions: (id: string, password: string, reason: string) => json<void>(`/api/v1/users/${id}/sessions/revoke`, {
+    method: 'POST', body: JSON.stringify({ current_password: password, reason })
+  }),
+  reviewPage: (id: string, filters: ReviewFilters, signal?: AbortSignal) =>
+    json<ReviewPage>(`/api/v1/projects/${id}/review-queue/page?${queryString(filters)}`, { signal }),
+  auditPage: (id: string, filters: AuditFilters, signal?: AbortSignal) =>
+    json<AuditPage>(`/api/v1/projects/${id}/audit-events/page?${queryString(filters)}`, { signal }),
+  exportAudit: async (id: string, filters: AuditFilters): Promise<string> => {
+    const { limit: _limit, offset: _offset, ...selection } = filters;
+    const response = await fetch(`/api/v1/projects/${id}/audit-events/export`, {
+      method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(selection)
+    });
+    if (!response.ok) await parseResponse(response);
+    return response.text();
+  },
+  retention: (id: string) => json<RetentionPolicy>(`/api/v1/projects/${id}/retention`),
+  previewPolicy: (id: string, body: RetentionChange) => json<RetentionPreview>(`/api/v1/projects/${id}/retention/preview`, {
+    method: 'POST', body: JSON.stringify(body)
+  }),
+  saveRetention: (id: string, body: RetentionChange) => json<RetentionPolicy>(`/api/v1/projects/${id}/retention`, {
+    method: 'PUT', body: JSON.stringify(body)
+  }),
+  previewCleanup: (id: string) => json<RetentionPreview>(`/api/v1/projects/${id}/retention/preview`),
+  queueCleanup: (id: string, preview: RetentionPreview) => json<RetentionJob>(`/api/v1/projects/${id}/retention/cleanup`, {
+    method: 'POST', body: JSON.stringify({ expected_version: preview.policy_version, as_of: preview.as_of,
+      confirmation_digest: preview.confirmation_digest })
+  }),
+  retentionJobs: (id: string) => json<RetentionJob[]>(`/api/v1/projects/${id}/retention/jobs?limit=10`),
+  retentionJob: (id: string, jobId: string) => json<RetentionJob>(`/api/v1/projects/${id}/retention/jobs/${jobId}`),
+  tombstones: (id: string, offset = 0) => json<Tombstone[]>(`/api/v1/projects/${id}/retention/tombstones?limit=10&offset=${offset}`)
 };

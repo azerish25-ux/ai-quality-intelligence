@@ -2,7 +2,7 @@
 
 ## Authentication and project roles
 
-Except for liveness/readiness and `POST /api/v1/auth/login`, API operations require an authenticated principal. Browser sessions use an `HttpOnly` cookie; API clients may send the same session secret as `Authorization: Bearer <session-token>`. A project ingestion credential is sent as either a bearer token or `X-FailureLens-Token` and is limited to creating an ingestion in its assigned project.
+Except for liveness/readiness, `POST /api/v1/auth/login`, and one-time-token redemption at `POST /api/v1/auth/recovery`, API operations require an authenticated principal. Browser sessions use an `HttpOnly` cookie; API clients may send the same session secret as `Authorization: Bearer <session-token>`. A project ingestion credential is sent as either a bearer token or `X-FailureLens-Token` and is limited to creating an ingestion in its assigned project.
 
 ```bash
 curl --request POST \
@@ -335,3 +335,12 @@ failurelens infrastructure-correlate --execution <execution-id> --event-kind ser
 ```
 
 Without `--process`, `ingest` queues work for `failurelens-worker`. `--process` claims one job using the same worker implementation and exits nonzero when no run is published. The complete differentiated quality-gate/operational exit-code contract remains future work.
+
+## M5.3 operational endpoints
+
+See [Operational lifecycle](operations-lifecycle.md) for policies, concrete API routes,
+CLI recovery, immutable decision versus expired-evidence semantics, and verification
+limits. The dashboard uses `/review-queue/page` and `/audit-events/page`; existing
+list routes remain compatibility interfaces. Audit CSV is generated only by the
+administrator-authorized `/audit-events/export` endpoint, not from a client-side
+recent-record window.

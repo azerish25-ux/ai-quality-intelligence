@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import {
   api,
+  operations,
   type AuditEvent,
   type Category,
   type ClusterDetail,
@@ -29,6 +30,7 @@ import {
   type RunInput,
   type TestHistory
 } from './api';
+import { AccountPanel, RecoveryForm, RetentionPanel } from './Operations';
 
 const categoryLabel: Record<string, string> = {
   product_defect: 'Probable product defect',
@@ -75,8 +77,6 @@ const formatPerformanceDelta = (value: number | null): string => {
 
 const newExternalId = (): string => `manual-${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}`;
 const tablePageSize = 10;
-const terminalReviewDecisions = new Set(['accept', 'reject', 'category_correction']);
-const severityRank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
 
 const searchParam = (key: string): string => new URLSearchParams(window.location.search).get(key) ?? '';
 const searchPage = (key: string): number => {
@@ -86,11 +86,6 @@ const searchPage = (key: string): number => {
 const searchChoice = <T extends string>(key: string, values: readonly T[], fallback: T): T => {
   const value = searchParam(key) as T;
   return values.includes(value) ? value : fallback;
-};
-const csvCell = (value: unknown): string => {
-  const raw = String(value ?? '');
-  const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
-  return `"${safe.replaceAll('"', '""')}"`;
 };
 const downloadText = (filename: string, value: string, mediaType: string): void => {
   const url = URL.createObjectURL(new Blob([value], { type: mediaType }));
@@ -155,6 +150,9 @@ const defaultImpactMapping = JSON.stringify({
 }, null, 2);
 
 function App() {
+  const authGeneration = useRef(0);
+  const rootRequest = useRef(0);
+  const projectRequest = useRef(0);
   const [principal, setPrincipal] = useState<Principal | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [loginUsername, setLoginUsername] = useState('');
@@ -213,6 +211,9 @@ function App() {
   );
   const [evaluation, setEvaluation] = useState<Record<string, unknown> | null>(null);
   const [reviewQueue, setReviewQueue] = useState<ReviewQueueItem[]>([]);
+  const [reviewTotal, setReviewTotal] = useState<number | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [governanceRevision, setGovernanceRevision] = useState(0);
   const [reviewStatusFilter, setReviewStatusFilter] = useState<'all' | 'pending' | 'reviewed'>(
     () => searchChoice('review_status', ['all', 'pending', 'reviewed'] as const, 'pending')
   );
@@ -237,6 +238,11 @@ function App() {
   const [members, setMembers] = useState<ProjectMembership[]>([]);
   const [ingestionTokens, setIngestionTokens] = useState<IngestionTokenRecord[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
+  const [auditTotal, setAuditTotal] = useState<number | null>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditActions, setAuditActions] = useState<string[]>([]);
+  const [auditOutcomes, setAuditOutcomes] = useState<string[]>([]);
+  const [auditExportEnabled, setAuditExportEnabled] = useState(false);
   const [auditSearch, setAuditSearch] = useState(() => searchParam('audit_search'));
   const [auditActionFilter, setAuditActionFilter] = useState(() => searchParam('audit_action'));
   const [auditOutcomeFilter, setAuditOutcomeFilter] = useState(() => searchParam('audit_outcome'));
@@ -286,67 +292,52 @@ function App() {
     { href: '#workspace', label: 'Failure workspace' },
     { href: '#history', label: 'Test history' },
     ...(canReview ? [{ href: '#reviews', label: 'Review queue' }] : []),
+    { href: '#account', label: 'Account security' },
     ...(canAdminister ? [{ href: '#settings', label: 'Settings' }] : []),
     ...(canReview ? [{ href: '#audit', label: 'Audit' }] : []),
     { href: '#evaluation', label: 'Evaluation' }
   ], [canAdminister, canReview]);
 
-  const filteredReviewQueue = useMemo(() => {
-    const query = reviewSearch.trim().toLocaleLowerCase();
-    return reviewQueue
-      .filter((item) => {
-        const terminal = item.latest_review_decision !== null
-          && terminalReviewDecisions.has(item.latest_review_decision);
-        if (reviewStatusFilter === 'pending' && terminal) return false;
-        if (reviewStatusFilter === 'reviewed' && !terminal) return false;
-        if (reviewCategoryFilter !== 'all' && item.category !== reviewCategoryFilter) return false;
-        if (!query) return true;
-        return [item.test_identity, item.summary, item.category, item.severity, item.latest_review_decision ?? 'unreviewed']
-          .some((value) => value.toLocaleLowerCase().includes(query));
-      })
-      .sort((left, right) => {
-        if (reviewSort === 'oldest') return Date.parse(left.created_at) - Date.parse(right.created_at);
-        if (reviewSort === 'severity') {
-          const difference = (severityRank[left.severity] ?? 99) - (severityRank[right.severity] ?? 99);
-          return difference || left.test_identity.localeCompare(right.test_identity);
-        }
-        if (reviewSort === 'test') return left.test_identity.localeCompare(right.test_identity);
-        return Date.parse(right.created_at) - Date.parse(left.created_at);
-      });
-  }, [reviewCategoryFilter, reviewQueue, reviewSearch, reviewSort, reviewStatusFilter]);
-  const reviewPageCount = Math.max(1, Math.ceil(filteredReviewQueue.length / tablePageSize));
-  const pagedReviewQueue = filteredReviewQueue.slice(
-    (reviewPage - 1) * tablePageSize,
-    reviewPage * tablePageSize
-  );
+  const reviewPageCount = Math.max(1, Math.ceil((reviewTotal ?? 0) / tablePageSize));
+  const pagedReviewQueue = reviewQueue;
+  const auditPageCount = Math.max(1, Math.ceil((auditTotal ?? 0) / tablePageSize));
+  const pagedAuditEvents = auditEvents;
+  const governanceChanged = useCallback(() => setGovernanceRevision(value => value + 1), []);
 
-  const auditActions = useMemo(
-    () => [...new Set(auditEvents.map((event) => event.action))].sort(),
-    [auditEvents]
-  );
-  const auditOutcomes = useMemo(
-    () => [...new Set(auditEvents.map((event) => event.outcome))].sort(),
-    [auditEvents]
-  );
-  const filteredAuditEvents = useMemo(() => {
-    const query = auditSearch.trim().toLocaleLowerCase();
-    return auditEvents
-      .filter((event) => {
-        if (auditActionFilter && event.action !== auditActionFilter) return false;
-        if (auditOutcomeFilter && event.outcome !== auditOutcomeFilter) return false;
-        if (!query) return true;
-        return [event.actor_display, event.actor_kind, event.action, event.resource_type, event.resource_id ?? '', event.reason ?? '']
-          .some((value) => value.toLocaleLowerCase().includes(query));
-      })
-      .sort((left, right) => auditSort === 'oldest'
-        ? Date.parse(left.created_at) - Date.parse(right.created_at)
-        : Date.parse(right.created_at) - Date.parse(left.created_at));
-  }, [auditActionFilter, auditEvents, auditOutcomeFilter, auditSearch, auditSort]);
-  const auditPageCount = Math.max(1, Math.ceil(filteredAuditEvents.length / tablePageSize));
-  const pagedAuditEvents = filteredAuditEvents.slice(
-    (auditPage - 1) * tablePageSize,
-    auditPage * tablePageSize
-  );
+  useEffect(() => {
+    if (!principal || !projectId || !canReview) {
+      setReviewQueue([]); setReviewTotal(null); return;
+    }
+    const controller = new AbortController();
+    setReviewLoading(true);
+    operations.reviewPage(projectId, {
+      status: reviewStatusFilter, category: reviewCategoryFilter === 'all' ? undefined : reviewCategoryFilter,
+      search: reviewSearch, sort: reviewSort, limit: tablePageSize, offset: (reviewPage - 1) * tablePageSize
+    }, controller.signal).then(page => {
+      if (controller.signal.aborted) return;
+      setReviewQueue(page.items); setReviewTotal(page.total);
+    }).catch(reason => { if (!controller.signal.aborted) { setError(String(reason)); setReviewQueue([]); } })
+      .finally(() => { if (!controller.signal.aborted) setReviewLoading(false); });
+    return () => controller.abort();
+  }, [principal, projectId, canReview, reviewStatusFilter, reviewCategoryFilter, reviewSearch, reviewSort, reviewPage, governanceRevision]);
+
+  useEffect(() => {
+    if (!principal || !projectId || !canReview) {
+      setAuditEvents([]); setAuditTotal(null); setAuditExportEnabled(false); return;
+    }
+    const controller = new AbortController();
+    setAuditLoading(true);
+    operations.auditPage(projectId, {
+      action: auditActionFilter, outcome: auditOutcomeFilter, search: auditSearch, sort: auditSort,
+      limit: tablePageSize, offset: (auditPage - 1) * tablePageSize
+    }, controller.signal).then(page => {
+      if (controller.signal.aborted) return;
+      setAuditEvents(page.items); setAuditTotal(page.total); setAuditActions(page.actions);
+      setAuditOutcomes(page.outcomes); setAuditExportEnabled(page.export_enabled);
+    }).catch(reason => { if (!controller.signal.aborted) { setError(String(reason)); setAuditEvents([]); } })
+      .finally(() => { if (!controller.signal.aborted) setAuditLoading(false); });
+    return () => controller.abort();
+  }, [principal, projectId, canReview, auditActionFilter, auditOutcomeFilter, auditSearch, auditSort, auditPage, governanceRevision]);
 
   const refreshSystemHealth = useCallback(async () => {
     setHealthLoading(true);
@@ -365,11 +356,14 @@ function App() {
   }, []);
 
   const refreshRoot = useCallback(async () => {
+    const generation = authGeneration.current;
+    const request = ++rootRequest.current;
     const [nextOverview, nextProjects, evaluationResponse] = await Promise.all([
       api.overview(),
       api.projects(),
       api.evaluation()
     ]);
+    if (generation !== authGeneration.current || request !== rootRequest.current) return;
     setOverview(nextOverview);
     setProjects(nextProjects);
     setEvaluation(evaluationResponse.metrics ?? null);
@@ -381,6 +375,8 @@ function App() {
   }, []);
 
   const refreshProject = useCallback(async (nextProjectId: string, preferredRunId?: string | null) => {
+    const generation = authGeneration.current;
+    const request = ++projectRequest.current;
     if (!nextProjectId) {
       setRuns([]);
       setIngestions([]);
@@ -409,6 +405,14 @@ function App() {
       api.impactRecommendations(nextProjectId),
       api.performancePolicies(nextProjectId)
     ]);
+    const requestedRunId = preferredRunId || searchParam('run');
+    if (requestedRunId && !nextRuns.some(run => run.id === requestedRunId)) {
+      try {
+        const olderRun = await operations.run(requestedRunId);
+        if (olderRun.project_id === nextProjectId) nextRuns.push(olderRun);
+      } catch { /* An unavailable or unauthorized URL cannot add a run to this project. */ }
+    }
+    if (generation !== authGeneration.current || request !== projectRequest.current) return;
     setRuns(nextRuns);
     setIngestions(nextIngestions);
     setClusters(nextClusters);
@@ -432,7 +436,7 @@ function App() {
       return nextClusters[0]?.id ?? '';
     });
     setRunId((current) => {
-      if (preferredRunId && nextRuns.some((run) => run.id === preferredRunId)) return preferredRunId;
+      if (requestedRunId && nextRuns.some((run) => run.id === requestedRunId)) return requestedRunId;
       if (current && nextRuns.some((run) => run.id === current)) return current;
       return nextRuns[0]?.id ?? '';
     });
@@ -462,7 +466,7 @@ function App() {
   useEffect(() => {
     if (!principal) return;
     refreshProject(projectId).catch((reason: unknown) => setError(String(reason)));
-  }, [principal, projectId, refreshProject]);
+  }, [principal, projectId, refreshProject, governanceRevision]);
 
   useEffect(() => {
     if (!principal || !projectId) {
@@ -474,21 +478,6 @@ function App() {
     }
     let cancelled = false;
     const tasks: Promise<void>[] = [];
-    if (canReview) {
-      tasks.push(
-        Promise.all([api.reviewQueue(projectId, false), api.auditEvents(projectId)]).then(
-          ([queue, audit]) => {
-            if (!cancelled) {
-              setReviewQueue(queue);
-              setAuditEvents(audit);
-            }
-          }
-        )
-      );
-    } else {
-      setReviewQueue([]);
-      setAuditEvents([]);
-    }
     if (canAdminister) {
       tasks.push(
         Promise.all([api.projectMembers(projectId), api.ingestionTokens(projectId)]).then(
@@ -530,7 +519,7 @@ function App() {
         if (!cancelled) setError(String(reason));
       });
     return () => { cancelled = true; };
-  }, [principal, selectedFailure?.latest_analysis?.analysis_id]);
+  }, [principal, selectedFailure?.latest_analysis?.analysis_id, governanceRevision]);
 
   useEffect(() => {
     if (!runId) {
@@ -576,7 +565,7 @@ function App() {
         if (!cancelled) setPerformanceLoading(false);
       });
     return () => { cancelled = true; };
-  }, [runId]);
+  }, [runId, governanceRevision]);
 
   const hasActiveIngestion = useMemo(
     () => ingestions.some((ingestion) => !terminalIngestionStates.has(ingestion.state)),
@@ -621,6 +610,34 @@ function App() {
   );
 
   const infrastructureCorrelation = infrastructureSnapshot ?? testHistory?.infrastructure_correlations ?? null;
+
+  useEffect(() => {
+    const clearSession = () => {
+      authGeneration.current += 1;
+      rootRequest.current += 1;
+      projectRequest.current += 1;
+      setProjects([]); setProjectId(''); setRunId(''); setSelectedFailureId('');
+      setSelectedImpactId(''); setSelectedClusterId(''); setOverview(null); setEvaluation(null);
+      setMembers([]); setIngestionTokens([]); setNewTokenSecret(null);
+      setPrincipal(null); setFailures([]); setReviewQueue([]); setAuditEvents([]);
+      setSelectedCluster(null); setTestHistory(null); setRuns([]); setIngestions([]);
+      setAnalysisReviews([]); setPerformanceComparisons([]); setImpactRecommendations([]);
+    };
+    window.addEventListener('failurelens:session-expired', clearSession);
+    return () => window.removeEventListener('failurelens:session-expired', clearSession);
+  }, []);
+
+  useEffect(() => {
+    if (!principal || !runId || selectedRun?.evidence_expired_at) return;
+    let active = true;
+    const timer = window.setInterval(() => {
+      operations.run(runId).then(run => {
+        if (active && run.evidence_expired_at) governanceChanged();
+      }).catch(() => { /* Normal API error handling reports unavailable sessions. */ });
+    }, 10000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [principal, runId, selectedRun?.evidence_expired_at, governanceChanged]);
+
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -749,12 +766,12 @@ function App() {
   }, [clusters, failures, impactRecommendations, projects, runClusters, runs]);
 
   useEffect(() => {
-    setReviewPage((current) => Math.min(Math.max(current, 1), reviewPageCount));
-  }, [reviewPageCount]);
+    if (reviewTotal !== null && !reviewLoading) setReviewPage((current) => Math.min(Math.max(current, 1), reviewPageCount));
+  }, [reviewPageCount, reviewTotal, reviewLoading]);
 
   useEffect(() => {
-    setAuditPage((current) => Math.min(Math.max(current, 1), auditPageCount));
-  }, [auditPageCount]);
+    if (auditTotal !== null && !auditLoading) setAuditPage((current) => Math.min(Math.max(current, 1), auditPageCount));
+  }, [auditPageCount, auditTotal, auditLoading]);
 
   useEffect(() => {
     if (!selectedFailure) {
@@ -807,7 +824,8 @@ function App() {
     historyRunScope,
     historyShardCount,
     historyWorkerCount,
-    selectedFailure
+    selectedFailure,
+    governanceRevision
   ]);
 
   useEffect(() => {
@@ -826,7 +844,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [selectedImpactId]);
+  }, [selectedImpactId, governanceRevision]);
 
   const visibleClusters = useMemo(
     () => runId ? runClusters : clusters,
@@ -855,7 +873,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [selectedClusterId]);
+  }, [selectedClusterId, governanceRevision]);
 
   useEffect(() => {
     const validTargets = clusters.filter(
@@ -1271,6 +1289,7 @@ function App() {
     setError(null);
     try {
       await api.logout();
+      window.dispatchEvent(new Event('failurelens:session-expired'));
       setPrincipal(null);
       setProjects([]);
       setProjectId('');
@@ -1288,8 +1307,7 @@ function App() {
     if (!projectId || !principal) return;
     const tasks: Promise<unknown>[] = [];
     if (canReview) {
-      tasks.push(api.reviewQueue(projectId, false).then(setReviewQueue));
-      tasks.push(api.auditEvents(projectId).then(setAuditEvents));
+      governanceChanged();
     }
     if (canAdminister) {
       tasks.push(api.projectMembers(projectId).then(setMembers));
@@ -1300,9 +1318,11 @@ function App() {
 
   const openReviewQueueItem = async (item: ReviewQueueItem) => {
     setError(null);
-    setRunId(item.run_id);
     try {
-      const nextFailures = await api.failures(item.run_id);
+      const [openedRun, nextFailures] = await Promise.all([operations.run(item.run_id), api.failures(item.run_id)]);
+      if (openedRun.project_id !== projectId) throw new Error('Run does not belong to the selected project');
+      setRuns(current => current.some(run => run.id === openedRun.id) ? current.map(run => run.id === openedRun.id ? openedRun : run) : [...current, openedRun]);
+      setRunId(item.run_id);
       setFailures(nextFailures);
       setSelectedFailureId(
         nextFailures.find((failure) => failure.id === item.failure_id)?.id ?? nextFailures[0]?.id ?? ''
@@ -1366,7 +1386,7 @@ function App() {
       const created = await api.addProjectMember(projectId, memberUsername.trim(), memberRole);
       setMembers((current) => [...current, created].sort((left, right) => left.username.localeCompare(right.username)));
       setMemberUsername('');
-      await api.auditEvents(projectId).then(setAuditEvents);
+      governanceChanged();
       setStatusMessage(`${created.display_name} added as ${readableValue(created.role)}.`);
     } catch (reason) {
       setError(String(reason));
@@ -1382,7 +1402,7 @@ function App() {
     try {
       const updated = await api.updateProjectMember(projectId, membershipId, role);
       setMembers((current) => current.map((member) => member.id === updated.id ? updated : member));
-      await api.auditEvents(projectId).then(setAuditEvents);
+      governanceChanged();
       setStatusMessage(`${updated.display_name}'s role changed to ${readableValue(updated.role)}.`);
     } catch (reason) {
       setError(String(reason));
@@ -1398,7 +1418,7 @@ function App() {
     try {
       await api.removeProjectMember(projectId, membershipId);
       setMembers((current) => current.filter((member) => member.id !== membershipId));
-      await api.auditEvents(projectId).then(setAuditEvents);
+      governanceChanged();
       setStatusMessage('Project membership removed.');
     } catch (reason) {
       setError(String(reason));
@@ -1422,7 +1442,7 @@ function App() {
       setNewTokenSecret(created.token ?? null);
       setIngestionTokens((current) => [created, ...current.filter((token) => token.id !== created.id)]);
       setTokenName('');
-      await api.auditEvents(projectId).then(setAuditEvents);
+      governanceChanged();
       setStatusMessage(`Ingestion credential ${created.name} created. Copy the secret now.`);
     } catch (reason) {
       setError(String(reason));
@@ -1438,7 +1458,7 @@ function App() {
     try {
       const updated = await api.revokeIngestionToken(projectId, tokenId);
       setIngestionTokens((current) => current.map((token) => token.id === updated.id ? updated : token));
-      await api.auditEvents(projectId).then(setAuditEvents);
+      governanceChanged();
       setStatusMessage(`Ingestion credential ${updated.name} revoked.`);
     } catch (reason) {
       setError(String(reason));
@@ -1447,25 +1467,24 @@ function App() {
     }
   };
 
-  const exportAuditCsv = () => {
-    const header = ['created_at', 'actor', 'actor_kind', 'action', 'outcome', 'resource_type', 'resource_id', 'reason'];
-    const rows = filteredAuditEvents.map((event) => [
-      event.created_at,
-      event.actor_display,
-      event.actor_kind,
-      event.action,
-      event.outcome,
-      event.resource_type,
-      event.resource_id ?? '',
-      event.reason ?? ''
-    ]);
-    const csv = [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
-    downloadText(
-      `failurelens-audit-${projectId || 'project'}-${new Date().toISOString().slice(0, 10)}.csv`,
-      `${csv}\n`,
-      'text/csv;charset=utf-8'
-    );
-    setStatusMessage(`${rows.length} filtered audit event${rows.length === 1 ? '' : 's'} exported.`);
+  const exportAuditCsv = async () => {
+    setBusy(true); setError(null);
+    try {
+      const csv = await operations.exportAudit(projectId, { action: auditActionFilter, outcome: auditOutcomeFilter,
+        search: auditSearch, sort: auditSort });
+      downloadText(`failurelens-audit-${projectId}.csv`, csv, 'text/csv;charset=utf-8');
+      setStatusMessage('Filtered audit export completed under the server policy. The export was audited.');
+      governanceChanged();
+    } catch (reason) { setError(String(reason)); } finally { setBusy(false); }
+  };
+
+  const sessionChanged = async (signedOut = false) => {
+    if (signedOut) {
+      window.dispatchEvent(new Event('failurelens:session-expired'));
+      return;
+    }
+    try { setPrincipal(await api.me()); }
+    catch { window.dispatchEvent(new Event('failurelens:session-expired')); }
   };
 
   if (authLoading) {
@@ -1484,6 +1503,7 @@ function App() {
           <label>Password<input type="password" autoComplete="current-password" value={loginPassword} onChange={(event: ChangeEvent<HTMLInputElement>) => setLoginPassword(event.target.value)} required /></label>
           <button className="primary" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
         </form>
+        <RecoveryForm />
       </div>
     );
   }
@@ -1593,7 +1613,7 @@ function App() {
                   <div className="ingestion-actions">
                     {ingestion.run_id && <button type="button" onClick={() => setRunId(ingestion.run_id ?? '')}>Open run</button>}
                     {!terminalIngestionStates.has(ingestion.state) && <button type="button" onClick={() => cancelIngestion(ingestion)} disabled={busy || !canAdminister}>Cancel</button>}
-                    {['failed', 'dead_lettered', 'cancelled'].includes(ingestion.state) && <button type="button" onClick={() => retryIngestion(ingestion)} disabled={busy || !canAdminister}>Retry</button>}
+                    {['failed', 'dead_lettered', 'cancelled'].includes(ingestion.state) && <button type="button" onClick={() => retryIngestion(ingestion)} disabled={busy || !canAdminister || Boolean(ingestion.source_expired_at)}>Retry</button>}
                   </div>
                 </article>
               );
@@ -1604,7 +1624,7 @@ function App() {
         <section id="runs" className="panel filters">
           <label>Project<select value={projectId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setProjectId(event.target.value)}><option value="">Select project</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
           <label>Run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setRunId(event.target.value)}><option value="">Select run</option>{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.status}</option>)}</select></label>
-          <div className="scope"><span>Input scope</span><strong>{selectedRun ? `${selectedRun.received_inputs}/${selectedRun.expected_inputs ?? 'unspecified'}` : '—'}</strong><small>{selectedRun?.completeness ?? 'no run selected'}</small></div>
+          <div className="scope"><span>Input scope</span><strong>{selectedRun ? `${selectedRun.received_inputs}/${selectedRun.expected_inputs ?? 'unspecified'}` : '—'}</strong><small>{selectedRun?.evidence_expired_at ? 'evidence expired' : selectedRun?.completeness ?? 'no run selected'}</small></div>
           <div className="scope"><span>Execution cohort</span><strong>{selectedRun ? readableValue(selectedRun.run_scope) : '—'}</strong><small>{selectedRun?.environment ?? 'environment unknown'}</small></div>
           <div className="scope"><span>Revision</span><strong className="mono">{selectedRun?.commit_sha?.slice(0, 10) ?? 'unknown'}</strong><small>{selectedRun?.branch ?? 'branch unknown'}</small></div>
         </section>
@@ -1925,6 +1945,7 @@ function App() {
                     <div className="analysis-grid">
                       <div className="analysis-summary">
                         <span className={`pill ${statusClass(selectedFailure.latest_analysis.category)}`}>{categoryLabel[selectedFailure.latest_analysis.category]}</span>
+                        {selectedFailure.latest_analysis.evidence_state === 'expired' && <p className="alert" role="status">Evidence expired. Recorded category: {readableValue(selectedFailure.latest_analysis.recorded_category ?? 'unknown')}. This historical decision is no longer evidence-verified.</p>}
                         <h3>{selectedFailure.latest_analysis.summary}</h3>
                         <p>{selectedFailure.latest_analysis.confidence.explanation}</p>
                         <dl><div><dt>Score kind</dt><dd>{selectedFailure.latest_analysis.confidence.kind}</dd></div><div><dt>Score</dt><dd>{selectedFailure.latest_analysis.confidence.value ?? 'unavailable'}</dd></div><div><dt>Evidence completeness</dt><dd>{selectedFailure.latest_analysis.evidence_completeness}</dd></div></dl>
@@ -1934,8 +1955,8 @@ function App() {
                         <p><strong>{selectedFailure.latest_analysis.supporting_evidence_ids.length}</strong> supporting citations</p>
                         <p><strong>{selectedFailure.latest_analysis.contradictory_evidence_ids.length}</strong> contradictory citations</p>
                         <p><strong>{selectedFailure.latest_analysis.missing_evidence.length}</strong> missing inputs</p>
-                        <p><strong>{selectedFailure.latest_analysis.validation_results?.accepted_evidence_ids.length ?? 0}</strong> integrity-verified records</p>
-                        <p><strong>{selectedFailure.latest_analysis.validation_results?.rejected_evidence_ids.length ?? 0}</strong> rejected records</p>
+                        <p><strong>{selectedFailure.latest_analysis.validation_results?.accepted_evidence_ids?.length ?? 0}</strong> integrity-verified records</p>
+                        <p><strong>{selectedFailure.latest_analysis.validation_results?.rejected_evidence_ids?.length ?? 0}</strong> rejected records</p>
                         <p><strong>{selectedFailure.latest_analysis.validation_results?.status ?? 'not validated'}</strong> publication validation</p>
                       </div>
                       <div className="next-step"><h3>Next investigation</h3>{selectedFailure.latest_analysis.next_investigation.map((step) => <div key={step.action}><strong>{step.action}</strong><p>{step.rationale}</p></div>)}</div>
@@ -1959,7 +1980,7 @@ function App() {
                       )}
                       {canReview ? (
                         <form className="review-form" onSubmit={submitAnalysisReview}>
-                          <p className="identity-note">Verified reviewer: <strong>{principal.display_name}</strong>. The machine analysis and every prior review remain unchanged.</p>
+                          <p className="identity-note">Verified reviewer: <strong>{principal.display_name}</strong>. Recorded categories and review attribution are preserved; retention can expire evidence and quoted free text.</p>
                           <div className="review-form-grid">
                             <label>Decision<select value={reviewDecision} onChange={(event: ChangeEvent<HTMLSelectElement>) => setReviewDecision(event.target.value as typeof reviewDecision)}><option value="accept">Accept analysis</option><option value="reject">Reject analysis</option><option value="needs_more_evidence">Needs more evidence</option><option value="category_correction">Correct category</option></select></label>
                             <label>Proposed category<select value={reviewCategory} onChange={(event: ChangeEvent<HTMLSelectElement>) => setReviewCategory(event.target.value as Category)} disabled={reviewDecision !== 'category_correction'}>{Object.keys(categoryLabel).map((category) => <option key={category} value={category}>{categoryLabel[category]}</option>)}</select></label>
@@ -2109,16 +2130,16 @@ function App() {
 
         {canReview && (
           <section id="reviews" className="panel review-queue-panel">
-            <div className="panel-heading"><div><p className="eyebrow">VERIFIED HUMAN WORKFLOW</p><h2>Review queue</h2></div><span className="count">{filteredReviewQueue.length}/{reviewQueue.length}</span></div>
-            <p className="limitation">The latest authorized analysis window is bounded to 500 records. Pending, reviewed, and evidence-requested decisions can be filtered without rewriting the machine result or prior review history.</p>
+            <div className="panel-heading"><div><p className="eyebrow">VERIFIED HUMAN WORKFLOW</p><h2>Review queue</h2></div><span className="count">{reviewTotal ?? '…'} matching</span></div>
+            <p className="limitation">Filters and pagination query the full authorized latest-analysis dataset. Older unresolved investigations remain accessible.</p>
             <div className="table-toolbar" aria-label="Review queue filters">
               <label>Search<input type="search" value={reviewSearch} onChange={(event: ChangeEvent<HTMLInputElement>) => { setReviewSearch(event.target.value); setReviewPage(1); }} placeholder="Test, summary, category, or decision" /></label>
               <label>Status<select value={reviewStatusFilter} onChange={(event: ChangeEvent<HTMLSelectElement>) => { setReviewStatusFilter(event.target.value as 'all' | 'pending' | 'reviewed'); setReviewPage(1); }}><option value="pending">Pending action</option><option value="reviewed">Terminally reviewed</option><option value="all">All analyses</option></select></label>
               <label>Category<select value={reviewCategoryFilter} onChange={(event: ChangeEvent<HTMLSelectElement>) => { setReviewCategoryFilter(event.target.value as 'all' | Category); setReviewPage(1); }}><option value="all">All categories</option>{Object.entries(categoryLabel).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
               <label>Sort<select value={reviewSort} onChange={(event: ChangeEvent<HTMLSelectElement>) => { setReviewSort(event.target.value as 'newest' | 'oldest' | 'severity' | 'test'); setReviewPage(1); }}><option value="newest">Newest analysis</option><option value="oldest">Oldest analysis</option><option value="severity">Highest severity</option><option value="test">Test identity</option></select></label>
             </div>
-            <p className="result-summary" aria-live="polite">Showing {pagedReviewQueue.length} of {filteredReviewQueue.length} matching analyses.</p>
-            {filteredReviewQueue.length === 0 ? <div className="empty">No analyses match the current review filters.</div> : (
+            <p className="result-summary" aria-live="polite">{reviewLoading ? 'Loading matching analyses…' : `Showing ${pagedReviewQueue.length} of ${reviewTotal ?? 0} matching analyses.`}</p>
+            {!reviewLoading && reviewQueue.length === 0 ? <div className="empty">No analyses match the current review filters.</div> : (
               <>
                 <div className="table-wrap">
                   <table>
@@ -2135,15 +2156,17 @@ function App() {
                     ))}</tbody>
                   </table>
                 </div>
-                <nav className="pagination" aria-label="Review queue pages">
-                  <button type="button" onClick={() => setReviewPage((page) => Math.max(1, page - 1))} disabled={reviewPage <= 1}>Previous</button>
+                <nav className="pagination" aria-label="Review queue pages" aria-busy={reviewLoading}>
+                  <button type="button" onClick={() => setReviewPage((page) => Math.max(1, page - 1))} disabled={reviewLoading || reviewPage <= 1}>Previous</button>
                   <span>Page {reviewPage} of {reviewPageCount}</span>
-                  <button type="button" onClick={() => setReviewPage((page) => Math.min(reviewPageCount, page + 1))} disabled={reviewPage >= reviewPageCount}>Next</button>
+                  <button type="button" onClick={() => setReviewPage((page) => Math.min(reviewPageCount, page + 1))} disabled={reviewLoading || reviewPage >= reviewPageCount}>Next</button>
                 </nav>
               </>
             )}
           </section>
         )}
+
+        <AccountPanel key={principal.user_id ?? principal.kind} principal={principal} onSessionChanged={sessionChanged} />
 
         {canAdminister && (
           <section id="settings" className="panel settings-panel">
@@ -2186,6 +2209,8 @@ function App() {
                 {ingestionTokens.length === 0 && <div className="empty">No project ingestion credentials exist.</div>}
               </section>
 
+              {projectId && <RetentionPanel key={projectId} projectId={projectId} onChanged={governanceChanged} />}
+
               <section className="settings-block system-status-block" aria-labelledby="system-status-heading">
                 <div><h3 id="system-status-heading">System status and policy versions</h3><p>Health checks are read-only and expose no credentials. Unknown states remain explicit instead of being shown as healthy.</p></div>
                 <div className="status-grid" aria-live="polite" aria-busy={healthLoading}>
@@ -2207,17 +2232,17 @@ function App() {
 
         {canReview && (
           <section id="audit" className="panel audit-panel">
-            <div className="panel-heading"><div><p className="eyebrow">APPEND-ONLY APPLICATION HISTORY</p><h2>Project audit events</h2></div><span className="count">{filteredAuditEvents.length}/{auditEvents.length}</span></div>
+            <div className="panel-heading"><div><p className="eyebrow">APPEND-ONLY APPLICATION HISTORY</p><h2>Project audit events</h2></div><span className="count">{auditTotal ?? '…'} matching</span></div>
             <p className="limitation">These events preserve verified application actors and reasons. They are not represented as cryptographically immutable against a database administrator.</p>
             <div className="table-toolbar audit-toolbar" aria-label="Audit event filters">
               <label>Search<input type="search" value={auditSearch} onChange={(event: ChangeEvent<HTMLInputElement>) => { setAuditSearch(event.target.value); setAuditPage(1); }} placeholder="Actor, action, resource, or reason" /></label>
               <label>Action<select value={auditActionFilter} onChange={(event: ChangeEvent<HTMLSelectElement>) => { setAuditActionFilter(event.target.value); setAuditPage(1); }}><option value="">All actions</option>{auditActions.map((action) => <option value={action} key={action}>{readableValue(action)}</option>)}</select></label>
               <label>Outcome<select value={auditOutcomeFilter} onChange={(event: ChangeEvent<HTMLSelectElement>) => { setAuditOutcomeFilter(event.target.value); setAuditPage(1); }}><option value="">All outcomes</option>{auditOutcomes.map((outcome) => <option value={outcome} key={outcome}>{readableValue(outcome)}</option>)}</select></label>
               <label>Sort<select value={auditSort} onChange={(event: ChangeEvent<HTMLSelectElement>) => { setAuditSort(event.target.value as 'newest' | 'oldest'); setAuditPage(1); }}><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label>
-              <button type="button" onClick={exportAuditCsv} disabled={filteredAuditEvents.length === 0}>Export filtered CSV</button>
+              <button type="button" onClick={exportAuditCsv} disabled={busy || auditLoading || !canAdminister || !auditExportEnabled || !auditTotal}>Export filtered CSV</button>
             </div>
-            <p className="result-summary" aria-live="polite">Showing {pagedAuditEvents.length} of {filteredAuditEvents.length} matching audit events.</p>
-            {filteredAuditEvents.length === 0 ? <div className="empty">No project audit events match the current filters.</div> : (
+            <p className="result-summary" aria-live="polite">{auditLoading ? 'Loading matching audit events…' : `Showing ${pagedAuditEvents.length} of ${auditTotal ?? 0} matching audit events.`}</p>
+            {!auditLoading && auditEvents.length === 0 ? <div className="empty">No project audit events match the current filters.</div> : (
               <>
                 <div className="table-wrap"><table><caption className="sr-only">Filtered project audit events</caption><thead><tr><th scope="col">Time</th><th scope="col">Actor</th><th scope="col">Action</th><th scope="col">Resource</th><th scope="col">Reason</th></tr></thead><tbody>{pagedAuditEvents.map((event) => (
                   <tr key={event.id}>
@@ -2229,9 +2254,9 @@ function App() {
                   </tr>
                 ))}</tbody></table></div>
                 <nav className="pagination" aria-label="Audit event pages">
-                  <button type="button" onClick={() => setAuditPage((page) => Math.max(1, page - 1))} disabled={auditPage <= 1}>Previous</button>
+                  <button type="button" onClick={() => setAuditPage((page) => Math.max(1, page - 1))} disabled={auditLoading || auditPage <= 1}>Previous</button>
                   <span>Page {auditPage} of {auditPageCount}</span>
-                  <button type="button" onClick={() => setAuditPage((page) => Math.min(auditPageCount, page + 1))} disabled={auditPage >= auditPageCount}>Next</button>
+                  <button type="button" onClick={() => setAuditPage((page) => Math.min(auditPageCount, page + 1))} disabled={auditLoading || auditPage >= auditPageCount}>Next</button>
                 </nav>
               </>
             )}

@@ -33,7 +33,7 @@ _ROLE_ORDER: dict[ProjectRole, int] = {
 
 @dataclass(frozen=True, slots=True)
 class Principal:
-    kind: Literal["demo", "user", "ingestion_token"]
+    kind: Literal["demo", "user", "ingestion_token", "system"]
     actor_id: str | None
     display_name: str
     user_id: str | None = None
@@ -217,6 +217,8 @@ def ensure_bootstrap_administrator(session: Session, settings: Settings) -> User
         return None
     username = normalize_username(settings.bootstrap_admin_username or "")
     user = session.scalar(select(User).where(User.username == username))
+    if user is None and session.scalar(select(User.id).limit(1)) is not None:
+        return None
     if user is None:
         user = create_user(
             session,
@@ -239,28 +241,6 @@ def ensure_bootstrap_administrator(session: Session, settings: Settings) -> User
             resource_id=user.id,
             details={"username": user.username},
         )
-    else:
-        changed = False
-        if not user.is_active:
-            user.is_active = True
-            changed = True
-        if not user.is_system_admin:
-            user.is_system_admin = True
-            changed = True
-        if changed:
-            record_audit_event(
-                session,
-                Principal(
-                    kind="user",
-                    actor_id=user.id,
-                    display_name=user.display_name,
-                    user_id=user.id,
-                    system_admin=True,
-                ),
-                action="auth.bootstrap_administrator_restored",
-                resource_type="user",
-                resource_id=user.id,
-            )
     session.commit()
     session.refresh(user)
     return user

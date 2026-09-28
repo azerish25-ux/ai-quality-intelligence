@@ -1,5 +1,24 @@
 # FailureLens delivery ledger
 
+## M5.3 local operational-lifecycle checkpoint
+
+Source parent: `03870bbd65695e8ed6c7249b40c8024c212666b7`, exact tree `c37afba865d68a7a3cc66621007c59fcf75779d1`, canonical working branch `main`.
+
+Implemented `accounts.py`, `retention.py`, `governance.py`, `operations_api.py`, migration `b7d3a9e5c620`, API/schema/worker/history/report integration and the real React settings/account/review interfaces. See `operations-lifecycle.md` for the full behavior and retained-data boundary. Added regression coverage for session revocation/rotation, one-time recovery, restart-stable deactivation, last-administrator protection, candidate-bound retention, shared source references, crash recovery before/after unlink, expired evidence and dangerous reassurance, audit policy/CSV safety, and review access beyond 500 analyses.
+
+Executed locally:
+- Backend suite: **197 passed, 3 PostgreSQL-only tests skipped**; **85.50%** branch-aware coverage against the existing 75% gate.
+- SQLite empty upgrade, downgrade/re-upgrade, and Alembic metadata check: **passed** through `b7d3a9e5c620`.
+- Python source/tests/evaluation/browser-seed compilation: **passed**.
+- All five deterministic harnesses: **passed on their committed synthetic fixtures**. The classification test split remains 100 cases; there are still zero actual LedgerGuard executions.
+- Actual standalone `frontend/src/api.ts` strict TypeScript compilation: **passed without substitute declarations**. Six Node checks against that emitted client: **passed**.
+- Modified frontend source/test syntax transpilation: **passed**, not a full React type-check/build.
+- Disposable browser fixture generation: **passed**, six isolated projects with an old investigation plus 101 newer control runs each.
+
+Not executed here: locked npm/Vitest/Vite build, Playwright journeys, PostgreSQL concurrency and Docker. npm dependency installation failed with `EAI_AGAIN`; Git transport preflight failed with `Could not resolve host: github.com`. The exposed connector could read the repo but provided no Git object/contents/ref write action. A local commit is not remote delivery; the final handoff must report the actual commit and push result. Do not attach the previous M5.2 CI result to M5.3.
+
+M5 remains **PARTIAL** until the new end-to-end lanes and remaining operational scope are verified. The milestone table below records the preceding delivered M5.2 baseline and should be read with this local-checkpoint overlay.
+
 ## Repository facts
 
 - Canonical repository: `azerish25-ux/ai-quality-intelligence`
