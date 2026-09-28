@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from typing import Iterable
 
-REDACTION_VERSION = "redaction-v1"
+REDACTION_VERSION = "redaction-v2"
 
 
 @dataclass(frozen=True)
@@ -21,7 +21,9 @@ _PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("cookie", re.compile(r"(?im)^((?:set-)?cookie\s*:\s*)[^\r\n]+")),
     ("api_key", re.compile(r"(?i)\b((?:api[_-]?key|access[_-]?token|token|secret|password)\s*[=:]\s*)[\"']?[^\s,;\"']{6,}")),
     ("email", re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.I)),
-    ("phone", re.compile(r"(?<!\d)(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}(?!\d)")),
+    # Numeric fragments inside identifiers/digests are not phone tokens.
+    # Named phone fields remain independently restricted below.
+    ("phone", re.compile(r"(?<![\w])(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}(?![\w])")),
     ("session", re.compile(r"(?i)\b((?:session(?:id)?|sid)\s*[=:]\s*)[\"']?[^\s,;\"']{6,}")),
 )
 

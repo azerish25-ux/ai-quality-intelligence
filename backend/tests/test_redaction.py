@@ -35,3 +35,20 @@ def test_embedded_authorization_and_sensitive_mapping_fields_are_redacted() -> N
     assert email is not None and "customer@example.com" not in email.text
     assert email.classes == ("email",)
     assert ordinary is None
+
+
+def test_phone_redaction_preserves_digest_tokens_but_not_sensitive_fields() -> None:
+    from failurelens.redaction import redact_sensitive_field
+
+    # Regression: digit runs in a random request digest must retain their identity.
+    digest = "a" * 24 + "4165550123" + "b" * 30
+    assert len(digest) == 64
+    assert redact_text(digest).text == digest
+    for field in ("phone", "customer_phone", "access_token", "password"):
+        restricted = redact_sensitive_field(field, digest)
+        assert restricted is not None and digest not in restricted.text
+    for phone in ("4165550123", "+1 416 555 0123", "(416) 555-0123", "416.555.0123"):
+        result = redact_text(f"phone: {phone}; response=500")
+        assert phone not in result.text and "phone" in result.classes
+        assert "response=500" in result.text
+    assert digest not in redact_text("Authorization: Bearer " + digest).text
