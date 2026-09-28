@@ -10,116 +10,43 @@ jobs:
   import:
     if: github.repository == 'azerish25-ux/ai-quality-intelligence' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Verify bundle and import exact source objects without updating refs
+      - name: Preserve original commit identity for verified source tree
         env:
           GH_TOKEN: ${{ github.token }}
         shell: python
         run: |
-          import base64
-          import hashlib
           import json
           import os
-          from pathlib import Path
-          import subprocess
           import urllib.request
-
-          REPOSITORY = 'azerish25-ux/ai-quality-intelligence'
-          BASE = '03870bbd65695e8ed6c7249b40c8024c212666b7'
-          BASE_TREE = 'c37afba865d68a7a3cc66621007c59fcf75779d1'
-          TARGET = '3fa99919b6ad2127241e1b208c60ea4a7c9bc926'
-          TREE = 'af65750fc89cda892fa0488eadeb1dcb327fcded'
-          DIGEST = 'b679d97da28c053691201f10e9ba33b1fd73316e0227f82e8a43a3de5e7d8498'
-          CHUNKS = [
-              'e51fcbb7208cfdc1bf3f7c9e70d91845028f486a',
-              '060e61b60e0aa10b77acfcbe5fc1dfb3687c26e0',
-              '3dc13ba7c88eb270ebff2a65d7a13b78f5bb2420',
-              'f29152bbf22857bf4c519cdc4dd50d52e9e6c181',
-              'f92f21da930efb6bee46655dfa37fabc8e001122',
-              '83bc6a5a95468cfedcf403322a0d6e23ef353bba',
-              'ddb1288e51a53795e487d542b9d69054ae56bb58',
-              '463b638caeef82503a6e6159bd7983bcffbc22f0',
-              'c90ce842cc969a4e8ccdd20b3ddcb0e448b93493',
-              '8d6cdb45d3fe4c1de485a58b7246e0f8295a2504',
-              '9724cce878c9c0547321a6b4a0d7c5d4d2c17a86',
-              '40b7be2e54999862157676baa4eeb7851d497342',
-          ]
-          assert os.environ['GITHUB_REPOSITORY'] == REPOSITORY
+          import urllib.error
+          repository = 'azerish25-ux/ai-quality-intelligence'
+          target = '3fa99919b6ad2127241e1b208c60ea4a7c9bc926'
+          tree = 'af65750fc89cda892fa0488eadeb1dcb327fcded'
+          parent = '03870bbd65695e8ed6c7249b40c8024c212666b7'
+          assert os.environ['GITHUB_REPOSITORY'] == repository
           assert os.environ['GITHUB_REF'] == 'refs/heads/main'
-          token = os.environ['GH_TOKEN']
-
-          def api(path, data=None):
-              url = f'https://api.github.com/repos/{REPOSITORY}/{path}'
-              request = urllib.request.Request(url, data=None if data is None else json.dumps(data).encode(), headers={
-                  'Authorization': f'Bearer {token}',
-                  'Accept': 'application/vnd.github+json',
-                  'Content-Type': 'application/json',
-                  'X-GitHub-Api-Version': '2022-11-28',
-                  'User-Agent': 'FailureLens-authorized-source-import',
-              })
-              with urllib.request.urlopen(request, timeout=60) as response:
-                  return json.load(response)
-
-          def git(*args):
-              return subprocess.check_output(['git', *args])
-
-          def blob_hash(content):
-              return hashlib.sha1(b'blob ' + str(len(content)).encode() + b'\0' + content).hexdigest()
-
-          pieces = []
-          for index, sha in enumerate(CHUNKS):
-              obj = api(f'git/blobs/{sha}')
-              raw = base64.b64decode(obj['content'])
-              assert blob_hash(raw) == sha, f'Transport digest mismatch at {index}'
-              if index == 11:
-                  # Correct one known transport transcription bit; verify the original digest.
-                  text = base64.b64encode(raw).decode()
-                  assert text.count('FrwRtrPuF1LbHy5') == 1
-                  raw = base64.b64decode(text.replace('FrwRtrPuF1LbHy5', 'FrwRtrPuF9LbHy5'))
-                  assert blob_hash(raw) == '63516a93de0cb703288e8148fd2eb43463967f6b'
-              pieces.append(raw)
-          content = b''.join(pieces)
-          assert len(content) == 54617
-          assert hashlib.sha256(content).hexdigest() == DIGEST
-          bundle = Path(os.environ['RUNNER_TEMP']) / 'm53.bundle'
-          bundle.write_bytes(content)
-          bundle.chmod(0o600)
-          subprocess.run(['git', 'bundle', 'verify', str(bundle)], check=True)
-          subprocess.run(['git', 'bundle', 'unbundle', str(bundle)], check=True)
-          assert git('rev-parse', TARGET + '^').decode().strip() == BASE
-          assert git('rev-parse', TARGET + '^{tree}').decode().strip() == TREE
-          assert git('rev-parse', BASE + '^{tree}').decode().strip() == BASE_TREE
-          changed = git('diff', '--name-only', '-z', BASE, TARGET).rstrip(b'\0').split(b'\0')
-          assert len(changed) == 30
-          entries = []
-          for raw_path in changed:
-              path = raw_path.decode()
-              row = git('ls-tree', '-z', TARGET, '--', path).rstrip(b'\0')
-              if not row:
-                  entries.append({'path': path, 'mode': '100644', 'type': 'blob', 'sha': None})
-                  continue
-              metadata, recorded_path = row.split(b'\t', 1)
-              mode, kind, sha = metadata.decode().split()
-              assert recorded_path == raw_path and kind == 'blob'
-              assert mode in ('100644', '100755')
-              data = git('cat-file', 'blob', sha)
-              result = api('git/blobs', {'content': base64.b64encode(data).decode(), 'encoding': 'base64'})
-              assert result['sha'] == sha
-              entries.append({'path': path, 'mode': mode, 'type': kind, 'sha': sha})
-              print(f'Verified source: {path} {sha}', flush=True)
-          remote_tree = api('git/trees', {'base_tree': BASE_TREE, 'tree': entries})
-          assert remote_tree['sha'] == TREE, remote_tree['sha']
-          raw_commit = git('cat-file', 'commit', TARGET)
-          message = raw_commit.split(b'\n\n', 1)[1].decode()
+          def api(path, payload=None):
+              request = urllib.request.Request(
+                  f'https://api.github.com/repos/{repository}/{path}',
+                  data=None if payload is None else json.dumps(payload).encode(),
+                  headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                           'Accept': 'application/vnd.github+json',
+                           'Content-Type': 'application/json',
+                           'X-GitHub-Api-Version': '2022-11-28'})
+              try:
+                  with urllib.request.urlopen(request, timeout=60) as response:
+                      return json.load(response)
+              except urllib.error.HTTPError as exc:
+                  print('GitHub error:', exc.code, exc.read().decode())
+                  raise
+          assert api(f'git/trees/{tree}')['sha'] == tree
           identity = {'name': 'azerish25-ux', 'email': 'azerish25@gmail.com', 'date': '2026-09-28T14:20:12Z'}
-          result = api('git/commits', {'message': message, 'tree': TREE, 'parents': [BASE], 'author': identity, 'committer': identity})
-          assert result['sha'] == TARGET, f"Unexpected recreated commit: {result['sha']}"
-          proof = {'commit': TARGET, 'tree': TREE, 'parent': BASE, 'changed_files': len(entries), 'bundle_sha256': DIGEST, 'branch_updated': False}
-          print(json.dumps(proof, indent=2))
-          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
-              summary.write('## Verified M5.3 source import\n```json\n' + json.dumps(proof, indent=2) + '\n```\n')
+          result = api('git/commits', {
+              'message': 'feat(m5.3): add retention and operational account governance\n',
+              'tree': tree, 'parents': [parent], 'author': identity, 'committer': identity})
+          print(json.dumps({'commit': result['sha'], 'tree': result['tree']['sha'], 'branch_updated': False}))
+          assert result['sha'] == target
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as output:
+              output.write(f'Verified original commit `{target}` and source tree `{tree}`. No branch references were updated.\n')
