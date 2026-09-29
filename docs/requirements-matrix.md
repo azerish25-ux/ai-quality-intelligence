@@ -1,6 +1,6 @@
 # Requirement-to-evidence matrix
 
-Current accepted source: `0e98962d4ad46099298b42542b3e79708397536a`, [CI run 36492358143](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36492358143). All ten jobs passed. See [PROGRESS.md](PROGRESS.md) for executed counts and exact delivery boundaries. PASS is scoped to the named behavior, not a full-project declaration. Full M2, complete M5, full M6 and the master project remain PARTIAL.
+Current executed M6.2 source: `b31be357fc35aa4b9c225f28147ab32367d95a18`, [CI run 36499736103](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36499736103) and [full-stack run 36499736145](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36499736145). All ten existing jobs and the new full-stack job passed. Retained reports continue to name the revision actually executed; subsequent commits need separate CI. See [PROGRESS.md](PROGRESS.md) for executed counts and exact delivery boundaries. PASS is scoped to the named behavior, not a full-project declaration. Full M2, complete M5, full M6 and the master project remain PARTIAL.
 
 ## Core and previously delivered behavior
 
@@ -71,12 +71,14 @@ Implementation paths below are relative to `backend/src/failurelens/` unless a f
 
 The preceding matrix is preserved byte-for-byte in [requirements-through-M6.1.md](requirements-through-M6.1.md), original blob `b21332d811f5dbd92c65a402d17d9fb0ed171bad`. Its earlier pending descriptions are historical, not current missing-feature claims. M7 optional-provider contracts, M8 complete GitHub publication, M9 hardening/packaging and M10 final audit remain unfinished. No green scoped CI job overrides a failed quality target or implies full-project acceptance.
 
-## M6.2 implementation checkpoint — verification pending
+## M6.2 scoped execution and retention
 
 | ID | Requirement | Status | Implementation / verification boundary |
 |---|---|---|---|
-| R-M62-EXEC | Real HTTP/PostgreSQL control and faulty retry boundary | NOT RUN | `integrations/ledgerguard/fullstack.py`, clean pinned source, disposable stack, actual lost response and independent SQL/receipt oracle; exact-source CI pending. |
-| R-M62-BUNDLE | Preserve related artifacts in one run and isolate paired roles | PARTIAL | Replay v2 plus bounded measurement adapter; real API/worker synthetic regression passes locally, PostgreSQL acceptance pending. |
-| R-M62-CLAIM | Recomputed numeric diagnosis with verified evidence | PARTIAL | `transaction_evidence.py`, analyzer/publication predicates; missing/conflicting/forged-measurement tests pass, executed producer acceptance pending. |
-| R-M62-REVIEW | Scoped, inspectable results and advisory reports | PARTIAL | Separate evaluation API/panel, independent scorer, desktop/narrow browser journey; exact-source browser execution pending. |
-| R-M62-ACCEPT | Exact-source delivery, retained results and unchanged historical failures | NOT RUN | New permanent workflow; existing component reports and targets unchanged. Not full M6 acceptance. |
+| R-M62-EXEC | Real HTTP/PostgreSQL control and faulty retry boundary | PASS | `integrations/ledgerguard/fullstack.py`, clean pinned source, disposable stack, actual lost response and independent SQL/receipt oracle; executed job `109187473637`. One mechanism, not concurrency/rollback coverage. |
+| R-M62-BUNDLE | Preserve related artifacts in one run and isolate paired roles | PASS | Replay v2, three-input bundles, numeric adapter, actual API/worker/PostgreSQL replay, two distinct runs per pair and idempotent re-import. |
+| R-M62-CLAIM | Recomputed numeric diagnosis with verified evidence | PASS | `transaction_evidence.py`, publication predicates, independent scorer; four bounded claims and eight producer-bound numeric derivatives; confusing/missing/conflicting/forged-evidence regressions. |
+| R-M62-REVIEW | Scoped, inspectable results and advisory reports | PASS | Separate evaluation API/panel, executed desktop/narrow Chromium journey and inspected screenshots; advisory HOLD reports. Source/scope/limits visible; UUID links require originating DB. |
+| R-M62-RETENTION | Bounded durable snapshot and independent offline rescore | PASS | Exact `b31be357` report and lossless snapshot; `verify_fullstack_snapshot.py`, `test_fullstack_snapshot.py`; archive/report digests and original CI expiry retained. Offline verification is not fresh execution. |
+| R-M62-ACCEPT | Exact-source delivery and unchanged historical failures | PASS | Accepted `b31be357` source has ten green regression jobs and one green full-stack job. Existing component 48/60 recall and failed 90% target remain unchanged. Later evidence commits require their own CI. |
+| R-M62-FULL | Diverse held-out evaluation and complete M6 | PARTIAL | One development mechanism with four dependent amount variants does not satisfy 80 independent families, frozen five-category splits, temporal/unknown-family slices or broader quality acceptance. |

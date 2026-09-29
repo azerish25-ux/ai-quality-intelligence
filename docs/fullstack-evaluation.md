@@ -115,10 +115,50 @@ oracle tampering, bundle isolation, API/worker replay, scorer forgeries and repo
 access. Synthetic unit fixtures are explicitly labeled as such and are not counted
 as LedgerGuard executions.
 
-At the implementation checkpoint, targeted local tests passed. Exact-source
-Docker/PostgreSQL/browser execution is still pending; consult `PROGRESS.md` for the
-subsequent delivered commit and actual run evidence. Do not interpret this document
-or the existence of the workflow as proof it ran successfully.
+The executed source `b31be357fc35aa4b9c225f28147ab32367d95a18` passed
+[full-stack run 36499736145](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36499736145),
+job `109187473637`, including real HTTP/PostgreSQL execution, label-free replay,
+independent scoring and both browser layouts. All ten existing regression jobs in
+[run 36499736103](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36499736103)
+also passed. Downloaded desktop and narrow screenshots were inspected. These
+results describe that exact source, not an untested later revision.
+
+The measured development slice has four correctly identified duplicate-effect
+interventions, four transport-only controls with cautious abstention, zero of four
+dangerous dismissals, eight verified numeric derivatives and four bounded claims.
+Five substantive analyses agree for each role. This is one mechanism with four
+dependent amount variants; it is not an eight-family or five-category benchmark.
+
+The first full-stack run `36498925385` at `4c040b1` failed scoring after successful
+HTTP execution and replay. A phone-shaped digit sequence inside a random SHA-256
+identifier was over-redacted. The fix preserves identifier token boundaries while
+still redacting phone tokens, named sensitive fields and credentials. Regression
+tests include the problematic digest shape through the complete replay. The failed
+run is not counted as acceptance.
+
+## Durable evidence and offline verification
+
+The original 63,478-byte execution artifact `11005245282` is retained losslessly
+under `evaluation/corpus/ledgerguard-fullstack-v1/execution.zip.xz` (17,316 bytes).
+Every original artifact member is preserved; ZIP storage and outer compression
+were changed, so original and repacked digests are recorded separately. Exact
+metrics, predictions and the report are in `evaluation/reports/ledgerguard-fullstack-v1/`.
+Its `retention.json` records the tested source, originating run/job, original
+GitHub artifact SHA-256 and expiry, snapshot digests, and browser artifact metadata.
+No credentials, databases, compiled classes or companion source are included.
+
+```bash
+python evaluation/verify_fullstack_snapshot.py
+```
+
+This command checks compressed and expanded bounds, member safety and all digests,
+then independently rescores the saved API output and requires exact metric/report
+agreement. It is **offline verification, not a fresh HTTP/PostgreSQL/browser run**.
+Snapshot regressions reject changed bytes, symlinks, expansion/trailing data,
+unauthorized nested ZIP paths, forged role records and unsupported claims even
+when a forger recomputes repetition hashes. The default local dashboard reads the
+retained report and displays its actual `b31be357` source. CI uses a fresh report
+for its own tested revision. Earlier component reports remain byte-for-byte unchanged.
 
 Remaining work includes truly independent five-category families, frozen
 family-grouped splits, broader temporal/unknown-family/adversarial evaluation,

@@ -1,0 +1,372 @@
+{
+  "abstentions": {
+    "denominator": 8,
+    "numerator": 4,
+    "rate": 0.5,
+    "wilson_95": [
+      0.21521606221387757,
+      0.7847839377861224
+    ]
+  },
+  "by_family": {
+    "lost-response-retry-key-corruption": {
+      "abstentions": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "case_count": 4,
+      "confusion_matrix": {
+        "infrastructure_failure": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "insufficient_evidence": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "known_flake": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        },
+        "product_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 4,
+          "test_defect": 0
+        },
+        "test_defect": {
+          "infrastructure_failure": 0,
+          "insufficient_evidence": 0,
+          "known_flake": 0,
+          "product_defect": 0,
+          "test_defect": 0
+        }
+      },
+      "critical_high_dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "dangerous_dismissal": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "macro_f1": null,
+      "macro_f1_status": "not_applicable_missing_true_categories",
+      "non_abstained_coverage": 1.0,
+      "per_category": {
+        "infrastructure_failure": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "insufficient_evidence": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "known_flake": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        },
+        "product_defect": {
+          "f1": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "support": 4
+        },
+        "test_defect": {
+          "f1": null,
+          "precision": null,
+          "recall": null,
+          "support": 0
+        }
+      },
+      "product_abstentions": 0,
+      "product_defect_recall": 1.0,
+      "product_misrouting": {
+        "denominator": 4,
+        "numerator": 0,
+        "rate": 0.0,
+        "wilson_95": [
+          0,
+          0.4898908364545973
+        ]
+      }
+    }
+  },
+  "case_count": 8,
+  "compute_cost": null,
+  "confusion_matrix": {
+    "infrastructure_failure": {
+      "infrastructure_failure": 0,
+      "insufficient_evidence": 0,
+      "known_flake": 0,
+      "product_defect": 0,
+      "test_defect": 0
+    },
+    "insufficient_evidence": {
+      "infrastructure_failure": 0,
+      "insufficient_evidence": 4,
+      "known_flake": 0,
+      "product_defect": 0,
+      "test_defect": 0
+    },
+    "known_flake": {
+      "infrastructure_failure": 0,
+      "insufficient_evidence": 0,
+      "known_flake": 0,
+      "product_defect": 0,
+      "test_defect": 0
+    },
+    "product_defect": {
+      "infrastructure_failure": 0,
+      "insufficient_evidence": 0,
+      "known_flake": 0,
+      "product_defect": 4,
+      "test_defect": 0
+    },
+    "test_defect": {
+      "infrastructure_failure": 0,
+      "insufficient_evidence": 0,
+      "known_flake": 0,
+      "product_defect": 0,
+      "test_defect": 0
+    }
+  },
+  "control_abstentions": 4,
+  "control_case_count": 4,
+  "corpus_provenance_sha256": "e2ee9303446c824619f2872ea06ae4c05d6ef6e6f5d97a330e6eeaba0ac2c43c",
+  "critical_high_dangerous_dismissal": {
+    "denominator": 4,
+    "numerator": 0,
+    "rate": 0.0,
+    "wilson_95": [
+      0,
+      0.4898908364545973
+    ]
+  },
+  "dangerous_dismissal": {
+    "denominator": 4,
+    "numerator": 0,
+    "rate": 0.0,
+    "wilson_95": [
+      0,
+      0.4898908364545973
+    ]
+  },
+  "database_dialect": "postgresql",
+  "evaluation_scope": "http_postgresql_fault_proxy",
+  "evaluation_version": "fullstack-retry-v1",
+  "external_model_requests": 0,
+  "family_count": 1,
+  "input_manifest_sha256": "fcfdcf373a43daa50a73468f0162cff723d02bd6a86ca5985478b5d615d81723",
+  "inspection": [
+    {
+      "analysis_id": "764c05f9-2dff-437c-81a3-a10184cb2bd9",
+      "case_id": "c-65ee0df0af452782e81a",
+      "category": "insufficient_evidence",
+      "committed_effects": 1,
+      "evidence_ids": [
+        "6f617b08-c9fa-4afc-a9f3-71684ce652bf"
+      ],
+      "report": "reports/c-65ee0df0af452782e81a-control.md",
+      "role": "control",
+      "run_id": "becec31c-be03-4b0d-892f-4241f37a407b"
+    },
+    {
+      "analysis_id": "5411a159-5191-47e4-8a6f-96129ec9b706",
+      "case_id": "c-65ee0df0af452782e81a",
+      "category": "product_defect",
+      "committed_effects": 2,
+      "evidence_ids": [
+        "f60802ff-d9f0-4afd-ad5b-a0ca49d2d8a4"
+      ],
+      "report": "reports/c-65ee0df0af452782e81a-observation.md",
+      "role": "observation",
+      "run_id": "0c80348a-4da3-421d-9ab3-5027c49b149d"
+    },
+    {
+      "analysis_id": "955ad478-eba6-4478-8fba-373ad95eefd1",
+      "case_id": "c-5729d65e0c83fdf06abf",
+      "category": "insufficient_evidence",
+      "committed_effects": 1,
+      "evidence_ids": [
+        "fbf2ab3c-41e8-4b9b-aac7-675e3b8f2d3a"
+      ],
+      "report": "reports/c-5729d65e0c83fdf06abf-control.md",
+      "role": "control",
+      "run_id": "1a3f3188-ff3f-42ba-9aa2-8a3fde9801d3"
+    },
+    {
+      "analysis_id": "80e0a42c-c231-4e50-a991-e0c6acb4d2c8",
+      "case_id": "c-5729d65e0c83fdf06abf",
+      "category": "product_defect",
+      "committed_effects": 2,
+      "evidence_ids": [
+        "d79a17a3-cc40-41ca-b497-feb5a22db12b"
+      ],
+      "report": "reports/c-5729d65e0c83fdf06abf-observation.md",
+      "role": "observation",
+      "run_id": "ab4f6ee0-1327-4b74-987d-83305bb0faa2"
+    },
+    {
+      "analysis_id": "d72f5578-ca58-4374-a451-065b50e3e60e",
+      "case_id": "c-f49e3184d5f65decc556",
+      "category": "insufficient_evidence",
+      "committed_effects": 1,
+      "evidence_ids": [
+        "98e3ff3f-2b86-4ed8-8622-912cf2697cc1"
+      ],
+      "report": "reports/c-f49e3184d5f65decc556-control.md",
+      "role": "control",
+      "run_id": "4ac4bad1-a8cb-42f6-9bd7-275d9c046cbe"
+    },
+    {
+      "analysis_id": "b50e23e9-0735-4ce6-bd18-cd9f0e9206a2",
+      "case_id": "c-f49e3184d5f65decc556",
+      "category": "product_defect",
+      "committed_effects": 2,
+      "evidence_ids": [
+        "df86f76d-209b-4624-bb2c-01ffbf3c328d"
+      ],
+      "report": "reports/c-f49e3184d5f65decc556-observation.md",
+      "role": "observation",
+      "run_id": "23caa727-7c3c-41e4-9648-83cc912ecf2e"
+    },
+    {
+      "analysis_id": "e3395d6d-fcb0-4c6f-b544-21f5c01f20fe",
+      "case_id": "c-bf87463599fe7a000299",
+      "category": "insufficient_evidence",
+      "committed_effects": 1,
+      "evidence_ids": [
+        "8b20779e-d0ee-4abe-bf88-b8653eee03f7"
+      ],
+      "report": "reports/c-bf87463599fe7a000299-control.md",
+      "role": "control",
+      "run_id": "e15215fe-785c-46b8-83ee-4167aef59f7b"
+    },
+    {
+      "analysis_id": "0898715b-c2b4-4f0b-be61-81749b4a9363",
+      "case_id": "c-bf87463599fe7a000299",
+      "category": "product_defect",
+      "committed_effects": 2,
+      "evidence_ids": [
+        "ae3f1a76-49c8-4e97-8ff4-ed31b93b6125"
+      ],
+      "report": "reports/c-bf87463599fe7a000299-observation.md",
+      "role": "observation",
+      "run_id": "ef7cbedd-93cc-4333-bc7f-a4750f18ec75"
+    }
+  ],
+  "integrity_acceptance": {
+    "all_reports_advisory_hold": true,
+    "five_identical_substantive_repetitions": true,
+    "independent_http_sql_oracles": true,
+    "postgresql_pipeline": true,
+    "producer_bound_authorized_derivatives": true,
+    "role_isolation_and_bundle_idempotency": true,
+    "zero_dangerous_critical_dismissals": true
+  },
+  "ledgerguard_revision": "13bdd62c924a3230825b6d9304f449f887c8e7fe",
+  "limitations": [
+    "Development-only, agent-authored scenarios; four amounts are one mechanism, not four independent families.",
+    "The faulty retry boundary is outside LedgerGuard. Different forwarded keys are correctly treated as different requests by the unmodified service.",
+    "A passing global balance reconciliation does not prove one economic effect per logical request.",
+    "The control passes the economic oracle but retains a real failed transport observation; cautious abstention is expected."
+  ],
+  "macro_f1": null,
+  "macro_f1_status": "not_applicable_missing_true_categories",
+  "non_abstained_coverage": 1.0,
+  "paired_scenarios": 4,
+  "per_category": {
+    "infrastructure_failure": {
+      "f1": null,
+      "precision": null,
+      "recall": null,
+      "support": 0
+    },
+    "insufficient_evidence": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 4
+    },
+    "known_flake": {
+      "f1": null,
+      "precision": null,
+      "recall": null,
+      "support": 0
+    },
+    "product_defect": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 4
+    },
+    "test_defect": {
+      "f1": null,
+      "precision": null,
+      "recall": null,
+      "support": 0
+    }
+  },
+  "product_abstentions": 0,
+  "product_defect_recall": 1.0,
+  "product_misrouting": {
+    "denominator": 4,
+    "numerator": 0,
+    "rate": 0.0,
+    "wilson_95": [
+      0,
+      0.4898908364545973
+    ]
+  },
+  "provider_mode": "deterministic",
+  "quality_targets": {
+    "all_transport_only_controls_abstain": true,
+    "coverage_at_least_75_percent": true,
+    "dangerous_dismissal_at_most_5_percent": true,
+    "five_category_macro_f1_at_least_0_80": null,
+    "product_recall_at_least_90_percent": true
+  },
+  "replay_sha256": "60c4205857f7d2d77c0c095a22bfb6cc1f012819fa84dcea345dc0d7364574ea",
+  "source_counts": {
+    "ledgerguard_executed": 8,
+    "other_executed": 0,
+    "synthetic": 0
+  },
+  "source_revision": "b31be357fc35aa4b9c225f28147ab32367d95a18",
+  "split": "development",
+  "verified_claim_count": 4,
+  "verified_numeric_evidence": 8,
+  "wall_seconds": 2.4826690179999957
+}

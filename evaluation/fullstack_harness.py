@@ -69,6 +69,8 @@ def evaluate(corpus: Path, replay_dir: Path) -> tuple[dict,list[dict]]:
             raise ValueError('Duplicated evidence references')
         if len(prediction['inputs'])!=2 or any(row['state']!='succeeded' or row['failure_count']!=1 or row['idempotent_replay'] is not True for row in prediction['inputs']):
             raise ValueError('The API ingestion or duplicate replay did not succeed')
+        if {row['role']: row['sha256'] for row in prediction['inputs']} != {ref.role: ref.sha256 for ref in case.inputs}:
+            raise ValueError('Ingestion role/digest records disagree with the public bundles')
         for ref in case.inputs:
             truth_role=roles[ref.role]
             files=validate_public_bundle(read_artifact(corpus/'inputs',ref),ref.expected_inputs)
@@ -102,10 +104,15 @@ def evaluate(corpus: Path, replay_dir: Path) -> tuple[dict,list[dict]]:
             if len(corresponding)!=1:
                 raise ValueError('No unique authorized derivative for this role')
             evidence_count+=1
+            if len(analysis['claims']) != (1 if analysis['category']=='product_defect' else 0):
+                raise ValueError('Published classification lacks the required bounded claim record')
             for claim in analysis['claims']:
                 if (claim.get('predicate')!={'kind':'committed_effect_multiplicity','count':oracle['committed_effects']}
                         or claim.get('evidence_ids')!=corresponding or claim.get('validation_status')!='verified'
-                        or oracle['committed_effects']<=1):
+                        or oracle['committed_effects']<=1
+                        or claim.get('kind')!='inference'
+                        or claim.get('text')!=(f"Reported request and database measurements reconcile {oracle['committed_effects']} committed effects "
+                            'for one retried logical request; this supports a product-defect investigation without establishing the responsible component.')):
                     raise ValueError('Published claim is unsupported by the independent numeric oracle')
                 claim_count+=1
             report=safe_path(replay_dir,'reports/'+case.case_id+'-'+ref.role+'.md')

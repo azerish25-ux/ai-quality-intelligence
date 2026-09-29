@@ -1,0 +1,29 @@
+{
+  "artifact": {
+    "expires_at": "2026-10-28T23:49:23Z",
+    "id": 11005245282,
+    "sha256": "111386cf5a9d4c9aa1ea06af6ddfcd5a1b123c327d395f9c68a3cf207cef47cb",
+    "size_bytes": 63478
+  },
+  "browser_artifact": {
+    "expires_at": "2026-10-05T23:49:22Z",
+    "id": 11005285226,
+    "sha256": "713e7b9ef2d79516851bec169f805ba2dca11ea5029b64a870fbba90cc92bbe5"
+  },
+  "job_id": 109187473637,
+  "report_sha256": {
+    "metrics.json": "b30a3678962ce9de357d223c989a58949713fa90de3c697ae158fbeac4a5c7bb",
+    "predictions.jsonl": "939cdc7ceb595d849704fe4032ad8ba70c35d1bafb1de6e7d93ec72a7881918e",
+    "report.md": "1526d6e129021dea1e4da652e61b155e499b8bbf42f5c76ebb49ae54950bb14f"
+  },
+  "snapshot": {
+    "format": "xz-compressed-stored-zip",
+    "path": "evaluation/corpus/ledgerguard-fullstack-v1/execution.zip.xz",
+    "repacking": "Every original GitHub artifact member is retained byte-for-byte; only ZIP compression and the outer XZ container differ.",
+    "sha256": "5999e081156881952325801bcbfb9e86495c733560dca66b192dc6ae4173fe8c",
+    "size_bytes": 17316,
+    "zip_sha256": "2dbd53a631a486bc93bd609232a9090b070642e9be5996c1c60c95f46edc2869"
+  },
+  "tested_source_revision": "b31be357fc35aa4b9c225f28147ab32367d95a18",
+  "workflow_run_id": 36499736145
+}

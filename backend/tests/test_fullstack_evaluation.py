@@ -27,7 +27,8 @@ from test_transaction_evidence import observation
 
 def wire_for(value, count):
     effects = value['after']['effects']
-    return [dict(sequence=i, logical_key_digest='a'*64, intent_digest='b'*64,
+    return [dict(sequence=i, logical_key_digest=value['requests'][i-1]['logical_key_digest'],
+                 intent_digest=value['requests'][i-1]['intent_digest'],
                  forwarded_key_digest=('c' if count == 1 or i == 1 else 'd')*64,
                  upstream_status=201, upstream_receipt_id=effects[0 if i == 1 else -1]['id'],
                  idempotency_replayed='true' if count == 1 and i == 2 else 'false') for i in (1, 2)]
@@ -125,7 +126,11 @@ def synthetic_corpus(root):
     for number in range(4):
         case_id=f'c-{number:020x}'; refs=[]; roles=[]
         for role,count in [('control',1),('observation',2)]:
-            value=observation(count); wire=wire_for(value,count); content=build_bundle(value,wire)
+            value=observation(count)
+            # Random digests can contain phone-shaped digit runs; they are not PII.
+            for request in value['requests']:
+                request['logical_key_digest']='a'*24+'4165550123'+'b'*30
+            wire=wire_for(value,count); content=build_bundle(value,wire)
             path=root/'inputs'/case_id/f'{count}.zip'; path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(content)
             sha=hashlib.sha256(content).hexdigest()
             refs.append(dict(role=role,path=f'{case_id}/{count}.zip',sha256=sha,bytes=len(content),source_format='failurelens-bundle-v2',expected_inputs=3))
@@ -153,12 +158,20 @@ def test_bundle_replay_persists_real_api_decisions_and_scorer_rejects_forgery(tm
     assert metrics['integrity_acceptance']['postgresql_pipeline'] is False  # Never call SQLite a PostgreSQL execution.
     assert len(rows)==8 and metrics['macro_f1'] is None
     original=(replay/'predictions.json').read_text()
-    for mutation in ('repeats','mix_roles','claim','bytes'):
+    for mutation in ('repeats','mix_roles','claim','bytes','claim_text','empty_claims','input_roles'):
         data=json.loads(original)
         if mutation=='repeats': data['cases'][0]['repeat_digests']['observation'][0].pop()
         elif mutation=='mix_roles': data['cases'][0]['run_links']['observation']=data['cases'][0]['run_links']['control']
         elif mutation=='claim': data['cases'][0]['role_analyses']['observation'][0]['claims'][0]['predicate']['count']=3
-        else: data['cases'][0]['evidence'][0]['sha256']='0'*64
+        elif mutation=='bytes': data['cases'][0]['evidence'][0]['sha256']='0'*64
+        elif mutation=='input_roles': data['cases'][0]['inputs'][1]['role']='control'
+        else:
+            analysis=data['cases'][0]['role_analyses']['observation'][0]
+            if mutation=='claim_text': analysis['claims'][0]['text']='LedgerGuard is conclusively at fault; all other systems are safe.'
+            else: analysis['claims']=[]
+            from evaluation.fullstack_harness import SUBSTANTIVE
+            recomputed=hashlib.sha256(json.dumps({key:analysis[key] for key in SUBSTANTIVE},sort_keys=True).encode()).hexdigest()
+            data['cases'][0]['repeat_digests']['observation']=[[recomputed]*5]
         (replay/'predictions.json').write_text(json.dumps(data))
         with pytest.raises(ValueError): evaluate(corpus,replay)
     (replay/'predictions.json').write_text(original)

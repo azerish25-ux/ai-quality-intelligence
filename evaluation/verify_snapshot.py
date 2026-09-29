@@ -21,7 +21,7 @@ SNAPSHOT = ROOT / "corpus/ledgerguard-component-v1/execution.zip"
 REPORT = ROOT / "reports/ledgerguard-component-v1-7405d923"
 
 
-def unpack_snapshot(archive: Path, destination: Path, expected_digest: str) -> None:
+def unpack_snapshot(archive: Path, destination: Path, expected_digest: str, *, allow_input_bundles: bool = False) -> None:
     """Only extract bounded regular data files into a newly created private directory."""
     if not re.fullmatch(r"[0-9a-f]{64}", expected_digest):
         raise ValueError("invalid archive digest")
@@ -43,7 +43,9 @@ def unpack_snapshot(archive: Path, destination: Path, expected_digest: str) -> N
             if (path.is_absolute() or '..' in path.parts or '\\' in info.filename
                     or str(path) != info.filename or info.is_dir()
                     or path.parts[0] not in {'corpus', 'replay', 'report', 'legacy-audit.json'}
-                    or path.suffix not in {'.json', '.jsonl', '.xml', '.md'}
+                    or (path.suffix not in {'.json', '.jsonl', '.xml', '.md'}
+                        and not (allow_input_bundles and path.suffix == '.zip'
+                                 and len(path.parts) == 4 and path.parts[:2] == ('corpus', 'inputs')))
                     or stat.S_IFMT(info.external_attr >> 16) not in {0, stat.S_IFREG}
                     or info.filename in seen or info.file_size > 1024 * 1024
                     or info.file_size > max(1, info.compress_size) * 100):
