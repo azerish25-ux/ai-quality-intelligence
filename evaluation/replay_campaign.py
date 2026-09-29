@@ -30,8 +30,10 @@ def source_state() -> dict:
     def git(*args):
         result = subprocess.run(['git','-C',str(ROOT),*args], text=True, capture_output=True, check=True)
         return result.stdout.strip()
+    changes = git('status','--porcelain','--untracked-files=normal','--',
+                  'backend/src','evaluation','frontend','.github','integrations').splitlines()
     return dict(source_revision=git('rev-parse','HEAD'), source_tree=git('rev-parse','HEAD^{tree}'),
-                source_worktree_dirty=bool(git('status','--porcelain','--untracked-files=normal','--','backend/src','evaluation','frontend','.github','integrations')))
+                source_worktree_dirty=bool(changes), source_worktree_changes=changes)
 
 
 def install_runtime_guards(inputs: Path) -> dict:
