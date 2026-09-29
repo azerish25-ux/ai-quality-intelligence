@@ -12,14 +12,19 @@ jobs:
     steps:
       - name: Download and verify bounded public-intended source data
         env:
-          SOURCE_URL: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-7598-81f6-a18b-21e6642c2096/raw?se=2026-09-29T02%3A26%3A26Z&sp=r&sv=2026-02-06&sr=b&scid=47925a06-550a-5104-aab1-c20d2bb9c273&skoid=fae15675-a81a-44b5-9d8c-d8445a7c26a2&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-28T23%3A03%3A55Z&ske=2026-09-29T23%3A03%3A55Z&sks=b&skv=2026-02-06&sig=Vxegmlv9JPLXV6njaRETHzJtbilKjLE8lQ6UEjSsgHY%3D'
+          SOURCE_URL: 'https://sdmntprnorthcentralus.oaiusercontent.com/files/00000000-bf24-822f-8089-8535fb7dcd05/raw?se=2026-09-29T02%3A32%3A13Z&sp=r&sv=2026-02-06&sr=b&scid=daf73f2a-b165-5870-93fd-0c8f63b81604&skoid=fae15675-a81a-44b5-9d8c-d8445a7c26a2&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-29T02%3A16%3A26Z&ske=2026-09-30T02%3A16%3A26Z&sks=b&skv=2026-02-06&sig=BLwjQ59CGjK6Z7%2Bda9jpGe3oBcFVuoR0O6pgdpU1jD8%3D'
         run: |
           python - <<'PY'
-          import hashlib, os, pathlib, urllib.request
+          import hashlib, os, pathlib, urllib.request, urllib.error
           url = os.environ['SOURCE_URL']
           print('::add-mask::' + url)
-          with urllib.request.urlopen(url, timeout=30) as response:
-              data = response.read(500000)
+          try:
+              with urllib.request.urlopen(url, timeout=30) as response:
+                  data = response.read(500000)
+          except urllib.error.HTTPError as exc:
+              print('Transfer HTTP status:', exc.code)
+              print(exc.read(1500).decode('utf-8', errors='replace'))
+              raise SystemExit(1)
           assert len(data) == 417884
           assert hashlib.sha256(data).hexdigest() == '54834e109e66d121c0260b4befb9ec032d47cfbbf9a92caf347df97317a5c0f9'
           pathlib.Path('/tmp/publication.json.xz').write_bytes(data)
