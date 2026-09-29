@@ -1,0 +1,19 @@
+{
+  "database_dialect": "sqlite",
+  "fresh_companion_executions": 0,
+  "held_out_acceptance": false,
+  "report_sha256": {
+    "diagnostic-gaps.json": "453067d9b01f32fe706e0ba43b590452fb58796dde2fff82fdc15cedb0572dc7",
+    "metrics.json": "6b1299889d951edf0e37defe5053e7eea8cf461bb4ebb5d7f99c2916c5b0dfe2",
+    "predictions.jsonl": "02f3e013d6d930e2f78d3c83a3b319109407af929411e5742c64f5db4287ead8",
+    "report.md": "2c9885de9db90f4f391a1ea619d792abeeaa4ba07f6ceedc1937f64bf43ec4c3"
+  },
+  "scope": "Eight synthetic development cases; no new LedgerGuard, PostgreSQL or browser execution.",
+  "snapshot_sha256": "36cc07cb40b303090007d4194b670dd345ac465bf0b11074569996d97076ae5b",
+  "source_kind_counts": {
+    "ledgerguard_executed": 0,
+    "synthetic": 8
+  },
+  "tested_source_revision": "158d288252d348ca55e3d2a33e109de882196567",
+  "version": "transaction-finality-local-snapshot-v1"
+}

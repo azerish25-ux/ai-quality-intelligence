@@ -1,5 +1,46 @@
 # FailureLens delivery ledger
 
+## M6.4.1 clean local verification checkpoint
+
+Verified source `158d288252d348ca55e3d2a33e109de882196567` (implementation
+`6cc87174438c38ad71fad2c0bdf978c6d3255722`, then the saved benchmark-envelope
+correction). The complete backend suite passed **823 tests**, with **four
+PostgreSQL-only skips**, using the original baseline's downloaded producer fixtures
+(artifact `11012442275`, SHA-256
+`664632f099d66af2252d4ccf4cb8f696d20b0bb21fdf49aab78749f339bc01d7`).
+This is local regression against retained producer bytes, not fresh producer CI.
+The 146 new tests cover the finality boundary, independent oracle/replay and audit.
+
+A clean-source SQLite/API/worker run correctly classified all eight explicitly
+synthetic development cases: four product diagnoses, four abstentions, four/four
+independently supported claims, all authorized/resolvable citations and five
+identical substantive analyses per case. Every integrity gate passed. The exact
+report and lossless safe snapshot are retained in
+`evaluation/reports/transaction-finality-development-v1/`; bounded extraction and
+independent rescoring reproduce its metrics. Corpus minimums still fail and broad
+five-category macro F1 is undefined. No held-out or full-M6 success is claimed.
+
+The new audit independently scored the retained 260-case benchmark and recorded
+104 mismatches across all splits, with 134 legacy uninstrumented abstentions.
+Its 44 test-partition product cases remain abstentions; no labels or historical
+results were overwritten. The first audit attempt exposed the different
+`published` versus `analysis` replay envelopes; the explicit reader correction and
+actual-retained-archive regression passed. Component, prior full-stack, frozen
+benchmark and M6.4 diagnostic snapshot verifiers also passed independently.
+
+New Playwright sources passed TypeScript syntax transpilation and the new workflow
+parsed as YAML. Full frontend build/browser execution did not run because offline
+installation lacks locked packages. No coverage percentage is claimed: the initial
+coverage-enabled whole-suite command timed out before completion; the completed
+whole-suite command above did not enable coverage.
+
+`git push origin main` was attempted and returned exit 128:
+`Could not resolve host: github.com`. Connected reads still work, but no write
+operation is exposed in this session. These commits are **local-only**, not pushed.
+Actual new HTTP/PostgreSQL companion execution, PostgreSQL replay, browser journeys,
+remote CI, renewed held-out evaluation and full M6 remain unverified/incomplete.
+Later documentation/retention commits require separate final-revision verification.
+
 ## M6.4.1 transaction finality — local source checkpoint
 
 Starting `main`: `304d0c8875e8a751f9b5f7b807356da2d2c90ea4`.
