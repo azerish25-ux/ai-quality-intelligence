@@ -1,0 +1,24 @@
+name: FailureLens Saved Commit Recovery
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/finality-recovery-once.yml
+      - .github/finality-recovery-once/**
+permissions:
+  contents: write
+jobs:
+  import-saved-commits:
+    if: github.repository == 'azerish25-ux/ai-quality-intelligence'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out recovery revision and existing history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Import checksum-verified original Git objects without moving refs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python .github/finality-recovery-once/import.py
