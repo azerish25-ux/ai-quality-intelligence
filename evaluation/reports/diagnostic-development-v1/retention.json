@@ -1,0 +1,51 @@
+{
+  "browser_artifact": {
+    "expires_at": "2026-10-06T03:55:35Z",
+    "id": 11012410967,
+    "run_id": 36519135228,
+    "sha256": "70179ddb09f3d00a014718b06c11529b5af58e59c39ccaa4aec80fd5f19348dd",
+    "status": "passed",
+    "tests_passed": 16
+  },
+  "limitations": [
+    "Development/regression only; no held-out acceptance.",
+    "Three previously known component mechanisms; four related variants each.",
+    "Twenty new-contract cases are synthetic, not real kernel, HTTP, database or authorization-server faults.",
+    "Five-category macro F1 is undefined; no known-flake cases in this slice.",
+    "Offline verification rescales no labels and is not fresh execution."
+  ],
+  "original_artifact": {
+    "expires_at": "2026-10-29T03:55:34Z",
+    "id": 11011739080,
+    "job_id": 109247955935,
+    "run_id": 36519135228,
+    "sha256": "663f71678767fa7ee78a833c594ea1b6f89e451cc6ce14b0b3abe03958b6448d",
+    "size_bytes": 147628
+  },
+  "prior_failed_runs": [
+    {
+      "reason": "Source-dirty integrity gate failed on packaging-generated files; fixed by out-of-tree exact-source build.",
+      "run_id": 36517924155,
+      "source": "aec6c655f22219384835af3a95265d14596ea807"
+    },
+    {
+      "reason": "Measurements passed, all 16 browser checks failed because test read the run-detail envelope incorrectly. Corrected with explicit run/project identity assertions.",
+      "run_id": 36518321762,
+      "source": "0b2e72f955a920bb58be9d132a625a56aa60e268"
+    }
+  ],
+  "report_sha256": {
+    "metrics.json": "f96d930a1f0a30a1692cbf981e642344e56c3eb454a508e4e289eef353602edc",
+    "predictions.jsonl": "cc20573d2ee9a12628972639ceed34c75e526420dd5aaa0b7b22d2dd0c3e008f",
+    "report.md": "7ecf71f1d7c376afa72b336d45d35e7545f108f65e37c37029bc6e83e3a9eee7"
+  },
+  "schema_version": "1.0",
+  "snapshot": {
+    "file_count": 150,
+    "packaging": "Byte-identical files in sorted, uncompressed ZIP; fixed ZIP timestamps; XZ preset 6. Original ZIP digest remains separate.",
+    "sha256": "d8f53fa5ad53c0392ec765c33bf114a258c2a3daa8390cfd0d3a1ce0c0ce1df4",
+    "size_bytes": 39664,
+    "zip_sha256": "d8da40839e37e251890415619d7f0f110b90f41cf5f96655f45ae217c0c47c98"
+  },
+  "tested_source_revision": "dc0aaf1202bffc7557f1a04b0aa5afdfdc8ce5fb"
+}
