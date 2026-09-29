@@ -17,6 +17,8 @@ frontend/dist/
 
 evaluation/corpus/cases.jsonl
 evaluation/reports/**/predictions.jsonl
+# This compact, digest-bound historical report is intentionally retained.
+!evaluation/reports/diagnostic-development-v1/predictions.jsonl
 
 # Read-only pinned companion checkout used only by evaluation CI.
 .ledgerguard-evaluation-source/
