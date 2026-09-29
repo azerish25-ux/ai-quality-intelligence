@@ -13,7 +13,7 @@ test('frozen five-category results retain scope, failures, comparisons and all m
   expect(metrics.corpus.fresh_ledgerguard_executions).toBe(0);
   await page.goto('/');
   const panel = page.locator('#benchmark-evaluation');
-  await expect(panel.getByRole('heading', { name: 'Frozen five-category benchmark' })).toBeVisible();
+  await expect(panel.getByRole('heading', { name: 'Frozen authored benchmark', exact: true })).toBeVisible();
   await expect(panel.getByText('Frozen authored test split · inspect limitations', { exact: true })).toBeVisible();
   await expect(panel.getByText(metrics.source_revision, { exact: true })).toBeVisible();
   const partition = panel.getByRole('table', { name: 'Frozen corpus partitions' });
