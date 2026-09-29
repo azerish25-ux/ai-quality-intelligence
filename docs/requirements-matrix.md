@@ -1,16 +1,34 @@
 # Requirement-to-evidence matrix
 
+## M6.4 diagnostic-quality development
+
+The two historical M6.3 tracks below now have distinct CAMPAIGN/BENCHMARK IDs;
+neither dataset nor its results have been merged. Immutable historical matrix
+archives are unchanged. This is a scoped implementation, not full M6 acceptance.
+
+| ID | Requirement | Status | Implementation and verification boundary |
+|---|---|---|---|
+| R-M64-BASE | Verify reconciled source before extension | PASS | Source-only export commit `17cd55af5e231d58796bc44e1b4911438b12a088`: all ten jobs in CI run `36515163885` passed. This does not certify later commits. |
+| R-M64-DIAG | Four typed observable diagnostic relations | PASS | `contract_evidence.py`, `analysis.py`, additive JSON Schema; positive, missing, contradictory and malformed-input regressions. |
+| R-M64-PUBLISH | Recomputed categories, wording and safe product-risk handling | PASS | `evidence_validation.py`, forged text/category/reference tests; competing product-risk signals cannot be outscored into non-product reassurance. |
+| R-M64-SCORE | Independent scoring with explicit development scope | PASS | `campaign_harness.py`, independent numeric/category rubrics; development-only rejects held-out data and default scoring preserves corpus minimums. |
+| R-M64-OBSERVE | Fresh richer companion observations | PARTIAL | `DiagnosticProbe.java` and `diagnostics.py`: three known mechanisms, 12 paired interventions planned for exact-source CI; actual results recorded in `PROGRESS.md`, not inferred from source. |
+| R-M64-UI | Display diagnostic findings and unresolved gaps | PARTIAL | Existing failure workspace, `DiagnosticState.tsx`, unit checks and actual-API desktop/narrow journey; exact-source execution recorded separately. |
+| R-M64-REGRESSION | New and existing regression verification | PARTIAL | 112 new diagnostic/evaluator tests plus 59 retained contract regressions; full local suite 670 passed, four PostgreSQL-only skips. Exact-source GitHub results belong in `PROGRESS.md`. |
+| R-M64-HELDOUT | Renewed held-out quality evaluation | NOT RUN | No new 100-case/20-product-family test set or deployment-quality claim. Historical failed test results are unchanged. |
+| R-M64-FULL | Full M6.4 quality recovery and M6 completion | PARTIAL | Fresh held-out acceptance, full temporal/adversarial scope and wider actual producer evidence remain required. |
+
 ## M6.3 source checkpoint
 
 | ID | Requirement | Status | Implementation and current boundary |
 |---|---|---|---|
-| R-M63-CONTRACT | Three structured diagnostic contracts | PASS | `contract_evidence.py`, ingestion/execution binding, `analysis.py`, independent publication recomputation; 59 local contract regressions. Producer measurements are not trusted causal verdicts. |
-| R-M63-CORPUS | Versioned five-category family-grouped corpus | PARTIAL | 264 cases / 87 agent-reviewed catalogue groups, 160 synthetic test cases / 60 test-only groups. Minimum counts and structural split checks pass; conceptual independence is not independently expert-adjudicated. |
-| R-M63-PROVENANCE | Preserve real execution and synthetic distinctions | PASS | Original sixty executed component cases stay in development. 204 synthetic cases include twelve structured supplements, not new real executions. Existing reports remain unchanged. |
-| R-M63-REPLAY | General API/worker and prior-only history replay | PARTIAL | Separate public input runner, actual ingestion and five repeated decisions; synthetic clock and future-review exclusion tested locally. Exact-source PostgreSQL campaign execution pending at this checkpoint. |
-| R-M63-SCORER | Independent bounded claim and safety evaluation | PARTIAL | Separate scorer, unchanged targets, actual publication/evidence checks, per-class metrics, baselines, family aggregation and error retention. Full frozen test metrics pending; broader semantic rubric remains open. |
-| R-M63-UI | Campaign dashboard and verification | PARTIAL | Authenticated bounded report API, separate campaign view, confusion matrix, comparisons and all errors. Actual desktop/narrow browser verification pending at this checkpoint. |
-| R-M63-FULL | Complete M6 quality acceptance | PARTIAL | Code or count gates do not substitute for passing quality targets, wider adversarial/temporal coverage and complete master-prompt acceptance. |
+| R-M63-CAMPAIGN-CONTRACT | Three structured diagnostic contracts | PASS | `contract_evidence.py`, ingestion/execution binding, `analysis.py`, independent publication recomputation; 59 local contract regressions. Producer measurements are not trusted causal verdicts. |
+| R-M63-CAMPAIGN-CORPUS | Versioned five-category family-grouped corpus | PARTIAL | 264 cases / 87 agent-reviewed catalogue groups, 160 synthetic test cases / 60 test-only groups. Minimum counts and structural split checks pass; conceptual independence is not independently expert-adjudicated. |
+| R-M63-CAMPAIGN-PROVENANCE | Preserve real execution and synthetic distinctions | PASS | Original sixty executed component cases stay in development. 204 synthetic cases include twelve structured supplements, not new real executions. Existing reports remain unchanged. |
+| R-M63-CAMPAIGN-REPLAY | General API/worker and prior-only history replay | PARTIAL | Separate public input runner, actual ingestion and five repeated decisions; synthetic clock and future-review exclusion tested locally. Exact-source PostgreSQL campaign execution pending at this checkpoint. |
+| R-M63-CAMPAIGN-SCORER | Independent bounded claim and safety evaluation | PARTIAL | Separate scorer, unchanged targets, actual publication/evidence checks, per-class metrics, baselines, family aggregation and error retention. Full frozen test metrics pending; broader semantic rubric remains open. |
+| R-M63-CAMPAIGN-UI | Campaign dashboard and verification | PARTIAL | Authenticated bounded report API, separate campaign view, confusion matrix, comparisons and all errors. Actual desktop/narrow browser verification pending at this checkpoint. |
+| R-M63-CAMPAIGN-FULL | Complete M6 quality acceptance | PARTIAL | Code or count gates do not substitute for passing quality targets, wider adversarial/temporal coverage and complete master-prompt acceptance. |
 
 The preceding M6.2 matrix is historical below; its exact-revision acceptance does
 not substitute for verification of this new source.
@@ -106,14 +124,14 @@ above. Delivery and exact tested revisions are recorded in `PROGRESS.md`.
 
 | ID | Requirement | Status | Implementation / boundary |
 |---|---|---|---|
-| R-M63-DOMAIN | Structured operation, projection and calendar observations | PASS | `domain_evidence.py`, adapter/binder, recomputed publication predicates, API/worker and false-blame regressions. Producer assertions are not causal certification. |
-| R-M63-CORPUS | General five-category frozen corpus | PASS | 260 cases, 83 authored mechanism groups, 108 test cases, preserved 60 actual historical executions; explicit author/adjudication limitations. |
-| R-M63-SPLIT | Family/incident/artifact isolation | PASS | `benchmark_audit.py`, exact digests, all previously inspected mechanisms in development, altered-policy and cross-split regressions. |
-| R-M63-PIPELINE | General API/worker replay and independent scoring | PASS | 260-case actual local API/worker/SQLite replay, 718 ingestions, five identical analyses per case, 260 resolved references and 126 supported claims under the declared rubric. PostgreSQL/browser acceptance is not inferred. |
-| R-M63-UI | Five-class results, comparisons and all errors | PARTIAL | Authenticated bounded endpoint and UI/browser test source implemented. Full frontend install/build/browser verification is environment-dependent. |
-| R-M63-QUALITY | Original recall/F1/coverage/safety targets | FAIL | Test product recall 0/44, macro F1 0.3048 and coverage 18/92 miss 90%/0.80/75%. All 44 product cases abstain; dangerous dismissals are 0/44. Strict scorer exits 2; no thresholds or labels changed. |
-| R-M63-ADVERSARIAL | Forty tagged cross-category inputs | PARTIAL | Five text/canary classes; not every master attack class or OS sandbox verification. |
-| R-M63-TEMPORAL | Prior-only chronology and unknown families | PARTIAL | Actual ingestion/review order and later-run exclusion; unknown-family slice equals the test split, not an independent second benchmark or dated production backtest. |
-| R-M63-FULL | Full M6 acceptance | PARTIAL | No blinded expert study, no new LedgerGuard executions in this campaign; broad adversarial, temporal, quality and final packaging scope remains. |
+| R-M63-BENCHMARK-DOMAIN | Structured operation, projection and calendar observations | PASS | `domain_evidence.py`, adapter/binder, recomputed publication predicates, API/worker and false-blame regressions. Producer assertions are not causal certification. |
+| R-M63-BENCHMARK-CORPUS | General five-category frozen corpus | PASS | 260 cases, 83 authored mechanism groups, 108 test cases, preserved 60 actual historical executions; explicit author/adjudication limitations. |
+| R-M63-BENCHMARK-SPLIT | Family/incident/artifact isolation | PASS | `benchmark_audit.py`, exact digests, all previously inspected mechanisms in development, altered-policy and cross-split regressions. |
+| R-M63-BENCHMARK-PIPELINE | General API/worker replay and independent scoring | PASS | 260-case actual local API/worker/SQLite replay, 718 ingestions, five identical analyses per case, 260 resolved references and 126 supported claims under the declared rubric. PostgreSQL/browser acceptance is not inferred. |
+| R-M63-BENCHMARK-UI | Five-class results, comparisons and all errors | PARTIAL | Authenticated bounded endpoint and UI/browser test source implemented. Full frontend install/build/browser verification is environment-dependent. |
+| R-M63-BENCHMARK-QUALITY | Original recall/F1/coverage/safety targets | FAIL | Test product recall 0/44, macro F1 0.3048 and coverage 18/92 miss 90%/0.80/75%. All 44 product cases abstain; dangerous dismissals are 0/44. Strict scorer exits 2; no thresholds or labels changed. |
+| R-M63-BENCHMARK-ADVERSARIAL | Forty tagged cross-category inputs | PARTIAL | Five text/canary classes; not every master attack class or OS sandbox verification. |
+| R-M63-BENCHMARK-TEMPORAL | Prior-only chronology and unknown families | PARTIAL | Actual ingestion/review order and later-run exclusion; unknown-family slice equals the test split, not an independent second benchmark or dated production backtest. |
+| R-M63-BENCHMARK-FULL | Full M6 acceptance | PARTIAL | No blinded expert study, no new LedgerGuard executions in this campaign; broad adversarial, temporal, quality and final packaging scope remains. |
 
 Retained M6.3 measurement source: `f1269c3ce52d4bf64f8614aacd34d99903a99b5f`. The compact snapshot and metrics rescore identically with `python evaluation/verify_benchmark_snapshot.py`. This verifies historical local bytes, not fresh PostgreSQL/browser execution.

@@ -1,4 +1,4 @@
-"""Recompute three narrow contracts from producer-reported, execution-bound measurements.
+"""Recompute bounded contracts from producer-reported, execution-bound measurements.
 
 These records are observations, not trusted verdicts. A violation supports an
 investigation; it neither identifies the faulty implementation nor clears a run.
@@ -58,12 +58,71 @@ class WeeklyRecurrence(Record):
     next_local: LocalTime | None
 
 
+MinorUnits = Annotated[int, Field(ge=-(2**53 - 1), le=2**53 - 1)]
+StatusCode = Annotated[int, Field(ge=100, le=599)]
+ByteCount = Annotated[int, Field(ge=0, le=2**53 - 1)]
+
+
+class AtomicTransfer(Record):
+    kind: Literal["atomic_transfer"]
+    atomicity_policy: Literal["both_effects_or_neither"]
+    observation_scope: Literal["isolated_logical_request"]
+    request_digest: Digest
+    receipt_request_digest: Digest
+    source_account_digest: Digest
+    destination_account_digest: Digest
+    currency: Annotated[str, Field(pattern=r"^[A-Z]{3}$")]
+    amount_minor: Annotated[int, Field(gt=0, le=10**12)]
+    receipt_outcome: Literal["committed", "rolled_back", "unresolved"]
+    concurrent_writers: Annotated[int, Field(ge=0, le=1000000)]
+    before_source_minor: MinorUnits | None
+    before_destination_minor: MinorUnits | None
+    after_source_minor: MinorUnits | None
+    after_destination_minor: MinorUnits | None
+
+
+class TenantIsolation(Record):
+    kind: Literal["tenant_isolation"]
+    access_policy: Literal["same_tenant_resource_access"]
+    principal_scope: Literal["tenant_member"]
+    actor_tenant_digest: Digest
+    resource_tenant_digest: Digest
+    requested_resource_digest: Digest
+    returned_resource_digest: Digest | None
+    response_status: StatusCode | None
+
+
+class StatusExpectation(Record):
+    kind: Literal["status_expectation"]
+    assertion_scope: Literal["response_status_equality"]
+    contract_source: Literal["versioned_api_contract"]
+    contract_digest: Digest
+    served_contract_digest: Digest
+    allowed_statuses: Annotated[list[StatusCode], Field(min_length=1, max_length=8)]
+    observed_status: StatusCode | None
+    asserted_status: StatusCode | None
+
+
+class RunnerMemoryLimit(Record):
+    kind: Literal["runner_memory_limit"]
+    process_role: Literal["test_runner"]
+    counter_scope: Literal["isolated_runner_cgroup"]
+    runner_process_digest: Digest
+    killed_process_digest: Digest | None
+    memory_limit_bytes: Annotated[int, Field(gt=0, le=2**53 - 1)]
+    peak_memory_bytes: ByteCount | None
+    oom_kills_before: Annotated[int, Field(ge=0, le=1000000)] | None
+    oom_kills_after: Annotated[int, Field(ge=0, le=1000000)] | None
+    termination_signal: Annotated[int, Field(ge=1, le=64)] | None
+
+
 class ContractObservation(Record):
     schema_version: Literal["contract-observations-v1"]
     test_identity: Annotated[str, Field(min_length=1, max_length=240)]
     attempt: Annotated[int, Field(ge=0, le=20)]
     browser: Annotated[str, Field(max_length=80)] | None
-    measurement: Annotated[OperationIsolation | ProjectionOrdering | WeeklyRecurrence, Field(discriminator="kind")]
+    measurement: Annotated[OperationIsolation | ProjectionOrdering | WeeklyRecurrence | AtomicTransfer
+        | TenantIsolation | StatusExpectation | RunnerMemoryLimit, Field(discriminator="kind")]
 
 
 @dataclass(frozen=True)
@@ -78,6 +137,78 @@ CLAIM_TEXT = {
     "projection_ordering": "Reported projection snapshots show a lower-version event replacing newer state despite an ignore-stale policy; this supports a product-defect investigation without establishing the responsible implementation.",
     "weekly_recurrence": "Reported local schedule dates do not preserve a seven-calendar-day weekly recurrence in the declared timezone; this supports a product-defect investigation without establishing the responsible implementation.",
 }
+
+
+# Category and wording are bounded by the observed relation, never supplied as a
+# producer verdict. Existing v1 variants remain byte-compatible.
+CLAIM_TEXT.update({
+    "atomic_transfer": "Reported isolated two-account snapshots do not match the declared all-or-nothing transfer outcome; this supports a product-defect investigation without establishing the responsible component.",
+    "tenant_isolation": "Reported resource content belongs to a different tenant from the authenticated member despite a same-tenant access policy; this supports an access-isolation investigation without establishing the responsible component.",
+    "status_expectation": "Reported failing status assertion expects a status excluded by the matching versioned API contract, while the observed response status is permitted; this supports a test-expectation investigation and does not establish that other product behavior is correct.",
+    "runner_memory_limit": "Reported runner-scoped memory measurements and an increased OOM-kill counter corroborate termination of the same test-runner process; this supports an infrastructure-interruption investigation without establishing the trigger or clearing product behavior.",
+})
+CONTRACT_CATEGORY = {kind: "product_defect" for kind in CLAIM_TEXT} | {
+    "status_expectation": "test_defect", "runner_memory_limit": "infrastructure_failure",
+}
+CONTRACT_SEVERITY = {kind: "high" for kind in CLAIM_TEXT} | {
+    "operation_isolation": "critical", "atomic_transfer": "critical", "tenant_isolation": "critical",
+    "status_expectation": "medium", "runner_memory_limit": "medium",
+}
+
+
+def _inspect_diagnostic(item: AtomicTransfer | TenantIsolation | StatusExpectation | RunnerMemoryLimit) -> ContractFinding:
+    kind = item.kind
+    if isinstance(item, AtomicTransfer):
+        if (item.request_digest != item.receipt_request_digest
+                or item.source_account_digest == item.destination_account_digest
+                or item.concurrent_writers != 0):
+            return ContractFinding(kind, "conflicting", "One request, two distinct accounts, and isolated snapshots are required.")
+        values = (item.before_source_minor, item.before_destination_minor,
+                  item.after_source_minor, item.after_destination_minor)
+        if item.receipt_outcome == "unresolved" or any(v is None for v in values):
+            return ContractFinding(kind, "incomplete", "A resolved receipt and both before/after account balances are required.")
+        expected = (item.before_source_minor, item.before_destination_minor)
+        if item.receipt_outcome == "committed":
+            expected = (expected[0] - item.amount_minor, expected[1] + item.amount_minor)
+        violated = (item.after_source_minor, item.after_destination_minor) != expected
+    elif isinstance(item, TenantIsolation):
+        if item.response_status is None:
+            return ContractFinding(kind, "incomplete", "The observed response status and attributable resource content are required.")
+        if item.returned_resource_digest is None:
+            if item.response_status not in {403, 404}:
+                return ContractFinding(kind, "incomplete", "A successful status alone does not establish cross-tenant content disclosure.")
+            violated = False
+        elif item.returned_resource_digest != item.requested_resource_digest:
+            return ContractFinding(kind, "conflicting", "The response does not bind to the requested resource.")
+        else:
+            # An error status must not hide a body that nevertheless leaks data.
+            violated = item.actor_tenant_digest != item.resource_tenant_digest
+    elif isinstance(item, StatusExpectation):
+        if (item.contract_digest != item.served_contract_digest
+                or len(set(item.allowed_statuses)) != len(item.allowed_statuses)):
+            return ContractFinding(kind, "conflicting", "One matching deployed contract and distinct permitted statuses are required.")
+        if item.observed_status is None or item.asserted_status is None:
+            return ContractFinding(kind, "incomplete", "The actual response and failed assertion status are required.")
+        if item.observed_status not in item.allowed_statuses:
+            return ContractFinding(kind, "conflicting", "The response itself conflicts with the API contract; test blame is unsupported.")
+        if item.asserted_status != item.observed_status and item.asserted_status in item.allowed_statuses:
+            return ContractFinding(kind, "incomplete", "Both statuses are permitted; operation-specific evidence is needed.")
+        violated = item.asserted_status not in item.allowed_statuses
+    else:
+        if any(v is None for v in (item.killed_process_digest, item.peak_memory_bytes,
+                                   item.oom_kills_before, item.oom_kills_after, item.termination_signal)):
+            return ContractFinding(kind, "incomplete", "Runner identity, peak memory, before/after OOM counters and termination signal are required.")
+        if item.runner_process_digest != item.killed_process_digest or item.oom_kills_after < item.oom_kills_before:
+            return ContractFinding(kind, "conflicting", "Runner identity or monotonic OOM-counter scope is inconsistent.")
+        increased = item.oom_kills_after > item.oom_kills_before
+        violated = increased and item.termination_signal == 9 and item.peak_memory_bytes >= item.memory_limit_bytes
+        if increased and not violated:
+            return ContractFinding(kind, "conflicting", "The OOM increment is not corroborated by this process's peak and termination signal.")
+        if not increased and item.termination_signal == 9:
+            return ContractFinding(kind, "incomplete", "SIGKILL without a scoped OOM increment does not establish memory exhaustion.")
+    return ContractFinding(kind, "violated" if violated else "conforms",
+                           "Reported measurements establish the bounded diagnostic relationship." if violated else
+                           "This narrow relationship conforms; the failure cause remains unresolved.")
 
 
 def _unambiguous_local(value: datetime, zone: ZoneInfo) -> bool:
@@ -98,6 +229,8 @@ def inspect_contract(value: object) -> ContractFinding:
     except (ValidationError, ValueError, TypeError):
         return ContractFinding(None, "invalid", "Invalid bounded contract observation.")
     kind = item.kind
+    if isinstance(item, (AtomicTransfer, TenantIsolation, StatusExpectation, RunnerMemoryLimit)):
+        return _inspect_diagnostic(item)
     if isinstance(item, OperationIsolation):
         a, b = item.first, item.second
         if a.fingerprint is None or b.fingerprint is None:

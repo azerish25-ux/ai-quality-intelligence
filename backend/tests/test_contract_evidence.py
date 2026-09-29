@@ -68,7 +68,7 @@ def ingest(client, session, content):
     return client.get('/api/v1/ingestions/'+response.json()['id']).json()
 
 
-@pytest.mark.parametrize('kind', list(CLAIM_TEXT))
+@pytest.mark.parametrize('kind', ['operation_isolation', 'projection_ordering', 'weekly_recurrence'])
 @pytest.mark.parametrize('violated', [False, True])
 def test_recompute_contract_not_producer_verdict(kind, violated):
     value = observation(kind, violated)
@@ -142,7 +142,7 @@ def test_dst_elapsed_hours_are_not_a_seven_day_wall_clock_violation():
     assert inspect_contract(observation('weekly_recurrence', False)).status == 'conforms'
 
 
-@pytest.mark.parametrize('kind', list(CLAIM_TEXT))
+@pytest.mark.parametrize('kind', ['operation_isolation', 'projection_ordering', 'weekly_recurrence'])
 def test_conflicting_same_contract_files_abstain(kind):
     assert decision(observation(kind), observation(kind, False)).category == Category.insufficient_evidence
 
@@ -152,7 +152,7 @@ def test_duplicate_members_and_size_rejected():
     with pytest.raises(ValueError): parse_contract_observation(b' ' * 16385)
 
 
-@pytest.mark.parametrize('kind', list(CLAIM_TEXT))
+@pytest.mark.parametrize('kind', ['operation_isolation', 'projection_ordering', 'weekly_recurrence'])
 def test_durable_api_worker_and_publication_are_execution_scoped(client, session, kind):
     state = ingest(client, session, bundle(observation(kind), extra=True))
     assert state['state'] == 'succeeded'

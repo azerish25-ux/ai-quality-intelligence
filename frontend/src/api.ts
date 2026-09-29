@@ -259,6 +259,8 @@ export interface Analysis {
     accepted_evidence_ids: string[];
     rejected_evidence_ids: string[];
     claims: Array<Record<string, unknown>>;
+    diagnostic_gap?: string | null;
+    diagnostic_findings?: Array<{ evidence_id: string; contract: string | null; status: string; reason: string }>;
   } | null;
 }
 

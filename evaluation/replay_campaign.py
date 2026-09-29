@@ -31,7 +31,7 @@ def source_state() -> dict:
         result = subprocess.run(['git','-C',str(ROOT),*args], text=True, capture_output=True, check=True)
         return result.stdout.strip()
     return dict(source_revision=git('rev-parse','HEAD'), source_tree=git('rev-parse','HEAD^{tree}'),
-                source_worktree_dirty=bool(git('status','--porcelain','--untracked-files=normal','--','backend/src','evaluation','frontend','.github')))
+                source_worktree_dirty=bool(git('status','--porcelain','--untracked-files=normal','--','backend/src','evaluation','frontend','.github','integrations')))
 
 
 def install_runtime_guards(inputs: Path) -> dict:
@@ -50,7 +50,8 @@ def install_runtime_guards(inputs: Path) -> dict:
     def no_generator(event, args):
         if event == 'open' and isinstance(args[0], (str,bytes,os.PathLike)):
             p = Path(os.fsdecode(args[0]))
-            if p.name.startswith(('scenario_catalog.', 'generate_campaign.')):
+            if (p.name.startswith(('scenario_catalog.', 'generate_campaign.'))
+                    or p.resolve().is_relative_to(ROOT/'integrations'/'ledgerguard')):
                 raise PermissionError('Inference cannot read scenario generators')
     sys.addaudithook(no_generator)
     return denied

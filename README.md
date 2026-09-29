@@ -1,9 +1,16 @@
 # FailureLens
 ## Evidence-Grounded Test Failure Triage and AI Evaluation
 
+**M6.4 diagnostic development:** the existing pipeline now supports scoped
+transfer-atomicity, tenant-isolation, status-expectation and runner-memory
+observations, independently revalidated claims, and reviewer-visible diagnostic
+gaps. A richer companion probe and explicitly developmental campaign preserve
+all historical test data and failures. This is not completed M6 or renewed
+held-out quality acceptance. [Contracts, execution scope and reproduction](docs/diagnostic-quality.md).
+
 FailureLens is a self-hosted platform for investigating automated-test failures using inspectable evidence. Its default analyzer is deterministic and CPU-only; no paid model API, GPU or runtime model download is required.
 
-**Current milestone: M6.3 structured diagnostic contracts and frozen five-category campaign. Full M6 and the complete project remain PARTIAL.** The new corpus is committed before test evaluation. Exact-source measurements, CI and limitations are recorded in the [delivery ledger](docs/PROGRESS.md), [requirement matrix](docs/requirements-matrix.md), and [campaign contract](docs/campaign-evaluation.md). Historical reports retain their originally tested revisions.
+**Retained M6.3 checkpoint: structured diagnostic contracts and frozen five-category campaign. Full M6 and the complete project remain PARTIAL.** The new corpus is committed before test evaluation. Exact-source measurements, CI and limitations are recorded in the [delivery ledger](docs/PROGRESS.md), [requirement matrix](docs/requirements-matrix.md), and [campaign contract](docs/campaign-evaluation.md). Historical reports retain their originally tested revisions.
 
 The reconciled source also retains the separately authored M6.3 `domain-observations-v1` path and its `benchmark-v1` evaluation harness. It is exposed independently from the campaign so neither dataset nor metric lineage is silently substituted for the other. The retained `benchmark-v1` frozen measurement covers 260 cases / 83 authored groups with 108 family-separated test cases and reports **0/44 product recall, macro F1 0.3048, 19.57% non-abstained coverage and 0/44 dangerous dismissals**. Recall, F1 and coverage fail the unchanged targets; all 44 test product cases abstain. [Benchmark contract and limitations](docs/benchmark-evaluation.md) · [Exact retained benchmark report](evaluation/reports/benchmark-v1/report.md).
 

@@ -1,3 +1,4 @@
+import { DiagnosticState } from './DiagnosticState';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type MouseEvent } from 'react';
 import {
   api,
@@ -2005,6 +2006,8 @@ function App() {
                       <div className="next-step"><h3>Next investigation</h3>{selectedFailure.latest_analysis.next_investigation.map((step) => <div key={step.action}><strong>{step.action}</strong><p>{step.rationale}</p></div>)}</div>
                       {selectedFailure.latest_analysis.policy_flags.length > 0 && <div className="flags"><h3>Policy flags</h3>{selectedFailure.latest_analysis.policy_flags.map((flag) => <code key={flag}>{flag}</code>)}</div>}
                     </div>
+
+                    <DiagnosticState validation={selectedFailure.latest_analysis.validation_results} />
 
                     <section className="review-panel" aria-label="Human analysis review">
                       <div className="panel-heading compact-title-row"><div><p className="eyebrow">HUMAN DECISION</p><h3>Review history</h3></div><span className="count">{analysisReviews.length}</span></div>

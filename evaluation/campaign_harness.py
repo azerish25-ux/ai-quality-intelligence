@@ -10,6 +10,7 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 import io
 import json
+import re
 from pathlib import Path
 import sys
 import zipfile
@@ -29,10 +30,66 @@ CONTRACT_TEXT={
     'weekly_recurrence':'Reported local schedule dates do not preserve a seven-calendar-day weekly recurrence in the declared timezone; this supports a product-defect investigation without establishing the responsible implementation.',
 }
 
+# Independently maintained evaluator wording/categories: do not import runtime
+# predicates, enums, schemas or claim strings into this scorer.
+CONTRACT_TEXT.update({
+    'atomic_transfer':'Reported isolated two-account snapshots do not match the declared all-or-nothing transfer outcome; this supports a product-defect investigation without establishing the responsible component.',
+    'tenant_isolation':'Reported resource content belongs to a different tenant from the authenticated member despite a same-tenant access policy; this supports an access-isolation investigation without establishing the responsible component.',
+    'status_expectation':'Reported failing status assertion expects a status excluded by the matching versioned API contract, while the observed response status is permitted; this supports a test-expectation investigation and does not establish that other product behavior is correct.',
+    'runner_memory_limit':'Reported runner-scoped memory measurements and an increased OOM-kill counter corroborate termination of the same test-runner process; this supports an infrastructure-interruption investigation without establishing the trigger or clearing product behavior.',
+})
+CONTRACT_CATEGORY = {k:'product_defect' for k in CONTRACT_TEXT} | {
+    'status_expectation':'test_defect', 'runner_memory_limit':'infrastructure_failure',
+}
+
+
+def independent_diagnostic(m: dict) -> bool:
+    """Fail-closed relational rubric over reported observations, not verdict tags."""
+    def integer(v, lo=0, hi=2**53-1):
+        return type(v) is int and lo <= v <= hi
+    def sha(v):
+        return isinstance(v,str) and re.fullmatch(r'[0-9a-f]{64}',v) is not None
+    kind=m.get('kind')
+    if kind=='atomic_transfer':
+        ids=['request_digest','receipt_request_digest','source_account_digest','destination_account_digest']
+        vals=[m.get(k) for k in ['before_source_minor','before_destination_minor','after_source_minor','after_destination_minor']]
+        if not (all(sha(m.get(k)) for k in ids) and all(integer(v,-(2**53-1)) for v in vals)
+                and m.get('atomicity_policy')=='both_effects_or_neither' and m.get('observation_scope')=='isolated_logical_request'
+                and m['request_digest']==m['receipt_request_digest'] and m['source_account_digest']!=m['destination_account_digest']
+                and integer(m.get('concurrent_writers'),0,0) and integer(m.get('amount_minor'),1,10**12)
+                and isinstance(m.get('currency'),str) and re.fullmatch(r'[A-Z]{3}',m['currency'])
+                and m.get('receipt_outcome') in {'committed','rolled_back'}):return False
+        debit=vals[0]-vals[2];credit=vals[3]-vals[1]
+        expected=m['amount_minor'] if m['receipt_outcome']=='committed' else 0
+        return (debit,credit)!=(expected,expected)
+    if kind=='tenant_isolation':
+        keys=['actor_tenant_digest','resource_tenant_digest','requested_resource_digest','returned_resource_digest']
+        return (all(sha(m.get(k)) for k in keys) and m.get('access_policy')=='same_tenant_resource_access'
+                and m.get('principal_scope')=='tenant_member' and integer(m.get('response_status'),100,599)
+                and m['actor_tenant_digest']!=m['resource_tenant_digest']
+                and m['requested_resource_digest']==m['returned_resource_digest'])
+    if kind=='status_expectation':
+        allowed=m.get('allowed_statuses')
+        return (m.get('assertion_scope')=='response_status_equality' and m.get('contract_source')=='versioned_api_contract'
+                and sha(m.get('contract_digest')) and m['contract_digest']==m.get('served_contract_digest')
+                and isinstance(allowed,list) and 1<=len(allowed)<=8 and all(integer(v,100,599) for v in allowed)
+                and len(set(allowed))==len(allowed) and integer(m.get('observed_status'),100,599)
+                and integer(m.get('asserted_status'),100,599) and m['observed_status'] in allowed and m['asserted_status'] not in allowed)
+    if kind=='runner_memory_limit':
+        return (m.get('process_role')=='test_runner' and m.get('counter_scope')=='isolated_runner_cgroup'
+                and sha(m.get('runner_process_digest')) and m['runner_process_digest']==m.get('killed_process_digest')
+                and integer(m.get('memory_limit_bytes'),1) and integer(m.get('peak_memory_bytes'))
+                and m['peak_memory_bytes']>=m['memory_limit_bytes'] and integer(m.get('oom_kills_before'),0,1000000)
+                and integer(m.get('oom_kills_after'),0,1000000) and m['oom_kills_after']>m['oom_kills_before']
+                and integer(m.get('termination_signal'),9,9))
+    return False
+
 
 def independent_contract(value: dict) -> str | None:
     """Independent arithmetic/calendar rubric; never call the production inspector."""
     m=value['measurement'];kind=m['kind']
+    if kind in {'atomic_transfer','tenant_isolation','status_expectation','runner_memory_limit'}:
+        return kind if independent_diagnostic(m) else None
     if kind=='operation_isolation':
         a,b=m['first'],m['second']
         valid=(m.get('fingerprint_scope')=='operation_actor_payload' and a['operation']!=b['operation'] and a['actor_digest']==b['actor_digest']
@@ -183,7 +240,7 @@ def evaluate(corpus: Path, replay_dir: Path, *, enforce_minimums: bool = True, s
                     with zipfile.ZipFile(io.BytesIO(raw)) as z:measurement=json.loads(z.read('measurement.json'))
                     kind=independent_contract(measurement)
                     valid &= (kind is not None and pred=={'kind':'contract_violation','contract':kind}
-                              and category=='product_defect' and label.expected_category=='product_defect'
+                              and category==CONTRACT_CATEGORY.get(kind) and label.expected_category==CONTRACT_CATEGORY.get(kind)
                               and claim.get('text')==CONTRACT_TEXT.get(kind))
                     valid &= all(evidence_payloads[i]['observation'].get('contract_observation')==measurement for i in ids)
                     valid &= all(evidence_payloads[i]['source_locator']['sha256']==digest(canonical(measurement)) for i in ids)
@@ -211,6 +268,8 @@ def evaluate(corpus: Path, replay_dir: Path, *, enforce_minimums: bool = True, s
             abstention_reason=a['abstention_reason'],claim_count=len(a['claims']),supported_claim_count=supported,
             adversarial_tags=label.adversarial_tags,seconds=p['seconds'],run_id=p['run_id'],analysis_id=a['analysis_id']))
     test=[r for r in rows if r['split']==score_split]
+    if not test:
+        raise ValueError('The declared scoring split is empty')
     metrics=classification_metrics(test,'full_deterministic')
     metrics.update(dict(evaluation_version='campaign-v1',evaluation_scope='frozen_mixed_source_campaign',split=score_split,
         source_revision=replay['source_revision'],source_tree=replay['source_tree'],source_worktree_dirty=replay['source_worktree_dirty'],
@@ -252,25 +311,43 @@ def evaluate(corpus: Path, replay_dir: Path, *, enforce_minimums: bool = True, s
         committed_clean_source=replay['source_worktree_dirty'] is False,no_future_history=True,no_external_network_or_subprocess=all(v==0 for v in replay['runtime_guards'].values()),
         zero_sensitive_canary_leaks=canaries==0,zero_forbidden_claims=forbidden==0,
         zero_critical_high_dangerous_dismissals=metrics['critical_high_dangerous_dismissal']['numerator']==0,
+        all_published_claims_supported=claims['supported']==claims['published'],
         no_unsupported_critical_reassurance=not any(r['expected_category']=='product_defect' and r['predicted'] in {'known_flake','infrastructure_failure'} and r['supported_claim_count']<r['claim_count'] for r in rows))
-    metrics['quality_targets']=dict(product_recall_at_least_90_percent=metrics['product_defect_recall']>=policy['product_recall_minimum'],
+    metrics['quality_targets']=dict(product_recall_at_least_90_percent=metrics['product_defect_recall'] is not None and metrics['product_defect_recall']>=policy['product_recall_minimum'],
         macro_f1_at_least_0_80=metrics['macro_f1'] is not None and metrics['macro_f1']>=policy['macro_f1_minimum'],
-        non_abstained_coverage_at_least_75_percent=metrics['non_abstained_coverage']>=policy['coverage_minimum'],
-        dangerous_dismissal_at_most_5_percent=metrics['dangerous_dismissal']['rate']<=policy['dangerous_dismissal_maximum'],
+        non_abstained_coverage_at_least_75_percent=metrics['non_abstained_coverage'] is not None and metrics['non_abstained_coverage']>=policy['coverage_minimum'],
+        dangerous_dismissal_at_most_5_percent=metrics['dangerous_dismissal']['rate'] is not None and metrics['dangerous_dismissal']['rate']<=policy['dangerous_dismissal_maximum'],
         identical_nuisance_results=metrics['nuisance_agreement'])
+    if score_split != 'test':
+        metrics.update(evaluation_scope='development_contract_measurement',
+                       unknown_family_test_cases=0, held_out_acceptance=False)
+        metrics['limitations']=[
+            'This is development/regression measurement, not a held-out test or full M6 acceptance.',
+            'Case variants share mechanisms and are not independent population observations.',
+            'Source kinds describe the actual producer; replay alone is not a fresh companion execution.',
+            'Labels and scope are agent-reviewed, not independently blinded or expert-adjudicated.',
+            'All original corpus minimums and numerical targets remain unchanged and visible.',
+            'A missing category makes broad five-category acceptance unsupported regardless of displayed macro F1.',
+            'Future independent families, a complete temporal backtest and the full adversarial suite remain required.',
+        ]
     return metrics,rows
 
 
 def render(m):
-    lines=['# M6.3 frozen mixed-source campaign','',f"Tested source: `{m['source_revision']}`; database: `{m['database_dialect']}`.",
-        f"Full dataset: {m['dataset_case_count']} cases / {m['dataset_family_count']} catalogued families. Test: {m['case_count']} cases / {m['family_count']} families.",
+    def number(v):return 'undefined' if v is None else f'{v:.3f}'
+    development=m['evaluation_scope']=='development_contract_measurement'
+    title='Development diagnostic measurement' if development else 'Frozen mixed-source campaign'
+    lines=[f'# {title}','',f"Tested source: `{m['source_revision']}`; database: `{m['database_dialect']}`.",
+        f"Full dataset: {m['dataset_case_count']} cases / {m['dataset_family_count']} catalogued families. Scored {m['split']}: {m['case_count']} cases / {m['family_count']} families.",
+        'Development/regression only; no held-out acceptance or completed M6 is claimed.' if development else
         'The test split is synthetic; retained companion executions remain in development. Full M6 remains PARTIAL.',
-        f"Product recall: {m['product_defect_recall']:.3f}; macro F1: {m['macro_f1']:.3f}; non-abstained coverage: {m['non_abstained_coverage']:.3f}.",
+        f"Product recall: {number(m['product_defect_recall'])}; macro F1: {number(m['macro_f1'])}; non-abstained coverage: {number(m['non_abstained_coverage'])}.",
         f"Dangerous dismissals: {m['dangerous_dismissal']['numerator']}/{m['dangerous_dismissal']['denominator']}; product abstentions: {m['product_abstentions']}.",
-        '', '## Unchanged quality targets', *[f"- {'PASS' if v else 'FAIL'} — {k}" for k,v in m['quality_targets'].items()],
+        '', '## Unchanged numerical targets (not full acceptance)', *[f"- {'PASS' if v else 'FAIL'} — {k}" for k,v in m['quality_targets'].items()],
+        '', '## Original corpus minimums', *[f"- {'PASS' if v else 'FAIL'} — {k}" for k,v in m['corpus_audit']['minimums'].items()],
         '', '## Integrity and safety', *[f"- {'PASS' if v else 'FAIL'} — {k}" for k,v in m['integrity_acceptance'].items()],
         '', '## Measured baselines', '| Mode | Product recall | Macro F1 | Coverage |', '|---|---:|---:|---:|',
-        *[f"| {mode} | {v['product_defect_recall']:.3f} | {v['macro_f1']:.3f} | {v['non_abstained_coverage']:.3f} |" for mode,v in m['comparisons'].items()],
+        *[f"| {mode} | {number(v['product_defect_recall'])} | {number(v['macro_f1'])} | {number(v['non_abstained_coverage'])} |" for mode,v in m['comparisons'].items()],
         '', '## Cases requiring review', *[f"- `{r['case_id']}` — {r['scenario_family_id']}: expected `{r['expected_category']}`, published `{r['predicted']}`." for r in m['errors']],
         '', '## Limitations', *['- '+s for s in m['limitations']], '']
     return '\n'.join(lines)
@@ -278,9 +355,17 @@ def render(m):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--corpus',type=Path,required=True);p.add_argument('--replay',type=Path,required=True)
-    p.add_argument('--output',type=Path,required=True);p.add_argument('--enforce-quality',action='store_true');args=p.parse_args()
+    p.add_argument('--output',type=Path,required=True);p.add_argument('--enforce-quality',action='store_true')
+    p.add_argument('--development-only',action='store_true',help='Score an exclusively development corpus without claiming held-out minimums')
+    args=p.parse_args()
     if args.output.exists():raise ValueError('Never overwrite historical benchmark results')
-    metrics,rows=evaluate(args.corpus.resolve(),args.replay.resolve());args.output.mkdir(parents=True)
+    if args.development_only:
+        _, labels, _ = audit(args.corpus.resolve(), enforce_minimums=False)
+        if any(label.split != 'development' for label in labels):
+            raise ValueError('Development-only mode cannot score calibration or test cases')
+    metrics,rows=evaluate(args.corpus.resolve(),args.replay.resolve(), enforce_minimums=not args.development_only,
+                          score_split='development' if args.development_only else 'test')
+    args.output.mkdir(parents=True)
     (args.output/'metrics.json').write_bytes(canonical(metrics));(args.output/'predictions.jsonl').write_bytes(b''.join(canonical(r) for r in rows))
     (args.output/'report.md').write_text(render(metrics));print(render(metrics))
     if not all(metrics['integrity_acceptance'].values()):raise SystemExit(1)

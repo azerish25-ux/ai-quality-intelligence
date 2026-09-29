@@ -1,5 +1,142 @@
 {
   "$defs": {
+    "AtomicTransfer": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "atomic_transfer",
+          "title": "Kind",
+          "type": "string"
+        },
+        "atomicity_policy": {
+          "const": "both_effects_or_neither",
+          "title": "Atomicity Policy",
+          "type": "string"
+        },
+        "observation_scope": {
+          "const": "isolated_logical_request",
+          "title": "Observation Scope",
+          "type": "string"
+        },
+        "request_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Request Digest",
+          "type": "string"
+        },
+        "receipt_request_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Receipt Request Digest",
+          "type": "string"
+        },
+        "source_account_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Account Digest",
+          "type": "string"
+        },
+        "destination_account_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Destination Account Digest",
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "amount_minor": {
+          "exclusiveMinimum": 0,
+          "maximum": 1000000000000,
+          "title": "Amount Minor",
+          "type": "integer"
+        },
+        "receipt_outcome": {
+          "enum": [
+            "committed",
+            "rolled_back",
+            "unresolved"
+          ],
+          "title": "Receipt Outcome",
+          "type": "string"
+        },
+        "concurrent_writers": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Concurrent Writers",
+          "type": "integer"
+        },
+        "before_source_minor": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Before Source Minor"
+        },
+        "before_destination_minor": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Before Destination Minor"
+        },
+        "after_source_minor": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "After Source Minor"
+        },
+        "after_destination_minor": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "After Destination Minor"
+        }
+      },
+      "required": [
+        "kind",
+        "atomicity_policy",
+        "observation_scope",
+        "request_digest",
+        "receipt_request_digest",
+        "source_account_digest",
+        "destination_account_digest",
+        "currency",
+        "amount_minor",
+        "receipt_outcome",
+        "concurrent_writers",
+        "before_source_minor",
+        "before_destination_minor",
+        "after_source_minor",
+        "after_destination_minor"
+      ],
+      "title": "AtomicTransfer",
+      "type": "object"
+    },
     "Fingerprint": {
       "additionalProperties": false,
       "properties": {
@@ -144,6 +281,266 @@
       "title": "ProjectionOrdering",
       "type": "object"
     },
+    "RunnerMemoryLimit": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "runner_memory_limit",
+          "title": "Kind",
+          "type": "string"
+        },
+        "process_role": {
+          "const": "test_runner",
+          "title": "Process Role",
+          "type": "string"
+        },
+        "counter_scope": {
+          "const": "isolated_runner_cgroup",
+          "title": "Counter Scope",
+          "type": "string"
+        },
+        "runner_process_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Runner Process Digest",
+          "type": "string"
+        },
+        "killed_process_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Killed Process Digest"
+        },
+        "memory_limit_bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "title": "Memory Limit Bytes",
+          "type": "integer"
+        },
+        "peak_memory_bytes": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Peak Memory Bytes"
+        },
+        "oom_kills_before": {
+          "anyOf": [
+            {
+              "maximum": 1000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Oom Kills Before"
+        },
+        "oom_kills_after": {
+          "anyOf": [
+            {
+              "maximum": 1000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Oom Kills After"
+        },
+        "termination_signal": {
+          "anyOf": [
+            {
+              "maximum": 64,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Termination Signal"
+        }
+      },
+      "required": [
+        "kind",
+        "process_role",
+        "counter_scope",
+        "runner_process_digest",
+        "killed_process_digest",
+        "memory_limit_bytes",
+        "peak_memory_bytes",
+        "oom_kills_before",
+        "oom_kills_after",
+        "termination_signal"
+      ],
+      "title": "RunnerMemoryLimit",
+      "type": "object"
+    },
+    "StatusExpectation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "status_expectation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "assertion_scope": {
+          "const": "response_status_equality",
+          "title": "Assertion Scope",
+          "type": "string"
+        },
+        "contract_source": {
+          "const": "versioned_api_contract",
+          "title": "Contract Source",
+          "type": "string"
+        },
+        "contract_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Contract Digest",
+          "type": "string"
+        },
+        "served_contract_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Served Contract Digest",
+          "type": "string"
+        },
+        "allowed_statuses": {
+          "items": {
+            "maximum": 599,
+            "minimum": 100,
+            "type": "integer"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Allowed Statuses",
+          "type": "array"
+        },
+        "observed_status": {
+          "anyOf": [
+            {
+              "maximum": 599,
+              "minimum": 100,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Observed Status"
+        },
+        "asserted_status": {
+          "anyOf": [
+            {
+              "maximum": 599,
+              "minimum": 100,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Asserted Status"
+        }
+      },
+      "required": [
+        "kind",
+        "assertion_scope",
+        "contract_source",
+        "contract_digest",
+        "served_contract_digest",
+        "allowed_statuses",
+        "observed_status",
+        "asserted_status"
+      ],
+      "title": "StatusExpectation",
+      "type": "object"
+    },
+    "TenantIsolation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "tenant_isolation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "access_policy": {
+          "const": "same_tenant_resource_access",
+          "title": "Access Policy",
+          "type": "string"
+        },
+        "principal_scope": {
+          "const": "tenant_member",
+          "title": "Principal Scope",
+          "type": "string"
+        },
+        "actor_tenant_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Actor Tenant Digest",
+          "type": "string"
+        },
+        "resource_tenant_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Resource Tenant Digest",
+          "type": "string"
+        },
+        "requested_resource_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Requested Resource Digest",
+          "type": "string"
+        },
+        "returned_resource_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Returned Resource Digest"
+        },
+        "response_status": {
+          "anyOf": [
+            {
+              "maximum": 599,
+              "minimum": 100,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Response Status"
+        }
+      },
+      "required": [
+        "kind",
+        "access_policy",
+        "principal_scope",
+        "actor_tenant_digest",
+        "resource_tenant_digest",
+        "requested_resource_digest",
+        "returned_resource_digest",
+        "response_status"
+      ],
+      "title": "TenantIsolation",
+      "type": "object"
+    },
     "WeeklyRecurrence": {
       "additionalProperties": false,
       "properties": {
@@ -228,8 +625,12 @@
     "measurement": {
       "discriminator": {
         "mapping": {
+          "atomic_transfer": "#/$defs/AtomicTransfer",
           "operation_isolation": "#/$defs/OperationIsolation",
           "projection_ordering": "#/$defs/ProjectionOrdering",
+          "runner_memory_limit": "#/$defs/RunnerMemoryLimit",
+          "status_expectation": "#/$defs/StatusExpectation",
+          "tenant_isolation": "#/$defs/TenantIsolation",
           "weekly_recurrence": "#/$defs/WeeklyRecurrence"
         },
         "propertyName": "kind"
@@ -243,6 +644,18 @@
         },
         {
           "$ref": "#/$defs/WeeklyRecurrence"
+        },
+        {
+          "$ref": "#/$defs/AtomicTransfer"
+        },
+        {
+          "$ref": "#/$defs/TenantIsolation"
+        },
+        {
+          "$ref": "#/$defs/StatusExpectation"
+        },
+        {
+          "$ref": "#/$defs/RunnerMemoryLimit"
         }
       ],
       "title": "Measurement"

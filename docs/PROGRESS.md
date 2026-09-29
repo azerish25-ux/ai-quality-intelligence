@@ -1,5 +1,44 @@
 # FailureLens delivery ledger
 
+## M6.4 diagnostic development — implementation checkpoint
+
+Starting repository: `azerish25-ux/ai-quality-intelligence`, existing `main`,
+`580ab0734602aff9a182f8bb56ea68201988f836`. The credential-free exact-source
+export change was published at `17cd55af5e231d58796bc44e1b4911438b12a088`.
+Baseline CI run `36515163885` passed all ten jobs: producers, backend/PostgreSQL,
+LedgerGuard component replay, legacy evaluation, frontend, Docker and four browser
+lanes. That baseline does not certify subsequent code.
+
+The existing analyzer, contract adapter, publication validator and independent
+campaign scorer now support four additional bounded diagnostic relations. The
+reviewer workspace distinguishes missing observations, conflicting observations,
+publication rejection and unresolved evidence/capability. Competing product-risk
+signals preserve abstention regardless of a leading non-product score.
+
+Local full backend verification passed **670 tests**, with four PostgreSQL-only
+skips and **83.63% branch-aware coverage** against the unchanged 75% gate.
+The focused group contains 112 new diagnostic/evaluator regressions and 59
+retained contract tests (171 total). This includes the ordinary API/worker and
+independent SQLite replay of 20 explicitly synthetic development cases, with 16
+supported published diagnoses and four correct missing-measurement abstentions.
+It is not PostgreSQL, browser, kernel OOM or fresh LedgerGuard execution evidence.
+Exact-source execution and delivery results will be recorded as a separate
+checkpoint rather than inheriting success from the baseline.
+
+The new companion producer captures actual fingerprints, calendar dates and
+projection snapshots and checks each against a separately executed scalar probe
+and the existing independent oracle. Three already-known mechanisms have four
+paired variants each. Twenty other cases are explicitly synthetic. The existing
+campaign scorer can score this development-only slice without relabeling it as
+a held-out result or weakening the original minimums/targets. See
+[diagnostic development](diagnostic-quality.md).
+
+The old corpus, frozen policies and retained reports are not rewritten. No new
+100-case/20-product-family held-out evaluation, full temporal backtest or full
+M6 acceptance is claimed by this implementation checkpoint. No model API or
+companion write is used.
+
+
 ## M6.3 reconciliation — preserve both published and saved evaluation lines
 
 The current source preserves the published frozen campaign/structured-contract implementation and integrates the previously saved three-commit M6.3 line as a separate `domain-observations-v1` and `benchmark-v1` path. The two evaluation datasets, endpoints, reports, and workflow names remain distinct. This reconciliation does not convert either quality result into full M6 acceptance and does not rewrite historical measured reports.

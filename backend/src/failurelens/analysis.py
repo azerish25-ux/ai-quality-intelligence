@@ -7,11 +7,11 @@ from typing import Any, Iterable
 
 from .models import Category
 from .transaction_evidence import transaction_findings
-from .contract_evidence import CLAIM_TEXT, contract_findings
+from .contract_evidence import CLAIM_TEXT, CONTRACT_CATEGORY, CONTRACT_SEVERITY, contract_findings
 from .domain_evidence import domain_findings
 
-ANALYSIS_VERSION = "deterministic-v4"
-RULES_VERSION = "rules-v4"
+ANALYSIS_VERSION = "deterministic-v5"
+RULES_VERSION = "rules-v5"
 
 
 @dataclass(frozen=True)
@@ -84,13 +84,17 @@ def rule_signal_counts(
     )
 
     product_signals = 8 if any(f.status == "duplicate" for _, f in transaction_findings(evidence)) else 0
-    if any(f.status == "violated" for _, f in contract_findings(evidence)):
-        product_signals += 8
     if any(f.status == "violation" for _, f in domain_findings(evidence)):
         product_signals += 8
     test_signals = 0
     infrastructure_signals = 0
     flake_signals = 0
+
+    typed_categories = {CONTRACT_CATEGORY[f.contract] for _, f in contract_findings(evidence)
+                        if f.status == "violated"}
+    product_signals += 8 * ("product_defect" in typed_categories)
+    test_signals += 8 * ("test_defect" in typed_categories)
+    infrastructure_signals += 8 * ("infrastructure_failure" in typed_categories)
 
     if _has(
         all_text,
@@ -232,6 +236,10 @@ def analyze_failure(
     contract_conflict = any(f.status in {"invalid", "incomplete", "conflicting"} for _, f in contracts)
     for kind in {f.contract for _, f in contracts}:
         contract_conflict |= len({f.status for _, f in contracts if f.contract == kind}) > 1
+    diagnostic_categories = {CONTRACT_CATEGORY[f.contract] for _, f in contracts if f.status == "violated"}
+    if len(diagnostic_categories) > 1:
+        contract_conflict = True
+        flags.append("multiple_supported_diagnostic_categories")
     if contract_conflict:
         contradictions.extend(identifier for identifier, _ in contracts)
         flags.append("contract_measurements_incomplete_or_conflicting")
@@ -340,7 +348,7 @@ def analyze_failure(
     ):
         flags.append("product_risk_preserved")
         contradictions.extend(evidence_ids[:1])
-        if margin < 3:
+        if product_signals >= 2:
             return DeterministicDecision(
                 category=Category.insufficient_evidence,
                 severity="high",
@@ -412,15 +420,16 @@ def analyze_failure(
         },
         "validation_status": "pending",
     }
-    violations = [(identifier, finding) for identifier, finding in contracts if finding.status == "violated"]
-    if winner is Category.product_defect and violations:
+    violations = [(identifier, finding) for identifier, finding in contracts
+                  if finding.status == "violated" and CONTRACT_CATEGORY[finding.contract] == winner.value]
+    if violations:
         kind = violations[0][1].contract
         claim_evidence_ids = tuple(identifier for identifier, finding in violations if finding.contract == kind)
         claim = {"id": "claim-1", "kind": "inference", "text": CLAIM_TEXT[kind],
                  "evidence_ids": list(claim_evidence_ids),
                  "predicate": {"kind": "contract_violation", "contract": kind},
                  "validation_status": "pending"}
-        severity = "critical" if kind == "operation_isolation" else "high"
+        severity = CONTRACT_SEVERITY[kind]
         flags.append("structured_contract_violation")
     domain_violations = [(identifier, finding) for identifier, finding in domains if finding.status == "violation"]
     if winner is Category.product_defect and domain_violations and not violations:

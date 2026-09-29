@@ -9,11 +9,11 @@ from .analysis import DeterministicDecision, EvidenceView, rule_signal_counts
 from .config import Settings, get_settings
 from .models import Category, Evidence, Failure
 from .transaction_evidence import inspect_multiplicity
-from .contract_evidence import CLAIM_TEXT, inspect_contract
+from .contract_evidence import CLAIM_TEXT, CONTRACT_CATEGORY, inspect_contract
 from .domain_evidence import inspect_domain
 from .storage import StorageError, read_stored_bytes
 
-VALIDATION_VERSION = "evidence-validation-v2"
+VALIDATION_VERSION = "evidence-validation-v3"
 _ALLOWED_DERIVATIVE_MEDIA_TYPES = {
     "application/json",
     "application/vnd.failurelens.evidence+json",
@@ -450,8 +450,9 @@ def _claim_validation(
         irrelevant_reference_ids = [identifier for identifier in validated_ids
                                     if identifier not in findings or findings[identifier].status != "violated"
                                     or findings[identifier].contract != kind]
-        semantic_support = bool(typed_predicate_valid and decision.category == Category.product_defect
+        semantic_support = bool(typed_predicate_valid and decision.category.value == CONTRACT_CATEGORY.get(kind)
                                 and validated_ids and not irrelevant_reference_ids
+                                and claim.get("kind") == "inference"
                                 and claim.get("text") == CLAIM_TEXT.get(kind))
 
     if isinstance(predicate, dict) and predicate.get("kind") == "reported_domain_invariant":
@@ -628,6 +629,23 @@ def validate_decision(
         if must_degrade or evidence_failed or claim_failed
         else "passed"
     )
+    diagnostic_findings = []
+    for row in evidence_rows:
+        if row.id in accepted_ids and row.kind == "contract_observation":
+            finding = inspect_contract(row.observation.get("contract_observation"))
+            diagnostic_findings.append({"evidence_id": row.id, "contract": finding.contract,
+                                        "status": finding.status, "reason": finding.reason})
+    gap = None
+    if category is Category.insufficient_evidence:
+        statuses = {f["status"] for f in diagnostic_findings}
+        if must_degrade or claim_failed:
+            gap = "publication_rejection"
+        elif no_valid_evidence or "incomplete" in statuses or "invalid" in statuses:
+            gap = "missing_or_invalid_observations"
+        elif "conflicting" in statuses or set(flags) & {"multiple_supported_diagnostic_categories", "dangerous_downgrade_blocked", "contract_measurements_incomplete_or_conflicting"}:
+            gap = "contradictory_observations"
+        else:
+            gap = "unresolved_evidence_or_capability"
     validation_results = {
         "version": VALIDATION_VERSION,
         "status": validation_status,
@@ -635,6 +653,8 @@ def validate_decision(
         "claims": claim_checks,
         "original_category": decision.category.value,
         "published_category": category.value,
+        "diagnostic_gap": gap,
+        "diagnostic_findings": diagnostic_findings,
     }
 
     return ValidatedDecision(
