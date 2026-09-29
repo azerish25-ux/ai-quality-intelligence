@@ -43,10 +43,17 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.13'
-      - name: Install and migrate the real FailureLens pipeline
+      - name: Build exact committed backend outside the measured source tree and migrate
+        shell: bash
         run: |
-          python -m pip install './backend[dev]'
+          set -euo pipefail
+          BUILD_ROOT=$(mktemp -d)
+          trap 'rm -rf "$BUILD_ROOT"' EXIT
+          git archive HEAD backend | tar -x -C "$BUILD_ROOT"
+          python -m pip install "$BUILD_ROOT/backend[dev]"
           (cd backend && alembic upgrade head)
+          git status --porcelain
+          test -z "$(git status --porcelain --untracked-files=normal)"
       - name: Execute new measurements on pinned healthy and faulty components
         shell: bash
         run: |
