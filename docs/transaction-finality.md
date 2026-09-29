@@ -8,6 +8,36 @@ isolated HTTP/PostgreSQL producer, an independent SQL/receipt oracle, a bounded
 family-level diagnostic-gap audit, and an exact-source verification workflow.
 It does not create another inference pipeline or merge either historical corpus.
 
+## Executed checkpoint and permanent evidence
+
+The earlier execution gap is closed for this one-mechanism development slice.
+Source `b7327b437d8fc4cb009918d1d4d31b6bf36f508a` passed the actual
+[HTTP/PostgreSQL and browser workflow](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36567980376).
+Four real interventions have four passing controls; four further insufficient-evidence
+cases are explicitly synthetic. The same API/worker path identified all four
+product cases, retained all four abstentions, and independently supported four
+published claims and twelve citations. Five-category macro F1 remains undefined.
+
+The [permanent snapshot](../evaluation/reports/transaction-finality-postgresql-v1/README.md)
+retains all 48 original artifact member bodies with the original GitHub checksum,
+per-file digests, complete metrics/predictions, safe derivatives and SQL/receipt
+oracles. It is separate from the earlier all-synthetic SQLite snapshot.
+
+```sh
+python evaluation/verify_finality_snapshot.py
+python evaluation/verify_finality_snapshot.py --extract-to /tmp/finality-retained
+```
+
+Verification and optional export require no fresh companion or database execution;
+the export destination must not already exist. The verifier recomputes both scoring
+and all independent control/intervention oracles. See [PROGRESS.md](PROGRESS.md)
+for clean-source CI repair, current exact-revision verification and preserved failures.
+
+### Historical initial-implementation environment
+
+The following paragraph describes the initial local checkpoint only, not current
+GitHub write access or the subsequent executed/published delivery:
+
 The initial implementation environment has no Docker/Compose, PostgreSQL server
 or psycopg, and its terminal cannot resolve GitHub. The exposed GitHub connector
 provides reads/artifact downloads but no publication operation. Consequently,

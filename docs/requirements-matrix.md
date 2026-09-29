@@ -1,13 +1,22 @@
 # Requirement-to-evidence matrix
 
-## M6.4.1 transaction-finality development
+## M6.4.1 transaction-finality closeout
+
+The initial NOT RUN checkpoints are superseded by actual execution at
+`b7327b437d8fc4cb009918d1d4d31b6bf36f508a`, run
+[36567980376](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36567980376).
+The later clean-source repair and retention verification are recorded in
+[PROGRESS.md](PROGRESS.md). Older rows below remain scoped historical records;
+no failed held-out target is waived by this closeout.
 
 | ID | Requirement | Status | Implementation and verification boundary |
 |---|---|---|---|
-| R-M641-CONTRACT | Evidence-grounded terminal-rejection/committed-effects relation | PASS | Additive `TransactionFinality`, independent publication recomputation, 97 boundary/API regressions and clean-source synthetic SQLite/API/worker replay at `158d288`; broader real execution remains NOT RUN below. |
-| R-M641-PRODUCER | Actual paired rollback/early-commit execution | NOT RUN | `integrations/ledgerguard/rollback.py`, independent `rollback_oracle.py`, pinned clean source and disposable-only mutation; no Docker/PostgreSQL execution in the initial environment. |
+| R-M641-CONTRACT | Evidence-grounded terminal-rejection/committed-effects relation | PASS | Additive `TransactionFinality`, independent publication recomputation, 97 boundary/API regressions and actual PostgreSQL/API/worker replay at `b7327b4`; four published claims independently supported. |
+| R-M641-PRODUCER | Actual paired rollback/early-commit execution | PASS | Run `36567980376`, job `109404555847`: four real HTTP/PostgreSQL control/intervention pairs, pinned companion, isolated resources and independently checked SQL/receipts. One mechanism, not broad fault coverage. |
 | R-M641-AUDIT | Case/family diagnostic gap audit | PASS | `evaluation/diagnostic_gap_audit.py`, independent scoring first, 13 local regressions and actual retained benchmark audit; legacy records remain uninstrumented rather than assigned invented causes. |
-| R-M641-VERIFY | Exact-source PostgreSQL and browser evidence | NOT RUN | Read-only `rollback-evaluation.yml`, strict source/provenance/scoring assertions, desktop/narrow journeys; workflow source is not execution evidence. |
+| R-M641-VERIFY | Exact-source PostgreSQL and browser evidence | PASS | Actual `rollback-evaluation.yml` execution at `b7327b4`, strict source/provenance/scoring assertions and desktop/narrow API-backed journeys; subsequent repair-source runs are identified separately in `PROGRESS.md`. |
+| R-M641-CI | Clean committed-source backend installation | PASS | `scripts/install_committed_backend.sh`, ordinary PostgreSQL CI backend installation, 25 real-build/provenance regressions and explicit offline build-backend test dependency. Backend job at `9b68283` passed; no provenance assertion, coverage gate or test was removed. Final package CI is recorded separately in `PROGRESS.md`. |
+| R-M641-RETAIN | Durable independently verifiable actual execution | PASS | `evaluation/reports/transaction-finality-postgresql-v1/`, verified original artifact digest, all 48 member bodies retained, bounded `verify_finality_snapshot.py`, independent rescoring/oracle recomputation and 17 corruption/scope regressions. Offline verification is not fresh PostgreSQL or browser execution. |
 | R-M641-HELDOUT | Renewed five-category held-out acceptance | NOT RUN | Eight-case one-mechanism development slice only; original quality targets and failed benchmark bytes unchanged. |
 
 ## M6.4 diagnostic-quality development
