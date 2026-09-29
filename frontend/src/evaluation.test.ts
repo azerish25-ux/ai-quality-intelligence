@@ -19,3 +19,8 @@ describe('evaluation truthfulness', () => {
     expect(evaluationProvenance({})).toBe('Provenance not established');
   });
 });
+
+it('distinguishes the frozen synthetic test split from retained executions', () => {
+  expect(evaluationProvenance({ evaluation_scope: 'frozen_mixed_source_campaign', source_counts: { ledgerguard_executed: 60 } }))
+    .toBe('Frozen five-category campaign · synthetic test split');
+});

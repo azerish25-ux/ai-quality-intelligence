@@ -7,9 +7,10 @@ from typing import Any, Iterable
 
 from .models import Category
 from .transaction_evidence import transaction_findings
+from .contract_evidence import CLAIM_TEXT, contract_findings
 
-ANALYSIS_VERSION = "deterministic-v3"
-RULES_VERSION = "rules-v3"
+ANALYSIS_VERSION = "deterministic-v4"
+RULES_VERSION = "rules-v4"
 
 
 @dataclass(frozen=True)
@@ -82,6 +83,8 @@ def rule_signal_counts(
     )
 
     product_signals = 8 if any(f.status == "duplicate" for _, f in transaction_findings(evidence)) else 0
+    if any(f.status == "violated" for _, f in contract_findings(evidence)):
+        product_signals += 8
     test_signals = 0
     infrastructure_signals = 0
     flake_signals = 0
@@ -222,6 +225,15 @@ def analyze_failure(
         contradictions.extend(evidence_ids[:1])
         flags.append("mixed_cause_or_contradictory_evidence")
 
+    contracts = contract_findings(evidence)
+    contract_conflict = any(f.status in {"invalid", "incomplete", "conflicting"} for _, f in contracts)
+    for kind in {f.contract for _, f in contracts}:
+        contract_conflict |= len({f.status for _, f in contracts if f.contract == kind}) > 1
+    if contract_conflict:
+        contradictions.extend(identifier for identifier, _ in contracts)
+        flags.append("contract_measurements_incomplete_or_conflicting")
+        missing.append("consistent execution-bound contract measurements")
+
     transactions = transaction_findings(evidence)
     transaction_conflict = bool(transactions and (
         any(f.status in {"invalid", "incomplete", "conflicting"} for _, f in transactions)
@@ -236,7 +248,7 @@ def analyze_failure(
     winner, winner_score = ordered[0]
     runner_up_score = ordered[1][1]
 
-    if transaction_conflict or winner_score < 3 or winner_score == runner_up_score or not evidence_ids:
+    if contract_conflict or transaction_conflict or winner_score < 3 or winner_score == runner_up_score or not evidence_ids:
         reason = "Available observations do not distinguish the required categories safely."
         if product_signals >= 2 and max(
             test_signals, infrastructure_signals, flake_signals
@@ -388,6 +400,16 @@ def analyze_failure(
         },
         "validation_status": "pending",
     }
+    violations = [(identifier, finding) for identifier, finding in contracts if finding.status == "violated"]
+    if winner is Category.product_defect and violations:
+        kind = violations[0][1].contract
+        claim_evidence_ids = tuple(identifier for identifier, finding in violations if finding.contract == kind)
+        claim = {"id": "claim-1", "kind": "inference", "text": CLAIM_TEXT[kind],
+                 "evidence_ids": list(claim_evidence_ids),
+                 "predicate": {"kind": "contract_violation", "contract": kind},
+                 "validation_status": "pending"}
+        severity = "critical" if kind == "operation_isolation" else "high"
+        flags.append("structured_contract_violation")
     duplicate_findings = [(identifier, finding) for identifier, finding in transactions if finding.status == "duplicate"]
     if winner is Category.product_defect and duplicate_findings:
         claim_evidence_ids = tuple(identifier for identifier, _ in duplicate_findings)

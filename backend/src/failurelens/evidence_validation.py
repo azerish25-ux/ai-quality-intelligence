@@ -9,6 +9,7 @@ from .analysis import DeterministicDecision, EvidenceView, rule_signal_counts
 from .config import Settings, get_settings
 from .models import Category, Evidence, Failure
 from .transaction_evidence import inspect_multiplicity
+from .contract_evidence import CLAIM_TEXT, inspect_contract
 from .storage import StorageError, read_stored_bytes
 
 VALIDATION_VERSION = "evidence-validation-v2"
@@ -439,6 +440,18 @@ def _claim_validation(
                                     "for one retried logical request; this supports a product-defect investigation "
                                     "without establishing the responsible component."
                                 ))
+
+    if isinstance(predicate, dict) and predicate.get("kind") == "contract_violation":
+        kind = predicate.get("contract")
+        typed_predicate_valid = set(predicate) == {"kind", "contract"} and isinstance(kind, str) and kind in CLAIM_TEXT
+        findings = {item.id: inspect_contract(item.observation.get("contract_observation"))
+                    for item in valid_rows if item.kind == "contract_observation"}
+        irrelevant_reference_ids = [identifier for identifier in validated_ids
+                                    if identifier not in findings or findings[identifier].status != "violated"
+                                    or findings[identifier].contract != kind]
+        semantic_support = bool(typed_predicate_valid and decision.category == Category.product_defect
+                                and validated_ids and not irrelevant_reference_ids
+                                and claim.get("text") == CLAIM_TEXT.get(kind))
 
     text = str(claim.get("text", ""))
     policy_safe = bool(

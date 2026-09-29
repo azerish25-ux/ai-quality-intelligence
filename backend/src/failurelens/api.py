@@ -753,6 +753,29 @@ def evaluation_fullstack(principal: Principal = Depends(current_principal)) -> d
         raise HTTPException(503, "full-stack evaluation metrics unavailable") from exc
 
 
+@app.get("/api/v1/evaluations/campaign")
+def evaluation_campaign(principal: Principal = Depends(current_principal)) -> dict:
+    require_user(principal)
+    path = get_settings().campaign_evaluation_metrics_path
+    if not path.exists():
+        return {"status": "not_loaded", "message": "Frozen five-category evaluation is not mounted."}
+    try:
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("report is not a regular file")
+        with path.open("rb") as stream:
+            data = stream.read(2 * 1024 * 1024 + 1)
+        if len(data) > 2 * 1024 * 1024:
+            raise ValueError("report exceeds limit")
+        metrics = json.loads(data)
+        if (not isinstance(metrics, dict)
+                or metrics.get("evaluation_scope") != "frozen_mixed_source_campaign"
+                or metrics.get("split") != "test"):
+            raise ValueError("report scope differs")
+        return {"status": "available", "metrics": metrics}
+    except (OSError, ValueError) as exc:
+        raise HTTPException(503, "campaign evaluation metrics unavailable") from exc
+
+
 @app.post("/api/v1/projects", response_model=ProjectRead, status_code=201)
 def projects_create(
     request: ProjectCreate,

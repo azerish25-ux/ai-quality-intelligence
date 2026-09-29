@@ -1,0 +1,260 @@
+{
+  "$defs": {
+    "Fingerprint": {
+      "additionalProperties": false,
+      "properties": {
+        "operation": {
+          "pattern": "^[a-z][a-z0-9_.:-]{0,79}$",
+          "title": "Operation",
+          "type": "string"
+        },
+        "actor_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Actor Digest",
+          "type": "string"
+        },
+        "payload_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Payload Digest",
+          "type": "string"
+        },
+        "fingerprint": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Fingerprint"
+        }
+      },
+      "required": [
+        "operation",
+        "actor_digest",
+        "payload_digest",
+        "fingerprint"
+      ],
+      "title": "Fingerprint",
+      "type": "object"
+    },
+    "OperationIsolation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "operation_isolation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "fingerprint_scope": {
+          "const": "operation_actor_payload",
+          "title": "Fingerprint Scope",
+          "type": "string"
+        },
+        "first": {
+          "$ref": "#/$defs/Fingerprint"
+        },
+        "second": {
+          "$ref": "#/$defs/Fingerprint"
+        }
+      },
+      "required": [
+        "kind",
+        "fingerprint_scope",
+        "first",
+        "second"
+      ],
+      "title": "OperationIsolation",
+      "type": "object"
+    },
+    "Projection": {
+      "additionalProperties": false,
+      "properties": {
+        "entity_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Entity Digest",
+          "type": "string"
+        },
+        "version": {
+          "maximum": 1000000000000000,
+          "minimum": 0,
+          "title": "Version",
+          "type": "integer"
+        },
+        "state_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "State Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entity_digest",
+        "version",
+        "state_digest"
+      ],
+      "title": "Projection",
+      "type": "object"
+    },
+    "ProjectionOrdering": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "projection_ordering",
+          "title": "Kind",
+          "type": "string"
+        },
+        "stale_event_policy": {
+          "const": "ignore",
+          "title": "Stale Event Policy",
+          "type": "string"
+        },
+        "before": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Projection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "incoming": {
+          "$ref": "#/$defs/Projection"
+        },
+        "after": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Projection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "stale_event_policy",
+        "before",
+        "incoming",
+        "after"
+      ],
+      "title": "ProjectionOrdering",
+      "type": "object"
+    },
+    "WeeklyRecurrence": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "weekly_recurrence",
+          "title": "Kind",
+          "type": "string"
+        },
+        "timezone": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Timezone",
+          "type": "string"
+        },
+        "wall_time_policy": {
+          "const": "preserve",
+          "title": "Wall Time Policy",
+          "type": "string"
+        },
+        "previous_local": {
+          "maxLength": 19,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2})?$",
+          "title": "Previous Local",
+          "type": "string"
+        },
+        "next_local": {
+          "anyOf": [
+            {
+              "maxLength": 19,
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2})?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next Local"
+        }
+      },
+      "required": [
+        "kind",
+        "timezone",
+        "wall_time_policy",
+        "previous_local",
+        "next_local"
+      ],
+      "title": "WeeklyRecurrence",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "contract-observations-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "test_identity": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Test Identity",
+      "type": "string"
+    },
+    "attempt": {
+      "maximum": 20,
+      "minimum": 0,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "browser": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Browser"
+    },
+    "measurement": {
+      "discriminator": {
+        "mapping": {
+          "operation_isolation": "#/$defs/OperationIsolation",
+          "projection_ordering": "#/$defs/ProjectionOrdering",
+          "weekly_recurrence": "#/$defs/WeeklyRecurrence"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/OperationIsolation"
+        },
+        {
+          "$ref": "#/$defs/ProjectionOrdering"
+        },
+        {
+          "$ref": "#/$defs/WeeklyRecurrence"
+        }
+      ],
+      "title": "Measurement"
+    }
+  },
+  "required": [
+    "schema_version",
+    "test_identity",
+    "attempt",
+    "browser",
+    "measurement"
+  ],
+  "title": "ContractObservation",
+  "type": "object"
+}

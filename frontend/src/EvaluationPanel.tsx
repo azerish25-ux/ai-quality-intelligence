@@ -12,6 +12,12 @@ export function EvaluationPanel({ metrics, id = "evaluation", title = "Determini
   const integrity = evaluationRecord(metrics?.integrity_acceptance);
   const families = Object.entries(evaluationRecord(metrics?.by_family)).slice(0, 100);
   const limits = Array.isArray(metrics?.limitations) ? metrics.limitations.filter((v): v is string => typeof v === 'string') : [];
+  const campaign = metrics?.evaluation_scope === 'frozen_mixed_source_campaign';
+  const categories = Object.entries(evaluationRecord(metrics?.per_category));
+  const comparisons = Object.entries(evaluationRecord(metrics?.comparisons));
+  const claimChecks = evaluationRecord(metrics?.claim_checks);
+  const confusion = evaluationRecord(metrics?.confusion_matrix);
+  const errors = Array.isArray(metrics?.errors) ? metrics.errors.map(evaluationRecord) : [];
   const fullstack = metrics?.evaluation_scope === 'http_postgresql_fault_proxy';
   const observations = Array.isArray(metrics?.inspection) ? metrics.inspection.map(evaluationRecord) : [];
   const legacy = metrics?.evaluation_version === 'harness-v1';
@@ -27,6 +33,51 @@ export function EvaluationPanel({ metrics, id = "evaluation", title = "Determini
       </div>
       <p>LedgerGuard executions: <strong>{count(sources.ledgerguard_executed)}</strong>. Synthetic cases in this report: <strong>{count(sources.synthetic)}</strong>.
         {' '}Product abstentions requiring review: <strong>{count(metrics.product_abstentions)}</strong>.</p>
+      {campaign && <>
+        <p>The headline metrics cover only the frozen test split: <strong>{count(metrics.case_count)}</strong> cases.
+          {' '}The full dataset contains <strong>{count(metrics.dataset_case_count)}</strong> cases in <strong>{count(metrics.dataset_family_count)}</strong> agent-reviewed family groups.
+          {' '}Retained companion executions belong to development; this campaign does not claim fresh LedgerGuard execution.</p>
+        <p>Frozen input manifest: <code>{String(metrics.input_manifest_sha256 ?? 'Not established')}</code>.</p>
+        <details><summary>Five-category results and confusion matrix</summary>
+          <div className="table-wrap" role="region" aria-label="Five-category metrics" tabIndex={0}>
+            <table><caption>Frozen test split — per-category measured results</caption><thead><tr>
+              <th scope="col">Category</th><th scope="col">Cases</th><th scope="col">Precision</th><th scope="col">Recall</th><th scope="col">F1</th>
+            </tr></thead><tbody>{categories.map(([name, value]) => { const row = evaluationRecord(value); return <tr key={name}>
+              <td>{name.replaceAll('_', ' ')}</td><td>{count(row.support)}</td><td>{evaluationRate(row.precision)}</td><td>{evaluationRate(row.recall)}</td><td>{evaluationNumber(row.f1)?.toFixed(3) ?? 'Not established'}</td>
+            </tr>; })}</tbody></table>
+          </div>
+          <div className="table-wrap" role="region" aria-label="Five-category confusion matrix" tabIndex={0}>
+            <table><caption>True category by published category — exact counts</caption><thead><tr>
+              <th scope="col">True category</th>{categories.map(([name]) => <th scope="col" key={name}>{name.replaceAll('_', ' ')}</th>)}
+            </tr></thead><tbody>{categories.map(([name]) => <tr key={name}><td>{name.replaceAll('_', ' ')}</td>
+              {categories.map(([predicted]) => <td key={predicted}>{count(evaluationRecord(confusion[name])[predicted])}</td>)}
+            </tr>)}</tbody></table>
+          </div>
+        </details>
+        <details><summary>Measured classifier comparisons</summary>
+          <div className="table-wrap" role="region" aria-label="Classifier comparison results" tabIndex={0}>
+            <table><caption>Same frozen test split — no fabricated improvement claim</caption><thead><tr>
+              <th scope="col">Mode</th><th scope="col">Product recall</th><th scope="col">Macro F1</th><th scope="col">Coverage</th>
+            </tr></thead><tbody>{comparisons.map(([name, value]) => { const row = evaluationRecord(value); return <tr key={name}>
+              <td>{name.replaceAll('_', ' ')}</td><td>{evaluationRate(row.product_defect_recall)}</td>
+              <td>{evaluationNumber(row.macro_f1)?.toFixed(3) ?? 'Not established'}</td><td>{evaluationRate(row.non_abstained_coverage)}</td>
+            </tr>; })}</tbody></table>
+          </div>
+        </details>
+        <p>Across the full replay: <strong>{count(claimChecks.supported)}/{count(claimChecks.published)}</strong> published claims match the controlled rubric.
+          {' '}Unsupported published claims: <strong>{evaluationFraction(claimChecks.unsupported_rate)}</strong>. This is not a universal semantic judge.</p>
+        <details><summary>Inspect test errors ({errors.length})</summary>
+          <div className="table-wrap" role="region" aria-label="Frozen test error cases" tabIndex={0}>
+            <table><caption>All errors remain visible; no cases are removed to improve metrics</caption><thead><tr>
+              <th scope="col">Case</th><th scope="col">Expected</th><th scope="col">Published</th><th scope="col">Abstention reason</th>
+            </tr></thead><tbody>{errors.map((row) => <tr key={String(row.case_id)}>
+              <td><code>{String(row.case_id)}</code></td><td>{String(row.expected_category).replaceAll('_', ' ')}</td>
+              <td>{String(row.predicted).replaceAll('_', ' ')}</td><td>{String(row.abstention_reason ?? 'Not an abstention')}</td>
+            </tr>)}</tbody></table>
+          </div>
+          <p className="limitation">Retained IDs refer to the originating evaluation database. They are not links to unrelated current runs.</p>
+        </details>
+      </>}
       {fullstack && <>
         <p>Paired scenarios: <strong>{count(metrics.paired_scenarios)}</strong>. Independent mechanism families: <strong>{count(metrics.family_count)}</strong>.
           {' '}Transport-only controls correctly left for review: <strong>{count(metrics.control_abstentions)}/{count(metrics.control_case_count)}</strong>.</p>

@@ -35,6 +35,8 @@ class Settings(BaseSettings):
 
     fullstack_evaluation_metrics_path: Path = Path("../evaluation/reports/ledgerguard-fullstack-v1/metrics.json")
 
+    campaign_evaluation_metrics_path: Path = Path("../evaluation/reports/diverse-v1/metrics.json")
+
     def ensure_directories(self) -> None:
         self.artifact_root.mkdir(parents=True, exist_ok=True, mode=0o700)
         (self.artifact_root / "incoming").mkdir(parents=True, exist_ok=True, mode=0o700)

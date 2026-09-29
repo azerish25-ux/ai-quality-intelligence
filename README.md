@@ -3,9 +3,24 @@
 
 FailureLens is a self-hosted platform for investigating automated-test failures using inspectable evidence. Its default analyzer is deterministic and CPU-only; no paid model API, GPU or runtime model download is required.
 
-**Current milestone: M6.1 execution pipeline and reviewer view delivered. Full M6 and the complete project remain PARTIAL.** The accepted source `0e98962d4ad46099298b42542b3e79708397536a` passed all ten jobs in [CI run 36492358143](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36492358143). Later commits require their own CI. [Current delivery ledger](docs/PROGRESS.md) · [Requirement matrix](docs/requirements-matrix.md).
+**Current milestone: M6.3 structured diagnostic contracts and frozen five-category campaign. Full M6 and the complete project remain PARTIAL.** The new corpus is committed before test evaluation. Exact-source measurements, CI and limitations are recorded in the [delivery ledger](docs/PROGRESS.md), [requirement matrix](docs/requirements-matrix.md), and [campaign contract](docs/campaign-evaluation.md). Historical reports retain their originally tested revisions.
 
 The new LedgerGuard challenge executes **60 real production-component interventions across 15 mechanisms**, each with a healthy control. Their reports traverse FailureLens's API, durable worker, PostgreSQL and evidence validator. The result is **48/60 product defects recognized, 12 abstentions and 0/60 dangerous dismissals**. The unchanged 90% recall target **FAILS**. This is not LedgerGuard HTTP/database transaction verification, a five-category held-out benchmark or a deployment guarantee.
+
+## New frozen evaluation campaign
+
+The mixed-source dataset contains **264 cases in 87 agent-reviewed family groups**.
+Its **160-case test split is entirely synthetic** and family-disjoint from development/calibration.
+The sixty retained actual LedgerGuard component cases remain development evidence;
+replaying them is not a new companion execution. Twelve new structured-measurement
+supplements exercise operation-scoped fingerprints, stale projection ordering and
+weekly calendar recurrence without inventing missing measurements in old artifacts.
+
+The same API, durable worker, evidence validation and dashboard evaluate these
+cases. Prior reviewed synthetic flake history is persisted, while seeded future
+reviews must be excluded. The independent scorer retains exact source/input
+digests, five repeated decisions, baselines, a five-class confusion matrix and
+all failures. No thresholds are weakened. See [reproduction and limits](docs/campaign-evaluation.md).
 
 ## Start the stack
 
@@ -159,6 +174,6 @@ Artifacts and generated outputs are untrusted. URL evidence never authorizes aut
 
 ## Remaining project work
 
-Full M6 still requires genuine five-category and eighty-family diversity, valid frozen family-grouped splits, temporal and unknown-family challenges, broader adversarial/claim metrics and passing quality targets. Full-stack LedgerGuard HTTP/database/reconciled financial-effect scenarios remain beyond the delivered component scope.
+M6.3 supplies a frozen five-category catalogue and family-disjoint test split. Full M6 still requires passing quality targets, stronger family adjudication, a broader temporal backtest and complete adversarial/claim coverage. Structural family counts are not independent expert validation. The separate M6.2 HTTP/PostgreSQL retry-boundary experiment is delivered; concurrency, rollback and wider full-stack mechanisms remain outside that narrow scope.
 
 Full M2 retains broader dialect and application-specific sensitive-field work. Complete M5 review/operational scope, optional provider contracts, live idempotent GitHub publication, broader hardening/offline/restore/load verification and final audit remain unfinished. Existing reviewed screenshots, safe trace derivatives, real producer fixtures, controlled serving and account/retention workflows are delivered; do not mistake historical pending entries for their current status.

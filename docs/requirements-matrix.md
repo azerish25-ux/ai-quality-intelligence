@@ -1,5 +1,21 @@
 # Requirement-to-evidence matrix
 
+## M6.3 source checkpoint
+
+| ID | Requirement | Status | Implementation and current boundary |
+|---|---|---|---|
+| R-M63-CONTRACT | Three structured diagnostic contracts | PASS | `contract_evidence.py`, ingestion/execution binding, `analysis.py`, independent publication recomputation; 59 local contract regressions. Producer measurements are not trusted causal verdicts. |
+| R-M63-CORPUS | Versioned five-category family-grouped corpus | PARTIAL | 264 cases / 87 agent-reviewed catalogue groups, 160 synthetic test cases / 60 test-only groups. Minimum counts and structural split checks pass; conceptual independence is not independently expert-adjudicated. |
+| R-M63-PROVENANCE | Preserve real execution and synthetic distinctions | PASS | Original sixty executed component cases stay in development. 204 synthetic cases include twelve structured supplements, not new real executions. Existing reports remain unchanged. |
+| R-M63-REPLAY | General API/worker and prior-only history replay | PARTIAL | Separate public input runner, actual ingestion and five repeated decisions; synthetic clock and future-review exclusion tested locally. Exact-source PostgreSQL campaign execution pending at this checkpoint. |
+| R-M63-SCORER | Independent bounded claim and safety evaluation | PARTIAL | Separate scorer, unchanged targets, actual publication/evidence checks, per-class metrics, baselines, family aggregation and error retention. Full frozen test metrics pending; broader semantic rubric remains open. |
+| R-M63-UI | Campaign dashboard and verification | PARTIAL | Authenticated bounded report API, separate campaign view, confusion matrix, comparisons and all errors. Actual desktop/narrow browser verification pending at this checkpoint. |
+| R-M63-FULL | Complete M6 quality acceptance | PARTIAL | Code or count gates do not substitute for passing quality targets, wider adversarial/temporal coverage and complete master-prompt acceptance. |
+
+The preceding M6.2 matrix is historical below; its exact-revision acceptance does
+not substitute for verification of this new source.
+
+
 Current executed M6.2 source: `b31be357fc35aa4b9c225f28147ab32367d95a18`, [CI run 36499736103](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36499736103) and [full-stack run 36499736145](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36499736145). All ten existing jobs and the new full-stack job passed. Retained reports continue to name the revision actually executed; subsequent commits need separate CI. See [PROGRESS.md](PROGRESS.md) for executed counts and exact delivery boundaries. PASS is scoped to the named behavior, not a full-project declaration. Full M2, complete M5, full M6 and the master project remain PARTIAL.
 
 ## Core and previously delivered behavior

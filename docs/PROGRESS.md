@@ -1,5 +1,39 @@
 # FailureLens delivery ledger
 
+## M6.3 — structured contracts and frozen campaign source checkpoint
+
+Starting source: `0ca3003472917af004fe62870221b67527cf4e71`, existing `main`.
+The three strict diagnostic contracts, exact execution binding and recomputed
+publication predicates are implemented. The independent frozen-campaign runner,
+scorer, prior/future-history fixture loader, retention verifier and API-backed
+reviewer panel are implemented. The frozen corpus contains 264 cases / 87
+agent-reviewed catalogue groups, with 160 synthetic test cases across sixty
+test-only groups. The sixty retained actual component executions remain in
+development, alongside twelve synthetic structured supplements for three old
+families. Historical component and full-stack reports are not rewritten.
+
+Local checks before the final scope-hardening adjustment: 465 backend tests
+passed, four PostgreSQL-only tests skipped, 83.03% branch coverage (75% gate).
+After explicitly requiring operation-aware fingerprint scope and hardening the
+calendar lower boundary, all 59 contract regressions passed. Campaign integrity
+regressions cover frozen metadata, split leakage, reviewed history, unsafe
+archives, runtime file/network/process tripwires and independently altered
+outputs. Frontend syntax checks passed; full type/build/browser verification is
+reserved for exact-source CI, not claimed from syntax transpilation.
+
+The corpus and acceptance policy are frozen in this source checkpoint **before
+final test inference**. No full-test metrics are claimed at this checkpoint.
+Development/calibration smoke execution validates the real SQLite/API/worker
+path and shows quality failures; it is not a PostgreSQL or held-out result.
+Fresh exact-source PostgreSQL/browser evaluation is a required delivery check.
+
+Full M6 and the complete master project remain PARTIAL. The new public synthetic
+challenge is not independently blinded or expert-adjudicated. Wider adversarial
+coverage, temporal backtesting, stronger diagnostic coverage and later M7–M10
+scope remain. See [campaign contract](campaign-evaluation.md).
+
+## Historical M6.2 checkpoint (unchanged below)
+
 ## M6.2 — accepted full-stack retry-boundary source
 
 **Scoped HTTP/PostgreSQL execution, evidence and reviewer view: PASS. Full M6 and the project: PARTIAL. The retained M6.1 80% product-recall result still FAILS its unchanged 90% target.**

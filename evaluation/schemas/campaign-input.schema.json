@@ -1,0 +1,188 @@
+{
+  "$defs": {
+    "HistoricalInput": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/Input"
+        },
+        "observed_at": {
+          "title": "Observed At",
+          "type": "string"
+        },
+        "review": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Review"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "artifact",
+        "observed_at"
+      ],
+      "title": "HistoricalInput",
+      "type": "object"
+    },
+    "Input": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 1048576,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "source_format": {
+          "default": "junit-xml",
+          "enum": [
+            "junit-xml",
+            "failurelens-bundle-v2"
+          ],
+          "title": "Source Format",
+          "type": "string"
+        },
+        "expected_inputs": {
+          "default": 1,
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Expected Inputs",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "bytes"
+      ],
+      "title": "Input",
+      "type": "object"
+    },
+    "PublicCase": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "pattern": "^c-[0-9a-f]{20}$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "repository": {
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+          "title": "Repository",
+          "type": "string"
+        },
+        "source_revision": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Source Revision",
+          "type": "string"
+        },
+        "observed_at": {
+          "title": "Observed At",
+          "type": "string"
+        },
+        "observation": {
+          "$ref": "#/$defs/Input"
+        },
+        "control": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Input"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "history": {
+          "items": {
+            "$ref": "#/$defs/HistoricalInput"
+          },
+          "maxItems": 10,
+          "title": "History",
+          "type": "array"
+        }
+      },
+      "required": [
+        "case_id",
+        "repository",
+        "source_revision",
+        "observed_at",
+        "observation"
+      ],
+      "title": "PublicCase",
+      "type": "object"
+    },
+    "Review": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "const": "known_flake",
+          "title": "Category",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 20,
+          "title": "Reason",
+          "type": "string"
+        },
+        "recorded_at": {
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "provenance": {
+          "const": "synthetic_agent_reviewed_fixture",
+          "title": "Provenance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "category",
+        "reason",
+        "recorded_at",
+        "provenance"
+      ],
+      "title": "Review",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "campaign-input-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/PublicCase"
+      },
+      "maxItems": 1000,
+      "minItems": 1,
+      "title": "Cases",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "cases"
+  ],
+  "title": "PublicManifest",
+  "type": "object"
+}
