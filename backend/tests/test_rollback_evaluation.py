@@ -160,7 +160,10 @@ def test_full_api_worker_replay_resolves_citations_without_label_leakage(develop
     metrics, rows = evaluate(*development, enforce_minimums=False, score_split='development')
     assert len(rows) == 8 and not metrics['errors']
     assert metrics['claim_checks']['published'] == metrics['claim_checks']['supported'] == 4
-    assert all(metrics['integrity_acceptance'].values())
+    failed_gates = [name for name, passed in metrics['integrity_acceptance'].items() if not passed]
+    replay = json.loads((development[1]/'predictions.json').read_bytes())
+    assert not failed_gates, dict(failed_gates=failed_gates, source_revision=metrics['source_revision'],
+                                  source_worktree_changes=replay.get('source_worktree_changes', 'not recorded'))
     assert metrics['citation_checks']['resolved']['rate'] == 1
     assert metrics['repeated_analysis_count'] == 5
     assert metrics['source_counts'] == {'ledgerguard_executed': 0, 'synthetic': 8, 'other_executed': 0}
