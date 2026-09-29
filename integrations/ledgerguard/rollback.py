@@ -34,7 +34,8 @@ sys.path.insert(0, str(ROOT))
 from evaluation.campaign_contract import canonical, digest
 from integrations.ledgerguard.diagnostics import add_case, freeze
 from integrations.ledgerguard.fullstack import (
-    PIN, SOURCE, DEST, RECIPIENT, checkout_digest, request_json, run_command, snapshot,
+    PIN, SOURCE, DEST, RECIPIENT, checkout_digest, request_json,
+    run_command as _base_command, snapshot as _base_snapshot,
 )
 from integrations.ledgerguard.rollback_oracle import verify_observation
 
@@ -51,6 +52,25 @@ SEMANTICS = {
     'policy': 'terminal_rejection_has_no_effects',
 }
 
+
+
+def isolated_compose_environment() -> dict[str, str]:
+    """Do not let an ambient project name select somebody else's named volumes.
+
+    Compose interpolates parent-shell variables before --env-file values. Remove
+    all application/Compose overrides, plus remote Docker context/TLS overrides.
+    The caller additionally pins the local Unix socket on every invocation.
+    """
+    blocked = ('COMPOSE_', 'LEDGER_', 'POSTGRES_', 'RABBITMQ_', 'DOCKER_')
+    return {key: value for key, value in os.environ.items() if not key.startswith(blocked)}
+
+
+def run_command(command: list[str], cwd: Path, records: list, *, text=None, timeout=600) -> str:
+    return _base_command(command, cwd, records, text=text, timeout=timeout, env=isolated_compose_environment())
+
+
+def snapshot(compose, source: Path, records: list) -> dict:
+    return _base_snapshot(compose, source, records, env=isolated_compose_environment())
 
 def mutate_command(raw: bytes, *, early_commit: bool) -> bytes:
     """Accept only the inspected pinned method; mutate a private copy, never main."""
@@ -192,7 +212,7 @@ def disposable_stack(source: Path, private: Path, commands: list):
     env = private / 'runtime.env'
     env.write_text(''.join(f'{k}={v}\n' for k, v in values.items()))
     env.chmod(0o600)
-    compose = ['docker', 'compose', '--project-name', project, '--env-file', str(env), '-f', str(source/'compose.yaml')]
+    compose = ['docker', '--host', 'unix:///var/run/docker.sock', 'compose', '--project-name', project, '--env-file', str(env), '-f', str(source/'compose.yaml')]
     try:
         run_command([*compose, 'up', '-d', '--build', '--wait', 'postgres', 'api'], source, commands, timeout=900)
         run_command([*compose, 'run', '--rm', 'seed'], source, commands, timeout=120)

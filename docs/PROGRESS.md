@@ -1,5 +1,23 @@
 # FailureLens delivery ledger
 
+## M6.4.1 producer isolation correction
+
+After the retained measurement checkpoint, review identified that Compose gives
+ambient shell variables precedence over an explicit environment file. That could
+select unrelated named resources despite a random project argument. The finality
+runner now strips inherited Compose/application/Docker overrides per child
+process and explicitly selects the local Linux Docker Unix socket. Parent
+environment variables are not changed. Both direct commands and SQL snapshot
+commands use the same isolation, and cleanup remains scoped to the random project.
+The shared command/snapshot helper accepts an optional explicit environment;
+existing callers retain their previous default behavior.
+
+Twelve regressions cover hostile ambient resource names, remote contexts,
+command/snapshot isolation and startup-failure cleanup. No new real Docker or
+companion execution is claimed by this correction. The full pre-correction local
+suite at `301478f56ce4013ae8e96bd58c07789a884efcd9` also passed 823 tests with four
+PostgreSQL-only skips; the corrected revision needs its own complete verification.
+
 ## M6.4.1 clean local verification checkpoint
 
 Verified source `158d288252d348ca55e3d2a33e109de882196567` (implementation

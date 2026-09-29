@@ -61,7 +61,11 @@ contract tied to the source revision, not an authenticated universal truth about
 arbitrary producers.
 
 Each role runs in a separate randomly named Docker Compose project with private
-random credentials. Only PostgreSQL/API and the disposable seed are started;
+random credentials. The runner requires the local Linux Docker socket at
+`/var/run/docker.sock`, explicitly selects it, and removes inherited Compose,
+LedgerGuard, PostgreSQL, RabbitMQ and Docker override variables from child
+environments. Ambient settings cannot select an unrelated named volume, network,
+Compose override file or remote Docker context. The parent environment is unchanged. Only PostgreSQL/API and the disposable seed are started;
 background payment/outbox workers are not started. HTTP is loopback-only; the
 client ignores external proxies. Requests run sequentially. For each request,
 a repeatable-read SQL snapshot captures both account balances, related transfers

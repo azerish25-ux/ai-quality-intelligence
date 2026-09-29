@@ -173,3 +173,45 @@ def test_full_api_worker_replay_resolves_citations_without_label_leakage(develop
 def test_empty_test_partition_cannot_be_presented_as_heldout(development):
     with pytest.raises(ValueError, match='empty'):
         evaluate(*development, enforce_minimums=False, score_split='test')
+
+
+@pytest.mark.parametrize('key', ['COMPOSE_PROJECT_NAME','COMPOSE_FILE','COMPOSE_PROFILES','LEDGER_HTTP_PORT',
+    'LEDGER_RUNTIME_PASSWORD','POSTGRES_DB','RABBITMQ_DEFAULT_PASS','DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS_VERIFY'])
+def test_ambient_compose_settings_cannot_override_disposable_resources(monkeypatch,key):
+    monkeypatch.setenv(key,'unrelated-existing-resources')
+    monkeypatch.setenv('PATH','/usr/bin:/bin')
+    env=rollback.isolated_compose_environment()
+    assert key not in env and env['PATH']=='/usr/bin:/bin'
+    # No global mutation: other code in the parent process retains its environment.
+    assert os.environ[key]=='unrelated-existing-resources'
+
+
+def test_both_direct_commands_and_snapshot_commands_use_isolated_environment(monkeypatch,tmp_path):
+    monkeypatch.setenv('COMPOSE_PROJECT_NAME','do-not-delete')
+    captured=[]
+    def fake(*args,**kwargs):
+        captured.append(kwargs['env']); return '{}'
+    monkeypatch.setattr(rollback,'_base_command',fake)
+    monkeypatch.setattr(rollback,'_base_snapshot',fake)
+    rollback.run_command(['docker'],tmp_path,[])
+    rollback.snapshot(['docker'],tmp_path,[])
+    assert len(captured)==2 and all('COMPOSE_PROJECT_NAME' not in env for env in captured)
+
+
+def test_stack_start_failure_cleans_only_its_random_local_project(tmp_path,monkeypatch):
+    commands=[]
+    def fake(command,cwd,records,**kwargs):
+        commands.append(command)
+        if 'up' in command: raise RuntimeError('deliberate startup failure')
+        return ''
+    monkeypatch.setattr(rollback,'run_command',fake)
+    with pytest.raises(RuntimeError,match='startup'):
+        with rollback.disposable_stack(tmp_path,tmp_path,[]):
+            pytest.fail('Startup failure must not yield a running stack')
+    assert len(commands)==2
+    assert commands[0][:4]==commands[1][:4]==['docker','--host','unix:///var/run/docker.sock','compose']
+    project=commands[0][commands[0].index('--project-name')+1]
+    assert project.startswith('failurelens-finality-')
+    assert commands[1][commands[1].index('--project-name')+1]==project
+    assert commands[1][-3:]==['down','--volumes','--remove-orphans']
+    assert not (tmp_path/'runtime.env').stat().st_mode & 0o077
