@@ -26,9 +26,9 @@ def delegated_post(endpoint, value):
     deadline = time.monotonic() + 600
     while time.monotonic() < deadline:
         request = urllib.request.Request(
-            f'https://api.github.com/repos/{recovery.REPOSITORY}/git/trees/{sha}',
+            f'https://api.github.com/repos/{recovery.REPOSITORY}/git/trees/{sha}?recovery_probe={time.time_ns()}',
             headers={'Authorization': 'Bearer ' + os.environ['GITHUB_TOKEN'],
-                     'Accept': 'application/vnd.github+json',
+                     'Accept': 'application/vnd.github+json', 'Cache-Control': 'no-cache',
                      'User-Agent': 'failurelens-saved-commit-recovery'})
         try:
             with urllib.request.urlopen(request, timeout=60) as response:
