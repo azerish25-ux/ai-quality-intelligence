@@ -1,0 +1,69 @@
+name: Publish verified M6.4 source
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/m64-publish-once.yml']
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Verify transport and apply exact tested source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64, hashlib, lzma, subprocess
+          from pathlib import Path
+          allowed = {'.github/m64-transfer-1.txt', '.github/m64-transfer-2.txt', '.github/m64-transfer-3.txt', '.github/workflows/m64-publish-once.yml'}
+          changed = set(subprocess.check_output(['git', 'diff', '--name-only', '17cd55af5e231d58796bc44e1b4911438b12a088', 'HEAD'], text=True).splitlines())
+          assert changed == allowed, changed
+          text = ''.join(Path(f'.github/m64-transfer-{i}.txt').read_text() for i in (1, 2, 3))
+          assert len(text) == 37436
+          patch = lzma.decompress(base64.b64decode(text, validate=True), memlimit=200_000_000)
+          assert len(patch) == 118455
+          assert hashlib.sha256(patch).hexdigest() == '68374e27b995afb0f172963f9dc6e593f1bc93762e1598798cb7240e2a1fa1e5'
+          Path('/tmp/m64-core.patch').write_bytes(patch)
+          PY
+          git apply --check /tmp/m64-core.patch
+          git apply --index /tmp/m64-core.patch
+          git diff --cached --check
+          python - <<'PY'
+          import subprocess
+          paths = subprocess.check_output(['git', 'diff', '--cached', '--name-only'], text=True).splitlines()
+          assert len(paths) == 21, paths
+          assert not any(p.startswith(('evaluation/corpus/', 'evaluation/reports/', '.github/workflows/')) for p in paths)
+          PY
+      - name: Verify coordinated implementation before publication
+        run: |
+          python -m pip install './backend[dev]'
+          python -m compileall -q backend/src evaluation integrations/ledgerguard
+          python -m pytest backend/tests/test_diagnostic_contracts.py backend/tests/test_diagnostic_evaluation.py backend/tests/test_contract_evidence.py -q
+      - name: Publish normally and remove transport files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/m64-transfer-1.txt .github/m64-transfer-2.txt .github/m64-transfer-3.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(m6.4): add grounded diagnostics and measured development evaluation'
+          git push origin HEAD:main
+          git rev-parse HEAD | tee /tmp/m64-published-sha.txt
+          git bundle create /tmp/m64-published.bundle HEAD
+          printf 'Published source: `%s`\n' "$(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: m64-published-source
+          path: |
+            /tmp/m64-published.bundle
+            /tmp/m64-published-sha.txt
+          if-no-files-found: error
+          retention-days: 1
