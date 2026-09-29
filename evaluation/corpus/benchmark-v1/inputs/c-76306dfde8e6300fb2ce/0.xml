@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="LedgerGuard contract measurements" tests="1" failures="1" errors="0" skipped="0"><testcase classname="contracts.Measurements" name="c-76306dfde8e6300fb2ce" file="contracts/measurements.java"><failure type="AssertionError" message="Balance invariant: exact same-currency addition must conserve minor units. Expected=110; observed=90.">Balance invariant: exact same-currency addition must conserve minor units. Expected=110; observed=90.</failure><system-out>Expected=110; observed=90.</system-out></testcase></testsuite>

@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="LedgerGuard contract measurements" tests="1" failures="1" errors="0" skipped="0"><testcase classname="contracts.Measurements" name="c-6bb12fa13a8a9f3311b0" file="contracts/measurements.java"><failure type="AssertionError" message="Projection contract: applying an older event must retain the newer version. Expected=20; observed=12.">Projection contract: applying an older event must retain the newer version. Expected=20; observed=12.</failure><system-out>Expected=20; observed=12.</system-out></testcase></testsuite>

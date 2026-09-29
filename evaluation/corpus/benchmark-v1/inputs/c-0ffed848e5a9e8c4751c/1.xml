@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="LedgerGuard contract measurements" tests="1" failures="0" errors="0" skipped="0"><testcase classname="contracts.Measurements" name="c-0ffed848e5a9e8c4751c" file="contracts/measurements.java"><system-out>Expected=90,30; observed=90,30.</system-out></testcase></testsuite>

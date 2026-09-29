@@ -1,0 +1,39 @@
+{
+  "case_count": 260,
+  "catalog_sha256": "de0ad89c8ca729399241eafb3f384c6cd5fccb6590613c708903b3701d21ce6d",
+  "category_counts": {
+    "infrastructure_failure": 30,
+    "insufficient_evidence": 30,
+    "known_flake": 30,
+    "product_defect": 140,
+    "test_defect": 30
+  },
+  "dataset_version": "benchmark-v1",
+  "family_count": 83,
+  "file_sha256": {
+    "families.json": "a7939efb1d708ccbeab717c36f010005345f8d2a83ba2706ab033f4780a67488",
+    "ground-truth.json": "0b4231d1da3348010f472986d7c2a5b7caa6edeb3d7fc8a4517f7bd6175e5219",
+    "inputs/manifest.json": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+    "policy.json": "3d688a82834c0200f63b6d57af55fc0a82d927f3af4674f03f59fa4e0f44cf9b"
+  },
+  "generator_source_revision": "6afa859537114ed97f3f5ee95e2f3a6bfed92981",
+  "limitations": [
+    "Public, agent-authored/agent-reviewed scenarios; not an independently blinded benchmark.",
+    "Family groupings are explicitly authored mechanism judgments, not automatically proven causal independence.",
+    "200 controlled synthetic cases plus 60 retained real component executions; this command runs no LedgerGuard faults.",
+    "All previously inspected component mechanisms and related synthetic variants stay in development.",
+    "Forty tagged adversarial inputs cover five text/canary classes, not the entire master adversarial program."
+  ],
+  "retained_execution_archive_sha256": "41e585e8d0af08b335e67fe46e46a0b5ac37d23904b26c89a35b3207de96d448",
+  "schema_version": "benchmark-freeze-v1",
+  "seed": "failurelens-benchmark-v1-20260928",
+  "source_counts": {
+    "ledgerguard_executed": 60,
+    "synthetic": 200
+  },
+  "split_counts": {
+    "calibration": 16,
+    "development": 136,
+    "test": 108
+  }
+}

@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="LedgerGuard contract measurements" tests="1" failures="1" errors="0" skipped="0"><testcase classname="contracts.Measurements" name="c-bf6d099bb08491ee8f9b" file="contracts/measurements.java"><failure type="AssertionError" message="Balance invariant: releasing a hold must decrease reserved funds. Expected=31; observed=49.">Balance invariant: releasing a hold must decrease reserved funds. Expected=31; observed=49.</failure><system-out>Expected=31; observed=49.</system-out></testcase></testsuite>

@@ -1,0 +1,24 @@
+{
+  "critical_high_dangerous_dismissals_maximum": 0,
+  "dangerous_dismissal_maximum": 0.05,
+  "decision_coverage_minimum": 0.75,
+  "macro_f1_minimum": 0.8,
+  "minimum_adversarial_cases": 40,
+  "minimum_cases": 200,
+  "minimum_category_counts": {
+    "infrastructure_failure": 30,
+    "insufficient_evidence": 30,
+    "known_flake": 30,
+    "product_defect": 80,
+    "test_defect": 30
+  },
+  "minimum_executed_cases": 60,
+  "minimum_executed_families": 15,
+  "minimum_families": 80,
+  "minimum_test_cases": 100,
+  "minimum_test_product_families": 20,
+  "minimum_test_products": 40,
+  "product_recall_minimum": 0.9,
+  "repetitions": 5,
+  "schema_version": "benchmark-policy-v1"
+}

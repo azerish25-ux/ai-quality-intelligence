@@ -1,0 +1,583 @@
+[
+  {
+    "id": "animation-frame-sampling",
+    "independent_adjudication": false,
+    "mechanism": "Screenshot fixture capture is scheduled on an uncontrolled animation frame.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "assertion-before-await",
+    "independent_adjudication": false,
+    "mechanism": "Test omits the await at the assertion boundary.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "assertion-spec-absent",
+    "independent_adjudication": false,
+    "mechanism": "Numeric mismatch lacks semantic units and contract context.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "auth-token-revocation-cache",
+    "independent_adjudication": false,
+    "mechanism": "Authorization cache retains a revoked session after invalidation.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "available-balance-ignores-reservations",
+    "independent_adjudication": false,
+    "mechanism": "Available-balance projection ignores reserved funds.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "browser-renderer-crash",
+    "independent_adjudication": false,
+    "mechanism": "Browser runtime terminates in native code.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "clock-tick-harness-boundary",
+    "independent_adjudication": false,
+    "mechanism": "Harness assumes adjacent clock reads share a quantization bucket.",
+    "review_status": "agent-reviewed",
+    "split": "calibration"
+  },
+  {
+    "id": "closed-account-transfer",
+    "independent_adjudication": false,
+    "mechanism": "Transfer eligibility does not recheck account lifecycle state.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "cloud-test-quota",
+    "independent_adjudication": false,
+    "mechanism": "Shared cloud account exhausts its worker allocation quota.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "conflicting-response-copies",
+    "independent_adjudication": false,
+    "mechanism": "Unresolved conflicting request evidence.",
+    "review_status": "agent-reviewed",
+    "split": "calibration"
+  },
+  {
+    "id": "container-image-absent",
+    "independent_adjudication": false,
+    "mechanism": "Environment deployment references a removed container image.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "created-status-expectation",
+    "independent_adjudication": false,
+    "mechanism": "Test asserts an obsolete success status.",
+    "review_status": "agent-reviewed",
+    "split": "calibration"
+  },
+  {
+    "id": "cross-tenant-cache-key",
+    "independent_adjudication": false,
+    "mechanism": "Shared cache key omits tenant identity.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "database-connection-pool-limit",
+    "independent_adjudication": false,
+    "mechanism": "Shared database environment exhausts its connection capacity.",
+    "review_status": "agent-reviewed",
+    "split": "calibration"
+  },
+  {
+    "id": "decimal-conversion-wrong-scale",
+    "independent_adjudication": false,
+    "mechanism": "Decimal conversion uses an exponent one lower than the declared currency scale.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "dependency-tls-expired",
+    "independent_adjudication": false,
+    "mechanism": "Environment dependency certificate expired.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "dirty-read-exposes-uncommitted-balance",
+    "independent_adjudication": false,
+    "mechanism": "Read path uses an isolation mode allowing uncommitted state.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "dns-authoritative-nxdomain",
+    "independent_adjudication": false,
+    "mechanism": "Environment DNS zone lacks the dependency record.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "dropped-cache-invalidation",
+    "independent_adjudication": false,
+    "mechanism": "Cache invalidation consumer acknowledges before deleting its entry.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "expiry-zone-conversion",
+    "independent_adjudication": false,
+    "mechanism": "Expiry parsing discards offset information before comparison.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "file-descriptor-exhaustion",
+    "independent_adjudication": false,
+    "mechanism": "Runner process exhausts its file descriptor limit.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "fixture-cleanup-watcher",
+    "independent_adjudication": false,
+    "mechanism": "Harness cleanup completion depends on an uncontrolled watcher scheduling delay.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "fixture-dictionary-order",
+    "independent_adjudication": false,
+    "mechanism": "Fixture iteration depends on randomized hash order.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "fixture-missing-parent",
+    "independent_adjudication": false,
+    "mechanism": "Fixture omits the required parent entity.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "fixture-random-salt",
+    "independent_adjudication": false,
+    "mechanism": "Test snapshots an unseeded fixture salt.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "float-exact-equality",
+    "independent_adjudication": false,
+    "mechanism": "Test uses exact floating equality instead of the specified tolerance.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "fx-rate-effective-window",
+    "independent_adjudication": false,
+    "mechanism": "Rate lookup chooses newest inserted record rather than the effective interval.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "harness-callback-registration",
+    "independent_adjudication": false,
+    "mechanism": "Mock emits before the harness installs its listener.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "harness-temp-name-randomness",
+    "independent_adjudication": false,
+    "mechanism": "Harness draws temporary identifiers from an insufficient random namespace.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "harness-worker-readiness",
+    "independent_adjudication": false,
+    "mechanism": "Harness waits a fixed delay instead of the stub readiness signal.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "history-unreviewed",
+    "independent_adjudication": false,
+    "mechanism": "Unreviewed repetition is insufficient to classify a known flake.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "hold-release-increases-reservation",
+    "independent_adjudication": false,
+    "mechanism": "hold-release-increases-reservation",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "idempotency-fingerprint-omits-actor",
+    "independent_adjudication": false,
+    "mechanism": "Actor discriminator omitted from identity preimage.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "idempotency-fingerprint-omits-operation",
+    "independent_adjudication": false,
+    "mechanism": "Operation discriminator omitted from identity preimage.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "incomplete-transaction-snapshot",
+    "independent_adjudication": false,
+    "mechanism": "Missing transaction observations prevent duplicate-effect diagnosis.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "infrastructure-uncorrelated",
+    "independent_adjudication": false,
+    "mechanism": "Uncorrelated environment event does not explain the failure.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "journal-accepts-unbalanced-entries",
+    "independent_adjudication": false,
+    "mechanism": "Journal validation does not enforce equal totals.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "journal-mixes-currency-units",
+    "independent_adjudication": false,
+    "mechanism": "Journal currency compatibility check omitted.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "json-member-order-expectation",
+    "independent_adjudication": false,
+    "mechanism": "Test compares serialization text instead of object semantics.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "locale-decimal-expectation",
+    "independent_adjudication": false,
+    "mechanism": "Test expected string ignores configured locale.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "lost-update-no-version-check",
+    "independent_adjudication": false,
+    "mechanism": "Read-modify-write update lacks a version predicate.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "missing-assertion-body",
+    "independent_adjudication": false,
+    "mechanism": "The failure body required to distinguish explanations is missing.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "missing-journal-parent-constraint",
+    "independent_adjudication": false,
+    "mechanism": "Entry persistence lacks the parent referential constraint.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "mock-clock-zone",
+    "independent_adjudication": false,
+    "mechanism": "Fixture clock constructs the intended local instant with a UTC constructor.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "mock-response-contract-drift",
+    "independent_adjudication": false,
+    "mechanism": "Test double implements a superseded response schema.",
+    "review_status": "agent-reviewed",
+    "split": "calibration"
+  },
+  {
+    "id": "money-addition-subtracts",
+    "independent_adjudication": false,
+    "mechanism": "money-addition-subtracts",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "negative-transfer-accepted",
+    "independent_adjudication": false,
+    "mechanism": "Command validation omits the lower amount bound.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "pagination-skips-equal-timestamps",
+    "independent_adjudication": false,
+    "mechanism": "Cursor continuation compares timestamp but omits the tie-breaking identifier.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "partial-commit-two-wallets",
+    "independent_adjudication": false,
+    "mechanism": "Wallet legs use separate database transactions.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "port-allocation-harness-race",
+    "independent_adjudication": false,
+    "mechanism": "Test double port allocation has a time-of-check/time-of-use gap.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "projection-replaces-newer-state-with-stale-event",
+    "independent_adjudication": false,
+    "mechanism": "Older event replaces newer projection state.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "random-fixture-order",
+    "independent_adjudication": false,
+    "mechanism": "Fixture reset dependency is absent from the test scheduler.",
+    "review_status": "agent-reviewed",
+    "split": "calibration"
+  },
+  {
+    "id": "reconciliation-reapplies-adjustment",
+    "independent_adjudication": false,
+    "mechanism": "Reconciliation checkpoint is committed separately after the balance change.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "redacted-only-identifier",
+    "independent_adjudication": false,
+    "mechanism": "Redaction removed a required correlation identity.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "refund-forgets-prior-adjustments",
+    "independent_adjudication": false,
+    "mechanism": "Refund accumulation replaces rather than adds the previous adjustment.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "refund-reservation-race",
+    "independent_adjudication": false,
+    "mechanism": "Refund limit is checked before competing writes without locking or compare-and-swap.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "retry-pass-no-history",
+    "independent_adjudication": false,
+    "mechanism": "Retry recovery alone does not establish harmlessness.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "reversal-allows-refunded-payment",
+    "independent_adjudication": false,
+    "mechanism": "Reversal eligibility ignores prior refunds.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "role-scope-mutation-check",
+    "independent_adjudication": false,
+    "mechanism": "Mutation endpoint checks authentication but omits the action permission.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "rollback-leaves-outbox-event",
+    "independent_adjudication": false,
+    "mechanism": "Outbox write commits on a separate transaction from the business write.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "runner-cgroup-oom",
+    "independent_adjudication": false,
+    "mechanism": "Runner process is killed by its container memory limit.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "runner-clock-unsynchronized",
+    "independent_adjudication": false,
+    "mechanism": "Runner wall clock is skewed outside certificate validity tolerance.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "runner-network-interface-down",
+    "independent_adjudication": false,
+    "mechanism": "Runner network interface is disabled.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "runner-storage-full",
+    "independent_adjudication": false,
+    "mechanism": "Runner data volume exhausts byte capacity.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "screenshot-fixture-font",
+    "independent_adjudication": false,
+    "mechanism": "Visual test fixture omits a required deterministic font resource.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "screenshot-unavailable",
+    "independent_adjudication": false,
+    "mechanism": "The only evidence required for the visual comparison is missing.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "seedless-test-data",
+    "independent_adjudication": false,
+    "mechanism": "Test data generation is unseeded and contradicts the fixture's own assumptions.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "selector-renamed-by-contract",
+    "independent_adjudication": false,
+    "mechanism": "Test locator retained the superseded UI identifier.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "service-listener-absent",
+    "independent_adjudication": false,
+    "mechanism": "Environment supervisor did not start a required dependency.",
+    "review_status": "agent-reviewed",
+    "split": "calibration"
+  },
+  {
+    "id": "settlement-does-not-consume-hold",
+    "independent_adjudication": false,
+    "mechanism": "settlement-does-not-consume-hold",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "signed-integer-overflow",
+    "independent_adjudication": false,
+    "mechanism": "Unchecked signed addition wraps at the storage boundary.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "teardown-leaves-unique-row",
+    "independent_adjudication": false,
+    "mechanism": "Previous test teardown does not delete its seeded unique row.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "test-console-interleaving",
+    "independent_adjudication": false,
+    "mechanism": "Harness expects deterministic ordering from concurrent fixture log producers.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "time-window-inclusive-end",
+    "independent_adjudication": false,
+    "mechanism": "Eligibility uses less-than-or-equal instead of strict less-than at the end boundary.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "timeout-without-diagnostics",
+    "independent_adjudication": false,
+    "mechanism": "Observable timeout does not identify a cause.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "truncated-stack-before-cause",
+    "independent_adjudication": false,
+    "mechanism": "Truncation removes the causal portion of the diagnostic.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "unknown-exception-code",
+    "independent_adjudication": false,
+    "mechanism": "Unknown error code lacks interpretable supporting context.",
+    "review_status": "agent-reviewed",
+    "split": "calibration"
+  },
+  {
+    "id": "unordered-result-order",
+    "independent_adjudication": false,
+    "mechanism": "Test imposes an order absent from the API contract.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "utf8-reference-truncation",
+    "independent_adjudication": false,
+    "mechanism": "Storage truncates encoded bytes without respecting codepoint boundaries.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "wallet-credit-off-by-one",
+    "independent_adjudication": false,
+    "mechanism": "Credit operation subtracts one minor unit from the increment.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "webhook-sequence-gap",
+    "independent_adjudication": false,
+    "mechanism": "Consumer enforces only increasing rather than contiguous sequence numbers.",
+    "review_status": "agent-reviewed",
+    "split": "test"
+  },
+  {
+    "id": "webhook-verifier-accepts-forged-signature",
+    "independent_adjudication": false,
+    "mechanism": "Webhook signature verification result is ignored.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  },
+  {
+    "id": "weekly-schedule-advances-six-days",
+    "independent_adjudication": false,
+    "mechanism": "Weekly calendar increment uses six days.",
+    "review_status": "agent-reviewed",
+    "split": "development"
+  }
+]

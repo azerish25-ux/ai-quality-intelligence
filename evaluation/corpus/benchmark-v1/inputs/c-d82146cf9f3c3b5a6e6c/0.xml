@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="LedgerGuard contract measurements" tests="1" failures="1" errors="0" skipped="0"><testcase classname="contracts.Measurements" name="c-d82146cf9f3c3b5a6e6c" file="contracts/measurements.java"><failure type="AssertionError" message="Balance invariant: cumulative refund must include previous adjustments. Expected=27; observed=7.">Balance invariant: cumulative refund must include previous adjustments. Expected=27; observed=7.</failure><system-out>Expected=27; observed=7.</system-out></testcase></testsuite>

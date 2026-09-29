@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="LedgerGuard contract measurements" tests="1" failures="0" errors="0" skipped="0"><testcase classname="contracts.Measurements" name="c-0d882b46b55a5671acfb" file="contracts/measurements.java"><system-out>Expected=CURRENCY_MISMATCH; observed=CURRENCY_MISMATCH.</system-out></testcase></testsuite>

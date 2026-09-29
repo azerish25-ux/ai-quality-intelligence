@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="LedgerGuard contract measurements" tests="1" failures="1" errors="0" skipped="0"><testcase classname="contracts.Measurements" name="c-f9f7a361c42891011f84" file="contracts/measurements.java"><failure type="AssertionError" message="Balance invariant: available balance must exclude reserved funds. Expected=78; observed=100.">Balance invariant: available balance must exclude reserved funds. Expected=78; observed=100.</failure><system-out>Expected=78; observed=100.</system-out></testcase></testsuite>
