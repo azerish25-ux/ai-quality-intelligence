@@ -5,9 +5,9 @@ FailureLens is a self-hosted platform for investigating automated-test failures 
 
 **Current milestone: M6.3 structured diagnostic contracts and frozen five-category campaign. Full M6 and the complete project remain PARTIAL.** The new corpus is committed before test evaluation. Exact-source measurements, CI and limitations are recorded in the [delivery ledger](docs/PROGRESS.md), [requirement matrix](docs/requirements-matrix.md), and [campaign contract](docs/campaign-evaluation.md). Historical reports retain their originally tested revisions.
 
-The reconciled source also retains the separately authored M6.3 `domain-observations-v1` path and its `benchmark-v1` evaluation harness. It is exposed independently from the campaign so neither dataset nor metric lineage is silently substituted for the other. See [benchmark contract and limitations](docs/benchmark-evaluation.md).
+The reconciled source also retains the separately authored M6.3 `domain-observations-v1` path and its `benchmark-v1` evaluation harness. It is exposed independently from the campaign so neither dataset nor metric lineage is silently substituted for the other. The retained `benchmark-v1` frozen measurement covers 260 cases / 83 authored groups with 108 family-separated test cases and reports **0/44 product recall, macro F1 0.3048, 19.57% non-abstained coverage and 0/44 dangerous dismissals**. Recall, F1 and coverage fail the unchanged targets; all 44 test product cases abstain. [Benchmark contract and limitations](docs/benchmark-evaluation.md) · [Exact retained benchmark report](evaluation/reports/benchmark-v1/report.md).
 
-The new LedgerGuard challenge executes **60 real production-component interventions across 15 mechanisms**, each with a healthy control. Their reports traverse FailureLens's API, durable worker, PostgreSQL and evidence validator. The result is **48/60 product defects recognized, 12 abstentions and 0/60 dangerous dismissals**. The unchanged 90% recall target **FAILS**. This is not LedgerGuard HTTP/database transaction verification, a five-category held-out benchmark or a deployment guarantee.
+The retained M6.1 LedgerGuard challenge executes **60 real production-component interventions across 15 mechanisms**, each with a healthy control. Their reports traverse FailureLens's API, durable worker, PostgreSQL and evidence validator. The result is **48/60 product defects recognized, 12 abstentions and 0/60 dangerous dismissals**. The unchanged 90% recall target **FAILS**. This is not LedgerGuard HTTP/database transaction verification, a five-category held-out benchmark or a deployment guarantee.
 
 ## New frozen evaluation campaign
 
@@ -79,9 +79,10 @@ Two different classification datasets must not be conflated:
 | Dataset | What it establishes | Limitations |
 |---|---|---|
 | Legacy 200-case synthetic corpus | Historical rule-regression behavior | Its 100 family identifiers collapse to five recurring templates crossing all three splits; not independent held-out diversity |
-| New 60-case LedgerGuard challenge | Actual production-component controls/interventions and full FailureLens ingestion/evidence replay | Fifteen mechanisms, four dependent variants each, only product-defect labels, public agent-authored challenge |
+| M6.1 60-case LedgerGuard challenge | Actual production-component controls/interventions and full FailureLens ingestion/evidence replay | Fifteen mechanisms, four dependent variants each, only product-defect labels, public agent-authored challenge |
+| M6.3 frozen corpus | 260 cases in 83 authored mechanism groups, 108 family-separated test cases through the real API/worker | Test cases are synthetic; 60 historical executions remain development-only; quality targets fail |
 
-The new dashboard leaves five-category macro F1 undefined rather than inventing a favorable score. Product recall is 80%, below the 90% target. All twelve abstentions remain visible. Zero observed dangerous dismissals is not proof of zero real-world risk. Labels are agent-reviewed, not independently expert-adjudicated. No external model was invoked; compute cost was not measured.
+The component-only panel leaves five-category macro F1 undefined rather than inventing a favorable score. Product recall is 80%, below the 90% target. All twelve abstentions remain visible. Zero observed dangerous dismissals is not proof of zero real-world risk. Labels are agent-reviewed, not independently expert-adjudicated. No external model was invoked; compute cost was not measured.
 
 The earlier clustering, impact, performance and infrastructure suites remain separate synthetic regression fixtures. Their historical results are preserved under `evaluation/reports/latest/`; they do not establish deployment performance, observed runtime savings or independent causal validity.
 
@@ -176,6 +177,6 @@ Artifacts and generated outputs are untrusted. URL evidence never authorizes aut
 
 ## Remaining project work
 
-M6.3 supplies a frozen five-category catalogue and family-disjoint test split. Full M6 still requires passing quality targets, stronger family adjudication, a broader temporal backtest and complete adversarial/claim coverage. Structural family counts are not independent expert validation. The separate M6.2 HTTP/PostgreSQL retry-boundary experiment is delivered; concurrency, rollback and wider full-stack mechanisms remain outside that narrow scope.
+M6.3 supplies both the frozen mixed-source campaign and the separately retained authored benchmark, each with family-separated test scope. Full M6 still requires passing quality targets, stronger family adjudication, broader adversarial/claim verification and a complete temporal backtest. The retained benchmark exposes weak diagnosis of unfamiliar product and test defects; zero dangerous dismissals is not useful recall or full acceptance. The separate M6.2 HTTP/PostgreSQL retry-boundary experiment is delivered; concurrency, rollback, asynchronous processing and wider financial-effect scenarios remain unfinished.
 
 Full M2 retains broader dialect and application-specific sensitive-field work. Complete M5 review/operational scope, optional provider contracts, live idempotent GitHub publication, broader hardening/offline/restore/load verification and final audit remain unfinished. Existing reviewed screenshots, safe trace derivatives, real producer fixtures, controlled serving and account/retention workflows are delivered; do not mistake historical pending entries for their current status.

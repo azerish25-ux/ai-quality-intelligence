@@ -2,7 +2,17 @@
 
 ## M6.3 reconciliation — preserve both published and saved evaluation lines
 
-The current source preserves the published frozen campaign/structured-contract implementation and also integrates the previously saved three-commit M6.3 line as a separate domain-observation and `benchmark-v1` path. The two evaluation datasets, endpoints, reports, and workflow names remain distinct. This reconciliation does not convert either quality result into full M6 acceptance and does not rewrite historical measured reports.
+The current source preserves the published frozen campaign/structured-contract implementation and integrates the previously saved three-commit M6.3 line as a separate `domain-observations-v1` and `benchmark-v1` path. The two evaluation datasets, endpoints, reports, and workflow names remain distinct. This reconciliation does not convert either quality result into full M6 acceptance and does not rewrite historical measured reports.
+
+### Retained `benchmark-v1` measured checkpoint
+
+Historical implementation commit: `6afa859537114ed97f3f5ee95e2f3a6bfed92981`. Frozen corpus/replay commit: `f1269c3ce52d4bf64f8614aacd34d99903a99b5f`. Retained measurement commit: `48365903077571306a63078fb7a114490f1069c1`. Those original local SHAs identify the saved line before reconciliation; the integrated publication replays their logical changes on top of the already-published campaign source.
+
+The retained benchmark measures 260 cases and 718 API/worker ingestions in SQLite, with five identical substantive analyses per case, 33/33 later-history exclusions, 260/260 resolved published references, 126/126 supported published claims under the declared controlled rubric, and zero sensitive-canary disclosures in 40 tagged inputs. Its 108-case test partition reports **0/44 product recall, macro F1 0.3048218029350105, 18/92 = 19.5652% non-abstained coverage and 0/44 dangerous dismissals**. All 44 product cases abstain; 74 total test classification errors remain retained. Recall, macro F1 and coverage **FAIL** the unchanged targets.
+
+These are different cases from M6.1's 48/60 result, not a same-dataset regression from 80% to zero. The structured contracts work on their evidence-bearing development cases; they do not establish broad diagnosis on unknown product mechanisms. The compact replay snapshot and exact metrics remain under `evaluation/reports/benchmark-v1/`; independent offline verification reproduces the retained metrics.
+
+
 
 ## M6.3 — structured contracts and frozen campaign source checkpoint
 

@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
+import re
 import statistics
 from pathlib import Path
 import sys
@@ -34,11 +35,41 @@ def stored_utc(value: str) -> datetime:
     return stamp.replace(tzinfo=timezone.utc) if stamp.tzinfo is None else stamp.astimezone(timezone.utc)
 
 
+def reported_domain_shape(value: dict) -> bool:
+    """Check producer types independently; booleans and omitted fields are not measurements."""
+    common = {"schema_version", "kind", "contract", "test_identity", "attempt", "browser"}
+    fields = {
+        "operation_identity": {"scope_digest", "payload_digest", "first_operation", "second_operation", "first_fingerprint", "second_fingerprint"},
+        "projection_order": {"entity_digest", "before_version", "event_version", "after_version", "before_state_digest", "event_state_digest", "after_state_digest"},
+        "weekly_recurrence": {"timezone", "previous_occurrence", "next_occurrence"},
+    }
+    kind = value.get("kind")
+    if (not isinstance(kind, str) or kind not in fields or set(value) != common | fields[kind]
+            or value.get("schema_version") != "domain-observations-v1"
+            or not isinstance(value.get("test_identity"), str) or not 1 <= len(value["test_identity"]) <= 240
+            or type(value.get("attempt")) is not int or not 0 <= value["attempt"] <= 20
+            or not (value.get("browser") is None or isinstance(value["browser"], str) and len(value["browser"]) <= 80)):
+        return False
+    def is_digest(item):
+        return isinstance(item, str) and re.fullmatch(r"[0-9a-f]{64}", item) is not None
+    if kind == "operation_identity":
+        return (all(is_digest(value[k]) for k in ("scope_digest", "payload_digest", "first_fingerprint", "second_fingerprint"))
+                and all(isinstance(value[k], str) and 1 <= len(value[k]) <= 120
+                        and re.fullmatch(r"[A-Za-z0-9_.:/-]+", value[k]) is not None
+                        for k in ("first_operation", "second_operation")))
+    if kind == "projection_order":
+        return (all(type(value[k]) is int and 0 <= value[k] <= 2**53-1 for k in ("before_version", "event_version", "after_version"))
+                and all(is_digest(value[k]) for k in ("entity_digest", "before_state_digest", "event_state_digest", "after_state_digest")))
+    return all(isinstance(value[k], str) and 1 <= len(value[k]) <= 80 for k in ("timezone", "previous_occurrence", "next_occurrence"))
+
+
 def domain_claim_supported(claim: dict, value: dict) -> bool:
     """Evaluation-only arithmetic/calendar rubric, independent of runtime checks."""
+    if not isinstance(claim, dict) or not isinstance(value, dict) or not reported_domain_shape(value):
+        return False
     predicate=claim.get("predicate",{})
     kind=value.get("kind")
-    if predicate.get("kind")!="reported_domain_invariant" or predicate.get("invariant")!=kind:
+    if not isinstance(predicate, dict) or predicate.get("kind")!="reported_domain_invariant" or predicate.get("invariant")!=kind:
         return False
     try:
         if kind=="operation_identity":
@@ -62,17 +93,24 @@ def domain_claim_supported(claim: dict, value: dict) -> bool:
             a=datetime.fromisoformat(value["previous_occurrence"]);b=datetime.fromisoformat(value["next_occurrence"])
             if a.utcoffset() is None or b.utcoffset() is None:return False
             local_a,local_b=a.astimezone(zone),b.astimezone(zone)
+            expected_wall = local_a.replace(tzinfo=None) + timedelta(days=7)
+            choices = [expected_wall.replace(tzinfo=zone, fold=f) for f in (0, 1)]
+            if (choices[0].utcoffset() != choices[1].utcoffset()
+                    or choices[0].astimezone(timezone.utc).astimezone(zone).replace(tzinfo=None) != expected_wall):
+                return False
             days=(local_b.date()-local_a.date()).days
             expected={"kind":"reported_domain_invariant","invariant":kind,"local_days":days}
             valid=(value["contract"]=="weekly-same-local-wall-time-v1" and days>0 and days!=7
                    and local_a.replace(tzinfo=None)==a.replace(tzinfo=None) and local_b.replace(tzinfo=None)==b.replace(tzinfo=None)
+                   and local_a.utcoffset()==a.utcoffset() and local_b.utcoffset()==b.utcoffset()
                    and local_a.time()==local_b.time())
             text=(f"Reported weekly occurrences are {days} local calendar days apart instead of "
                   "seven under the declared same-wall-time contract. This supports product investigation, "
                   "not attribution to a responsible component.")
         else:return False
-        return bool(valid and predicate==expected and claim.get("text")==text and claim.get("kind")=="inference")
-    except (KeyError,ValueError,TypeError):return False
+        return bool(valid and predicate==expected and all(type(predicate[k]) is type(v) for k,v in expected.items())
+                    and claim.get("text")==text and claim.get("kind")=="inference")
+    except (KeyError,ValueError,TypeError,OverflowError):return False
 
 
 def score_case(truth, public, prediction, inputs, replay_root):

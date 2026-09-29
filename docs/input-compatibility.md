@@ -78,3 +78,15 @@ Completeness is evaluated from **declared required inputs**, not the number of t
 - Duplicate submission of the same project/external ID/attempt/source digest returns the existing ingestion rather than duplicating work. Distinct attempts remain distinct even when bytes match.
 - Changed-file JSON may contain a producer-declared trust label, but it is stored only as `declared_trust`. The effective `trust` used by impact policy is bound at the API/CLI/Action transport boundary through `comparison_trust`; ordinary uploads default to `self_reported`. A payload cannot make itself `trusted_workflow`.
 - Narrow impact selection additionally requires matching non-empty base/head SHAs, a complete non-truncated changed-file input and a project-scoped immutable mapping snapshot. Any missing invariant is persisted as a safety reason and returns `FULL_SUITE_REQUIRED`.
+
+## Structured domain observations (M6.3 extension)
+
+A manifest 2.0 bundle may include `kind: domain-observations-json` using the strict
+`domain-observations-v1` schema. It supports operation identity, projection event
+ordering and weekly local-calendar recurrence under named contracts. A diagnostic
+requires a matching JUnit/other report execution, exact test/attempt/browser
+identity and `correlates_to` input ID. It does not create test outcomes on its own.
+The 16 KiB bound, duplicate-member rejection, producer digests, safe derivatives
+and independent publication predicates are exercised in `test_domain_evidence.py`.
+Missing or inconsistent measurements abstain. This is not a universal business
+contract language or automatic causal proof. See [benchmark contracts](benchmark-evaluation.md).

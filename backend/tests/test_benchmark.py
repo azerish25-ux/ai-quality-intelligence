@@ -217,3 +217,36 @@ else:
     completed = subprocess.run([sys.executable, "-c", script, str(frozen)], cwd=ROOT, capture_output=True, text=True, timeout=15)
     assert completed.returncode == 0, completed.stderr
     assert completed.stdout.strip() == "blocked"
+
+
+def test_retained_benchmark_rescores_identically():
+    from evaluation.verify_benchmark_snapshot import verify
+    result = verify(ROOT / "evaluation/corpus/benchmark-v1", ROOT / "evaluation/reports/benchmark-v1")
+    assert result["status"] == "verified"
+    assert result["case_count"] == 108
+
+
+@pytest.mark.parametrize("kind,field,value", [
+    ("operation_identity", "scope_digest", []),
+    ("operation_identity", "first_operation", True),
+    ("projection_order", "before_state_digest", None),
+    ("projection_order", "after_version", True),
+    ("weekly_recurrence", "attempt", True),
+    ("weekly_recurrence", "browser", {}),
+])
+def test_independent_scorer_rejects_missing_or_mistyped_measurements(kind, field, value):
+    measured = domain(kind, "check::test", 0)
+    finding = inspect_domain(measured)
+    claim = {"kind": "inference", "predicate": finding.predicate, "text": finding.claim}
+    measured[field] = value
+    assert not domain_claim_supported(claim, measured)
+
+
+def test_independent_scorer_rejects_boolean_predicate_and_untyped_kind():
+    measured = domain("projection_order", "check::test", 0)
+    measured.update(before_version=1, event_version=0, after_version=0)
+    finding = inspect_domain(measured)
+    claim = {"kind": "inference", "predicate": {**finding.predicate, "before_version": True}, "text": finding.claim}
+    assert not domain_claim_supported(claim, measured)
+    assert not domain_claim_supported(claim, {**measured, "kind": []})
+    assert not domain_claim_supported({**claim, "predicate": []}, measured)

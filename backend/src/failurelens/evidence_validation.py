@@ -458,7 +458,9 @@ def _claim_validation(
         findings = {item.id: inspect_domain(item.observation.get("domain_observation"))
                     for item in valid_rows if item.kind == "domain_observation"}
         typed_predicate_valid = bool(findings and all(
-            f.status == "violation" and f.predicate == predicate for f in findings.values()))
+            f.status == "violation" and f.predicate == predicate
+            and all(type(predicate[key]) is type(value) for key, value in f.predicate.items())
+            for f in findings.values()))
         irrelevant_reference_ids = [identifier for identifier in validated_ids if identifier not in findings]
         semantic_support = bool(typed_predicate_valid and validated_ids and not irrelevant_reference_ids
                                 and decision.category == Category.product_defect and claim.get("kind") == "inference"

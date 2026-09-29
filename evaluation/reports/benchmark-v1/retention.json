@@ -1,0 +1,20 @@
+{
+  "browser_verification": "not_run; npm registry DNS resolution failed",
+  "corpus_freeze_sha256": "0e4394cc07ed6eedcb7f1c8ad029c5f7dcbbc8d4f05257888efe7d80e868a706",
+  "execution_scope": "Local FastAPI/worker/SQLite replay of frozen inputs",
+  "fresh_ledgerguard_executions": 0,
+  "generator_source_revision": "6afa859537114ed97f3f5ee95e2f3a6bfed92981",
+  "initial_scoring_source_revision": "f1269c3ce52d4bf64f8614aacd34d99903a99b5f",
+  "metrics_sha256": "88a0699a8f856811dd37a4f8a6626f33ecf3ad5ad4c233b70d10f109384d85c5",
+  "post_measurement_correction": "Independent scorer rejects missing/mistyped observations and ambiguous DST targets. Publication also rejects boolean-as-integer predicate versions. Original predictions, corpus, targets and classification rules are unchanged; offline rescore remains identical.",
+  "postgresql_verification": "not_run in this session",
+  "remote_ci_run": null,
+  "remote_publication": "not_pushed",
+  "retention": "Compact redistributable synthetic/historical input replay retained in Git. No private database or original restricted artifacts included.",
+  "schema_version": "benchmark-retention-v1",
+  "snapshot_bytes": 576702,
+  "snapshot_sha256": "8f2072c2596e122aa9031377bf451a8c21e8aa71309e8126ae4f4d30c483f19b",
+  "tested_source_revision": "f1269c3ce52d4bf64f8614aacd34d99903a99b5f",
+  "verification_command": "python evaluation/verify_benchmark_snapshot.py",
+  "verified_scorer_sha256": "3dd45308088c8709538e2b67018a9a19d285dd3ce34c1da05cd27fdd3987b543"
+}

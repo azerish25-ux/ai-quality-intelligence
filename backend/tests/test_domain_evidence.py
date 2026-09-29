@@ -171,3 +171,14 @@ def test_consistent_measurements_do_not_create_api_product_blame(client, session
     result = analyze_and_persist(session, failure)
     assert result.category is Category.insufficient_evidence
     assert not result.claims
+
+
+def test_publication_predicate_does_not_coerce_boolean_version(client, session):
+    value = projection(); value.update(before_version=1, event_version=0, after_version=0)
+    state = ingest(client, session, bundle(value))
+    failure = session.scalar(select(Failure).where(Failure.run_id == state["run_id"]))
+    rows = select_failure_evidence(session, failure); checked = validate_evidence_records(failure, rows)
+    original = analyze_failure(message=failure.message, exception_type=None, details={}, evidence=validated_evidence_views(rows, checked))
+    claim = deepcopy(original.claims[0]); claim["predicate"]["before_version"] = True
+    result = validate_decision(failure=failure, decision=replace(original, claims=(claim,)), evidence_rows=rows, evidence_validation=checked, historical={})
+    assert result.category is Category.insufficient_evidence and not result.claims
