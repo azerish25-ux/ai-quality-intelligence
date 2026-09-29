@@ -1,5 +1,15 @@
 # Requirement-to-evidence matrix
 
+## M6.4.1 transaction-finality development
+
+| ID | Requirement | Status | Implementation and verification boundary |
+|---|---|---|---|
+| R-M641-CONTRACT | Evidence-grounded terminal-rejection/committed-effects relation | PARTIAL | Additive `TransactionFinality`, independent publication recomputation and 97 local boundary/API regressions; exact clean-source verification recorded separately in `PROGRESS.md`. |
+| R-M641-PRODUCER | Actual paired rollback/early-commit execution | NOT RUN | `integrations/ledgerguard/rollback.py`, independent `rollback_oracle.py`, pinned clean source and disposable-only mutation; no Docker/PostgreSQL execution in the initial environment. |
+| R-M641-AUDIT | Case/family diagnostic gap audit | PARTIAL | `evaluation/diagnostic_gap_audit.py`, independent scoring first, no hidden-cause attribution; 12 local audit/workflow regressions. |
+| R-M641-VERIFY | Exact-source PostgreSQL and browser evidence | NOT RUN | Read-only `rollback-evaluation.yml`, strict source/provenance/scoring assertions, desktop/narrow journeys; workflow source is not execution evidence. |
+| R-M641-HELDOUT | Renewed five-category held-out acceptance | NOT RUN | Eight-case one-mechanism development slice only; original quality targets and failed benchmark bytes unchanged. |
+
 ## M6.4 diagnostic-quality development
 
 The two historical M6.3 tracks below now have distinct CAMPAIGN/BENCHMARK IDs;

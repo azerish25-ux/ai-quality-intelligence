@@ -1,5 +1,27 @@
 # FailureLens delivery ledger
 
+## M6.4.1 transaction finality — local source checkpoint
+
+Starting `main`: `304d0c8875e8a751f9b5f7b807356da2d2c90ea4`.
+The additive transaction-finality relation, independent scorer/oracle, isolated
+companion producer, diagnostic-gap audit and exact-source workflow are implemented.
+Existing corpus bytes, failed targets and seven earlier contract kinds are preserved.
+See [transaction finality](transaction-finality.md) for the mutation and scope.
+
+Before committing this source, the 171 previous diagnostic regressions passed.
+The 97 new finality boundary regressions and 12 gap-audit/workflow tests passed.
+The initial eight-case synthetic SQLite/API/worker replay classified all cases
+correctly and independently supported all four claims, but its clean-committed-source
+integrity gate failed because the implementation was still uncommitted. The gate
+has not been weakened. A clean-source checkpoint requires a subsequent actual run.
+
+Actual new companion HTTP/PostgreSQL, PostgreSQL replay and desktop/narrow browser
+execution are NOT RUN in this environment. Docker/PostgreSQL are absent; offline
+frontend installation failed because required locked packages were not cached.
+Terminal GitHub resolution and the absence of a connector write action currently
+block publication. No remote checkpoint or new remote CI is claimed here. This is
+not renewed held-out acceptance or completion of M6.
+
 ## M6.4 executed development checkpoint
 
 The measured source `dc0aaf1202bffc7557f1a04b0aa5afdfdc8ce5fb` passed fresh component execution, PostgreSQL replay, independent scoring, build and all sixteen diagnostic browser journeys in run `36519135228`. All 32 development cases were classified correctly; this is not held-out quality recovery. The exact report, retained failures, snapshot verification and remaining work are in [M64-DELIVERY.md](M64-DELIVERY.md). Historical checkpoints below retain their original scope. Subsequent source revisions require their own CI.

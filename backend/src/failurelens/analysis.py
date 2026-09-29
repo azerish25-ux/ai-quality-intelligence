@@ -10,8 +10,8 @@ from .transaction_evidence import transaction_findings
 from .contract_evidence import CLAIM_TEXT, CONTRACT_CATEGORY, CONTRACT_SEVERITY, contract_findings
 from .domain_evidence import domain_findings
 
-ANALYSIS_VERSION = "deterministic-v5"
-RULES_VERSION = "rules-v5"
+ANALYSIS_VERSION = "deterministic-v6"
+RULES_VERSION = "rules-v6"
 
 
 @dataclass(frozen=True)

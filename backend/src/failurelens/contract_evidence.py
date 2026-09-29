@@ -81,6 +81,41 @@ class AtomicTransfer(Record):
     after_destination_minor: MinorUnits | None
 
 
+class TransactionFinality(Record):
+    """Compare a declared terminal business rejection with committed effects.
+
+    A transport error is not a rollback receipt. Contract provenance, request
+    correlation and isolated primary-database observations are all required.
+    Producer assertions are still reported observations, not trusted verdicts.
+    """
+    kind: Literal["transaction_finality"]
+    finality_policy: Literal["terminal_rejection_has_no_effects"]
+    observation_scope: Literal["isolated_logical_request"]
+    snapshot_basis: Literal["committed_primary_database"]
+    request_digest: Digest
+    receipt_request_digest: Digest
+    source_account_digest: Digest
+    destination_account_digest: Digest
+    currency: Annotated[str, Field(pattern=r"^[A-Z]{3}$")]
+    amount_minor: Annotated[int, Field(gt=0, le=10**12)]
+    contract_digest: Digest
+    served_contract_digest: Digest
+    response_basis: Literal["terminal_business_rejection", "transport_only", "unresolved"]
+    rejection_status: Annotated[int, Field(ge=400, le=499)]
+    rejection_code: Annotated[str, Field(pattern=r"^[A-Z][A-Z0-9_]{0,79}$")]
+    response_status: StatusCode | None
+    response_code: Annotated[str, Field(pattern=r"^[A-Z][A-Z0-9_]{0,79}$")] | None
+    concurrent_writers: Annotated[int, Field(ge=0, le=1000000)]
+    before_source_minor: MinorUnits | None
+    before_destination_minor: MinorUnits | None
+    after_source_minor: MinorUnits | None
+    after_destination_minor: MinorUnits | None
+    new_transfer_count: Annotated[int, Field(ge=0, le=256)] | None
+    new_journal_entry_count: Annotated[int, Field(ge=0, le=512)] | None
+    new_debit_minor: ByteCount | None
+    new_credit_minor: ByteCount | None
+
+
 class TenantIsolation(Record):
     kind: Literal["tenant_isolation"]
     access_policy: Literal["same_tenant_resource_access"]
@@ -122,7 +157,7 @@ class ContractObservation(Record):
     attempt: Annotated[int, Field(ge=0, le=20)]
     browser: Annotated[str, Field(max_length=80)] | None
     measurement: Annotated[OperationIsolation | ProjectionOrdering | WeeklyRecurrence | AtomicTransfer
-        | TenantIsolation | StatusExpectation | RunnerMemoryLimit, Field(discriminator="kind")]
+        | TransactionFinality | TenantIsolation | StatusExpectation | RunnerMemoryLimit, Field(discriminator="kind")]
 
 
 @dataclass(frozen=True)
@@ -142,6 +177,7 @@ CLAIM_TEXT = {
 # Category and wording are bounded by the observed relation, never supplied as a
 # producer verdict. Existing v1 variants remain byte-compatible.
 CLAIM_TEXT.update({
+    "transaction_finality": "Reported committed database observations contain financial effects for an isolated request whose matching versioned response contract declares terminal rejection with no effects; this supports a commit-consistency investigation without establishing the responsible component or general rollback behavior.",
     "atomic_transfer": "Reported isolated two-account snapshots do not match the declared all-or-nothing transfer outcome; this supports a product-defect investigation without establishing the responsible component.",
     "tenant_isolation": "Reported resource content belongs to a different tenant from the authenticated member despite a same-tenant access policy; this supports an access-isolation investigation without establishing the responsible component.",
     "status_expectation": "Reported failing status assertion expects a status excluded by the matching versioned API contract, while the observed response status is permitted; this supports a test-expectation investigation and does not establish that other product behavior is correct.",
@@ -152,8 +188,32 @@ CONTRACT_CATEGORY = {kind: "product_defect" for kind in CLAIM_TEXT} | {
 }
 CONTRACT_SEVERITY = {kind: "high" for kind in CLAIM_TEXT} | {
     "operation_isolation": "critical", "atomic_transfer": "critical", "tenant_isolation": "critical",
+    "transaction_finality": "critical",
     "status_expectation": "medium", "runner_memory_limit": "medium",
 }
+
+
+def _inspect_finality(item: TransactionFinality) -> ContractFinding:
+    kind = item.kind
+    if (item.request_digest != item.receipt_request_digest
+            or item.source_account_digest == item.destination_account_digest
+            or item.contract_digest != item.served_contract_digest
+            or item.concurrent_writers != 0):
+        return ContractFinding(kind, "conflicting", "One request, distinct accounts, matching deployed semantics and isolated observations are required.")
+    if (item.response_basis != "terminal_business_rejection"
+            or item.response_status != item.rejection_status
+            or item.response_code != item.rejection_code):
+        return ContractFinding(kind, "incomplete", "A matching terminal business rejection is required; transport failure or an unresolved outcome does not prove rollback.")
+    balances = (item.before_source_minor, item.before_destination_minor,
+                item.after_source_minor, item.after_destination_minor)
+    effects = (item.new_transfer_count, item.new_journal_entry_count,
+               item.new_debit_minor, item.new_credit_minor)
+    if any(value is None for value in (*balances, *effects)):
+        return ContractFinding(kind, "incomplete", "Both before/after balances and complete committed transfer/journal measurements are required.")
+    changed = balances[:2] != balances[2:] or any(value != 0 for value in effects)
+    return ContractFinding(kind, "violated" if changed else "conforms",
+        "Reported committed effects conflict with the declared no-effects rejection contract." if changed else
+        "No effects are reported for this rejected request; the test failure cause remains unresolved.")
 
 
 def _inspect_diagnostic(item: AtomicTransfer | TenantIsolation | StatusExpectation | RunnerMemoryLimit) -> ContractFinding:
@@ -229,6 +289,8 @@ def inspect_contract(value: object) -> ContractFinding:
     except (ValidationError, ValueError, TypeError):
         return ContractFinding(None, "invalid", "Invalid bounded contract observation.")
     kind = item.kind
+    if isinstance(item, TransactionFinality):
+        return _inspect_finality(item)
     if isinstance(item, (AtomicTransfer, TenantIsolation, StatusExpectation, RunnerMemoryLimit)):
         return _inspect_diagnostic(item)
     if isinstance(item, OperationIsolation):

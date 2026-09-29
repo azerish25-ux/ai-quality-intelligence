@@ -1,0 +1,148 @@
+name: FailureLens Transaction Finality Evidence
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: failurelens-finality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  executed-finality:
+    name: HTTP/PostgreSQL early-commit experiment (development only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: failurelens_finality
+          POSTGRES_USER: failurelens
+          POSTGRES_PASSWORD: failurelens
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U failurelens -d failurelens_finality"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      FAILURELENS_DATABASE_URL: postgresql+psycopg://failurelens:failurelens@127.0.0.1:5432/failurelens_finality
+      FAILURELENS_DEMO_MODE: 'true'
+      FAILURELENS_ARTIFACT_ROOT: /tmp/failurelens-finality-private-artifacts
+      FAILURELENS_FINALITY_REPLAY: /tmp/failurelens-finality/replay/predictions.json
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: azerish25-ux/transaction-reliability-lab
+          ref: 13bdd62c924a3230825b6d9304f449f887c8e7fe
+          path: .ledgerguard-evaluation-source
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Build exact committed backend outside the measured source tree and migrate
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_ROOT=$(mktemp -d)
+          trap 'rm -rf "$BUILD_ROOT"' EXIT
+          git archive HEAD backend | tar -x -C "$BUILD_ROOT"
+          python -m pip install "$BUILD_ROOT/backend[dev]"
+          (cd backend && alembic upgrade head)
+          git status --porcelain
+          test -z "$(git status --porcelain --untracked-files=normal)"
+      - name: Execute pinned rollback control and early-commit intervention
+        shell: bash
+        run: |
+          set -euo pipefail
+          export JAVA_HOME="$JAVA_HOME_21_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          python integrations/ledgerguard/rollback.py --ledgerguard-source .ledgerguard-evaluation-source --output /tmp/failurelens-finality/corpus --confirm-disposable-stack
+      - name: Replay public observations through PostgreSQL API and durable worker
+        run: >-
+          python evaluation/replay_campaign.py --inputs /tmp/failurelens-finality/corpus/inputs
+          --output /tmp/failurelens-finality/replay --confirm-disposable-database
+      - name: Independently score development observations without claiming held-out acceptance
+        run: >-
+          python evaluation/campaign_harness.py --corpus /tmp/failurelens-finality/corpus
+          --replay /tmp/failurelens-finality/replay --output /tmp/failurelens-finality/report --development-only
+      - name: Require actual paired executions and complete scoped diagnosis
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path('/tmp/failurelens-finality')
+          provenance=json.loads((root/'corpus/execution-provenance.json').read_bytes())
+          metrics=json.loads((root/'report/metrics.json').read_bytes())
+          assert provenance['executed_pairs']==4 and provenance['executed_families']==1
+          assert provenance['synthetic_cases']==4 and len(provenance['oracle_receipts'])==8
+          assert not provenance['source_worktree_dirty']
+          assert all(r['oracle']['expectation_met'] for r in provenance['oracle_receipts'])
+          assert sum(r['oracle']['no_effects_after_rejection'] for r in provenance['oracle_receipts'])==4
+          assert sum(r['oracle']['committed_transfers'] for r in provenance['oracle_receipts'])==4
+          assert metrics['source_revision']==os.environ['GITHUB_SHA']
+          assert metrics['case_count']==8 and metrics['source_counts']['ledgerguard_executed']==4 and metrics['source_counts']['synthetic']==4
+          assert metrics['claim_checks']['published']==metrics['claim_checks']['supported']==4
+          assert metrics['repeated_analysis_count']==5
+          assert metrics['database_dialect']=='postgresql' and not metrics['source_worktree_dirty']
+          assert metrics['evaluation_scope']=='development_contract_measurement' and metrics['held_out_acceptance'] is False
+          assert all(metrics['integrity_acceptance'].values()) and not metrics['errors']
+          assert not metrics['full_m6_complete'] and not metrics['generalization_claim_allowed']
+          PY
+      - name: Retain bounded case and family diagnostic-gap audit
+        run: >-
+          python evaluation/diagnostic_gap_audit.py --corpus /tmp/failurelens-finality/corpus
+          --replay /tmp/failurelens-finality/replay --kind development
+          --output /tmp/failurelens-finality/diagnostic-gaps.json
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Test and build the real dashboard
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+          npm run build
+          npx playwright install --with-deps chromium
+      - name: Inspect diagnostic evidence in desktop and narrow browser journeys
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd backend && python -m uvicorn failurelens.api:app --host 127.0.0.1 --port 8000) > /tmp/finality-api.log 2>&1 &
+          API_PID=$!
+          (cd frontend && npm run dev -- --host 127.0.0.1) > /tmp/finality-ui.log 2>&1 &
+          UI_PID=$!
+          trap 'kill "$API_PID" "$UI_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8000/health/ready >/dev/null && curl --fail --silent http://127.0.0.1:5173 >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8000/health/ready >/dev/null
+          curl --fail --silent http://127.0.0.1:5173 >/dev/null
+          cd frontend
+          npx playwright test --config playwright.finality.config.ts
+      - name: Retain exact-source observations, oracles, predictions and reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: transaction-finality-${{ github.sha }}
+          path: /tmp/failurelens-finality
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: finality-browser-${{ github.sha }}
+          path: frontend/test-results
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Publish measured scope and original minimums
+        if: always()
+        run: |
+          if test -f /tmp/failurelens-finality/report/report.md; then
+            cat /tmp/failurelens-finality/report/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi

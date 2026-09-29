@@ -541,6 +541,258 @@
       "title": "TenantIsolation",
       "type": "object"
     },
+    "TransactionFinality": {
+      "additionalProperties": false,
+      "description": "Compare a declared terminal business rejection with committed effects.\n\nA transport error is not a rollback receipt. Contract provenance, request\ncorrelation and isolated primary-database observations are all required.\nProducer assertions are still reported observations, not trusted verdicts.",
+      "properties": {
+        "kind": {
+          "const": "transaction_finality",
+          "title": "Kind",
+          "type": "string"
+        },
+        "finality_policy": {
+          "const": "terminal_rejection_has_no_effects",
+          "title": "Finality Policy",
+          "type": "string"
+        },
+        "observation_scope": {
+          "const": "isolated_logical_request",
+          "title": "Observation Scope",
+          "type": "string"
+        },
+        "snapshot_basis": {
+          "const": "committed_primary_database",
+          "title": "Snapshot Basis",
+          "type": "string"
+        },
+        "request_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Request Digest",
+          "type": "string"
+        },
+        "receipt_request_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Receipt Request Digest",
+          "type": "string"
+        },
+        "source_account_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Account Digest",
+          "type": "string"
+        },
+        "destination_account_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Destination Account Digest",
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "amount_minor": {
+          "exclusiveMinimum": 0,
+          "maximum": 1000000000000,
+          "title": "Amount Minor",
+          "type": "integer"
+        },
+        "contract_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Contract Digest",
+          "type": "string"
+        },
+        "served_contract_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Served Contract Digest",
+          "type": "string"
+        },
+        "response_basis": {
+          "enum": [
+            "terminal_business_rejection",
+            "transport_only",
+            "unresolved"
+          ],
+          "title": "Response Basis",
+          "type": "string"
+        },
+        "rejection_status": {
+          "maximum": 499,
+          "minimum": 400,
+          "title": "Rejection Status",
+          "type": "integer"
+        },
+        "rejection_code": {
+          "pattern": "^[A-Z][A-Z0-9_]{0,79}$",
+          "title": "Rejection Code",
+          "type": "string"
+        },
+        "response_status": {
+          "anyOf": [
+            {
+              "maximum": 599,
+              "minimum": 100,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Response Status"
+        },
+        "response_code": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z][A-Z0-9_]{0,79}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Response Code"
+        },
+        "concurrent_writers": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Concurrent Writers",
+          "type": "integer"
+        },
+        "before_source_minor": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Before Source Minor"
+        },
+        "before_destination_minor": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Before Destination Minor"
+        },
+        "after_source_minor": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "After Source Minor"
+        },
+        "after_destination_minor": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "After Destination Minor"
+        },
+        "new_transfer_count": {
+          "anyOf": [
+            {
+              "maximum": 256,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "New Transfer Count"
+        },
+        "new_journal_entry_count": {
+          "anyOf": [
+            {
+              "maximum": 512,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "New Journal Entry Count"
+        },
+        "new_debit_minor": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "New Debit Minor"
+        },
+        "new_credit_minor": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "New Credit Minor"
+        }
+      },
+      "required": [
+        "kind",
+        "finality_policy",
+        "observation_scope",
+        "snapshot_basis",
+        "request_digest",
+        "receipt_request_digest",
+        "source_account_digest",
+        "destination_account_digest",
+        "currency",
+        "amount_minor",
+        "contract_digest",
+        "served_contract_digest",
+        "response_basis",
+        "rejection_status",
+        "rejection_code",
+        "response_status",
+        "response_code",
+        "concurrent_writers",
+        "before_source_minor",
+        "before_destination_minor",
+        "after_source_minor",
+        "after_destination_minor",
+        "new_transfer_count",
+        "new_journal_entry_count",
+        "new_debit_minor",
+        "new_credit_minor"
+      ],
+      "title": "TransactionFinality",
+      "type": "object"
+    },
     "WeeklyRecurrence": {
       "additionalProperties": false,
       "properties": {
@@ -631,6 +883,7 @@
           "runner_memory_limit": "#/$defs/RunnerMemoryLimit",
           "status_expectation": "#/$defs/StatusExpectation",
           "tenant_isolation": "#/$defs/TenantIsolation",
+          "transaction_finality": "#/$defs/TransactionFinality",
           "weekly_recurrence": "#/$defs/WeeklyRecurrence"
         },
         "propertyName": "kind"
@@ -647,6 +900,9 @@
         },
         {
           "$ref": "#/$defs/AtomicTransfer"
+        },
+        {
+          "$ref": "#/$defs/TransactionFinality"
         },
         {
           "$ref": "#/$defs/TenantIsolation"
