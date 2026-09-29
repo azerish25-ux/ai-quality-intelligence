@@ -28,19 +28,21 @@ NEXT_CHECK = {
 }
 
 
-def summarize(metrics: dict, scored: list[dict], replay: dict) -> dict:
+def summarize(metrics: dict, scored: list[dict], replay: dict, *, analysis_field: str = "analysis") -> dict:
     """Bounded audit projection of independently scored records; no raw excerpts."""
+    if analysis_field not in {'analysis', 'published'}:
+        raise ValueError('Unsupported explicit replay analysis envelope')
     cases = replay.get('cases')
     if not isinstance(cases, list) or len(cases) > 1000:
         raise ValueError('Invalid or oversized replay cases')
     by_id = {p['case_id']: p for p in cases}
-    if len(by_id) != len(cases) or set(by_id) != {r['case_id'] for r in scored}:
+    if len(by_id) != len(cases) or len(scored) != len(cases) or set(by_id) != {r['case_id'] for r in scored}:
         raise ValueError('Scored/replayed case identities differ')
     groups = defaultdict(list)
     rows = []
     for row in scored:
         case_id = row['case_id']
-        analysis = by_id[case_id]['analysis']
+        analysis = by_id[case_id][analysis_field]
         predicted = analysis['category']
         scored_prediction = row.get('predicted', row.get('modes', {}).get('full_deterministic'))
         if predicted != scored_prediction:
@@ -92,7 +94,7 @@ def run(corpus: Path, replay_root: Path, *, kind: str) -> dict:
     else:
         raise ValueError('Unsupported audit source')
     data = bounded_read(replay_root/'predictions.json', 32*1024*1024)
-    result = summarize(metrics, scored, json.loads(data))
+    result = summarize(metrics, scored, json.loads(data), analysis_field='published' if kind == 'benchmark' else 'analysis')
     result['replay_sha256'] = digest(data)
     return result
 

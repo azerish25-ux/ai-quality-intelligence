@@ -69,3 +69,16 @@ def test_workflow_keeps_exact_source_scope_and_guardrails():
     assert 'playwright.finality.config.ts' in workflow
     config=(root/'frontend/playwright.finality.config.ts').read_text()
     assert 'retries: 0' in config
+
+
+def test_actual_retained_benchmark_envelope_and_historical_scores(tmp_path):
+    from evaluation.verify_benchmark_snapshot import extract_snapshot
+    root=Path(__file__).resolve().parents[2]
+    extract_snapshot(root/'evaluation/reports/benchmark-v1/execution.zip',tmp_path)
+    result=run(root/'evaluation/corpus/benchmark-v1',tmp_path,kind='benchmark')
+    assert result['case_count']==260
+    products=[r for r in result['cases'] if r['split']=='test' and r['expected_category']=='product_defect']
+    assert len(products)==44
+    assert all(r['predicted_category']=='insufficient_evidence' for r in products)
+    assert all(r['diagnostic_stage']=='legacy_uninstrumented' for r in products)
+    assert 'Retained pipeline-output audit' in result['scope']
