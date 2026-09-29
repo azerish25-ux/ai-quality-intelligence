@@ -1,6 +1,6 @@
 # Infrastructure-event correlation
 
-FailureLens correlates prior test outcomes with independently recorded infrastructure events without treating temporal proximity as proof of cause. The implementation is deterministic, project-scoped, prior-only, and built on the same run-level history aggregation used by the test-history API.
+Loose Thread correlates prior test outcomes with independently recorded infrastructure events without treating temporal proximity as proof of cause. The implementation is deterministic, project-scoped, prior-only, and built on the same run-level history aggregation used by the test-history API.
 
 ## Event identity and provenance
 
@@ -50,7 +50,7 @@ Rejected events retain explicit reasons such as `untrusted_event_source`, `repos
 
 ## Rates and interpretation
 
-For the exposed and unexposed cohorts FailureLens returns:
+For the exposed and unexposed cohorts Loose Thread returns:
 
 - run and pass/fail denominator counts;
 - passed, failed, skipped, cancelled, and unknown outcomes;
@@ -70,7 +70,7 @@ Possible result states are:
 - `CONFOUNDED`; and
 - `TRUNCATED`.
 
-`AVAILABLE` means only that the exposed and unexposed cohorts satisfy the deterministic support and compatibility policy. It does not mean the event caused the failures. FailureLens sets `causality_claimed: false` and `can_independently_authorize_infrastructure_classification: false` for every result. Correlation never removes product-risk evidence, changes a classification on its own, or supplies release authorization.
+`AVAILABLE` means only that the exposed and unexposed cohorts satisfy the deterministic support and compatibility policy. It does not mean the event caused the failures. Loose Thread sets `causality_claimed: false` and `can_independently_authorize_infrastructure_classification: false` for every result. Correlation never removes product-risk evidence, changes a classification on its own, or supplies release authorization.
 
 ## Immutable snapshots
 

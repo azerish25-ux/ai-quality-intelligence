@@ -57,7 +57,7 @@ results, not retroactively relabeled as fixed.
 ## Reproduce against the frozen corpus
 
 Install the existing pinned project dependencies, then use an empty disposable
-FailureLens database and an artifact directory outside the corpus. PostgreSQL
+Loose Thread database and an artifact directory outside the corpus. PostgreSQL
 must first be migrated with `cd backend && alembic upgrade head`. The following
 SQLite example exercises the same API/worker path but does **not** establish
 PostgreSQL acceptance:

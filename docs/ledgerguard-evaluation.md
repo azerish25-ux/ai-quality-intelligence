@@ -1,10 +1,10 @@
 # M6.1 — executed LedgerGuard component challenge
 
-This milestone executes actual, hash-pinned LedgerGuard production Java components and replays their reports through FailureLens's real API, durable worker, persisted evidence, authorization and publication validator. It is **not full M6 acceptance** or proof of full-stack banking behavior.
+This milestone executes actual, hash-pinned LedgerGuard production Java components and replays their reports through Loose Thread's real API, durable worker, persisted evidence, authorization and publication validator. It is **not full M6 acceptance** or proof of full-stack banking behavior.
 
 ## Scope and provenance
 
-`integrations/ledgerguard/source.json` pins the companion to `13bdd62c924a3230825b6d9304f449f887c8e7fe`, whose original P08D control workflow is run `36464316280`. Fourteen production core source files are SHA-256 checked before and after execution. Nothing is committed or pushed to the companion. No second bank, database implementation or reimplementation of these components is copied into FailureLens.
+`integrations/ledgerguard/source.json` pins the companion to `13bdd62c924a3230825b6d9304f449f887c8e7fe`, whose original P08D control workflow is run `36464316280`. Fourteen production core source files are SHA-256 checked before and after execution. Nothing is committed or pushed to the companion. No second bank, database implementation or reimplementation of these components is copied into Loose Thread.
 
 The runner compiles the production source with JDK 21 into a temporary directory. Each intervention shadows exactly one changed class; the original checkout stays unchanged. Fifteen mechanisms each have four input variants and paired healthy controls: 60 passing controls and 60 failing interventions. These are **component-level controlled executions**, not HTTP integration, transaction-commit, concurrency, rollback or independently reconciled database executions. All money and identity inputs are synthetic.
 

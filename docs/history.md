@@ -1,6 +1,6 @@
 # Historical test intelligence
 
-FailureLens computes historical statistics from persisted test executions. The implementation is deterministic, project-scoped, cutoff-bound, and traceable to exact run and execution IDs. History is supporting evidence only: it cannot erase contradictory current-run product-risk evidence or approve a release.
+Loose Thread computes historical statistics from persisted test executions. The implementation is deterministic, project-scoped, cutoff-bound, and traceable to exact run and execution IDs. History is supporting evidence only: it cannot erase contradictory current-run product-risk evidence or approve a release.
 
 ## Identity and cutoff
 
@@ -73,13 +73,13 @@ Every report includes:
 - a canonical `history_input_digest`; and
 - explicit reasons the history is not reassurance-safe.
 
-The history digest is included in the deterministic analysis input and provenance. When eligible prior data or review state changes, FailureLens creates a new analysis revision rather than silently changing an earlier result.
+The history digest is included in the deterministic analysis input and provenance. When eligible prior data or review state changes, Loose Thread creates a new analysis revision rather than silently changing an earlier result.
 
 ## Independently recorded infrastructure context
 
 The history response now includes deterministic infrastructure-event correlation for the same prior-only cohort. Infrastructure events are separately persisted records with stable producer identities, source digests, trust provenance, timing, repository/environment scope and optional workflow/runner/region context. Artifact-derived and self-reported claims remain auditable but cannot enter the trusted exposed cohort.
 
-FailureLens compares one conservative outcome per independent run for runs exposed to a compatible event versus runs not exposed to one. Both rates expose exact pass/fail denominators and 95% Wilson intervals. Event-kind rows disclose confounded runs, and rejected events retain trust, cutoff, window and context reasons. Results are associations only: they never prove causality, remove product-risk evidence, or independently authorize an `infrastructure_failure` classification. See `docs/infrastructure.md`.
+Loose Thread compares one conservative outcome per independent run for runs exposed to a compatible event versus runs not exposed to one. Both rates expose exact pass/fail denominators and 95% Wilson intervals. Event-kind rows disclose confounded runs, and rejected events retain trust, cutoff, window and context reasons. Results are associations only: they never prove causality, remove product-risk evidence, or independently authorize an `infrastructure_failure` classification. See `docs/infrastructure.md`.
 
 ## API
 

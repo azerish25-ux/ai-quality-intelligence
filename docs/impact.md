@@ -1,10 +1,10 @@
 # Explainable change-impact recommendations
 
-FailureLens change-impact analysis is deterministic, advisory, and fail-safe. It produces an inspectable proposed test subset from a validated base/head comparison and an immutable mapping snapshot. It does **not** skip tests, change branch protection, approve a release, or treat a smaller subset as proof of safety.
+Loose Thread change-impact analysis is deterministic, advisory, and fail-safe. It produces an inspectable proposed test subset from a validated base/head comparison and an immutable mapping snapshot. It does **not** skip tests, change branch protection, approve a release, or treat a smaller subset as proof of safety.
 
 ## Trust boundary
 
-Changed-file JSON is untrusted artifact content. A payload may declare a `trust` value for audit, but that declaration cannot elevate itself. During ingestion FailureLens stores it as `declared_trust`, then binds the effective `trust` from validated transport metadata:
+Changed-file JSON is untrusted artifact content. A payload may declare a `trust` value for audit, but that declaration cannot elevate itself. During ingestion Loose Thread stores it as `declared_trust`, then binds the effective `trust` from validated transport metadata:
 
 - `self_reported` — default for ordinary uploads and untrusted pull-request artifacts;
 - `authenticated_lookup` — comparison obtained through an authenticated repository lookup;
@@ -44,7 +44,7 @@ Each test definition records a stable key, human-readable identity, optional sou
 
 ## Broad-execution policy
 
-FailureLens requires broad execution when a change touches critical shared or operational areas, including:
+Loose Thread requires broad execution when a change touches critical shared or operational areas, including:
 
 - authentication or authorization;
 - security policy;
@@ -73,7 +73,7 @@ The engine combines independent mapping confidences deterministically. Selected 
 
 Tests not selected by a focused recommendation remain visible with an explicit exclusion reason. When safety fallback applies, every test is selected and tests without a direct mapping carry `full_suite_safety_fallback`.
 
-Estimated durations are catalogue metadata. FailureLens labels derived duration fields as estimates and does not claim observed runtime savings unless an executed benchmark supplies them.
+Estimated durations are catalogue metadata. Loose Thread labels derived duration fields as estimates and does not claim observed runtime savings unless an executed benchmark supplies them.
 
 ## Persistence and audit
 

@@ -1,4 +1,6 @@
-# FailureLens delivery ledger
+> **Branding note:** Product-name prose now uses **Loose Thread**. Recorded measurements, outcomes and technical identifiers are unchanged. [Original historical text](https://github.com/azerish25-ux/ai-quality-intelligence/blob/2de918e5709d12afba2e415edd3c020fac83ed7c/docs/PROGRESS-through-M6.4.1.md).
+
+# Loose Thread delivery ledger
 
 ## M6.4.1 producer isolation correction
 
@@ -178,7 +180,7 @@ scope remain. See [campaign contract](campaign-evaluation.md).
 
 Repository `azerish25-ux/ai-quality-intelligence`, existing `main`. This work started at `076b42a5f76d41c457ed9bcefb3830ad533b36b7`. Feature source `4c040b1503301b34aabedc821cad1cfec7e99da5` and redaction correction `b31be357fc35aa4b9c225f28147ab32367d95a18` were committed and pushed without force. The accepted execution source is `b31be357fc35aa4b9c225f28147ab32367d95a18`, tree `1059fad286337bded480b73bf82a87b32ecf34c2`.
 
-[Full-stack run 36499736145](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36499736145), job `109187473637`, passed actual LedgerGuard HTTP/PostgreSQL controls and interventions, FailureLens PostgreSQL replay, independent scoring and desktop/narrow Chromium journeys. [CI run 36499736103](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36499736103) passed all ten existing jobs: producers, backend/PostgreSQL, component evaluation, legacy regressions, frontend, Docker and four browser lanes. Later evidence/scorer commits require their own exact-revision CI and do not inherit these results.
+[Full-stack run 36499736145](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36499736145), job `109187473637`, passed actual LedgerGuard HTTP/PostgreSQL controls and interventions, Loose Thread PostgreSQL replay, independent scoring and desktop/narrow Chromium journeys. [CI run 36499736103](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36499736103) passed all ten existing jobs: producers, backend/PostgreSQL, component evaluation, legacy regressions, frontend, Docker and four browser lanes. Later evidence/scorer commits require their own exact-revision CI and do not inherit these results.
 
 ### Delivered behavior and measured scope
 
@@ -218,4 +220,4 @@ Continue with independent five-category scenario diversity, family-grouped froze
 
 ### Preserved history
 
-The full preceding M6.1 and M6.2-implementation checkpoint is preserved in the [immutable prior ledger](https://github.com/azerish25-ux/ai-quality-intelligence/blob/b31be357fc35aa4b9c225f28147ab32367d95a18/docs/PROGRESS.md). Earlier milestones are also retained in [PROGRESS-through-M6.1.md](PROGRESS-through-M6.1.md). Their counts and pending states apply to their named revisions, not the current milestone.
+The full preceding M6.1 and M6.2-implementation checkpoint is preserved in the [immutable prior ledger](https://github.com/azerish25-ux/ai-quality-intelligence/blob/b31be357fc35aa4b9c225f28147ab32367d95a18/docs/PROGRESS.md). Earlier milestones are also retained in [PROGRESS-through-M6.1.md](https://github.com/azerish25-ux/ai-quality-intelligence/blob/2de918e5709d12afba2e415edd3c020fac83ed7c/docs/PROGRESS-through-M6.1.md). Their counts and pending states apply to their named revisions, not the current milestone.

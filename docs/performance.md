@@ -1,6 +1,6 @@
 # Compatible performance baselines and regression findings
 
-FailureLens treats performance as an evidence and cohort-compatibility problem, not as a comparison between any two numbers that happen to share a label. The deterministic performance engine is CPU-only and uses the same persisted runs, inputs, artifacts, evidence and project boundaries as failure triage.
+Loose Thread treats performance as an evidence and cohort-compatibility problem, not as a comparison between any two numbers that happen to share a label. The deterministic performance engine is CPU-only and uses the same persisted runs, inputs, artifacts, evidence and project boundaries as failure triage.
 
 ## Normalized observations
 

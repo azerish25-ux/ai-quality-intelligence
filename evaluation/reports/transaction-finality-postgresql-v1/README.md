@@ -1,6 +1,6 @@
 # Retained PostgreSQL transaction-finality evidence
 
-Measured FailureLens source: `b7327b437d8fc4cb009918d1d4d31b6bf36f508a`.
+Measured Loose Thread source: `b7327b437d8fc4cb009918d1d4d31b6bf36f508a`.
 [Original executed workflow](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36567980376).
 
 Four actual HTTP/PostgreSQL fault/control pairs exercise one injected early-commit

@@ -75,7 +75,7 @@ preserves failed measured targets and never silently alters labels or thresholds
 ## Execution and inspection
 
 Prerequisites: Docker Engine/Compose, the pinned companion checkout, Python and
-`backend[dev]`, and an empty disposable FailureLens PostgreSQL database. Do not point
+`backend[dev]`, and an empty disposable Loose Thread PostgreSQL database. Do not point
 either database at existing user data. The companion checkout must be clean at
 `13bdd62c924a3230825b6d9304f449f887c8e7fe`; API port 18080 must be unused.
 

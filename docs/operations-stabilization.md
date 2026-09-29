@@ -58,4 +58,4 @@ Successful desktop dashboard and narrow settings screenshots were downloaded and
 
 This completes the bounded M5.3.1 stabilization, not the whole master project or every M5 requirement. M2 safe binary evidence and producer-pinned fixtures, real LedgerGuard-backed M6 evaluation, optional provider boundaries, live idempotent GitHub reports and broader operational acceptance remain open. The classification corpus still contains 200 synthetic cases and zero actual LedgerGuard executions. Docker image builds are not full runtime, offline, backup/restore or production-deployment proof.
 
-See [the current delivery ledger](PROGRESS.md) and [preserved historical ledger](PROGRESS-through-M5.3.md). Failed or superseded intermediate checks remain historical records rather than being relabeled successful.
+See [the current delivery ledger](PROGRESS.md) and [preserved historical ledger](https://github.com/azerish25-ux/ai-quality-intelligence/blob/2de918e5709d12afba2e415edd3c020fac83ed7c/docs/PROGRESS-through-M5.3.md). Failed or superseded intermediate checks remain historical records rather than being relabeled successful.

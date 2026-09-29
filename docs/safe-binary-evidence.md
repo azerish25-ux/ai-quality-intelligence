@@ -68,7 +68,7 @@ artifact volume and its backups and use the documented lifecycle controls.
 
 The review submission is processed in memory and the codec subprocess, not saved
 as another raw file. A reviewer without the original must obtain it through their
-existing controlled workflow; FailureLens does not return an unsanitized original.
+existing controlled workflow; Loose Thread does not return an unsanitized original.
 Revocation cannot retract a file an authorized person already downloaded.
 
 ## Supported Playwright trace contract
@@ -147,7 +147,7 @@ producer format **before any database initialization**. It prints a viewer argum
 array and warnings. It never installs software, launches a viewer or fetches URLs.
 Use an isolated local workspace with Playwright 1.63.0 already installed and
 network disabled. Original DOM/network/image content is unsanitized; never serve
-the trace viewer or artifact HTML from the authenticated FailureLens origin.
+the trace viewer or artifact HTML from the authenticated Loose Thread origin.
 
 ## API contract
 

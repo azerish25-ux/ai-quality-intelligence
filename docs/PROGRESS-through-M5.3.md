@@ -1,4 +1,6 @@
-# FailureLens delivery ledger
+> **Branding note:** Product-name prose now uses **Loose Thread**. Recorded measurements, outcomes and technical identifiers are unchanged. [Original historical text](https://github.com/azerish25-ux/ai-quality-intelligence/blob/2de918e5709d12afba2e415edd3c020fac83ed7c/docs/PROGRESS-through-M5.3.md).
+
+# Loose Thread delivery ledger
 
 ## M5.3 local operational-lifecycle checkpoint
 

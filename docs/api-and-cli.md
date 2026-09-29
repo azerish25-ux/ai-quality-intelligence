@@ -35,7 +35,7 @@ The raw secret from an ingestion-token creation response is shown once. Only its
 `POST /api/v1/projects/{project_id}/ingestions` supports two contracts:
 
 1. `Content-Type: application/json` with no `filename` query parameter preserves the versioned normalized-observation API.
-2. A raw request body plus `external_id` and `filename` stores and queues a supported standalone artifact or FailureLens ZIP bundle.
+2. A raw request body plus `external_id` and `filename` stores and queues a supported standalone artifact or Loose Thread ZIP bundle.
 
 Raw upload example:
 

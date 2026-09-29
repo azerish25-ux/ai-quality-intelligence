@@ -33,7 +33,7 @@ published. This is component execution, not HTTP/PostgreSQL financial effects.
 
 Twenty additional synthetic cases exercise the four new contracts and missing
 observations. They are not actual kernel OOM, authorization-server, or database
-fault executions. All thirty-two cases traverse the real FailureLens PostgreSQL,
+fault executions. All thirty-two cases traverse the real Loose Thread PostgreSQL,
 ingestion API, durable worker and evidence-publication validator.
 
 | Measured development result | Value |

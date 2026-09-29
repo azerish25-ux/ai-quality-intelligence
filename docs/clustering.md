@@ -2,7 +2,7 @@
 
 ## Purpose and safety boundary
 
-FailureLens clusters failures that are useful to investigate together. A cluster is not proof of one root cause, a causal graph, or permission to dismiss product risk. Current-run validated evidence and contradiction policy remain authoritative for classification.
+Loose Thread clusters failures that are useful to investigate together. A cluster is not proof of one root cause, a causal graph, or permission to dismiss product risk. Current-run validated evidence and contradiction policy remain authoritative for classification.
 
 The implementation is deterministic and CPU-only. Every persisted cluster identifies the exact feature and algorithm versions that produced it:
 

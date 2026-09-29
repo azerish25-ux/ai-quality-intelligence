@@ -117,8 +117,8 @@ passwords, cookies and complete HTTP headers are not retained in reports.
 
 ## Reproduction
 
-Use the clean committed FailureLens tree, a clean pinned companion checkout,
-Docker/Compose, and an empty disposable FailureLens PostgreSQL database:
+Use the clean committed Loose Thread tree, a clean pinned companion checkout,
+Docker/Compose, and an empty disposable Loose Thread PostgreSQL database:
 
 ```sh
 python integrations/ledgerguard/rollback.py \

@@ -1,4 +1,4 @@
-# FailureLens
+# Loose Thread
 ## Evidence-Grounded Test Failure Triage and AI Evaluation
 
 **M6.4 diagnostic development:** the existing pipeline now supports scoped
@@ -8,13 +8,13 @@ gaps. A richer companion probe and explicitly developmental campaign preserve
 all historical test data and failures. This is not completed M6 or renewed
 held-out quality acceptance. [Contracts, execution scope and reproduction](docs/diagnostic-quality.md). [Executed M6.4 evidence and limitations](docs/M64-DELIVERY.md).
 
-FailureLens is a self-hosted platform for investigating automated-test failures using inspectable evidence. Its default analyzer is deterministic and CPU-only; no paid model API, GPU or runtime model download is required.
+Loose Thread is a self-hosted platform for investigating automated-test failures using inspectable evidence. Its default analyzer is deterministic and CPU-only; no paid model API, GPU or runtime model download is required.
 
 **Retained M6.3 checkpoint: structured diagnostic contracts and frozen five-category campaign. Full M6 and the complete project remain PARTIAL.** The new corpus is committed before test evaluation. Exact-source measurements, CI and limitations are recorded in the [delivery ledger](docs/PROGRESS.md), [requirement matrix](docs/requirements-matrix.md), and [campaign contract](docs/campaign-evaluation.md). Historical reports retain their originally tested revisions.
 
 The reconciled source also retains the separately authored M6.3 `domain-observations-v1` path and its `benchmark-v1` evaluation harness. It is exposed independently from the campaign so neither dataset nor metric lineage is silently substituted for the other. The retained `benchmark-v1` frozen measurement covers 260 cases / 83 authored groups with 108 family-separated test cases and reports **0/44 product recall, macro F1 0.3048, 19.57% non-abstained coverage and 0/44 dangerous dismissals**. Recall, F1 and coverage fail the unchanged targets; all 44 test product cases abstain. [Benchmark contract and limitations](docs/benchmark-evaluation.md) · [Exact retained benchmark report](evaluation/reports/benchmark-v1/report.md).
 
-The retained M6.1 LedgerGuard challenge executes **60 real production-component interventions across 15 mechanisms**, each with a healthy control. Their reports traverse FailureLens's API, durable worker, PostgreSQL and evidence validator. The result is **48/60 product defects recognized, 12 abstentions and 0/60 dangerous dismissals**. The unchanged 90% recall target **FAILS**. This is not LedgerGuard HTTP/database transaction verification, a five-category held-out benchmark or a deployment guarantee.
+The retained M6.1 LedgerGuard challenge executes **60 real production-component interventions across 15 mechanisms**, each with a healthy control. Their reports traverse Loose Thread's API, durable worker, PostgreSQL and evidence validator. The result is **48/60 product defects recognized, 12 abstentions and 0/60 dangerous dismissals**. The unchanged 90% recall target **FAILS**. This is not LedgerGuard HTTP/database transaction verification, a five-category held-out benchmark or a deployment guarantee.
 
 ## New frozen evaluation campaign
 
@@ -86,7 +86,7 @@ Two different classification datasets must not be conflated:
 | Dataset | What it establishes | Limitations |
 |---|---|---|
 | Legacy 200-case synthetic corpus | Historical rule-regression behavior | Its 100 family identifiers collapse to five recurring templates crossing all three splits; not independent held-out diversity |
-| M6.1 60-case LedgerGuard challenge | Actual production-component controls/interventions and full FailureLens ingestion/evidence replay | Fifteen mechanisms, four dependent variants each, only product-defect labels, public agent-authored challenge |
+| M6.1 60-case LedgerGuard challenge | Actual production-component controls/interventions and full Loose Thread ingestion/evidence replay | Fifteen mechanisms, four dependent variants each, only product-defect labels, public agent-authored challenge |
 | M6.3 frozen corpus | 260 cases in 83 authored mechanism groups, 108 family-separated test cases through the real API/worker | Test cases are synthetic; 60 historical executions remain development-only; quality targets fail |
 
 The component-only panel leaves five-category macro F1 undefined rather than inventing a favorable score. Product recall is 80%, below the 90% target. All twelve abstentions remain visible. Zero observed dangerous dismissals is not proof of zero real-world risk. Labels are agent-reviewed, not independently expert-adjudicated. No external model was invoked; compute cost was not measured.
@@ -187,3 +187,9 @@ Artifacts and generated outputs are untrusted. URL evidence never authorizes aut
 M6.3 supplies both the frozen mixed-source campaign and the separately retained authored benchmark, each with family-separated test scope. Full M6 still requires passing quality targets, stronger family adjudication, broader adversarial/claim verification and a complete temporal backtest. The retained benchmark exposes weak diagnosis of unfamiliar product and test defects; zero dangerous dismissals is not useful recall or full acceptance. The separate M6.2 HTTP/PostgreSQL retry-boundary experiment is delivered; concurrency, rollback, asynchronous processing and wider financial-effect scenarios remain unfinished.
 
 Full M2 retains broader dialect and application-specific sensitive-field work. Complete M5 review/operational scope, optional provider contracts, live idempotent GitHub publication, broader hardening/offline/restore/load verification and final audit remain unfinished. Existing reviewed screenshots, safe trace derivatives, real producer fixtures, controlled serving and account/retention workflows are delivered; do not mistake historical pending entries for their current status.
+
+## Name and compatibility
+
+**Loose Thread** is the product name used throughout the maintained documentation. This is a branding change, not a breaking interface migration.
+
+Existing commands (`failurelens`, `failurelens-worker`), Python package/import paths, `FAILURELENS_*` settings, `X-FailureLens-Token`, media types, schema identifiers and storage names remain unchanged so the documented commands and existing installations continue to work. Checksummed execution archives and original measured reports retain their exact bytes and may display the previous branding; their historical results have not been rewritten.

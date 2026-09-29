@@ -21,7 +21,7 @@ Every artifact field is untrusted: filenames, manifests, XML/JSON/JSONL, test na
 
 ## Identity, authorization, and credentials
 
-FailureLens has three authenticated principal types:
+Loose Thread has three authenticated principal types:
 
 - a human user with project-scoped `viewer`, `reviewer`, or `administrator` membership;
 - a project-bound ingestion credential with only the `ingestion:create` scope; and

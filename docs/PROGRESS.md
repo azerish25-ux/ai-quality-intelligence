@@ -1,4 +1,4 @@
-# FailureLens delivery ledger
+# Loose Thread delivery ledger
 
 ## M6.4.1 closeout — verified 2026-09-29
 
@@ -11,7 +11,7 @@ Full M6 and the complete master project remain PARTIAL.** A later documentation
 commit does not change the source named by these measurements and needs its own CI.
 
 The preceding ledger is preserved byte-for-byte in
-[PROGRESS-through-M6.4.1.md](PROGRESS-through-M6.4.1.md), original blob
+[PROGRESS-through-M6.4.1.md](https://github.com/azerish25-ux/ai-quality-intelligence/blob/2de918e5709d12afba2e415edd3c020fac83ed7c/docs/PROGRESS-through-M6.4.1.md), original blob
 `4921e06d9a3c611b353bb35ee179365d2a499dd7`. Its local-only, blocked and NOT RUN
 statements describe their original checkpoints, not the subsequent delivery below.
 Earlier archived ledgers, frozen corpora, labels, thresholds and reports are unchanged.

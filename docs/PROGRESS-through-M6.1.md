@@ -1,3 +1,5 @@
+> **Branding note:** Product-name prose now uses **Loose Thread**. Recorded measurements, outcomes and technical identifiers are unchanged. [Original historical text](https://github.com/azerish25-ux/ai-quality-intelligence/blob/2de918e5709d12afba2e415edd3c020fac83ed7c/docs/PROGRESS-through-M6.1.md).
+
 # M6.1 exact-source execution and retained evidence
 
 **M6.1 implementation is delivered; final browser acceptance is pending correction. Full M6/master remain PARTIAL.**
@@ -12,7 +14,7 @@ Docker configuration/build, and the new LedgerGuard execution/evidence job.
 
 The new job actually compiled pinned LedgerGuard production components and
 executed 60 passing controls and 60 detected interventions over 15 mechanisms.
-All 120 reports traversed FailureLens API/durable-worker ingestion in PostgreSQL;
+All 120 reports traversed Loose Thread API/durable-worker ingestion in PostgreSQL;
 authorized evidence and five repeated substantive analyses were verified.
 The result is **48/60 product recognition, 12 abstentions, 0/60 dangerous dismissals**.
 **80% recall fails the unchanged 90% target.** The product-only challenge does not
@@ -48,7 +50,7 @@ This is real production-component execution, not LedgerGuard HTTP/database/commi
 
 ---
 
-# FailureLens delivery ledger
+# Loose Thread delivery ledger
 
 ## Current checkpoint — M2.1.1 trace-text safety
 
@@ -83,7 +85,7 @@ Repository: `azerish25-ux/ai-quality-intelligence`. Default and working branch: 
 
 **M2.1: PASS for the scoped binary-evidence and producer acceptance below. Full M2, complete M5 and the full master project remain PARTIAL.**
 
-Work started from `f84da131e4b5c2f498a2d7cf7a15fa1f324c41b2`. The accepted source checkpoint is `a2e4be3e30bfb49e60f949e9ef2f52b2cdee545f`, tree `de190a8e084c97c3814175dd7bbc6b29718d53af`. [FailureLens CI run 36475782858](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36475782858) completed successfully on September 28, 2026 at 20:01 UTC for that exact source. All nine jobs passed. A subsequent documentation commit has its own CI run; this accepted source result is not presented as that later commit's result.
+Work started from `f84da131e4b5c2f498a2d7cf7a15fa1f324c41b2`. The accepted source checkpoint is `a2e4be3e30bfb49e60f949e9ef2f52b2cdee545f`, tree `de190a8e084c97c3814175dd7bbc6b29718d53af`. [Loose Thread CI run 36475782858](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36475782858) completed successfully on September 28, 2026 at 20:01 UTC for that exact source. All nine jobs passed. A subsequent documentation commit has its own CI run; this accepted source result is not presented as that later commit's result.
 
 ### Delivered and verified
 
@@ -145,7 +147,7 @@ Repository: `azerish25-ux/ai-quality-intelligence`. Default and working branch: 
 
 **M5.3.1: PASS for the scoped stabilization acceptance below. The full master project and complete M5 remain PARTIAL.**
 
-Development started from `eb577742114b403f055dd0f4e961215644786989`. The first fully accepted source checkpoint is `f4c3cf217f91a9c67b3b3b124ceae7d12151ca0b`, tree `09ca91a227e65d0d9fae2e9080ec72616fffaa01`. [FailureLens CI run 36451042191](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36451042191) completed successfully for that exact commit on September 28, 2026. All eight jobs passed: PostgreSQL/backend, frontend, deterministic evaluation, Docker configuration/build, and four browser lanes.
+Development started from `eb577742114b403f055dd0f4e961215644786989`. The first fully accepted source checkpoint is `f4c3cf217f91a9c67b3b3b124ceae7d12151ca0b`, tree `09ca91a227e65d0d9fae2e9080ec72616fffaa01`. [Loose Thread CI run 36451042191](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36451042191) completed successfully for that exact commit on September 28, 2026. All eight jobs passed: PostgreSQL/backend, frontend, deterministic evaluation, Docker configuration/build, and four browser lanes.
 
 This documentation records an already executed source checkpoint. A subsequent documentation commit has its own CI execution; the source checkpoint's result is not represented as that later commit's result.
 
@@ -178,4 +180,4 @@ The next substantial implementation work is unfinished M2 safe-evidence function
 
 ## Earlier preserved history
 
-The entire preceding ledger is preserved byte-for-byte in [PROGRESS-through-M5.3.md](PROGRESS-through-M5.3.md), with original Git blob `a314c22fc4e53ff966d24d1263b1027f90a2d649`. Its local-only delivery warnings, pending browser checks and older milestone overlays describe historical checkpoints, not the current delivered stabilization. Earlier benchmark and failed/superseded CI evidence has not been recast as current acceptance.
+The entire preceding ledger is preserved byte-for-byte in [PROGRESS-through-M5.3.md](https://github.com/azerish25-ux/ai-quality-intelligence/blob/2de918e5709d12afba2e415edd3c020fac83ed7c/docs/PROGRESS-through-M5.3.md), with original Git blob `a314c22fc4e53ff966d24d1263b1027f90a2d649`. Its local-only delivery warnings, pending browser checks and older milestone overlays describe historical checkpoints, not the current delivered stabilization. Earlier benchmark and failed/superseded CI evidence has not been recast as current acceptance.
