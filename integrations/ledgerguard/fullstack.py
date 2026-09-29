@@ -145,9 +145,9 @@ def request_json(opener, base, path, body=None, headers=None):
         return response.status, json.loads(raw)
 
 
-def run_command(command: list[str], cwd: Path, records: list, *, text=None, timeout=600) -> str:
+def run_command(command: list[str], cwd: Path, records: list, *, text=None, timeout=600, env=None) -> str:
     started=time.monotonic()
-    result=subprocess.run(command,cwd=cwd,input=text,text=True,capture_output=True,timeout=timeout)
+    result=subprocess.run(command,cwd=cwd,input=text,text=True,capture_output=True,timeout=timeout,env=env)
     records.append({'command': command, 'exit_code': result.returncode, 'seconds':time.monotonic()-started})
     if result.returncode:
         # Compose/JVM output may contain private configuration. Do not export it.
@@ -166,7 +166,7 @@ def checkout_digest(source: Path) -> str:
     return h.hexdigest()
 
 
-def snapshot(compose, source: Path, records: list) -> dict:
+def snapshot(compose, source: Path, records: list, *, env=None) -> dict:
     # A single repeatable-read SELECT sees balances, transfer IDs and their
     # independent double-entry rows at one committed snapshot.
     sql=f"""BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;
@@ -186,7 +186,7 @@ SELECT jsonb_build_object(
 COMMIT;
 """
     output=run_command([*compose,'exec','-T','postgres','psql','-XAtq','-v','ON_ERROR_STOP=1',
-                        '-U','ledger_owner','-d','ledgerguard'],source,records,text=sql,timeout=30)
+                        '-U','ledger_owner','-d','ledgerguard'],source,records,text=sql,timeout=30,env=env)
     return json.loads(output)
 
 

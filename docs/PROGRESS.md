@@ -1,5 +1,86 @@
 # FailureLens delivery ledger
 
+## M6.4.1 producer isolation correction
+
+After the retained measurement checkpoint, review identified that Compose gives
+ambient shell variables precedence over an explicit environment file. That could
+select unrelated named resources despite a random project argument. The finality
+runner now strips inherited Compose/application/Docker overrides per child
+process and explicitly selects the local Linux Docker Unix socket. Parent
+environment variables are not changed. Both direct commands and SQL snapshot
+commands use the same isolation, and cleanup remains scoped to the random project.
+The shared command/snapshot helper accepts an optional explicit environment;
+existing callers retain their previous default behavior.
+
+Twelve regressions cover hostile ambient resource names, remote contexts,
+command/snapshot isolation and startup-failure cleanup. No new real Docker or
+companion execution is claimed by this correction. The full pre-correction local
+suite at `301478f56ce4013ae8e96bd58c07789a884efcd9` also passed 823 tests with four
+PostgreSQL-only skips; the corrected revision needs its own complete verification.
+
+## M6.4.1 clean local verification checkpoint
+
+Verified source `158d288252d348ca55e3d2a33e109de882196567` (implementation
+`6cc87174438c38ad71fad2c0bdf978c6d3255722`, then the saved benchmark-envelope
+correction). The complete backend suite passed **823 tests**, with **four
+PostgreSQL-only skips**, using the original baseline's downloaded producer fixtures
+(artifact `11012442275`, SHA-256
+`664632f099d66af2252d4ccf4cb8f696d20b0bb21fdf49aab78749f339bc01d7`).
+This is local regression against retained producer bytes, not fresh producer CI.
+The 146 new tests cover the finality boundary, independent oracle/replay and audit.
+
+A clean-source SQLite/API/worker run correctly classified all eight explicitly
+synthetic development cases: four product diagnoses, four abstentions, four/four
+independently supported claims, all authorized/resolvable citations and five
+identical substantive analyses per case. Every integrity gate passed. The exact
+report and lossless safe snapshot are retained in
+`evaluation/reports/transaction-finality-development-v1/`; bounded extraction and
+independent rescoring reproduce its metrics. Corpus minimums still fail and broad
+five-category macro F1 is undefined. No held-out or full-M6 success is claimed.
+
+The new audit independently scored the retained 260-case benchmark and recorded
+104 mismatches across all splits, with 134 legacy uninstrumented abstentions.
+Its 44 test-partition product cases remain abstentions; no labels or historical
+results were overwritten. The first audit attempt exposed the different
+`published` versus `analysis` replay envelopes; the explicit reader correction and
+actual-retained-archive regression passed. Component, prior full-stack, frozen
+benchmark and M6.4 diagnostic snapshot verifiers also passed independently.
+
+New Playwright sources passed TypeScript syntax transpilation and the new workflow
+parsed as YAML. Full frontend build/browser execution did not run because offline
+installation lacks locked packages. No coverage percentage is claimed: the initial
+coverage-enabled whole-suite command timed out before completion; the completed
+whole-suite command above did not enable coverage.
+
+`git push origin main` was attempted and returned exit 128:
+`Could not resolve host: github.com`. Connected reads still work, but no write
+operation is exposed in this session. These commits are **local-only**, not pushed.
+Actual new HTTP/PostgreSQL companion execution, PostgreSQL replay, browser journeys,
+remote CI, renewed held-out evaluation and full M6 remain unverified/incomplete.
+Later documentation/retention commits require separate final-revision verification.
+
+## M6.4.1 transaction finality — local source checkpoint
+
+Starting `main`: `304d0c8875e8a751f9b5f7b807356da2d2c90ea4`.
+The additive transaction-finality relation, independent scorer/oracle, isolated
+companion producer, diagnostic-gap audit and exact-source workflow are implemented.
+Existing corpus bytes, failed targets and seven earlier contract kinds are preserved.
+See [transaction finality](transaction-finality.md) for the mutation and scope.
+
+Before committing this source, the 171 previous diagnostic regressions passed.
+The 97 new finality boundary regressions and 12 gap-audit/workflow tests passed.
+The initial eight-case synthetic SQLite/API/worker replay classified all cases
+correctly and independently supported all four claims, but its clean-committed-source
+integrity gate failed because the implementation was still uncommitted. The gate
+has not been weakened. A clean-source checkpoint requires a subsequent actual run.
+
+Actual new companion HTTP/PostgreSQL, PostgreSQL replay and desktop/narrow browser
+execution are NOT RUN in this environment. Docker/PostgreSQL are absent; offline
+frontend installation failed because required locked packages were not cached.
+Terminal GitHub resolution and the absence of a connector write action currently
+block publication. No remote checkpoint or new remote CI is claimed here. This is
+not renewed held-out acceptance or completion of M6.
+
 ## M6.4 executed development checkpoint
 
 The measured source `dc0aaf1202bffc7557f1a04b0aa5afdfdc8ce5fb` passed fresh component execution, PostgreSQL replay, independent scoring, build and all sixteen diagnostic browser journeys in run `36519135228`. All 32 development cases were classified correctly; this is not held-out quality recovery. The exact report, retained failures, snapshot verification and remaining work are in [M64-DELIVERY.md](M64-DELIVERY.md). Historical checkpoints below retain their original scope. Subsequent source revisions require their own CI.

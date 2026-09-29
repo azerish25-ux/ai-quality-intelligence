@@ -33,6 +33,7 @@ CONTRACT_TEXT={
 # Independently maintained evaluator wording/categories: do not import runtime
 # predicates, enums, schemas or claim strings into this scorer.
 CONTRACT_TEXT.update({
+    'transaction_finality':'Reported committed database observations contain financial effects for an isolated request whose matching versioned response contract declares terminal rejection with no effects; this supports a commit-consistency investigation without establishing the responsible component or general rollback behavior.',
     'atomic_transfer':'Reported isolated two-account snapshots do not match the declared all-or-nothing transfer outcome; this supports a product-defect investigation without establishing the responsible component.',
     'tenant_isolation':'Reported resource content belongs to a different tenant from the authenticated member despite a same-tenant access policy; this supports an access-isolation investigation without establishing the responsible component.',
     'status_expectation':'Reported failing status assertion expects a status excluded by the matching versioned API contract, while the observed response status is permitted; this supports a test-expectation investigation and does not establish that other product behavior is correct.',
@@ -50,6 +51,39 @@ def independent_diagnostic(m: dict) -> bool:
     def sha(v):
         return isinstance(v,str) and re.fullmatch(r'[0-9a-f]{64}',v) is not None
     kind=m.get('kind')
+    if kind=='transaction_finality':
+        fields = {
+            'kind','finality_policy','observation_scope','snapshot_basis','request_digest','receipt_request_digest',
+            'source_account_digest','destination_account_digest','currency','amount_minor','contract_digest',
+            'served_contract_digest','response_basis','rejection_status','rejection_code','response_status','response_code',
+            'concurrent_writers','before_source_minor','before_destination_minor','after_source_minor','after_destination_minor',
+            'new_transfer_count','new_journal_entry_count','new_debit_minor','new_credit_minor',
+        }
+        ids = ['request_digest','receipt_request_digest','source_account_digest','destination_account_digest',
+               'contract_digest','served_contract_digest']
+        balances = [m.get(k) for k in ['before_source_minor','before_destination_minor','after_source_minor','after_destination_minor']]
+        if not (set(m)==fields and all(sha(m.get(k)) for k in ids)
+                and m.get('finality_policy')=='terminal_rejection_has_no_effects'
+                and m.get('observation_scope')=='isolated_logical_request'
+                and m.get('snapshot_basis')=='committed_primary_database'
+                and m['request_digest']==m['receipt_request_digest']
+                and m['source_account_digest']!=m['destination_account_digest']
+                and m['contract_digest']==m['served_contract_digest']
+                and m.get('response_basis')=='terminal_business_rejection'
+                and integer(m.get('rejection_status'),400,499) and integer(m.get('response_status'),400,499)
+                and m['rejection_status']==m['response_status']
+                and isinstance(m.get('rejection_code'),str) and re.fullmatch(r'[A-Z][A-Z0-9_]{0,79}',m['rejection_code'])
+                and m.get('response_code')==m['rejection_code']
+                and integer(m.get('concurrent_writers'),0,0) and integer(m.get('amount_minor'),1,10**12)
+                and isinstance(m.get('currency'),str) and re.fullmatch(r'[A-Z]{3}',m['currency'])
+                and all(integer(v,-(2**53-1)) for v in balances)
+                and integer(m.get('new_transfer_count'),0,256) and integer(m.get('new_journal_entry_count'),0,512)
+                and integer(m.get('new_debit_minor')) and integer(m.get('new_credit_minor'))):
+            return False
+        delta_source = balances[2]-balances[0]
+        delta_destination = balances[3]-balances[1]
+        return (delta_source != 0 or delta_destination != 0 or m['new_transfer_count'] > 0
+                or m['new_journal_entry_count'] > 0 or m['new_debit_minor'] > 0 or m['new_credit_minor'] > 0)
     if kind=='atomic_transfer':
         ids=['request_digest','receipt_request_digest','source_account_digest','destination_account_digest']
         vals=[m.get(k) for k in ['before_source_minor','before_destination_minor','after_source_minor','after_destination_minor']]
@@ -88,7 +122,7 @@ def independent_diagnostic(m: dict) -> bool:
 def independent_contract(value: dict) -> str | None:
     """Independent arithmetic/calendar rubric; never call the production inspector."""
     m=value['measurement'];kind=m['kind']
-    if kind in {'atomic_transfer','tenant_isolation','status_expectation','runner_memory_limit'}:
+    if kind in {'transaction_finality','atomic_transfer','tenant_isolation','status_expectation','runner_memory_limit'}:
         return kind if independent_diagnostic(m) else None
     if kind=='operation_isolation':
         a,b=m['first'],m['second']

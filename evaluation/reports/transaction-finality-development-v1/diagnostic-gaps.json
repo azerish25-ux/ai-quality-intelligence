@@ -1,0 +1,144 @@
+{
+  "version": "diagnostic-gap-audit-v1",
+  "measured_source_revision": "158d288252d348ca55e3d2a33e109de882196567",
+  "scope": "Retained pipeline-output audit; no new inference, label adjudication or held-out claim.",
+  "case_count": 8,
+  "mismatches": 0,
+  "stage_counts": {
+    "missing_or_invalid_observations": 4,
+    "supported_decision": 4
+  },
+  "families": [
+    {
+      "scenario_family_id": "early-commit-before-terminal-rejection",
+      "split": "development",
+      "cases": 8,
+      "mismatches": 0,
+      "stages": {
+        "missing_or_invalid_observations": 4,
+        "supported_decision": 4
+      }
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "c-a52d94df043b71f97a22",
+      "scenario_family_id": "early-commit-before-terminal-rejection",
+      "split": "development",
+      "source_kind": "synthetic",
+      "expected_category": "product_defect",
+      "predicted_category": "product_defect",
+      "mismatch": false,
+      "diagnostic_stage": "supported_decision",
+      "recorded_findings": 1,
+      "published_claim_count": 1,
+      "artifact_adjudication_required": false,
+      "next_check": "Retain claim/evidence regression; this is not independent generalization evidence."
+    },
+    {
+      "case_id": "c-fc524e93a75f926b6d10",
+      "scenario_family_id": "early-commit-before-terminal-rejection",
+      "split": "development",
+      "source_kind": "synthetic",
+      "expected_category": "product_defect",
+      "predicted_category": "product_defect",
+      "mismatch": false,
+      "diagnostic_stage": "supported_decision",
+      "recorded_findings": 1,
+      "published_claim_count": 1,
+      "artifact_adjudication_required": false,
+      "next_check": "Retain claim/evidence regression; this is not independent generalization evidence."
+    },
+    {
+      "case_id": "c-e2bd61d82098369a5059",
+      "scenario_family_id": "early-commit-before-terminal-rejection",
+      "split": "development",
+      "source_kind": "synthetic",
+      "expected_category": "product_defect",
+      "predicted_category": "product_defect",
+      "mismatch": false,
+      "diagnostic_stage": "supported_decision",
+      "recorded_findings": 1,
+      "published_claim_count": 1,
+      "artifact_adjudication_required": false,
+      "next_check": "Retain claim/evidence regression; this is not independent generalization evidence."
+    },
+    {
+      "case_id": "c-126a5f0db719efa4b0ab",
+      "scenario_family_id": "early-commit-before-terminal-rejection",
+      "split": "development",
+      "source_kind": "synthetic",
+      "expected_category": "product_defect",
+      "predicted_category": "product_defect",
+      "mismatch": false,
+      "diagnostic_stage": "supported_decision",
+      "recorded_findings": 1,
+      "published_claim_count": 1,
+      "artifact_adjudication_required": false,
+      "next_check": "Retain claim/evidence regression; this is not independent generalization evidence."
+    },
+    {
+      "case_id": "c-9c125e4dbd695caf77dd",
+      "scenario_family_id": "early-commit-before-terminal-rejection",
+      "split": "development",
+      "source_kind": "synthetic",
+      "expected_category": "insufficient_evidence",
+      "predicted_category": "insufficient_evidence",
+      "mismatch": false,
+      "diagnostic_stage": "missing_or_invalid_observations",
+      "recorded_findings": 1,
+      "published_claim_count": 0,
+      "artifact_adjudication_required": true,
+      "next_check": "Compare original producer artifacts with normalized observations; do not assume which stage lost evidence."
+    },
+    {
+      "case_id": "c-81febbad89f84dd32346",
+      "scenario_family_id": "early-commit-before-terminal-rejection",
+      "split": "development",
+      "source_kind": "synthetic",
+      "expected_category": "insufficient_evidence",
+      "predicted_category": "insufficient_evidence",
+      "mismatch": false,
+      "diagnostic_stage": "missing_or_invalid_observations",
+      "recorded_findings": 1,
+      "published_claim_count": 0,
+      "artifact_adjudication_required": true,
+      "next_check": "Compare original producer artifacts with normalized observations; do not assume which stage lost evidence."
+    },
+    {
+      "case_id": "c-2b40642a03f40b353cc3",
+      "scenario_family_id": "early-commit-before-terminal-rejection",
+      "split": "development",
+      "source_kind": "synthetic",
+      "expected_category": "insufficient_evidence",
+      "predicted_category": "insufficient_evidence",
+      "mismatch": false,
+      "diagnostic_stage": "missing_or_invalid_observations",
+      "recorded_findings": 1,
+      "published_claim_count": 0,
+      "artifact_adjudication_required": true,
+      "next_check": "Compare original producer artifacts with normalized observations; do not assume which stage lost evidence."
+    },
+    {
+      "case_id": "c-c642647baca5a1aa4751",
+      "scenario_family_id": "early-commit-before-terminal-rejection",
+      "split": "development",
+      "source_kind": "synthetic",
+      "expected_category": "insufficient_evidence",
+      "predicted_category": "insufficient_evidence",
+      "mismatch": false,
+      "diagnostic_stage": "missing_or_invalid_observations",
+      "recorded_findings": 1,
+      "published_claim_count": 0,
+      "artifact_adjudication_required": true,
+      "next_check": "Compare original producer artifacts with normalized observations; do not assume which stage lost evidence."
+    }
+  ],
+  "limitations": [
+    "Diagnostic metadata localizes a reported boundary; it does not prove whether evidence was absent at the producer or lost during normalization.",
+    "Agent-authored labels and family groupings still need observable-evidence adjudication.",
+    "Inspected test cases are regression evidence, never a newly held-out result.",
+    "Raw artifacts, secrets, reviewer notes and arbitrary diagnostic text are not copied into this projection."
+  ],
+  "replay_sha256": "ab4c0c2b81ade57efa7a646af7dd330099567834a5fa15ea7022deaf2d757a72"
+}
