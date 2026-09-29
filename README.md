@@ -6,7 +6,7 @@ transfer-atomicity, tenant-isolation, status-expectation and runner-memory
 observations, independently revalidated claims, and reviewer-visible diagnostic
 gaps. A richer companion probe and explicitly developmental campaign preserve
 all historical test data and failures. This is not completed M6 or renewed
-held-out quality acceptance. [Contracts, execution scope and reproduction](docs/diagnostic-quality.md).
+held-out quality acceptance. [Contracts, execution scope and reproduction](docs/diagnostic-quality.md). [Executed M6.4 evidence and limitations](docs/M64-DELIVERY.md).
 
 FailureLens is a self-hosted platform for investigating automated-test failures using inspectable evidence. Its default analyzer is deterministic and CPU-only; no paid model API, GPU or runtime model download is required.
 

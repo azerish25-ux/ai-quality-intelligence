@@ -1,5 +1,9 @@
 # FailureLens delivery ledger
 
+## M6.4 executed development checkpoint
+
+The measured source `dc0aaf1202bffc7557f1a04b0aa5afdfdc8ce5fb` passed fresh component execution, PostgreSQL replay, independent scoring, build and all sixteen diagnostic browser journeys in run `36519135228`. All 32 development cases were classified correctly; this is not held-out quality recovery. The exact report, retained failures, snapshot verification and remaining work are in [M64-DELIVERY.md](M64-DELIVERY.md). Historical checkpoints below retain their original scope. Subsequent source revisions require their own CI.
+
 ## M6.4 diagnostic development — implementation checkpoint
 
 Starting repository: `azerish25-ux/ai-quality-intelligence`, existing `main`,
