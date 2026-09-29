@@ -1,1 +1,102 @@
-The requested file reference is not currently visible. Use files.search or files.list to rediscover the file, then retry with a returned ref_id or file_id.
+name: FailureLens Frozen Benchmark
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: failurelens-benchmark-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  frozen-five-category:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: failurelens_benchmark
+          POSTGRES_USER: failurelens
+          POSTGRES_PASSWORD: failurelens
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U failurelens -d failurelens_benchmark"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      FAILURELENS_DATABASE_URL: postgresql+psycopg://failurelens:failurelens@127.0.0.1:5432/failurelens_benchmark
+      FAILURELENS_DEMO_MODE: 'true'
+      FAILURELENS_ARTIFACT_ROOT: /tmp/failurelens-m63-private-artifacts
+      FAILURELENS_BENCHMARK_EVALUATION_METRICS_PATH: /tmp/failurelens-m63/report/metrics.json
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Install and migrate FailureLens
+        run: |
+          python -m pip install './backend[dev]'
+          (cd backend && alembic upgrade head)
+      - name: Audit immutable corpus and family-separated splits
+        run: python -c 'from pathlib import Path; from evaluation.benchmark_audit import audit; r=audit(Path("evaluation/corpus/benchmark-v1")); assert all(r["gates"].values()), r'
+      - name: Replay answer-free observations through API and durable worker
+        run: >-
+          python evaluation/benchmark_replay.py --inputs evaluation/corpus/benchmark-v1/inputs
+          --output /tmp/failurelens-m63/replay --confirm-disposable-database
+      - name: Independently score published output and enforce integrity
+        run: >-
+          python evaluation/benchmark_harness.py --corpus evaluation/corpus/benchmark-v1
+          --replay /tmp/failurelens-m63/replay --output /tmp/failurelens-m63/report
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install and build browser verification
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npm test
+          npm run build
+      - name: Verify actual benchmark view at desktop and narrow widths
+        run: |
+          (cd backend && python -m uvicorn failurelens.api:app --host 127.0.0.1 --port 8000) > /tmp/m63-api.log 2>&1 &
+          API_PID=$!
+          (cd frontend && npm run dev -- --host 127.0.0.1) > /tmp/m63-ui.log 2>&1 &
+          UI_PID=$!
+          trap 'kill "$API_PID" "$UI_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8000/health/ready > /dev/null && curl --fail --silent http://127.0.0.1:5173 > /dev/null; then break; fi
+            sleep 1
+          done
+          cd frontend
+          npx playwright test --config playwright.benchmark.config.ts
+      - name: Enforce unchanged quality targets (failures are not waived)
+        if: ${{ !cancelled() }}
+        run: >-
+          python evaluation/benchmark_harness.py --corpus evaluation/corpus/benchmark-v1
+          --replay /tmp/failurelens-m63/replay --output /tmp/failurelens-m63/strict-report --enforce-quality
+      - name: Retain benchmark predictions, safe derivatives and reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: frozen-benchmark-${{ github.sha }}
+          path: /tmp/failurelens-m63
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: benchmark-browser-${{ github.sha }}
+          path: frontend/test-results
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Publish measured scope and failed targets
+        if: always()
+        run: |
+          if test -f /tmp/failurelens-m63/report/report.md; then
+            cat /tmp/failurelens-m63/report/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
