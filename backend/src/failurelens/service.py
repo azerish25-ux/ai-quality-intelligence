@@ -951,6 +951,9 @@ def ingest_parsed_report(
         settings=settings,
     )
 
+    from .domain_evidence import register_domain_inputs
+    register_domain_inputs(session, project, run, artifact, settings)
+
     from .transaction_evidence import register_transaction_inputs
     register_transaction_inputs(session, project, run, artifact, settings)
     from .contract_evidence import register_contract_inputs

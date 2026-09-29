@@ -1,5 +1,9 @@
 # FailureLens delivery ledger
 
+## M6.3 reconciliation — preserve both published and saved evaluation lines
+
+The current source preserves the published frozen campaign/structured-contract implementation and also integrates the previously saved three-commit M6.3 line as a separate domain-observation and `benchmark-v1` path. The two evaluation datasets, endpoints, reports, and workflow names remain distinct. This reconciliation does not convert either quality result into full M6 acceptance and does not rewrite historical measured reports.
+
 ## M6.3 — structured contracts and frozen campaign source checkpoint
 
 Starting source: `0ca3003472917af004fe62870221b67527cf4e71`, existing `main`.

@@ -5,6 +5,8 @@ FailureLens is a self-hosted platform for investigating automated-test failures 
 
 **Current milestone: M6.3 structured diagnostic contracts and frozen five-category campaign. Full M6 and the complete project remain PARTIAL.** The new corpus is committed before test evaluation. Exact-source measurements, CI and limitations are recorded in the [delivery ledger](docs/PROGRESS.md), [requirement matrix](docs/requirements-matrix.md), and [campaign contract](docs/campaign-evaluation.md). Historical reports retain their originally tested revisions.
 
+The reconciled source also retains the separately authored M6.3 `domain-observations-v1` path and its `benchmark-v1` evaluation harness. It is exposed independently from the campaign so neither dataset nor metric lineage is silently substituted for the other. See [benchmark contract and limitations](docs/benchmark-evaluation.md).
+
 The new LedgerGuard challenge executes **60 real production-component interventions across 15 mechanisms**, each with a healthy control. Their reports traverse FailureLens's API, durable worker, PostgreSQL and evidence validator. The result is **48/60 product defects recognized, 12 abstentions and 0/60 dangerous dismissals**. The unchanged 90% recall target **FAILS**. This is not LedgerGuard HTTP/database transaction verification, a five-category held-out benchmark or a deployment guarantee.
 
 ## New frozen evaluation campaign

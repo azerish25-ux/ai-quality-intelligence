@@ -98,3 +98,20 @@ The preceding matrix is preserved byte-for-byte in [requirements-through-M6.1.md
 | R-M62-RETENTION | Bounded durable snapshot and independent offline rescore | PASS | Exact `b31be357` report and lossless snapshot; `verify_fullstack_snapshot.py`, `test_fullstack_snapshot.py`; archive/report digests and original CI expiry retained. Offline verification is not fresh execution. |
 | R-M62-ACCEPT | Exact-source delivery and unchanged historical failures | PASS | Accepted `b31be357` source has ten green regression jobs and one green full-stack job. Existing component 48/60 recall and failed 90% target remain unchanged. Later evidence commits require their own CI. |
 | R-M62-FULL | Diverse held-out evaluation and complete M6 | PARTIAL | One development mechanism with four dependent amount variants does not satisfy 80 independent families, frozen five-category splits, temporal/unknown-family slices or broader quality acceptance. |
+
+## M6.3 local implementation checkpoint
+
+The entries below supplement, not overwrite, the immutable historical measurements
+above. Delivery and exact tested revisions are recorded in `PROGRESS.md`.
+
+| ID | Requirement | Status | Implementation / boundary |
+|---|---|---|---|
+| R-M63-DOMAIN | Structured operation, projection and calendar observations | PASS | `domain_evidence.py`, adapter/binder, recomputed publication predicates, API/worker and false-blame regressions. Producer assertions are not causal certification. |
+| R-M63-CORPUS | General five-category frozen corpus | PASS | 260 cases, 83 authored mechanism groups, 108 test cases, preserved 60 actual historical executions; explicit author/adjudication limitations. |
+| R-M63-SPLIT | Family/incident/artifact isolation | PASS | `benchmark_audit.py`, exact digests, all previously inspected mechanisms in development, altered-policy and cross-split regressions. |
+| R-M63-PIPELINE | General API/worker replay and independent scoring | PARTIAL | Real development replay and independent claim checks verified locally; complete retained measurement and PostgreSQL/browser execution must be distinguished in the ledger. |
+| R-M63-UI | Five-class results, comparisons and all errors | PARTIAL | Authenticated bounded endpoint and UI/browser test source implemented. Full frontend install/build/browser verification is environment-dependent. |
+| R-M63-QUALITY | Original recall/F1/coverage/safety targets | NOT RUN | Frozen test measurement is performed only after the corpus commit; passing code tests cannot establish quality acceptance. |
+| R-M63-ADVERSARIAL | Forty tagged cross-category inputs | PARTIAL | Five text/canary classes; not every master attack class or OS sandbox verification. |
+| R-M63-TEMPORAL | Prior-only chronology and unknown families | PARTIAL | Actual ingestion/review order and later-run exclusion; unknown-family slice equals the test split, not an independent second benchmark or dated production backtest. |
+| R-M63-FULL | Full M6 acceptance | PARTIAL | No blinded expert study, no new LedgerGuard executions in this campaign; broad adversarial, temporal, quality and final packaging scope remains. |

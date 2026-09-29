@@ -776,6 +776,31 @@ def evaluation_campaign(principal: Principal = Depends(current_principal)) -> di
         raise HTTPException(503, "campaign evaluation metrics unavailable") from exc
 
 
+@app.get("/api/v1/evaluations/benchmark")
+def evaluation_benchmark(principal: Principal = Depends(current_principal)) -> dict:
+    require_user(principal)
+    path = get_settings().benchmark_evaluation_metrics_path
+    if not path.exists() and not path.is_symlink():
+        return {"status": "not_loaded", "message": "The frozen five-category benchmark is not mounted."}
+    try:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > 2 * 1024 * 1024:
+            raise ValueError("Invalid evaluation report file")
+        with path.open("rb") as stream:
+            data = stream.read(2 * 1024 * 1024 + 1)
+        if len(data) > 2 * 1024 * 1024:
+            raise ValueError("Evaluation report exceeds its bound")
+        def reject_nonfinite(value: str):
+            raise ValueError("Non-finite evaluation measurement")
+        metrics = json.loads(data, parse_constant=reject_nonfinite)
+        if (not isinstance(metrics, dict)
+                or metrics.get("evaluation_scope") != "frozen_five_category_benchmark"
+                or metrics.get("split") != "test"):
+            raise ValueError("Evaluation scope differs")
+        return {"status": "available", "metrics": metrics}
+    except (OSError, ValueError) as exc:
+        raise HTTPException(503, "benchmark evaluation metrics unavailable") from exc
+
+
 @app.post("/api/v1/projects", response_model=ProjectRead, status_code=201)
 def projects_create(
     request: ProjectCreate,

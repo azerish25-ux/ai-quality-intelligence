@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "adversarial_tags": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 40,
+      "title": "Adversarial Tags",
+      "type": "array"
+    },
+    "artifacts": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "case_id": {
+      "pattern": "^c-[0-9a-f]{20}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "expected_category": {
+      "enum": [
+        "product_defect",
+        "test_defect",
+        "infrastructure_failure",
+        "known_flake",
+        "insufficient_evidence"
+      ],
+      "title": "Expected Category",
+      "type": "string"
+    },
+    "forbidden_claims": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 40,
+      "title": "Forbidden Claims",
+      "type": "array"
+    },
+    "history_manifest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "History Manifest"
+    },
+    "incident_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "label_provenance": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Label Provenance",
+      "type": "string"
+    },
+    "label_review_status": {
+      "enum": [
+        "automated",
+        "agent-reviewed",
+        "human-reviewed"
+      ],
+      "title": "Label Review Status",
+      "type": "string"
+    },
+    "observability_rationale": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Observability Rationale",
+      "type": "string"
+    },
+    "oracle": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Oracle",
+      "type": "string"
+    },
+    "required_evidence": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "title": "Required Evidence",
+      "type": "array"
+    },
+    "root_cause": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Root Cause"
+    },
+    "scenario_family_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Scenario Family Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "severity": {
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "source_kind": {
+      "enum": [
+        "synthetic",
+        "ledgerguard_executed",
+        "other_executed"
+      ],
+      "title": "Source Kind",
+      "type": "string"
+    },
+    "source_revision": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Source Revision",
+      "type": "string"
+    },
+    "split": {
+      "enum": [
+        "development",
+        "calibration",
+        "test"
+      ],
+      "title": "Split",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_id",
+    "schema_version",
+    "source_kind",
+    "source_revision",
+    "scenario_family_id",
+    "incident_id",
+    "artifacts",
+    "history_manifest",
+    "expected_category",
+    "root_cause",
+    "required_evidence",
+    "forbidden_claims",
+    "severity",
+    "observability_rationale",
+    "oracle",
+    "adversarial_tags",
+    "label_provenance",
+    "label_review_status",
+    "split"
+  ],
+  "title": "BenchmarkCaseLabel",
+  "type": "object"
+}

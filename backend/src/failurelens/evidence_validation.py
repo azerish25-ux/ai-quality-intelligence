@@ -10,6 +10,7 @@ from .config import Settings, get_settings
 from .models import Category, Evidence, Failure
 from .transaction_evidence import inspect_multiplicity
 from .contract_evidence import CLAIM_TEXT, inspect_contract
+from .domain_evidence import inspect_domain
 from .storage import StorageError, read_stored_bytes
 
 VALIDATION_VERSION = "evidence-validation-v2"
@@ -452,6 +453,16 @@ def _claim_validation(
         semantic_support = bool(typed_predicate_valid and decision.category == Category.product_defect
                                 and validated_ids and not irrelevant_reference_ids
                                 and claim.get("text") == CLAIM_TEXT.get(kind))
+
+    if isinstance(predicate, dict) and predicate.get("kind") == "reported_domain_invariant":
+        findings = {item.id: inspect_domain(item.observation.get("domain_observation"))
+                    for item in valid_rows if item.kind == "domain_observation"}
+        typed_predicate_valid = bool(findings and all(
+            f.status == "violation" and f.predicate == predicate for f in findings.values()))
+        irrelevant_reference_ids = [identifier for identifier in validated_ids if identifier not in findings]
+        semantic_support = bool(typed_predicate_valid and validated_ids and not irrelevant_reference_ids
+                                and decision.category == Category.product_defect and claim.get("kind") == "inference"
+                                and all(claim.get("text") == f.claim for f in findings.values()))
 
     text = str(claim.get("text", ""))
     policy_safe = bool(

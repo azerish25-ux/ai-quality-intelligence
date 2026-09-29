@@ -216,6 +216,7 @@ function App() {
     () => new URLSearchParams(window.location.search).get('history_shards') ?? ''
   );
   const [campaignEvaluation, setCampaignEvaluation] = useState<Record<string, unknown> | null>(null);
+  const [benchmarkEvaluation, setBenchmarkEvaluation] = useState<Record<string, unknown> | null>(null);
   const [fullstackEvaluation, setFullstackEvaluation] = useState<Record<string, unknown> | null>(null);
   const [evaluation, setEvaluation] = useState<Record<string, unknown> | null>(null);
   const [reviewQueue, setReviewQueue] = useState<ReviewQueueItem[]>([]);
@@ -406,12 +407,13 @@ function App() {
   const refreshRoot = useCallback(async () => {
     const generation = authGeneration.current;
     const request = ++rootRequest.current;
-    const [nextOverview, nextProjects, evaluationResponse, fullstackResponse, campaignResponse] = await Promise.all([
+    const [nextOverview, nextProjects, evaluationResponse, fullstackResponse, campaignResponse, benchmarkResponse] = await Promise.all([
       api.overview(),
       api.projects(),
       api.evaluation(),
       api.fullstackEvaluation(),
-      api.campaignEvaluation()
+      api.campaignEvaluation(),
+      api.benchmarkEvaluation()
     ]);
     if (generation !== authGeneration.current || request !== rootRequest.current) return;
     setOverview(nextOverview);
@@ -419,6 +421,7 @@ function App() {
     setEvaluation(evaluationResponse.metrics ?? null);
     setFullstackEvaluation(fullstackResponse.metrics ?? null);
     setCampaignEvaluation(campaignResponse.metrics ?? null);
+    setBenchmarkEvaluation(benchmarkResponse.metrics ?? null);
     const intendedProject = selectionIntent.current.projectId;
     if (intendedProject && !nextProjects.some(project => project.id === intendedProject)) {
       setError('Requested project is unavailable or you do not have access. Select an available project.');
@@ -2305,6 +2308,7 @@ function App() {
 
         <EvaluationPanel metrics={evaluation} />
         {campaignEvaluation && <EvaluationPanel metrics={campaignEvaluation} id="campaign-evaluation" title="Frozen five-category evaluation" />}
+        {benchmarkEvaluation && <EvaluationPanel metrics={benchmarkEvaluation} id="benchmark-evaluation" title="Frozen authored benchmark" />}
         {fullstackEvaluation && <EvaluationPanel metrics={fullstackEvaluation} id="fullstack-evaluation" title="HTTP and database retry evaluation" />}
       </main>
       </div>

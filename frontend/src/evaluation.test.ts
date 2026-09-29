@@ -16,6 +16,7 @@ describe('evaluation truthfulness', () => {
     expect(evaluationProvenance({ source_counts: { synthetic: 200, ledgerguard_executed: 0 } })).toBe('Synthetic regression evidence');
     expect(evaluationProvenance({ evaluation_scope: 'production_component_challenge', source_counts: { ledgerguard_executed: 60 } })).toBe('Executed LedgerGuard components');
     expect(evaluationProvenance({ evaluation_scope: 'http_postgresql_fault_proxy' })).toBe('Executed HTTP/PostgreSQL · development only');
+    expect(evaluationProvenance({ evaluation_scope: 'frozen_five_category_benchmark' })).toBe('Frozen authored test split · inspect limitations');
     expect(evaluationProvenance({})).toBe('Provenance not established');
   });
 });

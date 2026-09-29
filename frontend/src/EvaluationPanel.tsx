@@ -1,4 +1,5 @@
 import { evaluationFraction, evaluationNumber, evaluationProvenance, evaluationRate, evaluationRecord } from './evaluation';
+import { BenchmarkDetails } from './BenchmarkDetails';
 
 type Props = { metrics: Record<string, unknown> | null; id?: string; title?: string };
 const count = (value: unknown): string => {
@@ -33,6 +34,7 @@ export function EvaluationPanel({ metrics, id = "evaluation", title = "Determini
       </div>
       <p>LedgerGuard executions: <strong>{count(sources.ledgerguard_executed)}</strong>. Synthetic cases in this report: <strong>{count(sources.synthetic)}</strong>.
         {' '}Product abstentions requiring review: <strong>{count(metrics.product_abstentions)}</strong>.</p>
+      {metrics.evaluation_scope === 'frozen_five_category_benchmark' && <BenchmarkDetails metrics={metrics} />}
       {campaign && <>
         <p>The headline metrics cover only the frozen test split: <strong>{count(metrics.case_count)}</strong> cases.
           {' '}The full dataset contains <strong>{count(metrics.dataset_case_count)}</strong> cases in <strong>{count(metrics.dataset_family_count)}</strong> agent-reviewed family groups.

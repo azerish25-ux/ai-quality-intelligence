@@ -1165,9 +1165,21 @@ def _contract_adapter(content: bytes, _: str, __: Settings) -> AdapterResult:
                          warnings=("producer_reported_measurements_not_causal_proof",))
 
 
+def _domain_adapter(content: bytes, _: str, __: Settings) -> AdapterResult:
+    from .domain_evidence import parse_domain_observation
+    try:
+        observation = parse_domain_observation(content)
+    except (ValueError, UnicodeDecodeError, RecursionError) as exc:
+        raise IngestionError("malformed_report", "Invalid bounded domain observation") from exc
+    return AdapterResult(metadata={"domain_observation": observation},
+                         warnings=("producer_reported_contract_not_causal_proof",))
+
+
 def _register_adapters() -> None:
     _register(AdapterSpec(kind="contract-observations-json", parser_version="contract-observations-v1",
                           parser=_contract_adapter))
+    _register(AdapterSpec(kind="domain-observations-json", parser_version="domain-observations-v1",
+                          parser=_domain_adapter))
     _register(AdapterSpec(kind="transaction-observations-json", parser_version="transaction-observations-v1",
                           parser=_transaction_adapter))
     _register(
