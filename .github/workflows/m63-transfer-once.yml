@@ -10,24 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Download and verify bounded public-intended source data
+      - name: Download bounded public-intended source data
         env:
           SOURCE_URL: 'https://sdmntprnorthcentralus.oaiusercontent.com/files/00000000-bf24-822f-8089-8535fb7dcd05/raw?se=2026-09-29T02%3A32%3A13Z&sp=r&sv=2026-02-06&sr=b&scid=daf73f2a-b165-5870-93fd-0c8f63b81604&skoid=fae15675-a81a-44b5-9d8c-d8445a7c26a2&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-29T02%3A16%3A26Z&ske=2026-09-30T02%3A16%3A26Z&sks=b&skv=2026-02-06&sig=BLwjQ59CGjK6Z7%2Bda9jpGe3oBcFVuoR0O6pgdpU1jD8%3D'
         run: |
+          echo "::add-mask::$SOURCE_URL"
+          curl --fail --show-error --silent --location --proto '=https' --max-time 30 --max-filesize 500000 "$SOURCE_URL" --output /tmp/publication.json.xz
+      - name: Verify exact transferred bytes
+        run: |
           python - <<'PY'
-          import hashlib, os, pathlib, urllib.request, urllib.error
-          url = os.environ['SOURCE_URL']
-          print('::add-mask::' + url)
-          try:
-              with urllib.request.urlopen(url, timeout=30) as response:
-                  data = response.read(500000)
-          except urllib.error.HTTPError as exc:
-              print('Transfer HTTP status:', exc.code)
-              print(exc.read(1500).decode('utf-8', errors='replace'))
-              raise SystemExit(1)
+          import hashlib, pathlib
+          data = pathlib.Path('/tmp/publication.json.xz').read_bytes()
           assert len(data) == 417884
           assert hashlib.sha256(data).hexdigest() == '54834e109e66d121c0260b4befb9ec032d47cfbbf9a92caf347df97317a5c0f9'
-          pathlib.Path('/tmp/publication.json.xz').write_bytes(data)
           print('Verified source bytes; no source was executed and no repository write was performed.')
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
