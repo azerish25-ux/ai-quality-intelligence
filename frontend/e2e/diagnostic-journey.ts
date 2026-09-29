@@ -1,5 +1,17 @@
 import { readFileSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { expect, test, type APIRequestContext } from '@playwright/test';
+import type { RunDetail } from '../src/api';
+
+// The detail endpoint wraps the run in { run, failure_types, failure_count }.
+// Validate its identity before building a link so a malformed response fails here.
+async function projectForRun(request: APIRequestContext, runId: string): Promise<string> {
+  const response = await request.get(`http://127.0.0.1:8000/api/v1/runs/${runId}`);
+  expect(response.ok()).toBeTruthy();
+  const detail: RunDetail = await response.json();
+  expect(detail.run.id).toBe(runId);
+  expect(detail.run.project_id).toMatch(/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i);
+  return detail.run.project_id;
+}
 
 // Read only saved predictions, never labels. The backend is the freshly replayed
 // PostgreSQL database for this exact source, not a mocked response service.
@@ -16,10 +28,8 @@ for (const kind of kinds) {
     const row = replay.cases.find((r: { analysis: { claims: { predicate?: { contract?: string } }[] } }) =>
       r.analysis.claims.some(claim => claim.predicate?.contract === kind));
     expect(row).toBeTruthy();
-    const runResponse = await request.get(`http://127.0.0.1:8000/api/v1/runs/${row.run_id}`);
-    expect(runResponse.ok()).toBeTruthy();
-    const run = await runResponse.json();
-    await page.goto(`/?project=${run.project_id}&run=${row.run_id}&failure=${row.analysis.failure_id}#workspace`);
+    const projectId = await projectForRun(request, row.run_id);
+    await page.goto(`/?project=${projectId}&run=${row.run_id}&failure=${row.analysis.failure_id}#workspace`);
     const diagnostic = page.getByRole('region', { name: 'Diagnostic evidence', exact: true });
     await expect(diagnostic).toBeVisible();
     await expect(diagnostic.getByText(`${kind.replaceAll('_', ' ')} · violated`, { exact: true })).toBeVisible();
@@ -38,8 +48,8 @@ test('missing measurements remain visible as an unresolved diagnosis', async ({ 
   const row = replay.cases.find((r: { analysis: { validation_results: { diagnostic_gap: string } } }) =>
     r.analysis.validation_results.diagnostic_gap === 'missing_or_invalid_observations');
   expect(row.analysis.category).toBe('insufficient_evidence');
-  const run = await (await request.get(`http://127.0.0.1:8000/api/v1/runs/${row.run_id}`)).json();
-  await page.goto(`/?project=${run.project_id}&run=${row.run_id}&failure=${row.analysis.failure_id}#workspace`);
+  const projectId = await projectForRun(request, row.run_id);
+  await page.goto(`/?project=${projectId}&run=${row.run_id}&failure=${row.analysis.failure_id}#workspace`);
   const diagnostic = page.getByRole('region', { name: 'Diagnostic evidence', exact: true });
   await expect(diagnostic.getByRole('status')).toHaveText('Required observations are missing or invalid.');
   await diagnostic.screenshot({ path: info.outputPath('missing-observations.png') });
