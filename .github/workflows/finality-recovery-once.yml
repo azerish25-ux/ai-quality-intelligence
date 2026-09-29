@@ -18,7 +18,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Import checksum-verified original Git objects without moving refs
+      - name: Import exact commits using account-created trees without moving refs
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python .github/finality-recovery-once/import.py
+        run: python .github/finality-recovery-once/delegate.py
