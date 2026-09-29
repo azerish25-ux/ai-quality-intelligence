@@ -1,0 +1,132 @@
+name: FailureLens Diagnostic Development Evidence
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: failurelens-diagnostics-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  executed-diagnostics:
+    name: Known-component measurements and diagnostic regressions (not held-out acceptance)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: failurelens_diagnostics
+          POSTGRES_USER: failurelens
+          POSTGRES_PASSWORD: failurelens
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U failurelens -d failurelens_diagnostics"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      FAILURELENS_DATABASE_URL: postgresql+psycopg://failurelens:failurelens@127.0.0.1:5432/failurelens_diagnostics
+      FAILURELENS_DEMO_MODE: 'true'
+      FAILURELENS_ARTIFACT_ROOT: /tmp/failurelens-m64-private-artifacts
+      FAILURELENS_DIAGNOSTIC_REPLAY: /tmp/failurelens-m64/replay/predictions.json
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: azerish25-ux/transaction-reliability-lab
+          ref: 13bdd62c924a3230825b6d9304f449f887c8e7fe
+          path: .ledgerguard-evaluation-source
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Install and migrate the real FailureLens pipeline
+        run: |
+          python -m pip install './backend[dev]'
+          (cd backend && alembic upgrade head)
+      - name: Execute new measurements on pinned healthy and faulty components
+        shell: bash
+        run: |
+          set -euo pipefail
+          export JAVA_HOME="$JAVA_HOME_21_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          python integrations/ledgerguard/diagnostics.py --ledgerguard-source .ledgerguard-evaluation-source --output /tmp/failurelens-m64/corpus
+      - name: Replay public observations through PostgreSQL API and durable worker
+        run: >-
+          python evaluation/replay_campaign.py --inputs /tmp/failurelens-m64/corpus/inputs
+          --output /tmp/failurelens-m64/replay --confirm-disposable-database
+      - name: Independently score development observations without claiming held-out acceptance
+        run: >-
+          python evaluation/campaign_harness.py --corpus /tmp/failurelens-m64/corpus
+          --replay /tmp/failurelens-m64/replay --output /tmp/failurelens-m64/report --development-only
+      - name: Require actual paired executions and complete scoped diagnosis
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path('/tmp/failurelens-m64')
+          provenance=json.loads((root/'corpus/execution-provenance.json').read_bytes())
+          metrics=json.loads((root/'report/metrics.json').read_bytes())
+          assert provenance['executed_pairs']==12 and provenance['executed_families']==3
+          assert provenance['synthetic_cases']==20 and len(provenance['oracle_receipts'])==12
+          assert not provenance['source_worktree_dirty']
+          assert all(r['control_passed'] and r['intervention_failed'] for r in provenance['oracle_receipts'])
+          assert metrics['source_revision']==os.environ['GITHUB_SHA']
+          assert metrics['case_count']==32 and metrics['source_counts']['ledgerguard_executed']==12 and metrics['source_counts']['synthetic']==20
+          assert metrics['database_dialect']=='postgresql' and not metrics['source_worktree_dirty']
+          assert metrics['evaluation_scope']=='development_contract_measurement' and metrics['held_out_acceptance'] is False
+          assert all(metrics['integrity_acceptance'].values()) and not metrics['errors']
+          assert not metrics['full_m6_complete'] and not metrics['generalization_claim_allowed']
+          PY
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Test and build the real dashboard
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+          npm run build
+          npx playwright install --with-deps chromium
+      - name: Inspect diagnostic evidence in desktop and narrow browser journeys
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd backend && python -m uvicorn failurelens.api:app --host 127.0.0.1 --port 8000) > /tmp/m64-api.log 2>&1 &
+          API_PID=$!
+          (cd frontend && npm run dev -- --host 127.0.0.1) > /tmp/m64-ui.log 2>&1 &
+          UI_PID=$!
+          trap 'kill "$API_PID" "$UI_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8000/health/ready >/dev/null && curl --fail --silent http://127.0.0.1:5173 >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8000/health/ready >/dev/null
+          curl --fail --silent http://127.0.0.1:5173 >/dev/null
+          cd frontend
+          npx playwright test --config playwright.diagnostics.config.ts
+      - name: Retain exact-source observations, oracles, predictions and reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: diagnostic-development-${{ github.sha }}
+          path: /tmp/failurelens-m64
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: diagnostic-browser-${{ github.sha }}
+          path: frontend/test-results
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Publish measured scope and original minimums
+        if: always()
+        run: |
+          if test -f /tmp/failurelens-m64/report/report.md; then
+            cat /tmp/failurelens-m64/report/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
