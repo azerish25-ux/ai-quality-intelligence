@@ -873,3 +873,72 @@ scanned part/index digest occurrences; source review count remains 921. Final
 focused verification is **129 passed**, with no skips. The application source is
 unchanged from the earlier full M8 run; this targeted tooling verification is not
 a substitute for the final commit's PostgreSQL/browser/hosted acceptance.
+
+### Published M7/M8 checkpoint — 2026-09-30
+
+Remote `d6f2b72a425ed3269026a6129794bf2e6fc90f8d`, exact tree
+`81fb83d26f00040d4ec79e301685d001ee39b041`, contains the complete prepared M7/M8
+source, workflow repair and bounded policy packaging. The non-force main update
+and exact remote tree were verified. No incomplete source tree was published.
+
+[Ordinary CI 36735786458](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36735786458)
+passed all **twelve jobs**: PostgreSQL backend (**1,978 passed, zero skipped**, 87.58%
+combined coverage), frontend, actual producer fixtures, existing evaluations,
+Docker validation/builds, four general browser lanes and two production-auth
+provider browser lanes. The dedicated [provider boundary run](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36735786501)
+also passed actual PostgreSQL/API/fixture-worker success and outage cases, ordinary
+worker exclusion, readiness and container network/token placement. This uses an
+injected synthetic fixture, not real model connectivity or paid inference. Its
+retained report marks cost unknown and confirms sensitive canaries are absent.
+Representative desktop proposal and narrow outage captures were inspected; the
+unverified proposal and deterministic-fallback states remain explicit.
+
+The [read-only Action consumer](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36735786596)
+passed with retained report, Markdown, status and canonical evidence outputs.
+The [strict mutation workflow](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36735786606)
+and the existing telemetry, diagnostic, campaign, transaction-finality, full-stack
+and source-export workflows also passed. This hosted verification belongs to d6f2b72.
+
+All seven independent jobs in [quality/security](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36735786565)
+passed, including Python dependency audit and the exact 3,101-candidate scan. npm
+audit was explicitly skipped, so the required aggregate correctly **FAILED**.
+The unchanged [frozen classifier benchmark](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36735786602)
+still failed. [Operational reads](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36735786619)
+again failed: **586.89 ms warm p95**, zero recorded warm request failures, AMD EPYC
+9V74 hardware, the same 50,000-execution/concurrency-ten workload and unchanged
+500 ms target. Earlier failed and passed measurements are retained; stability on
+the reference resource envelope remains unproven. No live GitHub comment, external
+provider request, external collector or npm metadata audit was performed.
+
+### M9 cohort, measurement and child-process hardening
+
+Three reproduced defects now have local repairs and failing-before regressions:
+
+- Requested cohort predicates now run before the bounded comparable-run query, so
+  unrelated older runs cannot consume the cap and erase missing-test denominators.
+  Branch/environment nulls, time windows, excluded runs, worker/shard counts and
+  scope normalization retain their prior-only and truncation rules. Independent
+  review found a related preexisting mismatch: legacy unknown scopes counted as
+  comparable but lost their actual executions and human reviews. A shared SQL
+  predicate now matches the existing normalization across all three queries.
+  Unknown-scope observations still explicitly disallow reassurance.
+- Operational measurement counts cold and warm failures, requires exactly four
+  cold and 200 warm samples, retains the successful-warm latency denominator and
+  unchanged 500 ms threshold, and records fixed stage/error types on initialization,
+  seeding, startup, readiness or measurement failures. Cleanup is bounded, keeps
+  the primary failure and reports forced/failing fallback cleanup. No exception
+  message or connection detail is copied into retained metrics.
+- The image child starts the sibling worker directly with isolated Python imports,
+  a minimal environment and closed inherited descriptors. Actual child-process
+  canaries show that parent settings/credentials and inheritable descriptors are
+  absent and an untrusted PYTHONPATH startup hook does not run. Existing PNG/JPEG
+  processing still passes. This is process/import hygiene, not a filesystem or
+  network sandbox; documentation no longer claims that stronger boundary.
+
+Focused local verification passed 61 history/reuse tests after the independent
+scope repair, 21 measurement tests and 46 image-related tests. The same review found
+no additional blocker in benchmark/image changes and no existing source-bound
+review entries for the changed files. Six offline gates pass with the unchanged
+3,101-candidate resolved scan. Full clean-source regression and exact-source hosted
+verification are required after this new checkpoint. No performance acceptance or
+full-master completion is inferred from these local regressions.

@@ -20,6 +20,7 @@ from pathlib import Path
 
 import httpx
 from sqlalchemy import func, insert, select, text
+from sqlalchemy.exc import SQLAlchemyError
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend/src"))
@@ -173,6 +174,30 @@ def read_stage_metrics(base):
         return {"status": "unavailable", "metrics": None}
 
 
+def summarize_read_measurements(cold, warm):
+    """Keep warm latency comparable while counting failures from both phases."""
+    successful = [row["elapsed_ms"] for row in warm if row["ok"]]
+    cold_failures = sum(not row["ok"] for row in cold)
+    warm_failures = sum(not row["ok"] for row in warm)
+    p95 = percentile(successful, 0.95) if successful else None
+    return {
+        "cold_reads": cold,
+        "recorded_requests": {"cold": len(cold), "warm": len(warm)},
+        "warm_p95_ms": p95,
+        "warm_p50_ms": percentile(successful, 0.5) if successful else None,
+        "warm_latency_scope": "successful_warm_requests",
+        "cold_failed_requests": cold_failures,
+        "warm_failed_requests": warm_failures,
+        "failed_requests": cold_failures + warm_failures,
+        "failed_requests_scope": "cold_and_warm",
+        "targets": {
+            "zero_failed_requests": cold_failures + warm_failures == 0,
+            "complete_read_samples": len(cold) == 4 and len(warm) == 200,
+            "api_read_p95_under_500ms": p95 is not None and p95 < 500,
+        },
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -195,73 +220,114 @@ def main():
     sha = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
     ).strip()
-    initialize_database()
-    seed_started = time.perf_counter()
-    with SessionLocal() as session:
-        project, run, execution = seed_workload(session)
-        db_version = session.scalar(text("SHOW server_version"))
-    seed_seconds = time.perf_counter() - seed_started
     args.output.mkdir(parents=True)
-    routes = [
-        f"/api/v1/projects/{project}/runs?limit=50",
-        f"/api/v1/runs/{run}",
-        f"/api/v1/tests/{execution}/history?limit=50",
-        "/api/v1/overview",
-    ]
-    sock = socket.socket()
-    sock.bind(("127.0.0.1", 0))
-    port = sock.getsockname()[1]
-    sock.close()
-    base = f"http://127.0.0.1:{port}"
-    with (args.output / "api.log").open("w") as log:
-        proc = subprocess.Popen(
-            [
-                sys.executable,
-                "-m",
-                "uvicorn",
-                "failurelens.api:app",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                str(port),
-            ],
-            stdout=log,
-            stderr=subprocess.STDOUT,
-        )
+    db_version = seed_seconds = hardware_before = hardware_after = None
+    cold, warm = [], []
+    stage_metrics = {"status": "not_run", "metrics": None}
+    failure = cleanup_error_type = cleanup_fallback_error_type = None
+    cleanup_forced = False
+    stage = "database_initialization"
+    try:
+        initialize_database()
+        stage = "seeding"
+        seed_started = time.perf_counter()
+        with SessionLocal() as session:
+            project, run, execution = seed_workload(session)
+            db_version = session.scalar(text("SHOW server_version"))
+        seed_seconds = time.perf_counter() - seed_started
+        routes = [
+            f"/api/v1/projects/{project}/runs?limit=50",
+            f"/api/v1/runs/{run}",
+            f"/api/v1/tests/{execution}/history?limit=50",
+            "/api/v1/overview",
+        ]
+        stage = "api_startup"
+        sock = socket.socket()
         try:
-            ready = False
-            for _ in range(120):
-                if proc.poll() is not None:
-                    raise RuntimeError("API process exited before readiness")
-                try:
-                    ready = (
-                        httpx.get(
-                            base + "/health/ready", timeout=1, trust_env=False
-                        ).status_code
-                        == 200
-                    )
-                except httpx.HTTPError:
-                    pass
-                if ready:
-                    break
-                time.sleep(0.25)
-            if not ready:
-                raise RuntimeError("API readiness timed out")
-            cold = measure(base, routes, concurrency=1, samples=4)
-            hardware_before = hardware_details()
-            warm = measure(base, routes, concurrency=10, samples=200)
-            hardware_after = hardware_details()
-            stage_metrics = read_stage_metrics(base)
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
         finally:
-            proc.terminate()
+            sock.close()
+        base = f"http://127.0.0.1:{port}"
+        with (args.output / "api.log").open("w") as log:
+            proc = subprocess.Popen(
+                [
+                    sys.executable,
+                    "-m",
+                    "uvicorn",
+                    "failurelens.api:app",
+                    "--host",
+                    "127.0.0.1",
+                    "--port",
+                    str(port),
+                ],
+                stdout=log,
+                stderr=subprocess.STDOUT,
+            )
             try:
-                proc.wait(timeout=15)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                proc.wait()
-    successful = [r["elapsed_ms"] for r in warm if r["ok"]]
-    failures = sum(not r["ok"] for r in warm)
-    p95 = percentile(successful, 0.95) if successful else None
+                stage = "api_readiness"
+                ready = False
+                for _ in range(120):
+                    if proc.poll() is not None:
+                        raise RuntimeError("API process exited before readiness")
+                    try:
+                        ready = (
+                            httpx.get(
+                                base + "/health/ready", timeout=1, trust_env=False
+                            ).status_code
+                            == 200
+                        )
+                    except httpx.HTTPError:
+                        pass
+                    if ready:
+                        break
+                    time.sleep(0.25)
+                if not ready:
+                    raise RuntimeError("API readiness timed out")
+                stage = "cold_reads"
+                cold = measure(base, routes, concurrency=1, samples=4)
+                stage = "hardware_before_warm"
+                hardware_before = hardware_details()
+                stage = "warm_reads"
+                warm = measure(base, routes, concurrency=10, samples=200)
+                stage = "hardware_after_warm"
+                hardware_after = hardware_details()
+                stage = "telemetry"
+                stage_metrics = read_stage_metrics(base)
+            finally:
+                try:
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=15)
+                    except subprocess.TimeoutExpired:
+                        cleanup_forced = True
+                        proc.kill()
+                        proc.wait(timeout=5)
+                except (OSError, subprocess.SubprocessError) as exc:
+                    # Preserve an earlier measurement failure as the primary cause.
+                    cleanup_error_type = type(exc).__name__
+                    if not cleanup_forced:
+                        cleanup_forced = True
+                        try:
+                            proc.kill()
+                            proc.wait(timeout=5)
+                        except (OSError, subprocess.SubprocessError) as fallback:
+                            cleanup_fallback_error_type = type(fallback).__name__
+    except (
+        OSError,
+        subprocess.SubprocessError,
+        SQLAlchemyError,
+        httpx.HTTPError,
+        RuntimeError,
+        ValueError,
+        TypeError,
+        LookupError,
+    ) as exc:
+        # Never copy transport/database exception messages into retained evidence.
+        failure = {"stage": stage, "error_type": type(exc).__name__}
+    if failure is None and cleanup_error_type is not None:
+        failure = {"stage": "api_cleanup", "error_type": cleanup_error_type}
+    summary = summarize_read_measurements(cold, warm)
     metrics = {
         "schema_version": "operational-benchmark-v1",
         "source_revision": sha,
@@ -273,6 +339,7 @@ def main():
             "logical_executions": 50_000,
             "concurrency": 10,
             "warm_samples": 200,
+            "cold_samples": 4,
         },
         "hardware": {
             "platform": platform.platform(),
@@ -288,24 +355,25 @@ def main():
         "hardware_after": hardware_after,
         "api_stage_metrics": stage_metrics,
         "seed_seconds": seed_seconds,
-        "cold_reads": cold,
-        "warm_p95_ms": p95,
-        "warm_p50_ms": percentile(successful, 0.5) if successful else None,
-        "failed_requests": failures,
+        **summary,
+        "execution": {
+            "status": "failed" if failure else "completed",
+            "failure": failure,
+            "cleanup_error_type": cleanup_error_type,
+            "cleanup_forced": cleanup_forced,
+            "cleanup_fallback_error_type": cleanup_fallback_error_type,
+        },
         "client_max_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
         "api_child_max_rss_kib": resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss,
         "database_memory_measured": False,
         "whole_stack_memory_measured": False,
-        "targets": {
-            "zero_failed_requests": failures == 0,
-            "api_read_p95_under_500ms": p95 is not None and p95 < 500,
-        },
         "limitations": [
             "Synthetic read workload, not classification evaluation or ingestion throughput",
             "Actual CI hardware is reported, not normalized to the 2-vCPU reference",
             "Client timings include HTTP connection overhead; DB and whole-stack memory are not measured",
         ],
     }
+    metrics["targets"]["measurement_completed"] = failure is None
     (args.output / "metrics.json").write_text(json.dumps(metrics, indent=2) + "\n")
     (args.output / "requests.json").write_text(json.dumps(warm, indent=2) + "\n")
     print(json.dumps(metrics, indent=2))

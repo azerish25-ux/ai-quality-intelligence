@@ -1,10 +1,12 @@
-"""Isolated PNG/JPEG validation and irreversible pixel masking."""
+"""Bounded PNG/JPEG processing with isolated imports and a clean environment."""
 
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
+from pathlib import Path
 from threading import BoundedSemaphore
 from typing import Any
 
@@ -40,9 +42,18 @@ def decode_image(
     }
     if not _CODEC_SLOTS.acquire(timeout=1):
         raise ImageCodecError("image_capacity_exceeded")
+    environment = {"PATH": os.defpath}
+    if os.name == "nt" and "SYSTEMROOT" in os.environ:
+        environment["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "failurelens.image_worker"],
+            [
+                sys.executable,
+                "-I",
+                str(Path(__file__).resolve().with_name("image_worker.py")),
+            ],
+            env=environment,
+            close_fds=True,
             input=json.dumps(options).encode() + b"\n" + content,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,

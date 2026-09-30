@@ -113,6 +113,15 @@ def _normalize_scope(value: str | None) -> str:
     return value if value in {"full_suite", "impact_selected", "unknown"} else "unknown"
 
 
+def _normalized_scope_equal(column: Any, scope: str) -> Any:
+    """Match the same conservative scope normalization in every bounded query."""
+    if scope == "unknown":
+        return func.coalesce(column, "unknown").not_in(
+            ("full_suite", "impact_selected")
+        )
+    return column == scope
+
+
 def _outcome_counts(values: list[str]) -> dict[str, int]:
     counter = Counter(values)
     return {outcome.value: counter.get(outcome.value, 0) for outcome in Outcome}
@@ -324,7 +333,7 @@ def _reviewed_known_flake_events(
     if match_environment:
         conditions.append(_nullable_equal(Run.environment, environment))
     if run_scope is not None:
-        conditions.append(Run.run_scope == run_scope)
+        conditions.append(_normalized_scope_equal(Run.run_scope, run_scope))
     if match_worker_count:
         conditions.append(_nullable_equal(Run.worker_count, worker_count))
     if match_shard_count:
@@ -478,7 +487,7 @@ def build_test_history(
     if match_environment:
         conditions.append(_nullable_equal(Run.environment, environment))
     if normalized_scope is not None:
-        conditions.append(Run.run_scope == normalized_scope)
+        conditions.append(_normalized_scope_equal(Run.run_scope, normalized_scope))
     if match_worker_count:
         conditions.append(_nullable_equal(Run.worker_count, worker_count))
     if match_shard_count:
@@ -739,8 +748,38 @@ def build_test_history(
             Run.created_at < cutoff_utc,
         )
         .order_by(func.coalesce(Run.started_at, Run.created_at), Run.id)
-        .limit(MAX_HISTORY_RUNS + 1)
     )
+    # Apply the requested cohort before bounding it. Unrelated early runs must
+    # not consume the cap or make missing observations disappear from counts.
+    if exclude_run_id is not None:
+        comparable_runs_statement = comparable_runs_statement.where(
+            Run.id != exclude_run_id
+        )
+    if after_utc is not None:
+        comparable_runs_statement = comparable_runs_statement.where(
+            func.coalesce(Run.started_at, Run.created_at) >= after_utc
+        )
+    if match_branch:
+        comparable_runs_statement = comparable_runs_statement.where(
+            _nullable_equal(Run.branch, branch)
+        )
+    if match_environment:
+        comparable_runs_statement = comparable_runs_statement.where(
+            _nullable_equal(Run.environment, environment)
+        )
+    if normalized_scope is not None:
+        comparable_runs_statement = comparable_runs_statement.where(
+            _normalized_scope_equal(Run.run_scope, normalized_scope)
+        )
+    if match_worker_count:
+        comparable_runs_statement = comparable_runs_statement.where(
+            _nullable_equal(Run.worker_count, worker_count)
+        )
+    if match_shard_count:
+        comparable_runs_statement = comparable_runs_statement.where(
+            _nullable_equal(Run.shard_count, shard_count)
+        )
+    comparable_runs_statement = comparable_runs_statement.limit(MAX_HISTORY_RUNS + 1)
     comparable_rows = [
         _ComparableRun(
             row[0],

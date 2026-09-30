@@ -1,8 +1,9 @@
-"""Bounded image codec subprocess. No filesystem or network artifact access.
+"""Bounded image codec subprocess; artifacts arrive only through standard input.
 
 stdin: one JSON options line, then the image bytes. stdout: one JSON result
 line, optionally followed by a canonical PNG. Never echo decoder exceptions:
 plugins can include untrusted artifact text in their error messages.
+Process/resource and import isolation are not an OS filesystem/network sandbox.
 """
 
 from __future__ import annotations

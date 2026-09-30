@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from failurelens.history import build_test_history, history_context_for_failure
 from failurelens.models import (
     Failure,
@@ -1121,3 +1122,175 @@ def test_analyzer_requires_same_worker_and_shard_cohort(session) -> None:
         strict_fingerprint=failure.strict_fingerprint,
     )
     assert exploratory["sample_sizes"]["independent_runs"] == 5
+
+
+@pytest.mark.parametrize(
+    "field,wanted,unrelated",
+    [
+        ("branch", "main", "other"),
+        ("branch", None, "main"),
+        ("environment", "ci-linux", "different-environment"),
+        ("environment", None, "ci-linux"),
+        ("run_scope", "full_suite", "impact_selected"),
+        ("run_scope", "impact_selected", "full_suite"),
+        ("run_scope", "unknown", "full_suite"),
+        ("worker_count", 4, 16),
+        ("worker_count", None, 4),
+        ("shard_count", 2, 8),
+        ("shard_count", None, 2),
+        ("after", None, None),
+        ("after_without_started_at", None, None),
+        ("exclude", None, None),
+    ],
+)
+def test_comparable_filters_precede_cap_without_turning_missing_tests_into_passes(
+    session, monkeypatch, field, wanted, unrelated
+):
+    monkeypatch.setattr("failurelens.history.MAX_HISTORY_RUNS", 2)
+    project = create_project(session, "history-filter-before-cap", "Filtered history")
+    special = field in {"after", "after_without_started_at", "exclude"}
+    first_day = 1 if field == "exclude" else 3
+    excluded = []
+    for day in range(first_day):
+        excluded.append(
+            _ingest(
+                session,
+                project,
+                external_id=f"unrelated-{day}",
+                day=day,
+                outcomes=[Outcome.passed],
+                **({} if special else {field: unrelated}),
+            )
+        )
+    observed = _ingest(
+        session,
+        project,
+        external_id="observed",
+        day=first_day,
+        outcomes=[Outcome.passed],
+        **({} if special else {field: wanted}),
+    )
+    missing = _ingest(
+        session,
+        project,
+        external_id="missing-test",
+        day=first_day + 1,
+        outcomes=[Outcome.passed],
+        test_identity="another::test",
+        **({} if special else {field: wanted}),
+    )
+    if field == "run_scope" and wanted == "unknown":
+        # Keep the existing conservative normalization of legacy scope values.
+        missing.run_scope = "legacy-unrecognized"
+        session.commit()
+    if field == "after_without_started_at":
+        observed.started_at = None
+        session.commit()
+    current = _ingest(
+        session,
+        project,
+        external_id="current",
+        day=first_day + 2,
+        outcomes=[Outcome.failed],
+        **({} if special else {field: wanted}),
+    )
+    failure = _failure_for_run(session, current.id)
+    filters = {} if special else {field: wanted}
+    if not special and field != "run_scope":
+        filters[f"match_{field}"] = True
+    if field.startswith("after"):
+        filters["after"] = BASE + timedelta(days=first_day)
+    report = build_test_history(
+        session,
+        selected_execution=failure.execution,
+        selected_run=current,
+        cutoff=current.started_at,
+        exclude_run_id=excluded[0].id if field == "exclude" else current.id,
+        strict_fingerprint=failure.strict_fingerprint,
+        **filters,
+    )
+    assert report["sample_sizes"]["comparable_project_runs"] == 2
+    assert report["sample_sizes"]["runs_without_matching_test_observation"] == 1
+    assert report["sample_sizes"]["independent_runs"] == 1
+    assert report["outcomes"]["final"]["passed"] == 1
+    assert report["observations"][0]["run_id"] == observed.id
+    assert report["safety"]["truncated"] is False
+    assert (
+        "history_run_limit_reached" not in report["safety"]["insufficient_data_reasons"]
+    )
+
+
+@pytest.mark.parametrize("legacy_scope", ["legacy-unrecognized", "", "UNKNOWN"])
+def test_unknown_scope_keeps_matching_observations_and_reviews_without_reassurance(
+    session, legacy_scope
+):
+    project = create_project(session, "history-legacy-scope", "Legacy history scope")
+    prior = _ingest(
+        session,
+        project,
+        external_id="reviewed-prior",
+        day=0,
+        outcomes=[Outcome.failed, Outcome.passed],
+        run_scope="unknown",
+    )
+    prior_failure = _failure_for_run(session, prior.id)
+    analysis = analyze_and_persist(session, prior_failure)
+    event = add_review(
+        session,
+        analysis,
+        ReviewCreate(
+            decision="category_correction",
+            proposed_category="known_flake",
+            reason="Synthetic prior review; unknown scope cannot justify reassurance.",
+            expected_version=0,
+        ),
+    )
+    event.created_at = BASE + timedelta(hours=1)
+    session.commit()
+    current = _ingest(
+        session,
+        project,
+        external_id="current",
+        day=2,
+        outcomes=[Outcome.failed],
+        run_scope="unknown",
+    )
+    failure = _failure_for_run(session, current.id)
+
+    def history():
+        return build_test_history(
+            session,
+            selected_execution=failure.execution,
+            selected_run=current,
+            cutoff=current.started_at,
+            exclude_run_id=current.id,
+            strict_fingerprint=failure.strict_fingerprint,
+            run_scope="unknown",
+        )
+
+    before = history()
+    prior.run_scope = legacy_scope
+    session.commit()
+    after = history()
+    assert after["sample_sizes"] == before["sample_sizes"]
+    assert after["sample_sizes"]["comparable_project_runs"] == 1
+    assert after["sample_sizes"]["independent_runs"] == 1
+    assert after["sample_sizes"]["runs_without_matching_test_observation"] == 0
+    assert after["sample_sizes"]["unknown_scope_observations"] == 1
+    assert after["review"]["events"] == before["review"]["events"]
+    assert len(after["review"]["events"]) == 1
+    assert "run_scope_unknown" in after["safety"]["insufficient_data_reasons"]
+    assert after["safety"]["history_eligible_for_reassurance"] is False
+
+
+@pytest.mark.parametrize(
+    "stored",
+    [None, "", "legacy-unrecognized", "unknown", "full_suite", "impact_selected"],
+)
+@pytest.mark.parametrize("wanted", ["unknown", "full_suite", "impact_selected"])
+def test_scope_sql_matches_normalization_even_for_legacy_null(session, stored, wanted):
+    from failurelens.history import _normalize_scope, _normalized_scope_equal
+    from sqlalchemy import literal
+
+    matched = session.scalar(select(_normalized_scope_equal(literal(stored), wanted)))
+    assert bool(matched) is (_normalize_scope(stored) == wanted)
