@@ -136,6 +136,7 @@ def main():
         'workload': {'runs': 1000, 'logical_executions': 50_000, 'concurrency': 10, 'warm_samples': 200},
         'hardware': {'platform': platform.platform(), 'logical_cpus': os.cpu_count(),
                      'python': platform.python_version(), 'reference_hardware_normalized': False},
+        'database_pool': {'size': settings.database_pool_size, 'max_overflow': settings.database_max_overflow},
         'seed_seconds': seed_seconds, 'cold_reads': cold, 'warm_p95_ms': p95,
         'warm_p50_ms': percentile(successful, .5) if successful else None,
         'failed_requests': failures, 'client_max_rss_kib': resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,

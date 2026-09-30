@@ -27,3 +27,10 @@ from the presence of the harness.
 
 The first executed measurement failed: [retained original result](../evaluation/reports/operational-4385f69-failed/README.md).
 Subsequent optimization must preserve the workload and original 500 ms target.
+
+The [third retained run](../evaluation/reports/operational-c3fbf79-failed/README.md)
+measured 566.09 ms p95 and still failed. PostgreSQL pools are explicitly bounded and
+operator-configurable: `FAILURELENS_DATABASE_POOL_SIZE=10` and
+`FAILURELENS_DATABASE_MAX_OVERFLOW=10` per process. Account for all API/worker
+processes when sizing PostgreSQL connections. SQLite retains its existing pool mode.
+The report records configured pool bounds so later comparisons expose that change.

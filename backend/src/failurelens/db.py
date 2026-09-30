@@ -20,6 +20,10 @@ def create_database_engine(url: str | None = None):
         kwargs["connect_args"] = {"check_same_thread": False}
         if database_url.endswith(":memory:"):
             kwargs["poolclass"] = StaticPool
+    else:
+        settings = get_settings()
+        kwargs["pool_size"] = settings.database_pool_size
+        kwargs["max_overflow"] = settings.database_max_overflow
     return create_engine(database_url, **kwargs)
 
 

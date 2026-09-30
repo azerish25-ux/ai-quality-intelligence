@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="FAILURELENS_", env_file=".env", extra="ignore")
 
     database_url: str = "sqlite+pysqlite:///./failurelens.db"
+    database_pool_size: int = Field(default=10, ge=1, le=50)
+    database_max_overflow: int = Field(default=10, ge=0, le=50)
     artifact_root: Path = Path("./artifacts")
     demo_mode: bool = True
     session_cookie_name: str = "failurelens_session"

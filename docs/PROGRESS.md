@@ -345,3 +345,18 @@ fields. History now uses typed scalar projections; event-free correlation checks
 run existence rather than fetching unused run metadata. Existing cohort/cutoff limits
 and all statistical denominators remain unchanged, with a query regression guarding
 against reintroducing large unused JSON reads. Actual acceptance requires remeasurement.
+
+The scalar-projection measurement at `c3fbf79` reached **566.09 ms p95**, still above
+500 ms, with zero failed requests. Original third-run metrics/requests were downloaded,
+checksum-verified and retained; no target was rounded down or waived. Further work
+adds a semantics-preserving single-observation aggregation fast path and makes the
+PostgreSQL pool explicit/bounded at the declared concurrency (10 retained + 10 overflow
+per process). Forty-one focused tests pass, including every valid/unknown outcome,
+SQLite compatibility and configuration bounds. The benchmark now records pool
+configuration; its workload and threshold are unchanged. Actual remeasurement remains
+required before claiming the performance target passed.
+
+The pool-refinement upload encountered a credential-shaped example URL in the
+previous `.env.example`. Replaced that line with credential-free environment guidance
+before publication; Compose's isolated demo configuration remains unchanged. This
+safer payload avoids transmitting a username/password URL in the updated example.

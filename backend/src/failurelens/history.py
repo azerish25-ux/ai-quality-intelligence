@@ -118,6 +118,8 @@ def _outcome_counts(values: list[str]) -> dict[str, int]:
 
 
 def _aggregate_run_outcome(values: list[str]) -> str:
+    if len(values) == 1:
+        return values[0] if values[0] in {"passed", "failed", "skipped", "cancelled", "unknown"} else Outcome.unknown.value
     observed = set(values)
     for outcome in (
         Outcome.failed,
