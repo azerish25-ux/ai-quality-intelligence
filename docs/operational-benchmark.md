@@ -34,3 +34,8 @@ operator-configurable: `FAILURELENS_DATABASE_POOL_SIZE=10` and
 `FAILURELENS_DATABASE_MAX_OVERFLOW=10` per process. Account for all API/worker
 processes when sizing PostgreSQL connections. SQLite retains its existing pool mode.
 The report records configured pool bounds so later comparisons expose that change.
+
+The [fourth executed result](../evaluation/reports/operational-845f53d-passed/README.md)
+passes the declared read target at 312.37 ms p95 with zero failures. This fixture is
+explicitly all-passing history with no failure/analysis rows; it does not establish
+mixed failure-heavy read performance. All three original failures remain retained.

@@ -360,3 +360,20 @@ The pool-refinement upload encountered a credential-shaped example URL in the
 previous `.env.example`. Replaced that line with credential-free environment guidance
 before publication; Compose's isolated demo configuration remains unchanged. This
 safer payload avoids transmitting a username/password URL in the updated example.
+
+### Operational read target passed on actual PostgreSQL
+
+At `845f53d`, workflow `36681098079`, job `109776505720`, the unchanged 50,000-execution
+workload completed 200 warm requests at concurrency ten with **zero failures and
+312.37 ms p95**, passing the original <500 ms target. Artifact `11081444531` was
+checksum-verified and its original metrics/requests retained byte-for-byte under
+`evaluation/reports/operational-845f53d-passed/`. The fixture is all-passing history
+with no failure/analysis records, not mixed failure-heavy performance; runner hardware
+is reported, not normalized, and this is not an SLA. All three earlier failures remain.
+Frozen classifier quality is unaffected and remains a separate failed acceptance gate.
+
+All ten ordinary CI jobs at the same `845f53d` source passed in
+[36681098018](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36681098018):
+PostgreSQL backend, actual producers, frontend, legacy evaluation, executed component
+integrity, all four browser lanes and the Docker non-root/offline/recovery gate.
+This scoped verification is not full-project or classifier-quality completion.

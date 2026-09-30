@@ -15,7 +15,7 @@ project is **PARTIAL**. The [requirements matrix](requirements-matrix.md) and
 | KS-01 | Declared text redaction and reviewed image masks are bounded | Free-text names, unknown identifiers and arbitrary pixels are not universally detected. Original traces/images can remain restricted. Existing plain-hash pseudonyms are not a guarantee against low-entropy guessing. |
 | KS-02 | Capability-spy tests cover normalized input combinations | They do not establish OS sandbox security or complete binary/provider attack coverage. All required attack classes still need consolidated acceptance. |
 | KO-01 | Newly added Docker recovery and narrow UI gates exposed regressions | Their repairs require passing actual exact-source CI. Local syntax/build/unit tests cannot substitute for Docker/browser execution. |
-| KO-02 | Performance and telemetry acceptance remains incomplete | The latest retained 50,000-execution/concurrency-10 read measurement is 566.09 ms p95 and still fails 500 ms. Complete distributed telemetry and reference-hardware/whole-stack budgets remain unverified. |
+| KO-02 | Performance and telemetry acceptance remains incomplete | The all-passing 50,000-execution/concurrency-10 workload passes at 312.37 ms p95; mixed failure-heavy load, complete distributed telemetry and reference-hardware/whole-stack budgets remain unverified. |
 
 Historical passing slices certify their named behavior only. A corrected bug, a new
 unit-test count or a screenshot does not waive failed evaluation targets or finish
