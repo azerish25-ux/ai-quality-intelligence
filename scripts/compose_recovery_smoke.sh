@@ -50,7 +50,10 @@ PY
 # Quiesce writers, then back up DB and private artifact volume as one snapshot.
 compose stop api worker
 # Exercise a real proxy error too: unstructured Nginx errors must not reveal URLs.
-[[ "$(curl --silent -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8000/health/ready?token=synthetic-gateway-error-canary-941')" == '502' ]]
+PROXY_ERROR_STATUS="$(curl --max-time 10 --silent -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8000/health/ready?token=synthetic-gateway-error-canary-941')"
+# A stopped container may refuse the connection (502) or its removed endpoint
+# may time out (504). Both are genuine upstream errors; success is unacceptable.
+case "$PROXY_ERROR_STATUS" in 502|504) ;; *) echo 'Expected a real stopped-upstream error' >&2; exit 1 ;; esac
 compose logs --no-color api dashboard > "$OUT/gateway-privacy.log"
 if grep -Eq 'synthetic-gateway-(query-canary-762|error-canary-941)' "$OUT/gateway-privacy.log"; then
   echo 'Gateway or application logs exposed synthetic query canary' >&2

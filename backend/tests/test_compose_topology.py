@@ -98,8 +98,18 @@ def test_gateway_logs_use_only_allowlisted_method_and_status():
         assert all(field not in format_line for field in ('$request_uri', '$request ', '$remote_addr', '$http_'))
         assert 'map $request_method $failurelens_method {' in source and 'default OTHER;' in source
         assert 'error_log /dev/null;' in source
+        # A sibling http-level access_log adds to the vendor's existing log;
+        # overriding at server scope is required to prevent duplicate raw output.
+        prefix, *servers = source.split('server {')
+        assert 'access_log ' not in prefix and 'error_log /dev/null;' not in prefix
+        assert len(servers) == (2 if name.startswith('frontend/') else 1)
+        for server in servers:
+            assert 'access_log /dev/stdout failurelens_' in server
+            assert 'error_log /dev/null;' in server
+            assert 'proxy_connect_timeout 2s;' in server
     smoke = (ROOT / 'scripts/compose_recovery_smoke.sh').read_text()
     assert 'synthetic-gateway-query-canary-762' in smoke
     assert 'synthetic-gateway-error-canary-941' in smoke
-    assert "== '502'" in smoke
+    assert 'case "$PROXY_ERROR_STATUS" in 502|504)' in smoke
+    assert 'curl --max-time 10' in smoke
     assert 'Gateway or application logs exposed synthetic query canary' in smoke

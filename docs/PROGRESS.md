@@ -497,3 +497,17 @@ in-process Alembic configuration: **1,182 passed, one failed, nine PostgreSQL-on
 skips**, 85.34% coverage. Safe handler installation now explicitly re-enables its
 owned logger trees, and the regression starts from disabled unsafe loggers. The
 failure was preserved; a new clean full run is required before branch publication.
+
+At repaired clean source `1f7fe67`, local verification passed **1,183 tests, nine
+PostgreSQL-only skips, 85.34% coverage**. The strict local and actual CI mutation
+runs both passed seven baselines/seven kills with zero survivors or errors.
+Remote head/tree were reread after publication. Local collector CI also passed.
+
+The new Docker privacy probe then exposed Nginx log inheritance: a second
+http-level access-log directive added a safe record while the vendor's raw combined
+record still appeared. Moved the override into every server block, with a regression
+against the faulty sibling-directive pattern. Stopped Docker endpoints can time
+out (504) as well as refuse (502); the probe now verifies those two genuine upstream
+errors with bounded connect/request timeouts, never accepting success. Canary
+exclusion remains mandatory and the original failed job `109807337030` is retained.
+Fresh actual Docker execution is still required for this correction.
