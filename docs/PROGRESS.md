@@ -248,3 +248,18 @@ new held-out validation, wider producer/adversarial/temporal breadth, complete r
 GitHub publication/workflow/live target, durable model invocation/budget/UI integration,
 full telemetry/load/operational acceptance and final portfolio verification remain.
 The new regression counts and synthetic history do not increase evaluation denominators.
+
+### Publisher safety review and blocked delivery recheck
+
+A resumed delivery attempt accepted the previously blocked evidence-bridge blob,
+but the following provider-module upload was rejected for missing trusted approval.
+Its single authorized retry was also rejected. No branch update or alternative write
+route was attempted; remote main remains `9d8a5b9`. Direct authorization is required
+before publication can continue.
+
+Independent local review found two publisher boundary gaps: the response-size limit
+was applied after response buffering, and the actual receipt author was not checked.
+The client now enforces the limit while streaming and validates the returned bot
+identity. Two new regressions plus the existing publisher/report-snapshot tests pass
+(**36 tests**). A receipt-author mismatch requires inspecting the written comment;
+the publisher never blindly retries it.

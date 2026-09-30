@@ -55,16 +55,19 @@ class GitHubPublisher:
 
     def _request(self, method, path, **kwargs):
         try:
-            response = self.client.request(method, path, **kwargs)
+            with self.client.stream(method, path, **kwargs) as response:
+                if not 200 <= response.status_code < 300:
+                    raise PublicationError(f"GitHub {method} failed with HTTP {response.status_code}")
+                body = bytearray()
+                for chunk in response.iter_bytes():
+                    if len(body) + len(chunk) > 8_000_000:
+                        raise PublicationError("GitHub response exceeds bounded lookup limit")
+                    body.extend(chunk)
         except httpx.HTTPError:
             raise PublicationError("GitHub transport failed; reconcile before retrying publication") from None
-        if not 200 <= response.status_code < 300:
-            raise PublicationError(f"GitHub {method} failed with HTTP {response.status_code}")
-        if len(response.content) > 8_000_000:
-            raise PublicationError("GitHub response exceeds bounded lookup limit")
         try:
-            return response.json()
-        except ValueError:
+            return json.loads(body)
+        except (ValueError, UnicodeError):
             raise PublicationError("GitHub returned invalid JSON") from None
 
     def _head(self, repo, number):
@@ -145,6 +148,9 @@ class GitHubPublisher:
             status = "created"
         if not isinstance(result, dict) or type(result.get("id")) is not int or result["id"] < 1:
             raise PublicationError("invalid publication receipt; reconcile before retrying")
+        owner = result.get("user")
+        if not isinstance(owner, dict) or owner.get("login") != self.bot_login or owner.get("type") != "Bot":
+            raise PublicationError("publication receipt has unexpected author; inspect the written comment before retrying")
         current = self._head(repository, pull_number)
         if current != tested_head:
             self._request("PATCH", f"/repos/{repository}/issues/comments/{result['id']}",

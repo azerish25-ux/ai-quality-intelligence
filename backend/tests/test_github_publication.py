@@ -187,3 +187,36 @@ def test_invalid_bot_identity_rejected():
     for bot in ["human", "evil/../[bot]", "", "github-actions[bot]\n"]:
         with pytest.raises(PublicationError):
             GitHubPublisher("fake", bot_login=bot)
+
+
+def test_actual_receipt_must_match_configured_bot(api):
+    server, _ = api
+    def handler(request):
+        result = server.handle(request)
+        if request.method == 'POST':
+            payload = result.json()
+            payload['user'] = {'login': 'human-user', 'type': 'User'}
+            return httpx.Response(200, json=payload)
+        return result
+    publisher = GitHubPublisher('fake-test-token', transport=httpx.MockTransport(handler))
+    try:
+        with pytest.raises(PublicationError, match='unexpected author'):
+            publish(publisher)
+        assert len(server.writes) == 1
+    finally:
+        publisher.close()
+
+
+def test_response_size_is_enforced_while_streaming():
+    class LargeBody(httpx.SyncByteStream):
+        def __iter__(self):
+            yield b'x' * 4_000_001
+            yield b'x' * 4_000_001
+            raise AssertionError('must stop reading after the bounded limit')
+    publisher = GitHubPublisher('fake-test-token', transport=httpx.MockTransport(
+        lambda _: httpx.Response(200, stream=LargeBody())))
+    try:
+        with pytest.raises(PublicationError, match='bounded lookup'):
+            publish(publisher)
+    finally:
+        publisher.close()
