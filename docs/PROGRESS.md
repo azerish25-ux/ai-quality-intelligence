@@ -1227,3 +1227,26 @@ but no commit/ref update was made from this incomplete result. The collector now
 retains a bounded, source-free process diagnostic before reading outcomes, and
 actual self-terminating child tests verify that it still refuses acceptance.
 An isolated verification window and new committed-source run remain required.
+
+Published `be7eede37b4ac25d9d248d47fc5d7caac4242f3d` has the exact local
+`04923d65bcb9003f7aad8e8b21bb70cce3449afe` tree
+`7df36196d699e9db528f67a9e56429cceaf0ebf7`. The quiet local retry reached the end:
+**2,313 passed, 51 PostgreSQL-only skips, one failure**, in 438.00 seconds.
+Its process diagnostic records exit code 1, valid outcome-file presence, no
+termination signal and an unchanged host OOM counter (45 before/after). All other
+local regression stages, six offline gates and source-preservation checks passed.
+This is a completed failed run, not a full backend pass; it does not retrospectively
+establish why the earlier incomplete process ended.
+
+The sole failure was the workflow-contract test's exact two-file artifact list.
+The collector intentionally adds the source-free `test-execution.json` companion.
+The assertion now permits exactly those three files; it still requires the full
+report/data pair, exact source artifact identity, mandatory collection/checking,
+`always()` execution after failures and no `continue-on-error`. No acceptance
+threshold, skip behavior, outcome requirement or privacy boundary was removed.
+
+Seven independent hosted quality/security jobs pass at `be7eede`; the aggregate
+still fails because npm audit is NOT RUN. The operational run completed all 204
+requests and [failed at 607.658224 ms](../evaluation/reports/operational-be7eede-failed/README.md).
+Its original bytes are retained. Fresh hosted backend acceptance is required after
+the exact artifact-contract correction.

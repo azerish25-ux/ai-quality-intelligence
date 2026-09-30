@@ -86,6 +86,7 @@ def test_branch_acceptance_uses_exact_source_evidence_and_cannot_skip_failure() 
     assert upload["with"]["path"].splitlines() == [
         "/tmp/loose-backend-coverage/report.json",
         "/tmp/loose-backend-coverage/coverage-data.sqlite",
+        "/tmp/loose-backend-coverage/test-execution.json",
     ]
     download = next(
         step

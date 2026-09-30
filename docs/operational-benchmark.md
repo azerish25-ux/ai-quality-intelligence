@@ -93,3 +93,9 @@ rows are retained with verified digests and recomputed percentiles. The history
 route's 50 warm samples have p50 590.41 ms and p95 768.75 ms; this identifies a
 slower route in this measurement, not the cause or a hardware-normalized result.
 The overall target remains failed and every preceding measurement is preserved.
+
+The subsequent published `be7eede` measurement
+[fails at 607.66 ms](../evaluation/reports/operational-be7eede-failed/README.md)
+on AMD EPYC 7763, with all 204 requests successful and complete cleanup. Original
+bytes and recomputed percentiles are retained. This additional result leaves the
+unchanged target failed and does not establish stable or causal improvement.

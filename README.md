@@ -52,7 +52,7 @@ fixed-cardinality metrics and default-disabled export. Its optional local-only
 collector/viewer profile passed real Docker verification at repair `8daa5c7` in
 [36687923599](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36687923599).
 The strict 50,000-execution read benchmark has both passing and failing shared-runner
-measurements; the latest `caee9e3` run failed at 677.27 ms p95 on an AMD runner,
+measurements; the latest `be7eede` run failed at 607.66 ms p95 on an AMD runner,
 with all four cold and 200 warm requests successful. Stable compliance with the
 unchanged 500 ms target remains open. [Measurements and limits](docs/operational-benchmark.md).
 

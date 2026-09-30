@@ -250,6 +250,25 @@
       "reviewed_by": "repository agent independent source-context adjudication",
       "reviewed_on": "2026-09-30",
       "value_sha256": "2bc544211b02c759a37049f81d41ca9ce967baa0aec2f33853c6fc2ba04a8f41"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/source_revision exactly matches the local base Git commit. The retained metrics and requests member sizes and SHA-256 digests independently match the adjacent retention README; no logs, external service or credential verification were used.",
+      "file": "evaluation/reports/operational-be7eede-failed/metrics.json",
+      "file_sha256": "27c92c9366465d7faa979dbb50a61823ea5110c04bae8a514c2342ca04339dc0",
+      "occurrences": [
+        {
+          "context_sha256": "d36cd8a2db7edd9e4a9611e5a60956c1a1460eb9ebba82312eed38fb1149de86",
+          "line": 3
+        }
+      ],
+      "reason": "Public 40-hex Git source revision in retained original synthetic operational benchmark metrics; not authentication material.",
+      "review_id": "m9-operational-retention-0006",
+      "review_reference": "evaluation/reports/operational-be7eede-failed/README.md",
+      "reviewed_by": "repository agent independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "750d791cfd76eb46d78b2723e501d7c8e6564fcffa66a1d791eb83ccc9fdb38f"
     }
   ],
   "schema_version": 1
