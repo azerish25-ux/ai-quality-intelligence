@@ -83,3 +83,13 @@ on AMD EPYC 9V74 in
 All four cold and 200 warm requests succeeded, and measurement completed. Its
 original bytes, source/run/job binding and independently recomputed percentiles
 are retained. This additional failure does not replace any earlier result.
+
+At `caee9e3`, the same workload
+[fails at 677.27 ms](../evaluation/reports/operational-caee9e3-failed/README.md)
+on AMD EPYC 7763 in
+[run 36763069609](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36763069609).
+All four cold and 200 warm requests succeeded. The original metrics and request
+rows are retained with verified digests and recomputed percentiles. The history
+route's 50 warm samples have p50 590.41 ms and p95 768.75 ms; this identifies a
+slower route in this measurement, not the cause or a hardware-normalized result.
+The overall target remains failed and every preceding measurement is preserved.

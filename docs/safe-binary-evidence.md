@@ -66,6 +66,36 @@ retained-original profile is **not provided**. Do not configure long-lived origi
 retention on the assumption that such encryption exists. Operators must protect the
 artifact volume and its backups and use the documented lifecycle controls.
 
+Evidence storage targets the Linux/container deployment and requires no-follow
+directory-descriptor operations, regular files, exclusive hard links within one
+filesystem, and file/directory `fsync`. Missing descriptor capabilities or rejected
+hard-link semantics fail closed; no portable race-safe fallback is claimed. An
+operator-configured root alias remains supported. Symlinked staging, project and
+artifact components beneath that root are rejected. Existing directories and the
+configured root still require operator-controlled permissions; newly created
+storage directories and files use modes 0700 and 0600, respectively.
+
+Reads use one opened regular-file descriptor, inspect its size, read at most the
+expected size or configured limit plus one byte, then recheck size and digest.
+Publication links a private staging inode without overwriting an existing final;
+identical concurrent uploads validate the winner. A replaced staging pathname is
+detected by comparing the published inode with the open staging descriptor.
+These controls prevent following changed symlink paths, but do not stop a volume
+owner moving an already-open directory, changing the configured root or mutating
+file contents. A moved directory can make returned metadata unavailable; later
+authorized reads revalidate storage and fail closed.
+
+Coroutine cancellation and ordinary write/finalization failures attempt staging
+cleanup while preserving the original failure if OS close/unlink operations also
+fail. Once a final exists, error cleanup never deletes it: it may already be shared
+by another upload. A directory-sync or staging-unlink failure can therefore leave
+a private untracked final or staging link; an identical retry can validate the
+final, but does not sweep older orphan staging files. Crash cleanup, a filesystem
+that refuses cleanup, and repair of an operator-modified volume remain operational
+responsibilities. Newly created ancestor directory entries are not individually
+fsynced, so this is not a complete power-loss durability guarantee for a new
+namespace chain. These limits also apply to backups and restoration.
+
 The review submission is processed in memory and the codec subprocess, not saved
 as another raw file. A reviewer without the original must obtain it through their
 existing controlled workflow; Loose Thread does not return an unsanitized original.

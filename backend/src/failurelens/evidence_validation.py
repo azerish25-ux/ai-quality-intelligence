@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import OrderedDict
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Literal, TypedDict
@@ -10,13 +11,23 @@ from .analysis import DeterministicDecision, EvidenceView, rule_signal_counts
 from .config import Settings, get_settings
 from .contract_evidence import CLAIM_TEXT, CONTRACT_CATEGORY, inspect_contract
 from .domain_evidence import inspect_domain
-from .models import Category, Evidence, Failure, Run, RunInput, TestExecution
+from .models import (
+    ArtifactDerivative,
+    Category,
+    Evidence,
+    Failure,
+    Run,
+    RunInput,
+    TestExecution,
+)
 from .redaction import REDACTION_VERSION, valid_project_provenance
 from .storage import StorageError, read_stored_bytes
 from .telemetry import instrument
 from .transaction_evidence import inspect_multiplicity
 
 VALIDATION_VERSION = "evidence-validation-v4"
+MAX_EVIDENCE_CACHE_ENTRIES = 128
+MAX_EVIDENCE_CACHE_BYTES = 4 * 1024 * 1024
 _ALLOWED_DERIVATIVE_MEDIA_TYPES = {
     "application/json",
     "application/vnd.failurelens.evidence+json",
@@ -33,6 +44,7 @@ _FORBIDDEN_CLAIM_PHRASES = (
 
 
 def persisted_analysis_is_publication_validated(analysis: Any) -> bool:
+    """Check the recorded validation envelope, not current evidence availability."""
     validation = getattr(analysis, "validation_results", None) or {}
     category = getattr(getattr(analysis, "category", None), "value", None)
     return bool(
@@ -40,6 +52,54 @@ def persisted_analysis_is_publication_validated(analysis: Any) -> bool:
         and validation.get("status") in _VALIDATED_PUBLICATION_STATES
         and validation.get("published_category") == category
     )
+
+
+class EvidenceReadContext:
+    """Reuse immutable-byte reads within one request, never authorization results.
+
+    Callers create a fresh context for each request/transaction. Scope, approval,
+    retention, quotation and observation checks still run for every use.
+    Successful bytes have independent entry/byte budgets; eviction only causes
+    another checked read. Failures and their traceback frames are never retained.
+    """
+
+    def __init__(self, settings: Settings | None = None):
+        self.settings = settings or get_settings()
+        self._bytes: OrderedDict[tuple[Any, ...], bytes] = OrderedDict()
+        self._cached_bytes = 0
+
+    def read(self, derivative: ArtifactDerivative, settings: Settings) -> bytes:
+        key = (
+            str(settings.artifact_root),
+            settings.analysis_text_budget,
+            derivative.project_id,
+            derivative.run_id,
+            derivative.id,
+            derivative.storage_path,
+            derivative.digest,
+            derivative.size_bytes,
+        )
+        if key in self._bytes:
+            self._bytes.move_to_end(key)
+            return self._bytes[key]
+        content = read_stored_bytes(
+            root=settings.artifact_root,
+            relative_path=derivative.storage_path,
+            expected_digest=derivative.digest,
+            expected_size=derivative.size_bytes,
+            max_bytes=settings.analysis_text_budget * 4,
+        )
+        if len(content) > MAX_EVIDENCE_CACHE_BYTES:
+            return content
+        while self._bytes and (
+            len(self._bytes) >= MAX_EVIDENCE_CACHE_ENTRIES
+            or self._cached_bytes + len(content) > MAX_EVIDENCE_CACHE_BYTES
+        ):
+            _, evicted = self._bytes.popitem(last=False)
+            self._cached_bytes -= len(evicted)
+        self._bytes[key] = content
+        self._cached_bytes += len(content)
+        return content
 
 
 @dataclass(frozen=True)
@@ -132,22 +192,15 @@ class ValidatedDecision:
 
 
 def _scope_is_authorized(failure: Failure, evidence: Evidence) -> bool:
-    if evidence.project_id != failure.project_id or evidence.run_id != failure.run_id:
+    if (
+        failure.run.project_id != failure.project_id
+        or failure.run.id != failure.run_id
+        or failure.execution.id != failure.execution_id
+    ):
         return False
-    if evidence.execution_id == failure.execution_id:
-        return evidence.provenance_kind == "current_execution"
-    if evidence.execution_id is not None:
-        return False
-    if evidence.provenance_kind == "shared_run_diagnostic":
-        return True
-    if evidence.provenance_kind == "input_diagnostic":
-        input_id = failure.execution.details.get("input_id")
-        return bool(
-            input_id
-            and evidence.run_input is not None
-            and evidence.run_input.input_id == input_id
-        )
-    return False
+    return _scoped_evidence_is_authorized(
+        failure.run, evidence, failure.execution, None
+    )
 
 
 def _json_pointer(payload: dict[str, Any], pointer: str) -> Any:
@@ -173,12 +226,43 @@ def validate_evidence_records(
     evidence_rows: list[Evidence],
     *,
     settings: Settings | None = None,
+    read_context: EvidenceReadContext | None = None,
 ) -> EvidenceValidationSet:
     return _validate_evidence_records(
         evidence_rows,
         authorize=lambda evidence: _scope_is_authorized(failure, evidence),
         scope_error="evidence_outside_failure_scope",
         settings=settings,
+        read_context=read_context,
+    )
+
+
+def _execution_input_matches(
+    evidence: Evidence, execution: TestExecution, execution_input: str | None
+) -> bool:
+    if not execution_input:
+        return True
+    linked_input = evidence.run_input
+    if linked_input is None:
+        return False
+    if linked_input.input_id == execution_input:
+        return True
+    # Registered numeric diagnostics are distinct manifest inputs explicitly
+    # correlated to the report input and one exact execution, not its siblings.
+    input_kinds = {
+        "contract_observation": "contract-observations-json",
+        "domain_observation": "domain-observations-json",
+        "transaction_observation": "transaction-observations-json",
+    }
+    recorded = evidence.observation.get(evidence.kind)
+    return bool(
+        evidence.kind in input_kinds
+        and linked_input.kind == input_kinds[evidence.kind]
+        and linked_input.metadata_json.get("correlates_to") == [execution_input]
+        and isinstance(recorded, dict)
+        and recorded.get("test_identity") == execution.test_identity
+        and recorded.get("attempt") == execution.attempt
+        and recorded.get("browser") == execution.browser
     )
 
 
@@ -220,6 +304,12 @@ def _scoped_evidence_is_authorized(
         run_input is not None
         and execution_input
         and execution_input != run_input.input_id
+        and (
+            linked_input is None
+            or linked_input.id != run_input.id
+            or execution is None
+            or not _execution_input_matches(evidence, execution, execution_input)
+        )
     ):
         return False
     if evidence.execution_id is not None:
@@ -231,9 +321,7 @@ def _scoped_evidence_is_authorized(
             return False
         # Legacy executions can lack a manifest input binding. When present,
         # it must match the actual evidence input rather than only its test ID.
-        return not execution_input or bool(
-            linked_input is not None and linked_input.input_id == execution_input
-        )
+        return _execution_input_matches(evidence, execution, execution_input)
     if evidence.provenance_kind == "shared_run_diagnostic":
         return True
     if evidence.provenance_kind == "input_diagnostic":
@@ -256,6 +344,7 @@ def validate_scoped_evidence_records(
     execution: TestExecution | None = None,
     run_input: RunInput | None = None,
     settings: Settings | None = None,
+    read_context: EvidenceReadContext | None = None,
 ) -> EvidenceValidationSet:
     """Validate real execution/run scope without fabricating a failure record.
 
@@ -269,6 +358,53 @@ def validate_scoped_evidence_records(
         ),
         scope_error="evidence_outside_requested_scope",
         settings=settings,
+        read_context=read_context,
+    )
+
+
+def validate_inspectable_evidence_records(
+    run: Run,
+    evidence_rows: list[Evidence],
+    *,
+    read_context: EvidenceReadContext | None = None,
+) -> EvidenceValidationSet:
+    """Verify copied evidence for same-project inspection and human citations.
+
+    Supplemental traces and run metrics remain inspectable without becoming
+    execution-scoped classification evidence. Their real relationships must agree.
+    """
+
+    def authorize(evidence: Evidence) -> bool:
+        if (
+            run.evidence_expired_at is not None
+            or evidence.project_id != run.project_id
+            or evidence.run_id != run.id
+            or (
+                evidence.execution_id is not None
+                and (evidence.execution is None or evidence.execution.run_id != run.id)
+            )
+            or (
+                evidence.run_input_id is not None
+                and (
+                    evidence.run_input is None
+                    or evidence.run_input.project_id != run.project_id
+                    or evidence.run_input.run_id != run.id
+                )
+            )
+        ):
+            return False
+        if evidence.provenance_kind in {"supplemental_trace", "current_run_metric"}:
+            return True
+        return _scoped_evidence_is_authorized(
+            run, evidence, evidence.execution, evidence.run_input
+        )
+
+    return _validate_evidence_records(
+        evidence_rows,
+        authorize=authorize,
+        scope_error="evidence_outside_requested_scope",
+        settings=None,
+        read_context=read_context,
     )
 
 
@@ -278,8 +414,10 @@ def _validate_evidence_records(
     authorize: Callable[[Evidence], bool],
     scope_error: str,
     settings: Settings | None,
+    read_context: EvidenceReadContext | None = None,
 ) -> EvidenceValidationSet:
-    settings = settings or get_settings()
+    settings = settings or (read_context.settings if read_context else get_settings())
+    read_context = read_context or EvidenceReadContext(settings)
     checks: list[EvidenceIntegrity] = []
 
     for evidence in evidence_rows:
@@ -310,13 +448,7 @@ def _validate_evidence_records(
 
         if reference_valid and derivative is not None:
             try:
-                content = read_stored_bytes(
-                    root=settings.artifact_root,
-                    relative_path=derivative.storage_path,
-                    expected_digest=derivative.digest,
-                    expected_size=derivative.size_bytes,
-                    max_bytes=settings.analysis_text_budget * 4,
-                )
+                content = read_context.read(derivative, settings)
                 actual_digest = hashlib.sha256(content).hexdigest()
                 digest_valid = (
                     actual_digest == derivative.digest == evidence.content_digest

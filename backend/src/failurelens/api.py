@@ -104,6 +104,7 @@ from .performance import (
     performance_policy_to_schema,
 )
 from .provider_api import router as provider_router
+from .publication_validity import PublicationContext
 from .retention import lock_project
 from .schemas import (
     AnalysisResult,
@@ -2400,6 +2401,7 @@ def failures_list(
         .order_by(Failure.created_at)
     ).all()
     result: list[dict] = []
+    context = PublicationContext(session)
     for failure in failures:
         latest = max(failure.analyses, key=lambda item: item.revision, default=None)
         result.append(
@@ -2409,7 +2411,9 @@ def failures_list(
                 "test_identity": failure.execution.test_identity,
                 "message": failure.message,
                 "fingerprint": failure.strict_fingerprint,
-                "latest_analysis": analysis_to_schema(latest).model_dump(mode="json")
+                "latest_analysis": analysis_to_schema(
+                    latest, context=context
+                ).model_dump(mode="json")
                 if latest
                 else None,
             }
@@ -2571,6 +2575,17 @@ def evidence_get(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="evidence derivative is not approved for safe inspection",
         )
+    if (
+        run is None
+        or evidence.id
+        not in PublicationContext(session)
+        .inspectable_evidence(run, [evidence])
+        .accepted_ids
+    ):
+        raise HTTPException(
+            409,
+            "evidence bytes or scope are unavailable or failed integrity validation",
+        )
     return EvidenceRead(
         id=evidence.id,
         project_id=evidence.project_id,
@@ -2646,12 +2661,13 @@ def github_evidence_export(
         raise HTTPException(404, "run not found")
     require_project_role(session, principal, run.project_id)
     try:
-        snapshot = report_snapshot(session, run)
+        context = PublicationContext(session)
+        snapshot = report_snapshot(session, run, context=context)
         if report_digest is not None and snapshot["report_digest"] != report_digest:
             raise HTTPException(
                 409, "report changed; refresh before exporting evidence"
             )
-        document = evidence_for_report(session, run, snapshot)
+        document = evidence_for_report(session, run, snapshot, context=context)
         return Response(
             canonical_export_bytes(document),
             media_type="application/json",

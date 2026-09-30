@@ -142,19 +142,19 @@
       "detector": "Basic Auth Credentials",
       "evidence": "frontend test-only literal and assertion",
       "file": "backend/tests/test_trace_safety.py",
-      "file_sha256": "66c93ab33023ecc60d89273ae28b22c314b744ee1585116f0e6ce07c36cdf02d",
+      "file_sha256": "14052bc7da7a733c5bc3f9bcd0b3f1456646d8bfef0f88e69a859a1121ad2c06",
       "occurrences": [
         {
           "context_sha256": "6d7760aff231282a32cb654b8cc130bbca6b23796c553f5cd649dc218fd34126",
-          "line": 87
+          "line": 171
         },
         {
           "context_sha256": "7f7b6736d18587fcbbbf85f8f1b8ed6fc33a61e3c242c4c818474c8f6712a3f3",
-          "line": 88
+          "line": 172
         },
         {
           "context_sha256": "48cb1eba22008e4147795b2b65eed6f07f4a75efc9b6bf0f6ed33319af380de9",
-          "line": 109
+          "line": 193
         }
       ],
       "reason": "Synthetic userinfo on example/malformed endpoints used to test endpoint rejection or trace redaction; no credential verification performed.",
@@ -169,11 +169,11 @@
       "detector": "Private Key",
       "evidence": "test_trace_safe_index_and_cited_events_do_not_serve_boundary_canaries",
       "file": "backend/tests/test_trace_safety.py",
-      "file_sha256": "66c93ab33023ecc60d89273ae28b22c314b744ee1585116f0e6ce07c36cdf02d",
+      "file_sha256": "14052bc7da7a733c5bc3f9bcd0b3f1456646d8bfef0f88e69a859a1121ad2c06",
       "occurrences": [
         {
           "context_sha256": "125f15468840d8172845db32718b130173194bb369856340f34b263122c6ba08",
-          "line": 135
+          "line": 219
         }
       ],
       "reason": "Private-key header marker wrapping repeated explicit synthetic canary text in a trace-sanitization test, not a serialized private key.",

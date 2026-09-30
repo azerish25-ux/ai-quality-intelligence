@@ -15,6 +15,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
@@ -62,6 +63,7 @@ CRITICAL_GROUPS = {
         "github_report",
         "github_report_sections",
         "github_snapshot",
+        "publication_validity",
     ),
     "publication_and_provider_execution": (
         "service",
@@ -480,6 +482,18 @@ def validate_test_summary(value: Any) -> None:
         raise CoverageError("invalid-test-outcomes")
 
 
+def host_oom_kills() -> int | None:
+    """Optional host-wide diagnostic, never attribution to this test process."""
+    try:
+        for line in Path("/proc/vmstat").read_text().splitlines():
+            if line.startswith("oom_kill "):
+                value = int(line.split()[1])
+                return value if value >= 0 else None
+    except (OSError, ValueError, IndexError):
+        pass
+    return None
+
+
 def collect(
     output: Path,
     pytest_args: list[str],
@@ -557,7 +571,27 @@ def collect(
         *test_args,
         f"--junitxml={outcomes}",
     ]
+    oom_before = host_oom_kills()
+    test_started = time.monotonic()
     completed = subprocess.run(command, cwd=working, env=environment, check=False)
+    execution = {
+        "schema_version": 1,
+        "scope": "pytest_process_observation_not_acceptance",
+        "source_revision_at_start": identity["revision"],
+        "source_digest_at_start": snapshot_digest(snapshot),
+        "pytest_exit_code": completed.returncode,
+        "termination_signal": -completed.returncode
+        if completed.returncode < 0
+        else None,
+        "elapsed_seconds": time.monotonic() - test_started,
+        "outcome_file_present": outcomes.is_file(),
+        "host_oom_kills_before": oom_before,
+        "host_oom_kills_after": host_oom_kills(),
+    }
+    # Preserve the child exit even when it could not write JUnit or coverage.
+    # A signal or host-wide OOM delta alone cannot identify the cause of death.
+    print(json.dumps({"test_process": execution}, sort_keys=True), flush=True)
+    write_json(output / "test-execution.json", execution)
     try:
         outcomes_summary = test_summary(outcomes)
     finally:

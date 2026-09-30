@@ -1,4 +1,4 @@
-import { DiagnosticState } from './DiagnosticState';
+import { AnalysisEvidenceNotice, DiagnosticState } from './DiagnosticState';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type MouseEvent } from 'react';
 import {
   api,
@@ -1621,7 +1621,8 @@ function App() {
           ].map(([label, value]) => <article className="metric" key={label}><span>{label}</span><strong>{value}</strong></article>)}
         </section>
 
-        <section className="category-strip" aria-label="Classification totals">
+        <p className="limitation">Recorded analysis categories across revisions. Open an investigation to check its current evidence.</p>
+        <section className="category-strip" aria-label="Recorded classification totals">
           {Object.entries(overview?.categories ?? {}).map(([category, count]) => (
             <div key={category}><i className={`dot ${statusClass(category)}`} aria-hidden="true"/><span>{categoryLabel[category]}</span><strong>{count}</strong></div>
           ))}
@@ -1992,7 +1993,7 @@ function App() {
                     <div className="analysis-grid">
                       <div className="analysis-summary">
                         <span className={`pill ${statusClass(selectedFailure.latest_analysis.category)}`}>{categoryLabel[selectedFailure.latest_analysis.category]}</span>
-                        {selectedFailure.latest_analysis.evidence_state === 'expired' && <p className="alert" role="status">Evidence expired. Recorded category: {readableValue(selectedFailure.latest_analysis.recorded_category ?? 'unknown')}. This historical decision is no longer evidence-verified.</p>}
+                        <AnalysisEvidenceNotice analysis={selectedFailure.latest_analysis} />
                         <h3>{selectedFailure.latest_analysis.summary}</h3>
                         <p>{selectedFailure.latest_analysis.confidence.explanation}</p>
                         <dl><div><dt>Score kind</dt><dd>{selectedFailure.latest_analysis.confidence.kind}</dd></div><div><dt>Score</dt><dd>{selectedFailure.latest_analysis.confidence.value ?? 'unavailable'}</dd></div><div><dt>Evidence completeness</dt><dd>{selectedFailure.latest_analysis.evidence_completeness}</dd></div></dl>
@@ -2187,7 +2188,7 @@ function App() {
         {canReview && (
           <section id="reviews" className="panel review-queue-panel">
             <div className="panel-heading"><div><p className="eyebrow">VERIFIED HUMAN WORKFLOW</p><h2>Review queue</h2></div><span className="count">{reviewTotal ?? '…'} matching</span></div>
-            <p className="limitation">Filters and pagination query the full authorized latest-analysis dataset. Older unresolved investigations remain accessible.</p>
+            <p className="limitation">Filters and pagination query the full authorized latest-analysis dataset. Categories and evidence values are recorded history; open an investigation for current validation. Older unresolved investigations remain accessible.</p>
             <div className="table-toolbar" aria-label="Review queue filters">
               <label>Search<input type="search" value={reviewSearch} onChange={(event: ChangeEvent<HTMLInputElement>) => { setReviewSearch(event.target.value); setReviewPage(1); }} placeholder="Test, summary, category, or decision" /></label>
               <label>Status<select value={reviewStatusFilter} onChange={(event: ChangeEvent<HTMLSelectElement>) => { setReviewStatusFilter(event.target.value as 'all' | 'pending' | 'reviewed'); setReviewPage(1); }}><option value="pending">Pending action</option><option value="reviewed">Terminally reviewed</option><option value="all">All analyses</option></select></label>
@@ -2200,12 +2201,12 @@ function App() {
                 <div className="table-wrap">
                   <table>
                     <caption className="sr-only">Filtered review queue</caption>
-                    <thead><tr><th scope="col">Test</th><th scope="col">Machine category</th><th scope="col">Evidence</th><th scope="col">Latest decision</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+                    <thead><tr><th scope="col">Test</th><th scope="col">Recorded category</th><th scope="col">Recorded evidence</th><th scope="col">Latest decision</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
                     <tbody>{pagedReviewQueue.map((item) => (
                       <tr key={item.analysis_id}>
                         <td><strong>{item.test_identity}</strong><small>{item.summary}</small></td>
                         <td><span className={`pill ${statusClass(item.category)}`}>{categoryLabel[item.category]}</span><small>{item.severity} severity</small></td>
-                        <td>{readableValue(item.evidence_completeness)}<small>{item.policy_flags.length > 0 ? item.policy_flags.join(' · ') : 'No active policy flags'}</small></td>
+                        <td>{readableValue(item.evidence_completeness)}<small>{item.policy_flags.length > 0 ? item.policy_flags.join(' · ') : 'No recorded policy flags'}</small></td>
                         <td>{item.latest_review_decision ? readableValue(item.latest_review_decision) : 'Unreviewed'}<small>version {item.latest_review_version}</small></td>
                         <td><button type="button" onClick={() => openReviewQueueItem(item)} aria-label={`Open failure ${item.test_identity}`}>Open failure</button></td>
                       </tr>

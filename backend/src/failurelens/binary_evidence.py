@@ -599,14 +599,8 @@ def read_derivative(
         raise _error(
             "artifact_integrity_failed", "Artifact storage scope failed validation", 409
         )
-    # Re-resolve inside the owning namespace to reject a symlink into another project.
-    namespace = (settings.artifact_root / "derivatives" / row.project_id).resolve()
-    try:
-        (settings.artifact_root / row.storage_path).resolve().relative_to(namespace)
-    except ValueError as exc:
-        raise _error(
-            "artifact_integrity_failed", "Artifact storage scope failed validation", 409
-        ) from exc
+    # Storage opens each component beneath the configured root without following
+    # symlinks. Resolving the project namespace itself would trust a project alias.
     try:
         content = read_stored_bytes(
             root=settings.artifact_root,

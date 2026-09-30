@@ -109,6 +109,7 @@ jobs:
           path: |
             /tmp/loose-backend-coverage/report.json
             /tmp/loose-backend-coverage/coverage-data.sqlite
+            /tmp/loose-backend-coverage/test-execution.json
           if-no-files-found: error
           retention-days: 30
 

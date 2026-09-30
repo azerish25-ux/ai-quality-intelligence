@@ -101,7 +101,15 @@ def _url(value: Any) -> str:
 
 
 def _number(value: Any) -> int | float | None:
-    if type(value) in {int, float} and math.isfinite(value) and value >= 0:
+    try:
+        finite = type(value) in {int, float} and math.isfinite(value)
+    except OverflowError as exc:
+        from .ingestion import IngestionError
+
+        raise IngestionError(
+            "malformed_report", "Trace numeric value exceeds the supported range"
+        ) from exc
+    if finite and value >= 0:
         return value
     return None
 

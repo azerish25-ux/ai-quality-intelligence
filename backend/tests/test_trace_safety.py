@@ -8,6 +8,7 @@ import zipfile
 
 import pytest
 from failurelens.config import get_settings
+from failurelens.ingestion import IngestionError, parse_artifact
 from failurelens.jobs import process_next
 from failurelens.trace_evidence import _safe_event, _text, build_trace_index
 
@@ -23,6 +24,89 @@ def archive_for(*events: dict) -> bytes:
             "trace.trace", "\n".join(json.dumps(event) for event in stream) + "\n"
         )
     return output.getvalue()
+
+
+@pytest.mark.parametrize("field", ["startTime", "endTime", "time", "duration"])
+@pytest.mark.parametrize("number", [10**400, -(10**400)], ids=["positive", "negative"])
+def test_unrepresentable_trace_numbers_are_scoped_parse_errors(field, number):
+    event = (
+        {"type": "resource-snapshot", "snapshot": {"time": number}}
+        if field == "duration"
+        else {"type": "before", field: number}
+    )
+    with pytest.raises(IngestionError) as caught:
+        build_trace_index(archive_for(event), get_settings())
+    assert caught.value.code == "malformed_report"
+    assert str(number) not in str(caught.value)
+
+
+def overflow_bundle(*, required):
+    manifest = {
+        "schema_version": "2.0",
+        "inputs": [
+            {
+                "id": "report",
+                "path": "report.xml",
+                "kind": "junit-xml",
+                "required": True,
+            },
+            {
+                "id": "trace",
+                "path": "trace.zip",
+                "kind": "playwright-trace",
+                "required": required,
+            },
+        ],
+    }
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_STORED) as archive:
+        archive.writestr("manifest.json", json.dumps(manifest))
+        archive.writestr(
+            "report.xml",
+            '<testsuite tests="1"><testcase classname="C" name="works"/></testsuite>',
+        )
+        archive.writestr(
+            "trace.zip", archive_for({"type": "before", "startTime": 10**400})
+        )
+    return output.getvalue()
+
+
+@pytest.mark.parametrize("required", [False, True])
+def test_trace_numeric_rejection_preserves_manifest_siblings_and_completeness(required):
+    parsed = parse_artifact(
+        overflow_bundle(required=required), "bundle.zip", get_settings()
+    )
+    report, trace = parsed.inputs
+    assert report.input_id == "report" and report.status == "accepted"
+    assert trace.input_id == "trace" and trace.status == "rejected"
+    assert trace.warnings == ("malformed_report",)
+    assert len(parsed.observations) == 1
+    assert parsed.completeness == ("partial" if required else "complete")
+
+
+@pytest.mark.parametrize("required", [False, True])
+def test_trace_numeric_rejection_completes_worker_without_generic_retry(
+    client, session, required
+):
+    project = client.post(
+        "/api/v1/projects", json={"slug": "trace-overflow", "name": "Trace overflow"}
+    ).json()
+    queued = client.post(
+        f"/api/v1/projects/{project['id']}/ingestions",
+        params={"external_id": "overflow", "filename": "bundle.zip"},
+        content=overflow_bundle(required=required),
+        headers={"content-type": "application/zip"},
+    )
+    assert queued.status_code == 202, queued.text
+    assert process_next(session, "trace-overflow-worker", settings=get_settings())
+    completed = client.get(f"/api/v1/ingestions/{queued.json()['id']}").json()
+    assert completed["state"] == ("partial" if required else "succeeded")
+    inputs = client.get(f"/api/v1/runs/{completed['run_id']}/inputs").json()
+    assert {row["input_id"]: row["status"] for row in inputs} == {
+        "report": "accepted",
+        "trace": "rejected",
+    }
+    assert not process_next(session, "trace-overflow-worker", settings=get_settings())
 
 
 @pytest.mark.parametrize(

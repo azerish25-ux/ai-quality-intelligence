@@ -33,22 +33,26 @@ all failures. No thresholds are weakened. See [reproduction and limits](docs/cam
 
 ## Verified operational and report workflows
 
-At source `48e6336`, [all twelve ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36756008656)
+At source `caee9e3`, [all twelve ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36763069596)
 passed, including real PostgreSQL, producer fixtures, four browser lanes, non-root
 application containers, isolated runtime networking and actual database/artifact
-backup restore with citation validation. The backend passed 2,159 tests with no
-skips and 88.63% combined statement/branch coverage. Actual branch-only coverage is
-79.56%; the separate 90%/95% acceptance job correctly fails, keeping the workflow
+backup restore with citation validation. The backend passed 2,265 tests with no
+skips and 88.97% combined statement/branch coverage. Actual branch-only coverage is
+80.08%; the separate 90%/95% acceptance job correctly fails, keeping the workflow
 red. This certifies the named ordinary regression scope, not an
 unmeasured later commit. Frozen classifier quality targets still fail as described
 above; operational correctness is not a replacement for diagnostic acceptance.
+Subsequent review reproduced stale current-evidence and expired-history
+reassurance paths and upload/trace boundary defects. Their repair status is
+recorded in the [delivery ledger](docs/PROGRESS.md); passing ordinary tests do not
+establish complete security or current-evidence coverage.
 
 The [bounded telemetry contract](docs/telemetry.md) covers durable trace context,
 fixed-cardinality metrics and default-disabled export. Its optional local-only
 collector/viewer profile passed real Docker verification at repair `8daa5c7` in
 [36687923599](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36687923599).
 The strict 50,000-execution read benchmark has both passing and failing shared-runner
-measurements; the latest `48e6336` run failed at 634.50 ms p95 on an AMD runner,
+measurements; the latest `caee9e3` run failed at 677.27 ms p95 on an AMD runner,
 with all four cold and 200 warm requests successful. Stable compliance with the
 unchanged 500 ms target remains open. [Measurements and limits](docs/operational-benchmark.md).
 
@@ -60,7 +64,7 @@ New workflows include an [authorized read-only GitHub report preview](docs/githu
 The optional provider workflow now includes scoped evidence previews, explicit
 administrator approval, durable job status/cancellation and a separate isolated
 worker deployment. It is disabled by default and rejects demo deployments. Synthetic
-PostgreSQL, desktop/narrow browser and Docker topology tests pass at `48e6336`.
+PostgreSQL, desktop/narrow browser and Docker topology tests pass at `caee9e3`.
 No real model or paid-provider quality result
 is claimed. [Configuration, trust boundaries and verification limits](docs/optional-provider.md).
 
@@ -78,6 +82,11 @@ docker compose up --build
 ```
 
 The default loopback-bound synthetic-demo stack exposes the dashboard at `http://localhost:8080` and API documentation at `http://localhost:8000/docs`. Use **Load synthetic demo**, then upload a supported artifact or manifest ZIP through **Durable pipeline**. Processing and input diagnostics come from persisted API state, not simulated streaming.
+
+Evidence storage requires the Linux/container filesystem capabilities described in
+[safe binary evidence](docs/safe-binary-evidence.md): directory-relative no-follow
+operations and exclusive hard links on the artifact filesystem. Unsupported
+storage fails explicitly. The configured artifact root remains operator-trusted.
 
 The evaluation panel defaults to the [retained exact-source measured report](evaluation/reports/ledgerguard-component-v1-7405d923/report.md). It displays the revision actually measured, not the current runtime revision. CI mounts its own fresh exact-revision report. All failures and unknown metrics remain visible.
 

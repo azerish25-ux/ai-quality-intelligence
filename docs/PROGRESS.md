@@ -1090,3 +1090,140 @@ existing test accidentally used demo mode for that last assertion.
 These changes have focused and independent review evidence. Clean full-source
 collection, exact-source PostgreSQL execution and hosted regression remain
 required before delivery; no new coverage percentage is claimed yet.
+
+### Authentication and membership exact-source execution
+
+The clean local measurement `b3ac25082129f974986d32a4dc673928a23c51ff`
+passed **2,214 backend tests with 51 PostgreSQL-only skips**, all five legacy
+harnesses, SQLite migrations, frontend build and 200 frontend tests. All six
+offline quality gates passed. Source and frozen inputs remained unchanged.
+Branch coverage was 3,077/3,856; the 90%/95% targets failed, both online audits
+were NOT RUN and full-project acceptance remained NOT RUN.
+
+Published `caee9e300bc8974c750ccaab5e78d94c00dfd337` has the exact measured tree
+`f72e75e898a0a15d7a9087150a1640401a2fc0a4`. In
+[run 36763069596](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36763069596),
+backend job `110050915541` passed **2,265 tests with zero skips**, including all
+51 real-PostgreSQL cases. This executes the three independent authentication
+transaction cases and 21 membership concurrency/current-authority cases that
+could not run locally. Hosted branch coverage is **3,088/3,856 = 80.0830%**;
+combined coverage is 88.9683%. Five of 34 critical files meet 95%. The independent
+checker verified the report/data pair and correctly failed the numeric targets.
+All twelve ordinary CI jobs completed successfully, including all four browser
+lanes, provider browser checks, Docker and producer fixtures. Source export,
+telemetry, optional-provider boundary, Action consumer, diagnostic, mutation,
+campaign, transaction-finality and full-stack workflows also completed successfully.
+
+Seven independent hosted quality/security jobs pass. Python audit succeeded;
+npm audit remained skipped and the required aggregate failed. The unchanged
+operational workload [failed at 677.267157 ms](../evaluation/reports/operational-caee9e3-failed/README.md),
+with all four cold and 200 warm requests successful. Frozen classifier acceptance
+still fails. These results do not establish full-project readiness.
+
+### Current-evidence and storage review findings
+
+Ordinary ingestion/API and real retention probes at `caee9e3` reproduced two
+current-validity gaps: removing a derivative left API analysis claims and new
+reassuring review eligibility live, and expiring prior supporting history left
+known-flake reassurance live in the API and GitHub preview. Historical stored
+analyses and reviews are immutable records; their original validation must not be
+treated as proof of current availability. Shared current projections and new
+review eligibility are being repaired, with fresh original-cutoff history checks.
+
+Separately, real coroutine cancellation left an upload staging file, and a bounded
+JSON trace containing an oversized integer timestamp raised `OverflowError`
+instead of rejecting only that manifest input. Filesystem fault probes also found
+unbounded reads after pathname stat and symlink/finalization weaknesses under
+artifact-volume modification. Those defenses require distinct threat assumptions;
+the probes did not demonstrate a remote cross-project exploit. Repairs and fresh
+verification remain pending at this checkpoint.
+
+### Current-validity and bounded storage implementation
+
+One request/transaction context now rechecks current evidence across analysis
+projections, human review submission, GitHub preview and canonical export. It
+refreshes preloaded policy records and shares immutable-byte reads without caching
+authorization decisions. It validates the original accepted analysis inputs,
+including uncited inputs, while preserving unrelated sibling-execution isolation
+and explicitly correlated diagnostic inputs. Contexts cannot cross sessions or
+transactions. Stored analyses and review events remain unchanged by projection.
+
+Known-flake publication rechecks the original prior-only cutoff, cohort, policy
+and history digest. Explicit citations on qualifying past human reviews must
+remain available; an uncited category correction remains a human judgment rather
+than being assigned invented evidence. No recursive reclassification or future
+review input is introduced. Missing bytes, digest mismatch, revoked approval and
+expired supporting history withhold current claims and block new reassurance.
+Old preview/export/publication digests fail after relevant support changes.
+
+The API exposes unavailable current support separately from retention expiry and
+the recorded category. The dashboard displays this distinction and labels overview
+and review-queue values as recorded history. SQL filters/counts/pagination keep
+their historical semantics. Frontend build and **203 tests** pass. The focused
+evidence/history/API/publication run passed **456 tests**; the additional real
+trace/k6 producer-inspection, binary, performance and redaction run passed **99**.
+These overlap and are not an additive full-suite count. Independent two-session
+review verified that a previously loaded derivative is refreshed after another
+transaction restricts it. A new historical-citation fixture initially reused the
+same content-addressed path for prior/current bytes; the corrected fixture asserts
+distinct paths before deletion. That was a fixture error, not a runtime defect.
+
+Storage now bounds reads on opened regular-file descriptors, rejects symlinked
+namespace components and publishes private staging inodes without overwriting
+existing finals. Cancellation and OS cleanup failures preserve the original
+exception. Huge trace integers receive scoped `malformed_report` rejection,
+including optional/required manifest and durable-worker paths. Sixty new
+regressions cover these boundaries: 15 of 16 selected cases fail on the published
+old-source archive; the final combined caller run passes **183 tests**, with no
+failures or skips. Focused lint, formatting and types pass for both repair groups.
+
+The documented Linux/container storage capability requirements and trusted-volume,
+orphan-cleanup and power-loss limitations remain explicit. The new
+`publication_validity.py` is the 35th declared critical file before the next
+measurement; the 95% target is unchanged. Clean full-source collection, all offline
+gates, exact-source CI and publication are still pending for this new batch.
+
+### Clean local checkpoint and cache resource review
+
+Intermediate local source `1fac840e24d07881426b10a4b329ba9164fcfb72` completed
+the full clean-source verifier: **2,297 backend tests passed, 51 PostgreSQL-only
+cases skipped, zero failures**, in 459.80 seconds. SQLite migrations, all five
+legacy harnesses, frontend build/203 tests and all six offline gates passed;
+source remained unchanged. Its branch measurement is **3,159/3,922 = 80.5456%**,
+with six of 35 critical files meeting 95%. Combined coverage is 89.3193%.
+The strict branch gate still fails; both local audits are NOT RUN, required
+security acceptance fails and full-project acceptance remains NOT RUN.
+
+This checkpoint was withheld from publication after final review found that its
+new request caches could retain every distinct evidence body, history context and
+read exception. The measured source/report pair is preserved. A bounded-cache
+repair is required before publishing the batch; it must evict or bypass caching
+without truncating input, skipping validation or retaining exception tracebacks.
+
+The repair caps successful byte caching at **128 entries / 4 MiB**, using least
+recently used eviction. Larger valid bodies are returned uncached and errors are
+never retained. History caching holds at most 16 exact-scope contexts; those with
+more than 256 qualifying review IDs bypass caching intact. These are cache
+retention bounds, not reductions to evidence/history inputs or validation.
+Ten tiny real-artifact/history tests produced eight expected failures and two
+passing controls before the repair; all ten pass afterward within **157 focused
+integration tests**. They verify hit promotion, both budgets, exact boundaries,
+reread/corruption detection, recovery after failure, released traceback frames,
+original cutoff/digest recomputation and complete uncached review references.
+Focused types, lint and formatting pass. Final-source CI remains required.
+
+The bounded local checkpoint `2d64b3c22f586a69fb592cafbbd3fbdbbd1320d0`
+passed its 157 focused checks and all six offline gates, but its subsequent full
+test process ended before writing JUnit outcomes. The collector correctly rejected
+the run with `missing-or-oversized-test-outcomes`; branch measurement is NOT RUN,
+and no full backend pass is claimed. Migrations, five legacy harnesses, frontend
+build/203 tests, all six offline gates and source-preservation checks completed.
+The original logs/shards and failed wrapper summary are retained separately.
+
+Concurrent shared-host memory pressure is a hypothesis, not an established cause:
+the original collector did not retain the child return code and no pre-run OOM
+counter was captured. The exact source tree was uploaded as immutable Git objects,
+but no commit/ref update was made from this incomplete result. The collector now
+retains a bounded, source-free process diagnostic before reading outcomes, and
+actual self-terminating child tests verify that it still refuses acceptance.
+An isolated verification window and new committed-source run remain required.

@@ -487,6 +487,20 @@ def test_integrity_scope_expiry_and_content_ranges(client, session):
     assert not decision.masks and "Verified and masked" not in decision.reason
 
 
+def test_content_rejects_symlink_at_project_namespace(client, session):
+    project_id, _, items, shots = ingest(client, session, trace=False)
+    approved = review(client, items["actual.png"], shots["actual.png"]).json()
+    url = f"/api/v1/artifact-derivatives/{approved['derivative']['id']}/content"
+    assert client.get(url).status_code == 200
+    namespace = get_settings().artifact_root / "derivatives" / project_id
+    sibling = namespace.with_name("owned-sibling-project")
+    namespace.rename(sibling)
+    namespace.symlink_to(sibling, target_is_directory=True)
+    response = client.get(url)
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "artifact_integrity_failed"
+
+
 def test_comparison_requires_same_approved_execution_and_compatible_environment(
     client, session
 ):

@@ -16,12 +16,8 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from .evidence_validation import (
-    persisted_analysis_is_publication_validated,
-    validate_evidence_records,
-    validate_scoped_evidence_records,
-)
 from .models import Analysis, Evidence, Run
+from .publication_validity import PublicationContext
 from .redaction import redact_text
 
 SCHEMA_VERSION = "github-evidence-v1"
@@ -106,7 +102,11 @@ def export_descriptor(document: dict[str, Any]) -> dict[str, Any]:
 
 
 def evidence_for_report(
-    session: Session, run: Run, snapshot: Mapping[str, Any]
+    session: Session,
+    run: Run,
+    snapshot: Mapping[str, Any],
+    *,
+    context: PublicationContext | None = None,
 ) -> dict[str, Any]:
     """Rebuild the exact bounded export; changed availability invalidates a report."""
     from .github_report_sections import retained_evidence_references
@@ -122,6 +122,7 @@ def evidence_for_report(
         allowed_related_run_ids=hints["allowed_related_run_ids"],
         omitted_section_reference_hints=hints["omitted_evidence_ids"],
         omitted_related_run_hints=hints["omitted_related_run_ids"],
+        context=context,
     )
     if export_descriptor(document) != snapshot.get("evidence_export"):
         raise ValueError("report evidence changed; regenerate the report")
@@ -138,6 +139,7 @@ def build_evidence_export(
     omitted_section_reference_hints: int = 0,
     omitted_related_run_hints: int = 0,
     max_bytes: int = MAX_EXPORT_BYTES,
+    context: PublicationContext | None = None,
 ) -> dict[str, Any]:
     """Caller authorizes the primary project; every related row is re-scoped here.
 
@@ -145,6 +147,8 @@ def build_evidence_export(
     no later than the primary run. Report builders apply their stricter baseline
     compatibility rules before supplying these references.
     """
+    context = context or PublicationContext(session)
+    context.require_session(session)
     additional_evidence_ids = additional_evidence_ids or []
     allowed_related_run_ids = allowed_related_run_ids or []
     if (
@@ -196,7 +200,7 @@ def build_evidence_export(
             or failure.project_id != run.project_id
             or failure.run_id != run.id
             or run.evidence_expired_at is not None
-            or not persisted_analysis_is_publication_validated(analysis)
+            or not context.analysis(analysis).valid
         ):
             unavailable_analyses += 1
             continue
@@ -219,7 +223,7 @@ def build_evidence_export(
                 if row is not None:
                     rows.append(row)
         accepted_by_analysis.update(
-            validate_evidence_records(failure, rows).accepted_ids
+            context.failure_evidence(failure, rows).accepted_ids
         )
     for evidence_id in additional_evidence_ids:
         add_reference(evidence_id)
@@ -272,7 +276,7 @@ def build_evidence_export(
         ):
             document["counts"]["rejected"] += 1
             continue
-        validation = validate_scoped_evidence_records(
+        validation = context.scoped_evidence(
             evidence_run,
             [evidence],
             execution=evidence.execution,

@@ -12,7 +12,7 @@ from typing import Any
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, object_session, selectinload
 
 from .analysis import ANALYSIS_VERSION, RULES_VERSION, analyze_failure, input_digest
 from .auth import Principal, record_audit_event
@@ -57,6 +57,7 @@ from .performance import (
     infer_metric_direction,
     register_performance_observation,
 )
+from .publication_validity import PublicationContext
 from .redaction import (
     REDACTION_VERSION,
     RedactionContext,
@@ -1674,6 +1675,7 @@ def select_failure_evidence(session: Session, failure: Failure) -> list[Evidence
                 selectinload(Evidence.derivative),
                 selectinload(Evidence.run_input),
             )
+            .execution_options(populate_existing=True)
             .order_by(Evidence.id)
         ).all()
     )
@@ -1856,7 +1858,9 @@ def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
     return row
 
 
-def analysis_to_schema(row: Analysis) -> AnalysisResult:
+def analysis_to_schema(
+    row: Analysis, *, context: PublicationContext | None = None
+) -> AnalysisResult:
     if row.failure.run.evidence_expired_at is not None:
         reason = "Evidence expired under the project retention policy. The recorded category is historical, not a current verified diagnosis."
         return AnalysisResult(
@@ -1890,6 +1894,56 @@ def analysis_to_schema(row: Analysis) -> AnalysisResult:
             validation_results={"status": "expired"},
         )
     publication_validated = persisted_analysis_is_publication_validated(row)
+    if publication_validated:
+        session = object_session(row)
+        context = context or (
+            PublicationContext(session) if session is not None else None
+        )
+        current = context.analysis(row) if context is not None else None
+        if current is None or not current.valid:
+            reasons = (
+                list(current.reasons) if current else ["current_evidence_unavailable"]
+            )
+            reason = (
+                "The recorded diagnosis is historical because its evidence or prior "
+                "reviewed history is no longer currently verifiable. Re-analysis is required."
+            )
+            return AnalysisResult(
+                analysis_id=row.id,
+                analysis_version=row.analysis_version,
+                failure_id=row.failure_id,
+                run_id=row.failure.run_id,
+                evidence_state="unavailable",
+                recorded_category=row.category,
+                category=Category.insufficient_evidence,
+                severity=row.severity,
+                confidence=Confidence(
+                    value=None, kind="unavailable", explanation=reason
+                ),
+                evidence_completeness="unavailable",
+                summary=reason,
+                claims=[],
+                supporting_evidence_ids=[],
+                contradictory_evidence_ids=[],
+                missing_evidence=sorted({*row.missing_evidence, *reasons}),
+                hypotheses=[],
+                next_investigation=[
+                    {
+                        "action": "Re-analyze against currently available scoped evidence",
+                        "rationale": reason,
+                        "evidence_ids": [],
+                    }
+                ],
+                abstention_reason=reason,
+                policy_flags=sorted({*row.policy_flags, *reasons, "safe_abstention"}),
+                provenance=row.provenance,
+                validation_version=row.validation_version,
+                validation_results={
+                    "status": "unavailable",
+                    "reasons": reasons,
+                    "published_category": Category.insufficient_evidence.value,
+                },
+            )
     if publication_validated:
         category = row.category
         confidence = Confidence(
@@ -1994,6 +2048,7 @@ def add_review(
     lock_project(session, analysis.failure.project_id)
     session.refresh(analysis)
     session.refresh(analysis.failure.run)
+    context = PublicationContext(session)
     expired = analysis.failure.run.evidence_expired_at is not None
     current_version = (
         session.scalar(
@@ -2020,6 +2075,7 @@ def add_review(
         or analysis.category
         in {Category.product_defect, Category.insufficient_evidence}
         or bool(analysis.policy_flags)
+        or not context.analysis(analysis).valid
     ):
         raise ValueError(
             "reassuring release advice is blocked by incomplete evidence, unresolved "
@@ -2033,22 +2089,12 @@ def add_review(
         request.contradictory_evidence_ids
     )
     if cited_ids:
-        rows = list(
-            session.scalars(
-                select(Evidence).where(Evidence.id.in_(sorted(cited_ids)))
-            ).all()
-        )
-        found = {
-            row.id
-            for row in rows
-            if row.project_id == failure.project_id
-            and row.derivative is not None
-            and row.derivative.retention_state == "active"
-        }
+        found = context.inspectable_references(failure.project_id, cited_ids)
         missing = sorted(cited_ids - found)
         if missing:
             raise ValueError(
-                "review evidence must exist in the same project: " + ", ".join(missing)
+                "review evidence must be currently verifiable in the same project: "
+                + ", ".join(missing)
             )
 
     effective_principal = principal or Principal(

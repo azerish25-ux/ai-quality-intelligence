@@ -240,7 +240,7 @@ export interface Failure {
 }
 
 export interface Analysis {
-  evidence_state?: 'active' | 'expired';
+  evidence_state?: 'active' | 'expired' | 'unavailable';
   recorded_category?: Category | null;
   analysis_id: string;
   category: Category;

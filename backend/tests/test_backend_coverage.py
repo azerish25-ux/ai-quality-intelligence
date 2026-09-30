@@ -287,6 +287,59 @@ def test_fresh_collector_measures_real_inherited_child_and_preserves_ordinary_ga
         runner.collect(output, ["backend/tests"], root)
 
 
+@pytest.mark.parametrize(
+    "termination,expected_exit,expected_signal",
+    [
+        ("os._exit(7)", 7, None),
+        ("os.kill(os.getpid(), signal.SIGKILL)", -9, 9),
+    ],
+)
+def test_abrupt_test_child_retains_exit_without_granting_acceptance(
+    miniature, termination, expected_exit, expected_signal
+):
+    root, _package, output = miniature
+    (root / "backend/tests/test_probe.py").write_text(
+        "import os, signal\ndef test_abrupt_exit():\n    " + termination + "\n"
+    )
+    with pytest.raises(
+        runner.CoverageError, match="missing-or-oversized-test-outcomes"
+    ):
+        runner.collect(output, ["backend/tests"], root)
+    execution = runner.read_json(output / "test-execution.json")
+    assert execution["pytest_exit_code"] == expected_exit
+    assert execution["termination_signal"] == expected_signal
+    assert execution["outcome_file_present"] is False
+    assert execution["scope"] == "pytest_process_observation_not_acceptance"
+    assert execution["source_revision_at_start"] == "synthetic-revision"
+    assert execution["elapsed_seconds"] >= 0
+    assert not (output / "report.json").exists()
+    assert not (output / "coverage-data.sqlite").exists()
+
+
+@pytest.mark.parametrize(
+    "contents,expected",
+    [
+        ("oom_kill 8\n", 8),
+        ("other 8\n", None),
+        ("oom_kill bad\n", None),
+        ("oom_kill -1\n", None),
+    ],
+)
+def test_host_oom_diagnostic_accepts_only_a_nonnegative_counter(
+    monkeypatch, contents, expected
+):
+    monkeypatch.setattr(runner.Path, "read_text", lambda _: contents)
+    assert runner.host_oom_kills() == expected
+
+
+def test_unavailable_host_oom_diagnostic_does_not_mask_test_outcome(monkeypatch):
+    def unavailable(_):
+        raise PermissionError("synthetic unavailable host diagnostic")
+
+    monkeypatch.setattr(runner.Path, "read_text", unavailable)
+    assert runner.host_oom_kills() is None
+
+
 def test_collector_refuses_installed_source_mismatch(miniature, monkeypatch, tmp_path):
     root, _package, output = miniature
     installed = tmp_path / "installed"

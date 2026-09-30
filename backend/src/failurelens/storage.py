@@ -1,14 +1,26 @@
 from __future__ import annotations
 
+import errno
 import hashlib
 import os
 import re
+import stat
 import uuid
-from collections.abc import AsyncIterable
+from collections.abc import AsyncIterable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
+from typing import BinaryIO, Literal
 
 from .telemetry import instrument
+
+# Evidence storage requires these filesystem semantics. The configured root may
+# be an operator-owned alias; components below the opened root must not be links.
+_DESCRIPTOR_STORAGE_SUPPORTED = (
+    all(hasattr(os, name) for name in ("O_DIRECTORY", "O_NOFOLLOW", "O_NONBLOCK"))
+    and {os.open, os.mkdir, os.unlink, os.link, os.stat}.issubset(os.supports_dir_fd)
+    and os.link in os.supports_follow_symlinks
+)
 
 
 class StorageError(ValueError):
@@ -43,15 +55,24 @@ def safe_filename(name: str) -> str:
 
 
 def _resolve_under(root: Path, relative_path: str) -> Path:
-    if ".redaction" in PurePosixPath(relative_path).parts:
+    path = PurePosixPath(relative_path)
+    if ".redaction" in path.parts:
         raise StorageError(
             "reserved_storage_path", "Private operational state is not evidence storage"
         )
-    root_resolved = root.resolve()
-    candidate = (root_resolved / relative_path).resolve()
+    if (
+        not path.parts
+        or path.is_absolute()
+        or ".." in path.parts
+        or "\\" in relative_path
+        or "\x00" in relative_path
+    ):
+        raise StorageError("unsafe_storage_path", "Stored artifact path is invalid")
     try:
+        root_resolved = root.resolve()
+        candidate = (root_resolved / path).resolve()
         relative = candidate.relative_to(root_resolved)
-    except ValueError as exc:
+    except (ValueError, OSError, RuntimeError) as exc:
         raise StorageError(
             "unsafe_storage_path", "Stored artifact path escapes the configured root"
         ) from exc
@@ -59,7 +80,160 @@ def _resolve_under(root: Path, relative_path: str) -> Path:
         raise StorageError(
             "reserved_storage_path", "Private operational state is not evidence storage"
         )
-    return candidate
+    if any(
+        root_resolved.joinpath(*path.parts[:i]).is_symlink()
+        for i in range(1, len(path.parts) + 1)
+    ):
+        raise StorageError(
+            "unsafe_storage_path", "Stored artifact path contains a symlink"
+        )
+    return root_resolved / path
+
+
+@contextmanager
+def _root_directory(root: Path, *, create: bool = False) -> Iterator[int]:
+    if not _DESCRIPTOR_STORAGE_SUPPORTED:
+        raise StorageError(
+            "storage_unsupported",
+            "Evidence storage requires no-follow directory descriptors and hard links",
+        )
+    # A configured root alias is trusted, unlike artifact-controlled components.
+    root = root.resolve()
+    if create:
+        root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        yield descriptor
+    finally:
+        os.close(descriptor)
+
+
+@contextmanager
+def _directory_at(
+    root: int, parts: tuple[str, ...], *, create: bool = False
+) -> Iterator[int]:
+    descriptor = os.dup(root)
+    try:
+        for part in parts:
+            if create:
+                try:
+                    os.mkdir(part, 0o700, dir_fd=descriptor)
+                except FileExistsError:
+                    pass
+            try:
+                child = os.open(
+                    part,
+                    os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                    dir_fd=descriptor,
+                )
+            except OSError as exc:
+                if isinstance(exc, FileNotFoundError):
+                    raise
+                raise StorageError(
+                    "unsafe_storage_path", "Artifact directory is unavailable or unsafe"
+                ) from exc
+            os.close(descriptor)
+            descriptor = child
+        yield descriptor
+    finally:
+        os.close(descriptor)
+
+
+@contextmanager
+def _temporary_file(root: Path) -> Iterator[tuple[int, int, str, BinaryIO]]:
+    with (
+        _root_directory(root, create=True) as root_fd,
+        _directory_at(root_fd, ("incoming",), create=True) as incoming_fd,
+    ):
+        name = f"{uuid.uuid4()}.part"
+        descriptor = os.open(
+            name,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o600,
+            dir_fd=incoming_fd,
+        )
+        handle = None
+        try:
+            handle = _file_handle(descriptor, "wb")
+            yield root_fd, incoming_fd, name, handle
+            handle.close()
+        except BaseException:
+            # Cancellation, write/flush errors and the original traceback must
+            # survive OS failures in close or cleanup. Never remove a final file.
+            if handle is not None:
+                try:
+                    handle.close()
+                except OSError:
+                    pass
+            try:
+                os.unlink(name, dir_fd=incoming_fd)
+            except OSError:
+                pass
+            raise
+        else:
+            os.unlink(name, dir_fd=incoming_fd)
+
+
+def _file_handle(
+    descriptor: int, mode: Literal["rb", "wb"], *, buffering: int = -1
+) -> BinaryIO:
+    try:
+        return os.fdopen(descriptor, mode, buffering=buffering)
+    except BaseException:
+        try:
+            os.close(descriptor)
+        except OSError:
+            pass
+        raise
+
+
+def _read_at(
+    directory: int,
+    filename: str,
+    *,
+    expected_digest: str,
+    expected_size: int,
+    max_bytes: int,
+    make_private: bool = False,
+) -> bytes:
+    try:
+        descriptor = os.open(
+            filename, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory
+        )
+    except FileNotFoundError as exc:
+        raise StorageError(
+            "storage_missing", "Stored artifact no longer exists"
+        ) from exc
+    except OSError as exc:
+        raise StorageError(
+            "unsafe_storage_path", "Stored artifact is unavailable or unsafe"
+        ) from exc
+    with _file_handle(descriptor, "rb", buffering=0) as handle:
+        before = os.fstat(handle.fileno())
+        if not stat.S_ISREG(before.st_mode):
+            raise StorageError(
+                "unsafe_storage_path", "Stored artifact is not a regular file"
+            )
+        if before.st_size != expected_size or expected_size < 0:
+            raise StorageError("storage_size_mismatch", "Stored artifact size changed")
+        if before.st_size > max_bytes or max_bytes < 0:
+            raise StorageError(
+                "limit_exceeded", "Stored artifact exceeds the configured limit"
+            )
+        content = handle.read(min(expected_size, max_bytes) + 1)
+        after = os.fstat(handle.fileno())
+        if len(content) > max_bytes:
+            raise StorageError(
+                "limit_exceeded", "Stored artifact exceeds the configured limit"
+            )
+        if len(content) != expected_size or after.st_size != expected_size:
+            raise StorageError("storage_size_mismatch", "Stored artifact size changed")
+        if hashlib.sha256(content).hexdigest() != expected_digest:
+            raise StorageError("digest_mismatch", "Stored artifact digest changed")
+        if make_private:
+            os.fchmod(handle.fileno(), 0o600)
+            os.fsync(handle.fileno())
+        return content
 
 
 def _final_relative_path(project_id: str, digest: str, filename: str) -> str:
@@ -75,7 +249,10 @@ def _derivative_relative_path(project_id: str, digest: str, filename: str) -> st
 def _finalize(
     *,
     root: Path,
-    temporary: Path,
+    root_fd: int,
+    incoming_fd: int,
+    staging_fd: int,
+    temporary: str,
     project_id: str,
     filename: str,
     digest: str,
@@ -89,25 +266,51 @@ def _finalize(
         relative = _derivative_relative_path(project_id, digest, filename)
     else:
         raise StorageError("unsafe_storage_namespace", "Unsupported storage namespace")
-    destination = _resolve_under(root, relative)
-    destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if destination.exists():
-        existing_size = destination.stat().st_size
-        if existing_size != size_bytes:
-            temporary.unlink(missing_ok=True)
-            raise StorageError(
-                "storage_collision", "Existing digest path has an unexpected size"
+    _resolve_under(root, relative)
+    parts = PurePosixPath(relative).parts
+    with _directory_at(root_fd, parts[:-1], create=True) as destination:
+        try:
+            # Atomic exclusive publication: a concurrent winner is validated,
+            # never overwritten. The staging descriptor remains open until here.
+            os.link(
+                temporary,
+                parts[-1],
+                src_dir_fd=incoming_fd,
+                dst_dir_fd=destination,
+                follow_symlinks=False,
             )
-        existing_digest = hashlib.sha256(destination.read_bytes()).hexdigest()
-        if existing_digest != digest:
-            temporary.unlink(missing_ok=True)
-            raise StorageError(
-                "storage_collision", "Existing digest path has unexpected content"
-            )
-        temporary.unlink(missing_ok=True)
-    else:
-        os.replace(temporary, destination)
-        destination.chmod(0o600)
+        except FileExistsError:
+            try:
+                _read_at(
+                    destination,
+                    parts[-1],
+                    expected_digest=digest,
+                    expected_size=size_bytes,
+                    max_bytes=size_bytes,
+                    make_private=True,
+                )
+            except StorageError as exc:
+                raise StorageError(
+                    "storage_collision",
+                    "Existing digest path failed integrity validation",
+                ) from exc
+        except OSError as exc:
+            if exc.errno in {errno.EXDEV, errno.ENOSYS, errno.EOPNOTSUPP, errno.EPERM}:
+                raise StorageError(
+                    "storage_unsupported",
+                    "Evidence storage requires exclusive hard links on one filesystem",
+                ) from exc
+            raise
+        else:
+            staging = os.fstat(staging_fd)
+            published = os.stat(parts[-1], dir_fd=destination, follow_symlinks=False)
+            if (published.st_dev, published.st_ino) != (staging.st_dev, staging.st_ino):
+                raise StorageError(
+                    "storage_collision", "Staging identity changed before publication"
+                )
+        # A previous attempt may have linked the final but failed directory sync.
+        # Identical retries must complete the same durability step too.
+        os.fsync(destination)
     return StoredUpload(
         relative_path=relative,
         digest=digest,
@@ -126,33 +329,30 @@ async def store_stream(
     media_type: str,
     max_bytes: int,
 ) -> StoredUpload:
-    root.mkdir(parents=True, exist_ok=True, mode=0o700)
-    incoming = root / "incoming"
-    incoming.mkdir(parents=True, exist_ok=True, mode=0o700)
     name = safe_filename(filename)
-    temporary = incoming / f"{uuid.uuid4()}.part"
     digest = hashlib.sha256()
     size = 0
-    try:
-        with temporary.open("xb") as handle:
-            os.chmod(temporary, 0o600)
-            async for chunk in chunks:
-                if not chunk:
-                    continue
-                size += len(chunk)
-                if size > max_bytes:
-                    raise StorageError(
-                        "limit_exceeded",
-                        f"Upload exceeds the {max_bytes}-byte file limit",
-                    )
-                digest.update(chunk)
-                handle.write(chunk)
-            handle.flush()
-            os.fsync(handle.fileno())
+    with _temporary_file(root) as (root_fd, incoming_fd, temporary, handle):
+        async for chunk in chunks:
+            if not chunk:
+                continue
+            size += len(chunk)
+            if size > max_bytes:
+                raise StorageError(
+                    "limit_exceeded",
+                    f"Upload exceeds the {max_bytes}-byte file limit",
+                )
+            digest.update(chunk)
+            handle.write(chunk)
+        handle.flush()
+        os.fsync(handle.fileno())
         if size == 0:
             raise StorageError("empty_upload", "Uploaded artifact is empty")
         return _finalize(
             root=root,
+            root_fd=root_fd,
+            incoming_fd=incoming_fd,
+            staging_fd=handle.fileno(),
             temporary=temporary,
             project_id=project_id,
             filename=name,
@@ -161,9 +361,6 @@ async def store_stream(
             media_type=media_type,
             namespace="sources",
         )
-    except Exception:
-        temporary.unlink(missing_ok=True)
-        raise
 
 
 @instrument("persistence")
@@ -182,19 +379,16 @@ def store_bytes(
         raise StorageError(
             "limit_exceeded", f"Upload exceeds the {max_bytes}-byte file limit"
         )
-    root.mkdir(parents=True, exist_ok=True, mode=0o700)
-    incoming = root / "incoming"
-    incoming.mkdir(parents=True, exist_ok=True, mode=0o700)
     name = safe_filename(filename)
-    temporary = incoming / f"{uuid.uuid4()}.part"
-    try:
-        with temporary.open("xb") as handle:
-            os.chmod(temporary, 0o600)
-            handle.write(content)
-            handle.flush()
-            os.fsync(handle.fileno())
+    with _temporary_file(root) as (root_fd, incoming_fd, temporary, handle):
+        handle.write(content)
+        handle.flush()
+        os.fsync(handle.fileno())
         return _finalize(
             root=root,
+            root_fd=root_fd,
+            incoming_fd=incoming_fd,
+            staging_fd=handle.fileno(),
             temporary=temporary,
             project_id=project_id,
             filename=name,
@@ -203,9 +397,6 @@ def store_bytes(
             media_type=media_type,
             namespace="sources",
         )
-    except Exception:
-        temporary.unlink(missing_ok=True)
-        raise
 
 
 @instrument("persistence")
@@ -231,19 +422,16 @@ def store_derivative_bytes(
         raise StorageError(
             "limit_exceeded", f"Derivative exceeds the {max_bytes}-byte file limit"
         )
-    root.mkdir(parents=True, exist_ok=True, mode=0o700)
-    incoming = root / "incoming"
-    incoming.mkdir(parents=True, exist_ok=True, mode=0o700)
     name = safe_filename(filename)
-    temporary = incoming / f"{uuid.uuid4()}.part"
-    try:
-        with temporary.open("xb") as handle:
-            os.chmod(temporary, 0o600)
-            handle.write(content)
-            handle.flush()
-            os.fsync(handle.fileno())
+    with _temporary_file(root) as (root_fd, incoming_fd, temporary, handle):
+        handle.write(content)
+        handle.flush()
+        os.fsync(handle.fileno())
         return _finalize(
             root=root,
+            root_fd=root_fd,
+            incoming_fd=incoming_fd,
+            staging_fd=handle.fileno(),
             temporary=temporary,
             project_id=project_id,
             filename=name,
@@ -252,9 +440,6 @@ def store_derivative_bytes(
             media_type=media_type,
             namespace="derivatives",
         )
-    except Exception:
-        temporary.unlink(missing_ok=True)
-        raise
 
 
 def read_stored_bytes(
@@ -265,23 +450,21 @@ def read_stored_bytes(
     expected_size: int,
     max_bytes: int,
 ) -> bytes:
-    path = _resolve_under(root, relative_path)
+    _resolve_under(root, relative_path)
+    parts = PurePosixPath(relative_path).parts
     try:
-        size = path.stat().st_size
+        with (
+            _root_directory(root) as root_fd,
+            _directory_at(root_fd, parts[:-1]) as directory,
+        ):
+            return _read_at(
+                directory,
+                parts[-1],
+                expected_digest=expected_digest,
+                expected_size=expected_size,
+                max_bytes=max_bytes,
+            )
     except FileNotFoundError as exc:
         raise StorageError(
             "storage_missing", "Stored source artifact no longer exists"
         ) from exc
-    if size != expected_size:
-        raise StorageError(
-            "storage_size_mismatch", "Stored source artifact size changed"
-        )
-    if size > max_bytes:
-        raise StorageError(
-            "limit_exceeded", "Stored source artifact exceeds the configured limit"
-        )
-    content = path.read_bytes()
-    digest = hashlib.sha256(content).hexdigest()
-    if digest != expected_digest:
-        raise StorageError("digest_mismatch", "Stored source artifact digest changed")
-    return content

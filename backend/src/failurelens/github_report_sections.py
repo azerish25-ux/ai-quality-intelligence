@@ -16,7 +16,6 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from .evidence_validation import validate_scoped_evidence_records
 from .github_report import _safe
 from .history import _logical_test_key
 from .impact import impact_recommendation_to_schema
@@ -35,6 +34,7 @@ from .models import (
     RunInput,
     TestExecution,
 )
+from .publication_validity import PublicationContext
 from .redaction import redact_text
 
 DETAIL_LIMIT = 50
@@ -118,9 +118,10 @@ def _execution_identity(execution: TestExecution, run: Run) -> dict[str, Any]:
 
 
 class _Availability:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, context: PublicationContext | None = None):
         self.session = session
-        self.cache: dict[tuple[str, str, str | None, str | None], str] = {}
+        self.context = context or PublicationContext(session)
+        self.context.require_session(session)
 
     def evidence(
         self,
@@ -134,14 +135,6 @@ class _Availability:
             return "expired"
         if evidence is None:
             return "unavailable"
-        key = (
-            evidence.id,
-            run.id,
-            execution.id if execution else None,
-            run_input.id if run_input else None,
-        )
-        if key in self.cache:
-            return self.cache[key]
         if evidence.project_id != run.project_id or evidence.run_id != run.id:
             return "unavailable"
         if evidence.run_input is not None and evidence.run_input.status != "accepted":
@@ -155,11 +148,10 @@ class _Availability:
             return "restricted"
         if derivative is not None and derivative.retention_state == "expired":
             return "expired"
-        check = validate_scoped_evidence_records(
+        check = self.context.scoped_evidence(
             run, [evidence], execution=execution, run_input=run_input
         )
         state = "available" if evidence.id in check.accepted_ids else "unavailable"
-        self.cache[key] = state
         return state
 
     def execution(
@@ -1009,9 +1001,13 @@ def baseline_section(
 
 
 def report_sections(
-    session: Session, run: Run, groups: list[list[TestExecution]]
+    session: Session,
+    run: Run,
+    groups: list[list[TestExecution]],
+    *,
+    context: PublicationContext | None = None,
 ) -> dict[str, Any]:
-    available = _Availability(session)
+    available = _Availability(session, context)
     return {
         "skipped_tests": skipped_section(run, groups, available),
         "impact": impact_section(session, run),

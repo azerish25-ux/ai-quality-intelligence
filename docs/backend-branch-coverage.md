@@ -19,7 +19,7 @@ An additional Python runtime namespace outside the current `failurelens` package
 is rejected until the collector's overall scope is explicitly expanded; it cannot
 silently disappear from the denominator.
 
-The following 34 files each have an independent 95% branch-only target. The full
+The following 35 files each have an independent 95% branch-only target. The full
 file is measured when security-sensitive work and routine work share a module.
 Paths below are relative to `backend/src/failurelens`, with `.py` implied.
 
@@ -28,7 +28,7 @@ Paths below are relative to `backend/src/failurelens`, with `.py` implied.
 | Evidence and storage | `evidence_validation`, `contract_evidence`, `transaction_evidence`, `domain_evidence`, `binary_evidence`, `trace_evidence`, `github_evidence`, `storage`, `image_codec`, `image_worker` | Evidence scope, integrity, availability, bounded parsing and decoding |
 | Authorization and configuration | `auth`, `accounts`, `config`, `db`, `api`, `operations_api`, `binary_api`, `provider_api`, `github_api` | Identity, roles, authentication transaction ownership, deployment configuration and mixed API permission boundaries |
 | Redaction | `redaction`, `redaction_keys` | Source sanitization and correlation-key handling |
-| Dangerous dismissal and reports | `analysis`, `history`, `providers`, `impact`, `github_report`, `github_report_sections`, `github_snapshot` | Non-reassurance, prior-only history, recommendations and published evidence selection |
+| Dangerous dismissal and reports | `analysis`, `history`, `providers`, `impact`, `github_report`, `github_report_sections`, `github_snapshot`, `publication_validity` | Non-reassurance, prior-only history, current availability, recommendations and published evidence selection |
 | Publication and provider execution | `service`, `provider_service`, `provider_jobs`, `provider_proxy`, `github_publication_service`, `github_publication` | Revalidation at shared service boundaries, provider execution and external publication |
 
 This is an explicit critical-file policy, not a certification that all security
@@ -43,6 +43,9 @@ subsequent authentication repair adds an independent-transaction storage validat
 to `db.py`, so this module is added to the critical policy before measuring that
 repair. Historical results retain their original 33-file policy; no old report is
 silently rescored or treated as acceptance for the expanded source.
+The current-evidence repair adds `publication_validity.py` as the 35th critical
+file before its measurement. The `caee9e3` result retains its original 34-file
+scope: 3,088/3,856 overall branches, with five critical files meeting 95%.
 
 ## Fresh collection and independent checking
 
@@ -79,7 +82,7 @@ that invocation prevent reuse of an old database. Deliberate mutation runs retai
 their existing environment isolation and cannot contribute their mutated data.
 No held-out labels or corpus contents are read by the collector.
 
-The retained pair is:
+Coverage acceptance requires the retained pair:
 
 - `report.json`: exact source and data digests, canonical file paths, tool version,
   six integer coverage counts per runtime file, test outcome counts, fixed gates
@@ -87,7 +90,15 @@ The retained pair is:
 - `coverage-data.sqlite`: canonical repository-relative paths and actual executed
   line-to-line arcs, with no source text or captured test output
 
-Only this pair is intended for publication. Raw per-process shards and generated
+The companion `test-execution.json` records only the initial source identity,
+numeric child exit/signal, elapsed time, outcome-file presence and optional
+host-wide OOM counters. It is written before parsing test outcomes, so abrupt
+termination remains diagnosable. This sidecar cannot satisfy coverage or test
+acceptance. A signal or a change in the host-wide counter alone does not establish
+why this particular process ended. CI retains it even when the accepted pair
+cannot be produced; the separate checker still requires the full valid pair.
+
+These source-free files are intended for publication. Raw per-process shards and generated
 configuration contain local paths and remain private. Rich upstream coverage JSON
 and JUnit test output are transient; the retained report does not copy source,
 function names, exception messages, environment values or arbitrary skip reasons.

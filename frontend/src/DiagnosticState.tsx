@@ -2,6 +2,15 @@ import type { Analysis } from './api';
 
 type Validation = NonNullable<Analysis['validation_results']>;
 
+export function AnalysisEvidenceNotice({ analysis }: { analysis: Pick<Analysis, 'evidence_state' | 'recorded_category'> }) {
+  if (analysis.evidence_state !== 'expired' && analysis.evidence_state !== 'unavailable') return null;
+  const category = (analysis.recorded_category ?? 'unknown').replaceAll('_', ' ');
+  return <p className="alert" role="status">
+    {analysis.evidence_state === 'expired' ? 'Evidence expired.' : 'Evidence or prior reviewed history is currently unavailable.'}
+    {' '}Recorded category: {category}. This historical decision is no longer evidence-verified.
+  </p>;
+}
+
 export function diagnosticGapLabel(value: string | null | undefined): string | null {
   const labels: Record<string, string> = {
     publication_rejection: 'The proposed diagnosis did not pass publication validation.',

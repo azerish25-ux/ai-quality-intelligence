@@ -886,7 +886,7 @@ class Confidence(BaseModel):
 
 
 class AnalysisResult(BaseModel):
-    evidence_state: Literal["active", "expired"] = "active"
+    evidence_state: Literal["active", "expired", "unavailable"] = "active"
     recorded_category: Category | None = None
 
     analysis_id: str

@@ -79,6 +79,31 @@ known-flake reassurance. The workspace and deep-linked older runs expose expiry
 rather than broken previews. API responses use private/no-store caching and
 `nosniff`; the dashboard refreshes a selected run's expiry status periodically.
 
+Analysis detail responses also use `evidence_state=unavailable` when retained
+metadata exists but current bytes, integrity, approval or required prior reviewed
+support can no longer be verified. They keep `recorded_category` separately,
+withhold current claims and confidence, and block new reassuring reviews. This
+read-only projection does not rewrite the stored analysis or append a review.
+Evidence metadata inspection verifies the copied excerpt/observation against its
+current immutable derivative; unavailable or corrupt material returns 409.
+
+Overview category totals describe recorded analysis revisions. Review-queue
+category filters, counts and pagination describe recorded latest analyses, while
+their expiry decoration reflects the owning run's retention state. These are
+historical index fields, not current verification results. Opening an investigation
+refreshes current validity; submitting a reassuring review checks it again within
+the review transaction. Same-project human citations may refer to other runs, but
+each cited item must be currently verifiable in its own actual scope.
+Request-local caching holds at most 128 successful derivative bodies and 4 MiB of
+payload, with least-recently-used eviction. Failures are not cached; oversized
+valid bodies are read without cache retention. At most 16 exact-scope history
+contexts are retained, and contexts with more than 256 review IDs bypass the cache
+intact. Eviction causes recomputation/revalidation and never truncates evidence or
+history. These limits bound additional retained cache data, not the full request's
+ordinary database/history computation. Availability is checked during the current
+request/transaction and cannot guarantee that an operator leaves files unchanged
+afterward.
+
 ## Account and session operations
 
 `GET /api/v1/auth/sessions` returns only the signed-in user's session metadata.

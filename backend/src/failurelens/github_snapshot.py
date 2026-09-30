@@ -10,10 +10,6 @@ from typing import Any, NotRequired, TypedDict, cast
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .evidence_validation import (
-    persisted_analysis_is_publication_validated,
-    validate_evidence_records,
-)
 from .github_evidence import build_evidence_export, export_descriptor
 from .github_report import (
     UnvalidatedAnalysis,
@@ -30,8 +26,8 @@ from .github_report_sections import (
     retained_evidence_references,
 )
 from .models import Analysis, Failure, Run, RunInput, TestExecution
+from .publication_validity import PublicationContext
 from .redaction import redact_text
-from .service import select_failure_evidence
 
 
 def latest_analyses(session: Session, run: Run) -> list[Analysis]:
@@ -87,6 +83,7 @@ class _AnalysisDetail(TypedDict):
     failure_id: str
     revision: int
     category: str
+    recorded_category: NotRequired[str]
     summary: str
     supporting_evidence_ids: list[str]
     contradictory_evidence_ids: list[str]
@@ -253,7 +250,11 @@ def _snapshot_markdown(
     return markdown
 
 
-def report_snapshot(session: Session, run: Run) -> ReportSnapshot:
+def report_snapshot(
+    session: Session, run: Run, *, context: PublicationContext | None = None
+) -> ReportSnapshot:
+    context = context or PublicationContext(session)
+    context.require_session(session)
     analyses = latest_analyses(session, run)
     executions = session.scalars(
         select(TestExecution)
@@ -284,28 +285,13 @@ def report_snapshot(session: Session, run: Run) -> ReportSnapshot:
     )
     expired = run.evidence_expired_at is not None
     current_validity: dict[str, bool] = {}
+    current_reasons: dict[str, tuple[str, ...]] = {}
     safe_analyses: list[Analysis | UnvalidatedAnalysis] = []
     for analysis in analyses:
-        accepted = set()
-        if not expired and persisted_analysis_is_publication_validated(analysis):
-            rows = select_failure_evidence(session, analysis.failure)
-            accepted = set(
-                validate_evidence_records(analysis.failure, rows).accepted_ids
-            )
-        cited = set(
-            analysis.supporting_evidence_ids + analysis.contradictory_evidence_ids
-        )
-        valid = (
-            not expired
-            and persisted_analysis_is_publication_validated(analysis)
-            and cited.issubset(accepted)
-        )
-        if (
-            analysis.category.value != "insufficient_evidence"
-            and not analysis.supporting_evidence_ids
-        ):
-            valid = False
+        current = context.analysis(analysis)
+        valid = current.valid
         current_validity[analysis.id] = valid
+        current_reasons[analysis.id] = current.reasons
         safe_analyses.append(
             analysis
             if valid
@@ -338,7 +324,10 @@ def report_snapshot(session: Session, run: Run) -> ReportSnapshot:
                 else [],
                 "missing_evidence": [
                     redact_text(str(x)).text[:400]
-                    for x in analysis.missing_evidence[:10]
+                    for x in [
+                        *analysis.missing_evidence,
+                        *current_reasons[analysis.id],
+                    ][:10]
                 ]
                 if not expired
                 else ["Evidence expired"],
@@ -374,9 +363,15 @@ def report_snapshot(session: Session, run: Run) -> ReportSnapshot:
                 else [],
             }
         )
+        if not validated:
+            details[-1]["recorded_category"] = analysis.category.value
     inputs = _input_summary(session, run)
-    sections = report_sections(session, run, groups)
+    sections = report_sections(session, run, groups, context=context)
     extra_holds = advisory_reasons(run, sections)
+    if any(
+        "historical_support_unavailable" in value for value in current_reasons.values()
+    ):
+        extra_holds.append("historical_support_unavailable")
     status = "HOLD_FOR_REVIEW" if extra_holds else advisory_status(run, safe_analyses)
     markdown = _snapshot_markdown(
         run,
@@ -514,6 +509,7 @@ def report_snapshot(session: Session, run: Run) -> ReportSnapshot:
         allowed_related_run_ids=hints["allowed_related_run_ids"],
         omitted_section_reference_hints=hints["omitted_evidence_ids"],
         omitted_related_run_hints=hints["omitted_related_run_ids"],
+        context=context,
     )
     result["evidence_export"] = export_descriptor(document)
     result["report_digest"] = sha256(
