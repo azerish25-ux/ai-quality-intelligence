@@ -305,3 +305,12 @@ the same uv graph. Switched the gateway to the official unprivileged Nginx varia
 and added actual non-root UID assertions for all three application containers in
 the Docker smoke gate. Local topology/source regressions pass; runtime image and
 UID claims remain subject to actual CI execution.
+
+### Operational acceptance measurement added
+
+Added a strict actual-PostgreSQL HTTP read benchmark for 1,000 synthetic runs /
+50,000 persisted executions at concurrency ten, with cold/warm timing, per-request
+outcomes, actual hardware/source metadata and retained failure reports. It preserves
+the original <500 ms p95 target and requires zero failed requests. Two local harness
+regressions pass; actual performance is NOT RUN until the dedicated workflow executes.
+This workload does not alter the classification corpus or evaluation denominator.

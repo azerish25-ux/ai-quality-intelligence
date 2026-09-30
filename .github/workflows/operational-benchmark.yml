@@ -1,0 +1,50 @@
+name: Loose Thread Operational Read Benchmark
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: loose-thread-operational-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  indexed-api-reads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: failurelens_load
+          POSTGRES_USER: failurelens
+          POSTGRES_PASSWORD: failurelens
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U failurelens -d failurelens_load"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      FAILURELENS_DATABASE_URL: postgresql+psycopg://failurelens:failurelens@127.0.0.1:5432/failurelens_load
+      FAILURELENS_DEMO_MODE: 'true'
+      FAILURELENS_ARTIFACT_ROOT: /tmp/loose-thread-load-artifacts
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - name: Install exact committed locked source
+        run: bash scripts/install_committed_backend.sh
+      - name: Migrate disposable PostgreSQL
+        working-directory: backend
+        run: alembic upgrade head
+      - name: Measure 50000 executions at concurrency ten
+        run: python evaluation/operational_benchmark.py --confirm-disposable-database --output /tmp/loose-thread-operational-report
+      - name: Preserve actual results including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: operational-read-benchmark-${{ github.sha }}
+          path: /tmp/loose-thread-operational-report
+          if-no-files-found: error
+          retention-days: 14
