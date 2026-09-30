@@ -43,11 +43,11 @@
       "detector": "Secret Keyword",
       "evidence": "test_occurrence_scan_rejects_incomplete_or_inconsistent_cli_result",
       "file": "backend/tests/test_quality_checks.py",
-      "file_sha256": "66a73739712b75da00bc76959245eb93f8c0f21a287d36d673db342ae04a0da9",
+      "file_sha256": "65777c02aa9fa139dbe92c19840ecc0f9137b3dd139b665807bc7505e7286062",
       "occurrences": [
         {
           "context_sha256": "2ed761f8841ed710b06d1d38ba7f4fbc96fcdb7418826ecc6dd2528245abc84e",
-          "line": 634
+          "line": 636
         }
       ],
       "reason": "Synthetic scanner-result fingerprint used only to exercise occurrence reconciliation; no account or credential.",
@@ -62,11 +62,11 @@
       "detector": "Secret Keyword",
       "evidence": "test_occurrence_scan_rejects_incomplete_or_inconsistent_cli_result",
       "file": "backend/tests/test_quality_checks.py",
-      "file_sha256": "66a73739712b75da00bc76959245eb93f8c0f21a287d36d673db342ae04a0da9",
+      "file_sha256": "65777c02aa9fa139dbe92c19840ecc0f9137b3dd139b665807bc7505e7286062",
       "occurrences": [
         {
           "context_sha256": "bb613b26b28e677fad511950be77560326117a1c94cec5b0a6690bd92a9f764a",
-          "line": 652
+          "line": 654
         }
       ],
       "reason": "Synthetic extra detector fingerprint exercises unexpected occurrence rejection; no account or credential.",
@@ -81,11 +81,11 @@
       "detector": "Secret Keyword",
       "evidence": "test_occurrence_scan_rejects_incomplete_or_inconsistent_cli_result",
       "file": "backend/tests/test_quality_checks.py",
-      "file_sha256": "66a73739712b75da00bc76959245eb93f8c0f21a287d36d673db342ae04a0da9",
+      "file_sha256": "65777c02aa9fa139dbe92c19840ecc0f9137b3dd139b665807bc7505e7286062",
       "occurrences": [
         {
           "context_sha256": "7a4d434a7d87732779e588a2125b07532347115696ce77d2e25566a74b3e7260",
-          "line": 642
+          "line": 644
         }
       ],
       "reason": "Explicit fake scanner candidate used to test rejection of incomplete or inconsistent scanner results.",
@@ -100,11 +100,11 @@
       "detector": "Secret Keyword",
       "evidence": "test_occurrence_scan_rejects_incomplete_or_inconsistent_cli_result",
       "file": "backend/tests/test_quality_checks.py",
-      "file_sha256": "66a73739712b75da00bc76959245eb93f8c0f21a287d36d673db342ae04a0da9",
+      "file_sha256": "65777c02aa9fa139dbe92c19840ecc0f9137b3dd139b665807bc7505e7286062",
       "occurrences": [
         {
           "context_sha256": "4f8b33c5c53f339b25797e6bc93cdda720ac61d1320848750fa522ea717e9f9a",
-          "line": 653
+          "line": 655
         }
       ],
       "reason": "Explicit second fake scanner candidate exercises unexpected occurrence rejection; no account or credential.",

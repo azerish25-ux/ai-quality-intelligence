@@ -93,6 +93,9 @@ def test_declared_policy_includes_mixed_authorization_and_publication_boundaries
         "provider_jobs",
         "github_publication_service",
         "image_worker",
+        "performance",
+        "performance_numeric",
+        "schemas",
     ):
         assert f"{runner.PACKAGE}/{name}.py" in runner.CRITICAL
     assert runner.OVERALL_TARGET == 90

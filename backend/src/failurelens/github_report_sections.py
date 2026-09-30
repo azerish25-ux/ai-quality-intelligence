@@ -34,6 +34,14 @@ from .models import (
     RunInput,
     TestExecution,
 )
+from .performance import performance_comparison_numeric_valid
+from .performance_numeric import (
+    NUMERIC_REASON,
+    NUMERIC_SUMMARY,
+    NUMERIC_UNAVAILABLE,
+    numeric_uncertainty,
+    numeric_value,
+)
 from .publication_validity import PublicationContext
 from .redaction import redact_text
 
@@ -556,6 +564,7 @@ def performance_section(
             row.baseline_snapshot,
             row.policy,
         )
+        numeric_valid = performance_comparison_numeric_valid(row)
         state = available.evidence(
             observation.evidence,
             run,
@@ -606,7 +615,7 @@ def performance_section(
                         "evidence_id": previous.evidence_id
                         if previous_state == "available"
                         else None,
-                        "value": previous.canonical_value
+                        "value": numeric_value(previous.canonical_value)
                         if previous_state == "available"
                         else None,
                         "unit": text(previous.canonical_unit),
@@ -625,8 +634,14 @@ def performance_section(
             {
                 "comparison_id": row.id,
                 "observation_id": observation.id,
-                "status": text(row.status) if exposed else "EVIDENCE_UNAVAILABLE",
+                "status": (text(row.status) if numeric_valid else NUMERIC_UNAVAILABLE)
+                if exposed
+                else "EVIDENCE_UNAVAILABLE",
                 "stored_status": text(row.status),
+                "engine_version": text(row.engine_version),
+                "input_digest": text(row.input_digest),
+                "numeric_state": "available" if numeric_valid else "unavailable",
+                "numeric_reasons": [] if numeric_valid else [NUMERIC_REASON],
                 "evidence_state": state,
                 "metric_name": text(observation.metric_name)
                 if observation.project_id == run.project_id
@@ -641,20 +656,28 @@ def performance_section(
                         observation.metric_name, observation.direction
                     )
                 ),
-                "current_value": row.current_value if exposed else None,
-                "baseline_value": row.baseline_value if exposed else None,
-                "absolute_change": row.absolute_change if exposed else None,
-                "relative_change": row.relative_change if exposed else None,
+                "current_value": numeric_value(row.current_value) if exposed else None,
+                "baseline_value": row.baseline_value
+                if exposed and numeric_valid
+                else None,
+                "absolute_change": row.absolute_change
+                if exposed and numeric_valid
+                else None,
+                "relative_change": row.relative_change
+                if exposed and numeric_valid
+                else None,
                 "threshold_status": text(row.threshold_status)
-                if exposed
+                if exposed and numeric_valid
                 else "unknown",
                 "threshold_details": _json(observation.threshold_details)
                 if exposed
                 else {},
                 "policy_id": policy.id,
                 "policy_version": text(policy.version),
-                "allowed_absolute_change": row.allowed_absolute_change,
-                "allowed_relative_change": row.allowed_relative_change,
+                "allowed_absolute_change": row.allowed_absolute_change
+                if numeric_valid
+                else None,
+                "allowed_relative_change": numeric_value(row.allowed_relative_change),
                 "min_baseline_runs": policy.min_baseline_runs,
                 "max_baseline_age_days": policy.max_baseline_age_days,
                 "require_trusted": policy.require_trusted,
@@ -662,26 +685,41 @@ def performance_section(
                 "baseline_run_count": row.baseline_run_count,
                 "baseline_sample_count": row.baseline_sample_count,
                 "baseline_snapshot_id": baseline.id,
-                "baseline_status": text(baseline.status)
+                "baseline_status": (
+                    text(baseline.status) if numeric_valid else NUMERIC_UNAVAILABLE
+                )
                 if exposed
                 else "EVIDENCE_UNAVAILABLE",
                 "baseline_cutoff": _utc(baseline.cutoff_at).isoformat(),
                 "baseline_aggregation": text(baseline.aggregation),
-                "baseline_age_seconds": baseline.baseline_age_seconds,
+                "baseline_age_seconds": numeric_value(baseline.baseline_age_seconds),
                 "baseline_members": members if exposed else [],
                 "omitted_baseline_members": len(baseline.members) - len(members)
                 if exposed
                 else len(baseline.members),
                 "compatibility": _json(row.compatibility) if exposed else {},
-                "uncertainty": _json(row.uncertainty) if exposed else {},
-                "confounders": _texts(row.confounders) if exposed else [state],
+                "uncertainty": _json(
+                    numeric_uncertainty(row.uncertainty, numeric_valid)
+                )
+                if exposed
+                else {},
+                "confounders": _texts(row.confounders)
+                + ([] if numeric_valid else [NUMERIC_REASON])
+                if exposed
+                else [state],
                 "omitted_confounders": max(0, len(row.confounders) - REFERENCE_LIMIT)
                 if exposed
                 else len(row.confounders),
-                "summary": text(row.summary, 800)
+                "summary": (
+                    text(row.summary, 800) if numeric_valid else NUMERIC_SUMMARY
+                )
                 if exposed
                 else "Evidence unavailable; review required.",
-                "next_measurement": text(row.next_measurement, 800)
+                "next_measurement": (
+                    text(row.next_measurement, 800)
+                    if numeric_valid
+                    else NUMERIC_SUMMARY
+                )
                 if exposed
                 else "Restore authorized evidence before interpreting this comparison.",
                 "current_evidence_id": row.current_evidence_id if exposed else None,
@@ -1129,6 +1167,10 @@ def render_sections(sections: dict[str, Any]) -> str:
         lines.append(
             f"- Comparison `{_safe(item['comparison_id'])}`: `{_safe(item['metric_name'])}` / {_safe(item['statistic'])}: `{_safe(item['status'])}`; evidence: {_safe(item['evidence_state'])}."
         )
+        if item["numeric_state"] == "unavailable":
+            lines.append(
+                f"  Numeric result unavailable; recorded status {_safe(item['stored_status'])}, engine {_safe(item['engine_version'])}. {NUMERIC_SUMMARY}"
+            )
         lines.append(
             f"  Current: {_safe(item['current_value'])} {_safe(item['unit'])}; baseline: {_safe(item['baseline_value'])} {_safe(item['unit'])}; baseline runs: {item['baseline_run_count']}; samples: {_safe(item['current_sample_count'])} current / {item['baseline_sample_count']} baseline."
         )
@@ -1193,6 +1235,8 @@ def advisory_reasons(run: Run, sections: dict[str, Any]) -> list[str]:
         reasons.append("stored_performance_regression")
     if any(item["evidence_state"] != "available" for item in performance["items"]):
         reasons.append("stored_performance_evidence_unavailable")
+    if any(item["numeric_state"] != "available" for item in performance["items"]):
+        reasons.append("stored_performance_numeric_unavailable")
     if performance["count"] > len(performance["items"]):
         reasons.append("stored_performance_validation_limited")
     if (

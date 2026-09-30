@@ -813,7 +813,14 @@ def run_check(
             "gradual typing with untyped-body and unused-ignore checks; not strict annotation coverage"
         )
     elif check == "secrets":
-        command = [tool("detect-secrets"), "scan", "--no-verify", "--all-files"]
+        command = [
+            tool("detect-secrets"),
+            "--cores",
+            "1",
+            "scan",
+            "--no-verify",
+            "--all-files",
+        ]
         for disabled in SECRET_DISABLED_FILTERS:
             command.extend(["--disable-filter", disabled])
         code, raw = execute([*command, *files])

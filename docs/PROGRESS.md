@@ -1365,3 +1365,107 @@ Local peak RSS stayed near 102 MiB and host OOM remained 55. Independent review
 found no material defect and narrowed the metadata wording to the exact excluded
 environment names. Workload, timing boundaries and the 500 ms target are unchanged.
 No speedup is claimed; this new source still requires its own hosted verification.
+
+### Explicit-launch exact-source verification
+
+Published `c27e2e543b7f9b044b976d90625098b6888a0827` has the exact local
+`2b7d1bd8bca9e7cd04340dc26cf217c4b662ffeb` tree
+`72e4db05eb2e3a4adea07233eaaf455d4633186b`. All twelve ordinary jobs pass in
+[run 36785637486](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36785637486),
+including all six browser lanes. Backend job `110126671243` passed **2,391 tests,
+zero failures or skips**, in 723.69 seconds. Its source-bound process diagnostic
+records exit 0, no signal, valid outcomes and host OOM counter 0 before/after.
+All seven independent quality jobs pass. The denied npm audit remains NOT RUN
+and required aggregate acceptance remains red. Frozen classifier quality fails.
+
+Backend artifact `11129807699` is 462,957 bytes, SHA-256
+`86870f51e5685076cbf732df7fc19eb6fc2ae1ab50e7731b46e024a6709a58f0`.
+The exact three-member ZIP, CRC, source binding and data digest were verified.
+Independent checking in CI and locally recomputes **3,182/3,934 = 80.8846%**
+branch coverage and 89.4701% combined coverage. Six of 35 critical files meet
+95%; the separate acceptance job correctly fails the unchanged numeric targets.
+
+Operational run `36785637342`
+[passes at 386.738934 ms on Intel Xeon 6973P-C](../evaluation/reports/operational-c27e2e5-passed/README.md),
+with all 204 requests successful and explicit launch configuration recorded.
+Original metrics/request bytes and recomputed percentiles are retained alongside
+every earlier failure. Stable/reference-resource acceptance remains open.
+Full M6/M7/M8/M9 and the complete project remain PARTIAL.
+
+Follow-on testing at this unchanged source reproduced finite arithmetic overflow
+through normal ingestion and comparison. Four prior `1e308 ms` measurements and
+a current `1.2e308 ms` measurement produce an infinite median and an incorrect
+`WITHIN_TOLERANCE` comparison. API serialization emits null derived values,
+Markdown exposes infinity, and strict JSON export/preview rejects the result.
+The five-run SQLite probe is complete; its original finite observations and
+evidence remain unchanged. The report remains `HOLD_FOR_REVIEW` for missing
+analyses, so this is not a demonstrated release approval. PostgreSQL behavior
+was not executed in this probe. Numeric correctness and existing-row projections
+require repair and new exact-source verification.
+
+### Finite performance arithmetic and immutable historical projections
+
+The follow-on v2 engine uses exact ratios of accepted finite floats for complete
+arithmetic expressions, overflow-safe medians and MAD, and version-bound baseline
+and comparison digests. Nonfinite required results fail explicitly before partial
+comparison batches can persist. Existing numeric records remain unchanged; unsafe
+historic calculations receive `NUMERIC_UNAVAILABLE`, nullable derived values and
+their recorded status/provenance. Observation-only reads, policies, baselines,
+comparisons, reports, CLI and the read-only Action preserve the same distinction.
+All-version counts, detail-limit holds and current evidence restrictions remain.
+New projections participate in report digests and stale-approval fencing.
+
+Independent review reproduced a second legacy defect with signed k6 values:
+an overflowing intermediate MAD multiplier stores a finite effect of zero where
+the exact expression is approximately 0.518839. Repaired GET/list neutralize the
+derived value without rewriting that row. Ordinary finite legacy rounding remains
+readable. This changes neither the reproduced regression label nor the existing
+k6 report evidence restriction; no release-approval bypass was demonstrated.
+The review also found extreme absolute values expanding into hundreds of display
+digits. Bounded scientific formatting now preserves those values and safe percent
+formatting avoids display overflow. No browser-based visual check is claimed here.
+
+Local completed backend checks total **83 passes**: 24 permanent numeric boundary
+cases, eight existing performance cases, 18 policy cases, 32 report-section cases
+and one critical-declaration case. The numeric cases cover the five-run public
+path, strict export/preview, preserved v1/v2 rows, real uniqueness recovery for
+valid/invalid cache winners, failed-batch rollback, observation-only reads,
+CLI/Action decoding, 51-record counts/omissions, finite legacy effects and stale
+publication with zero fake writes. Independent prior-engine replay also verifies
+the legacy repair. An initial two-case immutability failure compared an in-memory
+timezone against SQLite's persisted representation; reloading before capturing
+the original row fixes that fixture, and the original failure remains retained.
+
+The final frontend build and **209 tests** pass in an isolated copy with unchanged
+source hashes. An earlier 207-test pass predates compact absolute-value formatting
+and remains separate. The broader current-publication test process hit its 150 MiB
+guard and the full type check hit its 500 MiB process-group guard; both are
+**INCOMPLETE**, not passes. Every guard terminated only owned processes, and the
+host OOM counter remained 55. Focused Ruff lint and formatting pass.
+
+Three independently reviewed PostgreSQL-only cases are collected for finite
+five-run persistence/replay, retained legacy/v2 coexistence, and a proven earlier
+control insertion followed by savepoint rollback while caller-owned work survives.
+They were not executed locally. Full PostgreSQL regression, types and all required
+hosted checks must run on the published exact source. The full `performance.py`,
+`performance_numeric.py` and `schemas.py` modules join the critical 95% scope before
+measurement, bringing it to 38 files; no threshold or denominator is reduced.
+The denied npm audit remains NOT RUN, its aggregate remains red, and frozen
+classifier and stable/reference-resource performance acceptance remain open.
+
+The clean local implementation commit `3447c6b` passes lint, formatting,
+lock/export parity and workflow validation. Its full secret-scan process hit the
+150 MiB guard before producing a result because the detector default sizes its
+worker pool from reported host CPU count. That scan remains **INCOMPLETE**.
+The runner now uses the pinned tool's supported `--cores 1` option; no detector,
+filter, file, review classification or acceptance rule changes. The strengthened
+orchestration regression fails before this correction, then all **77 quality-runner
+tests** pass. Independent one-core/two-core synthetic scans produce identical
+findings and all detector/filter metadata, with no OOM change. Their parity is not
+a substitute for the final complete repository scan.
+
+Independent source review confirmed that five existing reviewed literals and
+their surrounding contexts are unchanged. Only full-file/location guards were
+refreshed for the two edited Python files; 931 other review entries are unchanged.
+The policy still has 936 entries. This execution-bound correction requires its
+own clean-source scan and exact published-source CI.

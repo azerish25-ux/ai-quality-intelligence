@@ -79,6 +79,11 @@ candidates or review-policy errors is converted into a failing gate. Reviewed
 locations remain visible with their decisions; raw, reviewed and unresolved
 counts are separate, and truncation does not change any of them.
 
+The offline secret scan fixes detector parallelism to one worker with the pinned
+tool's `--cores 1` option. Reported host CPU count no longer determines the worker
+pool on a shared executor. Every file, detector, filter and review guard remains
+the same; this process bound changes neither findings nor acceptance semantics.
+
 Exit status: **0 pass**, **1 findings**, **2 incomplete/error**, **3 not run (npm transmission approval absent)**. Artifact upload
 failure also fails CI. Reports from a dirty working tree are development evidence,
 not exact committed-source acceptance. The new runner has dedicated regression

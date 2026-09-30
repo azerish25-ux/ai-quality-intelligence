@@ -207,6 +207,8 @@ def test_secret_scan_is_offline_and_does_not_skip_lock_files(
         == []
     )
     command = calls[0]
+    # Bound worker count on shared hosts without changing scan scope/settings.
+    assert command[1:4] == ["--cores", "1", "scan"]
     assert "--no-verify" in command and "--baseline" not in command
     assert "detect_secrets.filters.heuristic.is_lock_file" in command
     assert command[-2:] == ["requirements.lock", "test.py"]

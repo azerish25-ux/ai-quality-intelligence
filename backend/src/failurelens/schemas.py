@@ -720,8 +720,8 @@ class ImpactRecommendationRead(BaseModel):
 
 class PerformancePolicyCreate(BaseModel):
     version: str = Field(default="performance-policy-v1", min_length=1, max_length=80)
-    relative_tolerance: float = Field(default=0.10, ge=0, le=10)
-    absolute_tolerance: float = Field(default=0.0, ge=0)
+    relative_tolerance: float = Field(default=0.10, ge=0, le=10, allow_inf_nan=False)
+    absolute_tolerance: float = Field(default=0.0, ge=0, allow_inf_nan=False)
     min_baseline_runs: int = Field(default=3, ge=1, le=10_000)
     max_baseline_age_days: int = Field(default=30, ge=1, le=3650)
     require_trusted: bool = True
@@ -758,13 +758,28 @@ class PerformancePolicyCreate(BaseModel):
         return normalized
 
 
-class PerformancePolicyRead(PerformancePolicyCreate):
+class PerformanceNumericRead(BaseModel):
+    numeric_state: Literal["available", "unavailable"] = "available"
+    numeric_reasons: list[str] = Field(default_factory=list)
+
+
+class PerformancePolicyRead(PerformanceNumericRead):
     id: str
     project_id: str
+    version: str
+    relative_tolerance: float | None
+    absolute_tolerance: float | None
+    min_baseline_runs: int
+    max_baseline_age_days: int
+    require_trusted: bool
+    required_dimensions: list[str]
+    direction_overrides: dict[
+        str, Literal["lower_is_better", "higher_is_better", "neutral"]
+    ]
     created_at: datetime
 
 
-class PerformanceObservationRead(BaseModel):
+class PerformanceObservationRead(PerformanceNumericRead):
     id: str
     project_id: str
     run_id: str
@@ -776,9 +791,9 @@ class PerformanceObservationRead(BaseModel):
     metric_scope: str
     statistic: str
     direction: str
-    original_value: float
+    original_value: float | None
     original_unit: str
-    canonical_value: float
+    canonical_value: float | None
     canonical_unit: str
     sample_count: int | None
     producer: str
@@ -787,6 +802,7 @@ class PerformanceObservationRead(BaseModel):
     dimension_signature: str
     dimensions: dict[str, Any]
     threshold_status: str
+    recorded_threshold_status: str
     threshold_details: dict[str, Any]
     source_digest: str
     source_locator: dict[str, Any]
@@ -806,13 +822,13 @@ class PerformanceBaselineMemberRead(BaseModel):
     external_id: str
     commit_sha: str | None
     observed_at: datetime
-    canonical_value: float
+    canonical_value: float | None
     canonical_unit: str
     sample_count: int | None
     position: int
 
 
-class PerformanceBaselineRead(BaseModel):
+class PerformanceBaselineRead(PerformanceNumericRead):
     id: str
     project_id: str
     current_run_id: str
@@ -820,6 +836,7 @@ class PerformanceBaselineRead(BaseModel):
     policy_id: str
     input_digest: str
     status: str
+    recorded_status: str
     cutoff_at: datetime
     cohort_dimensions: dict[str, Any]
     compatibility: dict[str, Any]
@@ -841,7 +858,7 @@ class PerformanceComparisonCreate(BaseModel):
     observation_ids: list[str] = Field(default_factory=list, max_length=5000)
 
 
-class PerformanceComparisonRead(BaseModel):
+class PerformanceComparisonRead(PerformanceNumericRead):
     id: str
     project_id: str
     current_run_id: str
@@ -851,18 +868,19 @@ class PerformanceComparisonRead(BaseModel):
     engine_version: str
     input_digest: str
     status: str
+    recorded_status: str
     metric_name: str
     metric_scope: str
     statistic: str
     direction: str
     workload: str
     canonical_unit: str
-    current_value: float
+    current_value: float | None
     baseline_value: float | None
     absolute_change: float | None
     relative_change: float | None
-    allowed_absolute_change: float
-    allowed_relative_change: float
+    allowed_absolute_change: float | None
+    allowed_relative_change: float | None
     current_sample_count: int | None
     baseline_run_count: int
     baseline_sample_count: int

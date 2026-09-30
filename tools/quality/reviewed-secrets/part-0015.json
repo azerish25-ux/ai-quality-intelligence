@@ -936,7 +936,7 @@
       "detector": "Secret Keyword",
       "evidence": "SECRET_REVIEW_FILE configuration literal",
       "file": "scripts/quality_checks.py",
-      "file_sha256": "3245bf01e4abce7393f85ed7c8b310d62b38d18e44202d9b1f2f33a5f2e5d940",
+      "file_sha256": "59a4170d90fd4065e023d4313c34f20346ec3d270f481b85033f54a9105d9d10",
       "occurrences": [
         {
           "context_sha256": "6e50678a872b8279d9b59fa6f4074ab4bd41d497c15bc2b85e7497ea331caa21",

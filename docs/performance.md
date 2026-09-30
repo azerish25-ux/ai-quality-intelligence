@@ -41,7 +41,7 @@ For a current observation, the engine establishes an immutable cutoff from the c
 
 One independent run contributes at most one observation. Every accepted member and bounded rejected-candidate reason is persisted in an immutable `performance_baseline_snapshots` row. The baseline value is the median of compatible **run-level observations**. For exported p95/p99 values, this is explicitly a median of run-level percentile observations; it is never represented as an aggregate percentile.
 
-Baseline states are:
+Persisted baseline states are:
 
 - `AVAILABLE` — the compatibility policy and minimum support are satisfied;
 - `BASELINE_UNAVAILABLE` — no usable baseline or insufficient compatible support exists; or
@@ -61,6 +61,47 @@ With an available baseline, the engine reports:
 Every comparison persists the current and baseline values, absolute/relative change, run and sample counts, configured tolerances, producer threshold state, robust median absolute deviation when available, compatibility details, confounders, exact current/baseline evidence IDs and a next-measurement recommendation.
 
 The engine never infers statistical significance from one current summary and one baseline summary. It exposes robust standardized change only when a repeated compatible baseline permits that context, and still records `significance_claimed: false`. Producer thresholds remain separate evidence: a passed producer threshold can coexist with a baseline regression, and a failed threshold without a compatible baseline does not prove attribution.
+
+## Finite arithmetic and historical results
+
+Engine `performance-engine-v2` binds `performance-arithmetic-v2` into baseline and
+comparison provenance. Even-sized medians use an overflow-safe exact-ratio mean;
+MAD and complete change/tolerance/effect expressions use ratios of the accepted
+finite floats before their final floating-point conversion. This avoids both
+overflowing an intermediate sum/product and discarding a representable result.
+It does not add precision to the original producer measurements.
+
+Nonfinite policy values and unit conversions are rejected. Required calculations
+that would produce a nonfinite result fail explicitly; they are not clipped or
+replaced with favorable zeros. Failed run comparison batches leave no partial
+baseline/comparison rows. Relative change is still undefined for a zero baseline,
+and a zero MAD does not support a standardized-effect claim.
+
+Existing observations, baselines and comparisons are not rewritten. Recomputing
+under v2 creates separate version-bound snapshots and is idempotent for the same
+inputs. Historic nonfinite calculations, and the known v1 finite-zero effect
+caused by an overflowing denominator, receive an explicit unavailable projection.
+Ordinary valid v1 results remain readable. Public reads carry `numeric_state` and
+`numeric_reasons`; invalid baselines/comparisons show `NUMERIC_UNAVAILABLE`, retain
+their recorded status, ID and provenance, and use null for unavailable derived
+values. Original finite measurements and evidence references remain inspectable.
+Policy and observation-only reads expose the same numeric-state contract.
+
+API clients must handle nullable numeric fields rather than interpreting null as
+zero. Reports preserve all-version stored counts, distinguish recorded and shown
+status, and hold for unavailable arithmetic or omitted validation details. New
+numeric projections are included in the report digest, so old preview approvals
+cannot silently authorize a changed report. Evidence availability is checked
+separately; numeric validity does not grant access to an unavailable artifact.
+
+The dashboard labels unavailable values and uses bounded scientific notation for
+extreme finite values. Percentage formatting preserves a finite ratio even when
+multiplying it by 100 would overflow the display number type. These are display
+choices; stored measurements and exported numeric values are unchanged.
+
+The [delivery ledger](PROGRESS.md) records reproduced failures and the exact tested
+source. Focused arithmetic and projection tests do not establish full-project
+acceptance, stable operational latency or population-level statistical accuracy.
 
 ## API
 
@@ -113,5 +154,5 @@ These are synthetic agent-authored regression-fixture results, not production ac
 - k6 summary quantiles do not contain raw samples and cannot be reconstructed into an aggregate quantile.
 - Test-duration observations represent the final attempt; retry history remains separately available in execution/history data.
 - Compatibility is deterministic and policy-driven; it does not establish causal attribution.
-- Infrastructure-event correlation remains separate M4 work.
-- Project-scoped roles and broader authorization remain M5 work.
+- Infrastructure-event correlation is a separate signal and does not prove causality.
+- Project-scoped roles and evidence availability remain separate access boundaries.

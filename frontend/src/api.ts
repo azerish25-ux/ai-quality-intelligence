@@ -471,12 +471,18 @@ export interface Overview {
   categories: Record<Category, number>;
 }
 
-export interface PerformancePolicy {
+export interface PerformanceNumericState {
+  numeric_state?: 'available' | 'unavailable';
+  numeric_reasons?: string[];
+  recorded_status?: string;
+}
+
+export interface PerformancePolicy extends PerformanceNumericState {
   id: string;
   project_id: string;
   version: string;
-  relative_tolerance: number;
-  absolute_tolerance: number;
+  relative_tolerance: number | null;
+  absolute_tolerance: number | null;
   min_baseline_runs: number;
   max_baseline_age_days: number;
   require_trusted: boolean;
@@ -496,7 +502,7 @@ export interface PerformancePolicyInput {
   direction_overrides?: Record<string, 'lower_is_better' | 'higher_is_better' | 'neutral'>;
 }
 
-export interface PerformanceObservation {
+export interface PerformanceObservation extends PerformanceNumericState {
   id: string;
   project_id: string;
   run_id: string;
@@ -508,9 +514,9 @@ export interface PerformanceObservation {
   metric_scope: string;
   statistic: string;
   direction: string;
-  original_value: number;
+  original_value: number | null;
   original_unit: string;
-  canonical_value: number;
+  canonical_value: number | null;
   canonical_unit: string;
   sample_count: number | null;
   producer: string;
@@ -519,6 +525,7 @@ export interface PerformanceObservation {
   dimension_signature: string;
   dimensions: Record<string, unknown>;
   threshold_status: string;
+  recorded_threshold_status?: string;
   threshold_details: Record<string, unknown>;
   source_digest: string;
   source_locator: Record<string, unknown>;
@@ -533,13 +540,13 @@ export interface PerformanceBaselineMember {
   external_id: string;
   commit_sha: string | null;
   observed_at: string;
-  canonical_value: number;
+  canonical_value: number | null;
   canonical_unit: string;
   sample_count: number | null;
   position: number;
 }
 
-export interface PerformanceBaseline {
+export interface PerformanceBaseline extends PerformanceNumericState {
   id: string;
   project_id: string;
   current_run_id: string;
@@ -563,7 +570,7 @@ export interface PerformanceBaseline {
   created_at: string;
 }
 
-export interface PerformanceComparison {
+export interface PerformanceComparison extends PerformanceNumericState {
   id: string;
   project_id: string;
   current_run_id: string;
@@ -579,12 +586,12 @@ export interface PerformanceComparison {
   direction: string;
   workload: string;
   canonical_unit: string;
-  current_value: number;
+  current_value: number | null;
   baseline_value: number | null;
   absolute_change: number | null;
   relative_change: number | null;
-  allowed_absolute_change: number;
-  allowed_relative_change: number;
+  allowed_absolute_change: number | null;
+  allowed_relative_change: number | null;
   current_sample_count: number | null;
   baseline_run_count: number;
   baseline_sample_count: number;

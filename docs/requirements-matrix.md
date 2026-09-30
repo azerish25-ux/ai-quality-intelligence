@@ -83,7 +83,7 @@ Implementation paths below are relative to `backend/src/failurelens/` unless a f
 | R-INFRASTRUCTURE-01 | Recorded infrastructure associations | PASS | `infrastructure.py`, compatibility/trust/cutoff tests and synthetic regression harness; not causal proof. |
 | R-HISTORY-02 | Known-flake history gate | PASS | Prior-only matching reviewed history, minimum independent-run support and contradictory-evidence checks. |
 | R-IMPACT-01 | Explainable focused selection | PASS | `impact.py`, trusted mappings, mandatory tests, overrides and full-suite fallback tests. |
-| R-PERFORMANCE-01 | Compatible baseline comparison | PASS | `performance.py`, exact current/baseline evidence, unit/percentile rules and uncertainty states. |
+| R-PERFORMANCE-01 | Compatible baseline comparison | PARTIAL | `performance.py`, exact current/baseline evidence, unit/percentile rules and uncertainty states. The finite median/legacy-effect repair passes 24 numeric boundary cases within 83 local backend checks, plus frontend build/209 tests. Three explicit PostgreSQL cases are collected but not run locally; new exact-source hosted verification remains required. Historical failures are retained. |
 | R-REVIEW-01 | Human decision history | PARTIAL | Real authorized reviews, full-dataset SQL pagination, optimistic revisions and audit pass; wider workflow scope remains. |
 | R-API-01 | Typed versioned operations | PARTIAL | Existing ingestion, investigations, roles, lifecycle and evidence endpoints pass; complete GitHub publication remains. |
 | R-JOBS-01 | Durable leased processing | PASS | Queue claiming, recovery, bounded retries, cancellation and real worker tests. |
@@ -194,7 +194,7 @@ still requires separate threat-boundary and live-target verification.
 | R-M9-IMAGE-CHILD | Reduce decoder process inheritance | PASS | Isolated direct worker launch, minimal environment and closed descriptors; 46 image cases include actual child canaries, and the full hosted suite passes at `44988f5`. This is the declared process/import boundary, not an OS filesystem/network sandbox. |
 | R-M9-POLICY-RACE | Immutable performance-policy concurrency | PASS | Shared duplicate/recovery content validation fixes seven reproduced mismatches; all eight actual PostgreSQL race cases pass within the 2,159-test hosted suite at `48e6336`, with zero skips. |
 | R-M9-BRANCH-MEASUREMENT | Source-bound subprocess branch evidence | PASS | Fresh collector, canonical executed-arcs data, committed source/installed-package parity and isolated image harness verified at `48e6336`. The separate hosted checker downloads and recomputes the exact artifact, then fails on unmet numeric targets rather than missing/invalid evidence. |
-| R-M9-BRANCH-TARGET | 90% overall and 95% critical-file coverage | FAIL | Actual hosted `d6925a2` measurement is 3,182/3,934 = 80.8846% branch-only; six of its 35 declared critical files meet 95%. The current-validity boundary added `publication_validity.py` before measurement. The independent checker recomputes the exact artifact and fails the unchanged numeric targets. |
+| R-M9-BRANCH-TARGET | 90% overall and 95% critical-file coverage | FAIL | Actual hosted `c27e2e5` measurement is 3,182/3,934 = 80.8846% branch-only; six of its 35 declared critical files meet 95%. The current-validity boundary added `publication_validity.py` before measurement. The independent checker recomputes the exact artifact and fails the unchanged numeric targets. |
 | R-M9-LOCAL-VERIFY | Preserve source and distinguish incomplete acceptance | PASS | Clean local `b3ac250` passes 2,214 backend tests with 51 PostgreSQL-only skips, frontend build/200 tests, all legacy harnesses, migration roundtrip and six offline gates. Source remains unchanged. Both local audits remain NOT RUN and branch/security acceptance correctly fails; this does not certify the full project. |
 | R-M9-AUTH-TRANSACTION | Persist credential use without committing handler writes | PASS | Published `caee9e3` passes all 30 focused transaction cases and three actual PostgreSQL connection/persistence/rollback cases within the 2,265-test zero-skip backend run. Standard independent-connection storage is enforced; custom connection hooks remain outside the documented contract. |
 | R-M9-MEMBERSHIP-LOCK | Preserve last administrator and current mutation authority | PASS | Shared PostgreSQL project lock plus SQLite writer reservation, actor/session/membership refresh and deliberate 422 normalization failures. All three reproduced real-file SQLite races and all 21 actual PostgreSQL cases pass at `caee9e3`. Existing inactive-member counting and declared isolation assumptions are unchanged. |
@@ -227,5 +227,23 @@ quality jobs. Required npm audit remains NOT RUN and aggregate acceptance red.
 The operational benchmark's next launch correction fixes one API worker and
 excludes ambient `WEB_CONCURRENCY`/`UVICORN_*` overrides, with declared process
 metadata retained on startup failure. Five reproduced regressions pass within
-26 local benchmark cases. Fresh exact-source execution remains required; this
-configuration correction does not establish a speedup or stable latency.
+26 local benchmark cases. Published `c27e2e5` subsequently passes all twelve
+ordinary CI jobs, including 2,391 backend tests with zero skips, and all seven
+independent quality jobs. Its original 386.74 ms operational pass and declared
+launch configuration are retained; this correction does not establish a speedup
+or stable latency. Strict branch targets and frozen classifier quality fail;
+the required npm audit remains NOT RUN with its aggregate red.
+
+The same source has a separately reproduced numeric correctness gap. Four finite
+`1e308 ms` baseline observations plus a finite `1.2e308 ms` current observation
+overflow the existing median and produce `WITHIN_TOLERANCE`; strict JSON export
+fails. The report still holds for missing analyses, so no release approval is
+claimed. Existing rows and all finite source measurements must remain preserved
+while the arithmetic and public projections are repaired and independently tested.
+
+The v2 repair passes 83 local backend checks and final frontend build/209 tests,
+with independent runtime/consumer review. Three reviewed PostgreSQL-only cases
+cover actual persistence, version coexistence and failed-batch rollback; local
+collection is not PostgreSQL execution. Broader current-publication and full type
+checks stopped at their resource guards and remain incomplete. Fresh exact-source
+CI must resolve these checks; full-project and strict branch acceptance remain open.

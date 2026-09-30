@@ -124,3 +124,11 @@ failed AMD 7763/9V74 runs, so CPU brand is not an acceptance discriminator. Orig
 metrics and requests are retained. This measurement also predates explicit launch
 metadata; no historical worker/reload configuration is invented retroactively.
 Stable and reference-resource acceptance remain open.
+
+The explicit-launch source `c27e2e5`
+[passed at 386.74 ms](../evaluation/reports/operational-c27e2e5-passed/README.md)
+on Intel Xeon 6973P-C with all 204 requests successful. Its original metadata
+declares one API worker and no reload after excluding ambient Uvicorn settings;
+it does not claim a process census. Original metrics and request bytes are
+retained. The same workload and 500 ms threshold apply; this passing observation
+does not establish a speedup or stable/reference-resource acceptance.

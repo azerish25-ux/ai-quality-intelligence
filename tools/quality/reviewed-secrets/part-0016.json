@@ -307,6 +307,25 @@
       "reviewed_by": "repository agent source-context adjudication",
       "reviewed_on": "2026-09-30",
       "value_sha256": "2b116183fc7358b7e223cfcba5db4e4be273c2346b8c5a4d4f743428bb1e5b9a"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "Independent source-context review resolved /source_revision to the local published Git commit/tree and verified both retained members byte-for-byte against the original hosted members and adjacent README digests. No API log or credential verification was used.",
+      "file": "evaluation/reports/operational-c27e2e5-passed/metrics.json",
+      "file_sha256": "9f784dc851ea26d5f211b617aa92cf28d5e573441a7286b870a2e49aa35dd42b",
+      "occurrences": [
+        {
+          "context_sha256": "6ad69d9a7932924674ff10a83205dddc0e96a729b99028595b1f776906f7d0b5",
+          "line": 3
+        }
+      ],
+      "reason": "Public 40-hex Git source revision identifying the original synthetic operational benchmark measurement; not authentication material.",
+      "review_id": "m9-operational-retention-0009",
+      "review_reference": "evaluation/reports/operational-c27e2e5-passed/README.md",
+      "reviewed_by": "repository agent independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "0a905ec3a878f00ae96c20c28ff5ca5367f16b3a49ca767d678e5beb1ec136cb"
     }
   ],
   "schema_version": 1

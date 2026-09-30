@@ -19,7 +19,7 @@ An additional Python runtime namespace outside the current `failurelens` package
 is rejected until the collector's overall scope is explicitly expanded; it cannot
 silently disappear from the denominator.
 
-The following 35 files each have an independent 95% branch-only target. The full
+The following 38 files each have an independent 95% branch-only target. The full
 file is measured when security-sensitive work and routine work share a module.
 Paths below are relative to `backend/src/failurelens`, with `.py` implied.
 
@@ -28,7 +28,7 @@ Paths below are relative to `backend/src/failurelens`, with `.py` implied.
 | Evidence and storage | `evidence_validation`, `contract_evidence`, `transaction_evidence`, `domain_evidence`, `binary_evidence`, `trace_evidence`, `github_evidence`, `storage`, `image_codec`, `image_worker` | Evidence scope, integrity, availability, bounded parsing and decoding |
 | Authorization and configuration | `auth`, `accounts`, `config`, `db`, `api`, `operations_api`, `binary_api`, `provider_api`, `github_api` | Identity, roles, authentication transaction ownership, deployment configuration and mixed API permission boundaries |
 | Redaction | `redaction`, `redaction_keys` | Source sanitization and correlation-key handling |
-| Dangerous dismissal and reports | `analysis`, `history`, `providers`, `impact`, `github_report`, `github_report_sections`, `github_snapshot`, `publication_validity` | Non-reassurance, prior-only history, current availability, recommendations and published evidence selection |
+| Dangerous dismissal and reports | `analysis`, `history`, `providers`, `impact`, `performance`, `performance_numeric`, `schemas`, `github_report`, `github_report_sections`, `github_snapshot`, `publication_validity` | Non-reassurance, prior-only history, finite-input/nullable-output contracts, safe arithmetic/projections, current availability, recommendations and published evidence selection |
 | Publication and provider execution | `service`, `provider_service`, `provider_jobs`, `provider_proxy`, `github_publication_service`, `github_publication` | Revalidation at shared service boundaries, provider execution and external publication |
 
 This is an explicit critical-file policy, not a certification that all security
@@ -46,6 +46,11 @@ silently rescored or treated as acceptance for the expanded source.
 The current-evidence repair adds `publication_validity.py` as the 35th critical
 file before its measurement. The `caee9e3` result retains its original 34-file
 scope: 3,088/3,856 overall branches, with five critical files meeting 95%.
+The finite-arithmetic repair declares `performance.py`, `performance_numeric.py`
+and `schemas.py` critical before measurement, bringing the policy to 38 files.
+Whole modules remain in scope. The preceding `c27e2e5` measurement retains its
+35-file policy: 3,182/3,934 overall branches and six critical files meeting 95%.
+It fails the unchanged numeric targets and does not certify the expanded repair.
 
 ## Fresh collection and independent checking
 
@@ -205,3 +210,10 @@ files pass Ruff lint and formatting. The workflow's dedicated regression also
 passes locally. These changes are implemented but **not yet verified by a fresh
 clean full-source collection or hosted CI** at this checkpoint; no master coverage
 acceptance is claimed.
+
+Later hosted collection and independent checking at published `c27e2e5` both
+validate the canonical report/data/source pair. The exact backend run passes
+2,391 tests without skips; branch acceptance correctly fails on 80.8846% overall
+and six of 35 critical files meeting 95%. The original collector-only statement
+above describes its earlier checkpoint. Subsequent changes still require their
+own clean source, full test execution and independent strict check.

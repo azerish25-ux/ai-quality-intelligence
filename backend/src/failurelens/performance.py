@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-import statistics
 from collections import Counter
 from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
@@ -23,6 +22,22 @@ from .models import (
     Project,
     Run,
 )
+from .performance_numeric import (
+    ARITHMETIC_VERSION,
+    NUMERIC_REASON,
+    NUMERIC_SUMMARY,
+    NUMERIC_UNAVAILABLE,
+    PerformanceNumericError,
+    finite_mad,
+    finite_median,
+    finite_result,
+    is_finite,
+    metadata_is_finite,
+    numeric_metadata,
+    numeric_uncertainty,
+    numeric_value,
+    ratio,
+)
 from .schemas import (
     PerformanceBaselineMemberRead,
     PerformanceBaselineRead,
@@ -32,7 +47,7 @@ from .schemas import (
     PerformancePolicyRead,
 )
 
-PERFORMANCE_ENGINE_VERSION = "performance-engine-v1"
+PERFORMANCE_ENGINE_VERSION = "performance-engine-v2"
 DEFAULT_PERFORMANCE_POLICY_VERSION = "performance-policy-v1"
 TRUSTED_COMPARISON_SOURCES = {"authenticated_lookup", "trusted_workflow"}
 DEFAULT_REQUIRED_DIMENSIONS = (
@@ -123,7 +138,7 @@ def canonicalize_value(value: float, unit: str) -> tuple[float, str]:
         raise ValueError(
             f"unsupported performance unit conversion: {normalized} -> {canonical}"
         )
-    return value * factor, canonical
+    return finite_result(ratio(value) * ratio(factor)), canonical
 
 
 def infer_metric_direction(
@@ -241,6 +256,8 @@ def register_performance_observation(
         )
     )
     if existing is not None:
+        if not performance_observation_numeric_valid(existing):
+            raise PerformanceNumericError()
         if not math.isclose(
             existing.canonical_value, canonical_value, rel_tol=0, abs_tol=1e-12
         ):
@@ -308,6 +325,11 @@ def create_performance_policy(
     project: Project,
     request: PerformancePolicyCreate,
 ) -> PerformancePolicy:
+    if not all(
+        is_finite(value)
+        for value in (request.absolute_tolerance, request.relative_tolerance)
+    ):
+        raise PerformanceNumericError()
     existing = session.scalar(
         select(PerformancePolicy).where(
             PerformancePolicy.project_id == project.id,
@@ -477,6 +499,10 @@ def build_performance_baseline(
         raise ValueError("current performance run not found")
     if current.project_id != policy.project_id:
         raise ValueError("performance policy belongs to a different project")
+    if not performance_observation_numeric_valid(current) or not _policy_numeric_valid(
+        policy
+    ):
+        raise PerformanceNumericError()
     cutoff = _utc(current_run.started_at or current_run.created_at)
     current_blockers: list[str] = []
     if current_run.completeness != "complete":
@@ -532,6 +558,8 @@ def build_performance_baseline(
                     }
                 )
             continue
+        if not performance_observation_numeric_valid(candidate):
+            raise PerformanceNumericError()
         accepted.append(candidate)
         seen_runs.add(candidate.run_id)
 
@@ -548,11 +576,11 @@ def build_performance_baseline(
         reason_counts["insufficient_baseline_runs"] += 1
     values = [item.canonical_value for item in accepted]
     usable = status == "AVAILABLE"
-    baseline_value = statistics.median(values) if usable else None
+    baseline_value = finite_median(values) if usable else None
     baseline_min = min(values) if usable else None
     baseline_max = max(values) if usable else None
     baseline_mad = (
-        statistics.median(abs(value - baseline_value) for value in values)
+        finite_mad(values, baseline_value)
         if usable and baseline_value is not None
         else None
     )
@@ -563,6 +591,7 @@ def build_performance_baseline(
         key: current.dimensions.get(key) for key in policy.required_dimensions
     }
     compatibility = {
+        "arithmetic_version": ARITHMETIC_VERSION,
         "policy_version": policy.version,
         "required_dimensions": list(policy.required_dimensions),
         "candidate_count": len(candidates),
@@ -577,6 +606,7 @@ def build_performance_baseline(
     }
     digest_payload = {
         "schema_version": "performance-baseline-v1",
+        "arithmetic_version": ARITHMETIC_VERSION,
         "current_observation_id": current.id,
         "current_metric_key": current.metric_key,
         "policy_id": policy.id,
@@ -596,6 +626,8 @@ def build_performance_baseline(
         .options(*_baseline_options())
     )
     if existing is not None:
+        if not performance_baseline_numeric_valid(existing):
+            raise PerformanceNumericError()
         return existing
 
     snapshot = PerformanceBaselineSnapshot(
@@ -618,38 +650,47 @@ def build_performance_baseline(
         baseline_age_seconds=baseline_age_seconds,
         aggregation="median_of_run_level_observations",
     )
-    session.add(snapshot)
-    session.flush()
-    for position, observation in enumerate(
-        sorted(accepted, key=lambda item: (_utc(item.observed_at), item.id)), start=1
-    ):
-        session.add(
-            PerformanceBaselineMember(
-                snapshot_id=snapshot.id,
-                observation_id=observation.id,
-                run_id=observation.run_id,
-                position=position,
-            )
-        )
-    if commit:
-        try:
-            session.commit()
-        except IntegrityError:
-            session.rollback()
-            existing = session.scalar(
-                select(PerformanceBaselineSnapshot)
-                .where(
-                    PerformanceBaselineSnapshot.project_id == current.project_id,
-                    PerformanceBaselineSnapshot.input_digest == input_digest,
+    try:
+        session.add(snapshot)
+        session.flush()
+        for position, observation in enumerate(
+            sorted(accepted, key=lambda item: (_utc(item.observed_at), item.id)),
+            start=1,
+        ):
+            session.add(
+                PerformanceBaselineMember(
+                    snapshot_id=snapshot.id,
+                    observation_id=observation.id,
+                    run_id=observation.run_id,
+                    position=position,
                 )
-                .options(*_baseline_options())
             )
-            if existing is not None:
-                return existing
+        if commit:
+            session.commit()
+        else:
+            session.flush()
+    except IntegrityError:
+        if not commit:
             raise
-        return get_performance_baseline(session, snapshot.id) or snapshot
-    session.flush()
-    return snapshot
+        session.rollback()
+        existing = session.scalar(
+            select(PerformanceBaselineSnapshot)
+            .where(
+                PerformanceBaselineSnapshot.project_id == current.project_id,
+                PerformanceBaselineSnapshot.input_digest == input_digest,
+            )
+            .options(*_baseline_options())
+        )
+        if existing is not None:
+            if not performance_baseline_numeric_valid(existing):
+                raise PerformanceNumericError()
+            return existing
+        raise
+    return (
+        (get_performance_baseline(session, snapshot.id) or snapshot)
+        if commit
+        else snapshot
+    )
 
 
 def _policy_direction(
@@ -676,20 +717,29 @@ def classify_performance_change(
     absolute_tolerance: float,
     relative_tolerance: float,
 ) -> PerformanceChange:
-    delta = current_value - baseline_value
-    relative = delta / abs(baseline_value) if baseline_value != 0 else None
-    allowed = max(absolute_tolerance, abs(baseline_value) * relative_tolerance)
+    current, baseline = ratio(current_value), ratio(baseline_value)
+    absolute, relative_tolerance_ratio = (
+        ratio(absolute_tolerance),
+        ratio(relative_tolerance),
+    )
+    if absolute < 0 or relative_tolerance_ratio < 0:
+        raise PerformanceNumericError()
+    delta_ratio = current - baseline
+    allowed_ratio = max(absolute, abs(baseline) * relative_tolerance_ratio)
+    delta = finite_result(delta_ratio)
+    relative = finite_result(delta_ratio / abs(baseline)) if baseline else None
+    allowed = finite_result(allowed_ratio)
     if direction == "lower_is_better":
         status = (
             "REGRESSION"
-            if delta > allowed
-            else ("IMPROVEMENT" if delta < -allowed else "WITHIN_TOLERANCE")
+            if delta_ratio > allowed_ratio
+            else ("IMPROVEMENT" if delta_ratio < -allowed_ratio else "WITHIN_TOLERANCE")
         )
     elif direction == "higher_is_better":
         status = (
             "REGRESSION"
-            if delta < -allowed
-            else ("IMPROVEMENT" if delta > allowed else "WITHIN_TOLERANCE")
+            if delta_ratio < -allowed_ratio
+            else ("IMPROVEMENT" if delta_ratio > allowed_ratio else "WITHIN_TOLERANCE")
         )
     else:
         status = "INCONCLUSIVE"
@@ -731,35 +781,39 @@ def create_performance_comparison(
         raise ValueError(
             "performance observation and policy belong to different projects"
         )
-    baseline = build_performance_baseline(session, current, policy, commit=False)
-    direction = _policy_direction(policy, current)
-    status = baseline.status
-    absolute_change: float | None = None
-    relative_change: float | None = None
-    allowed_absolute_change = policy.absolute_tolerance
-    effect_size: float | None = None
-    if baseline.status == "AVAILABLE" and baseline.baseline_value is not None:
-        classified = classify_performance_change(
-            current_value=current.canonical_value,
-            baseline_value=baseline.baseline_value,
-            direction=direction,
-            absolute_tolerance=policy.absolute_tolerance,
-            relative_tolerance=policy.relative_tolerance,
-        )
-        status = str(classified["status"])
-        absolute_change = float(classified["absolute_change"])
-        relative_change = (
-            float(classified["relative_change"])
-            if classified["relative_change"] is not None
-            else None
-        )
-        allowed_absolute_change = float(classified["allowed_absolute_change"])
-        if (
-            baseline.baseline_mad
-            and baseline.baseline_mad > 0
-            and baseline.run_count >= 3
-        ):
-            effect_size = absolute_change / (1.4826 * baseline.baseline_mad)
+    with session.begin_nested():
+        baseline = build_performance_baseline(session, current, policy, commit=False)
+        direction = _policy_direction(policy, current)
+        status = baseline.status
+        absolute_change: float | None = None
+        relative_change: float | None = None
+        allowed_absolute_change = policy.absolute_tolerance
+        effect_size: float | None = None
+        if baseline.status == "AVAILABLE" and baseline.baseline_value is not None:
+            classified = classify_performance_change(
+                current_value=current.canonical_value,
+                baseline_value=baseline.baseline_value,
+                direction=direction,
+                absolute_tolerance=policy.absolute_tolerance,
+                relative_tolerance=policy.relative_tolerance,
+            )
+            status = str(classified["status"])
+            absolute_change = float(classified["absolute_change"])
+            relative_change = (
+                float(classified["relative_change"])
+                if classified["relative_change"] is not None
+                else None
+            )
+            allowed_absolute_change = float(classified["allowed_absolute_change"])
+            if (
+                baseline.baseline_mad
+                and baseline.baseline_mad > 0
+                and baseline.run_count >= 3
+            ):
+                effect_size = finite_result(
+                    (ratio(current.canonical_value) - ratio(baseline.baseline_value))
+                    / (ratio(1.4826) * ratio(baseline.baseline_mad))
+                )
 
     confounders: list[str] = []
     if current.statistic.startswith("p") and current.statistic[1:].isdigit():
@@ -781,6 +835,7 @@ def create_performance_comparison(
     confounders.append("no_statistical_significance_claim_from_single_current_summary")
 
     uncertainty = {
+        "arithmetic_version": ARITHMETIC_VERSION,
         "method": "compatible_prior_run_distribution",
         "baseline_aggregation": baseline.aggregation,
         "baseline_min": baseline.baseline_min,
@@ -827,6 +882,8 @@ def create_performance_comparison(
         .options(*_comparison_options())
     )
     if existing is not None:
+        if not performance_comparison_numeric_valid(existing):
+            raise PerformanceNumericError()
         return existing
 
     row = PerformanceComparison(
@@ -872,6 +929,8 @@ def create_performance_comparison(
                 .options(*_comparison_options())
             )
             if existing is not None:
+                if not performance_comparison_numeric_valid(existing):
+                    raise PerformanceNumericError()
                 return existing
             raise
         return get_performance_comparison(session, row.id) or row
@@ -909,10 +968,15 @@ def create_run_performance_comparisons(
     if not observations:
         raise ValueError("run has no normalized performance observations")
     rows: list[PerformanceComparison] = []
-    for observation in observations:
-        rows.append(
-            create_performance_comparison(session, observation, policy, commit=False)
-        )
+    # A failed later observation must not leave earlier pending comparisons for
+    # a caller to commit. Keep caller-owned work outside this savepoint intact.
+    with session.begin_nested():
+        for observation in observations:
+            rows.append(
+                create_performance_comparison(
+                    session, observation, policy, commit=False
+                )
+            )
     try:
         session.commit()
     except IntegrityError:
@@ -964,14 +1028,119 @@ def list_run_performance_comparisons(
     )
 
 
+def _policy_numeric_valid(row: PerformancePolicy) -> bool:
+    return all(
+        is_finite(value) and value >= 0
+        for value in (row.absolute_tolerance, row.relative_tolerance)
+    )
+
+
+def performance_observation_numeric_valid(row: PerformanceObservation) -> bool:
+    return (
+        is_finite(row.original_value)
+        and is_finite(row.canonical_value)
+        and metadata_is_finite(row.dimensions)
+        and metadata_is_finite(row.threshold_details)
+    )
+
+
+def performance_baseline_numeric_valid(row: PerformanceBaselineSnapshot) -> bool:
+    values = (row.baseline_value, row.baseline_min, row.baseline_max, row.baseline_mad)
+    return (
+        all(
+            value is None or is_finite(value)
+            for value in (*values, row.baseline_age_seconds)
+        )
+        and (row.status != "AVAILABLE" or all(value is not None for value in values))
+        and metadata_is_finite(row.compatibility)
+        and metadata_is_finite(row.cohort_dimensions)
+        and metadata_is_finite(row.rejected_candidates)
+        and _policy_numeric_valid(row.policy)
+        and performance_observation_numeric_valid(row.current_observation)
+        and all(
+            performance_observation_numeric_valid(member.observation)
+            for member in row.members
+        )
+    )
+
+
+def _legacy_effect_is_representable(row: PerformanceComparison) -> bool:
+    baseline = row.baseline_snapshot
+    mad = baseline.baseline_mad
+    if not mad or baseline.run_count < 3 or math.isfinite(1.4826 * mad):
+        return True
+    if baseline.baseline_value is None:
+        return False
+    # v1 could store a finite zero after its intermediate denominator overflowed.
+    # Check this failure domain without invalidating ordinary legacy rounding.
+    try:
+        expected = finite_result(
+            (ratio(row.current_value) - ratio(baseline.baseline_value))
+            / (ratio(1.4826) * ratio(mad))
+        )
+    except PerformanceNumericError:
+        return False
+    return (
+        row.effect_size == expected
+        and row.uncertainty.get("robust_standardized_change") == expected
+    )
+
+
+def performance_comparison_numeric_valid(row: PerformanceComparison) -> bool:
+    baseline = row.baseline_snapshot
+    classified = baseline.status == "AVAILABLE"
+    return (
+        performance_baseline_numeric_valid(baseline)
+        and _policy_numeric_valid(row.policy)
+        and performance_observation_numeric_valid(row.current_observation)
+        and all(
+            is_finite(value)
+            for value in (
+                row.current_value,
+                row.allowed_absolute_change,
+                row.allowed_relative_change,
+            )
+        )
+        and all(
+            value is None or is_finite(value)
+            for value in (
+                row.baseline_value,
+                row.absolute_change,
+                row.relative_change,
+                row.effect_size,
+            )
+        )
+        and (
+            not classified
+            or row.baseline_value is not None
+            and row.absolute_change is not None
+        )
+        and (
+            not classified or row.baseline_value == 0 or row.relative_change is not None
+        )
+        and (
+            not classified
+            or not baseline.baseline_mad
+            or baseline.run_count < 3
+            or row.effect_size is not None
+        )
+        and metadata_is_finite(row.uncertainty)
+        and metadata_is_finite(row.compatibility)
+        and _legacy_effect_is_representable(row)
+    )
+
+
 def performance_policy_to_schema(row: PerformancePolicy) -> PerformancePolicyRead:
+    valid = _policy_numeric_valid(row)
     return PerformancePolicyRead.model_validate(
         {
+            "numeric_state": "available" if valid else "unavailable",
+            "numeric_reasons": [] if valid else [NUMERIC_REASON],
             "id": row.id,
             "project_id": row.project_id,
             "version": row.version,
-            "relative_tolerance": row.relative_tolerance,
-            "absolute_tolerance": row.absolute_tolerance,
+            "relative_tolerance": numeric_value(row.relative_tolerance),
+            "absolute_tolerance": numeric_value(row.absolute_tolerance),
             "min_baseline_runs": row.min_baseline_runs,
             "max_baseline_age_days": row.max_baseline_age_days,
             "require_trusted": row.require_trusted,
@@ -985,7 +1154,10 @@ def performance_policy_to_schema(row: PerformancePolicy) -> PerformancePolicyRea
 def performance_observation_to_schema(
     row: PerformanceObservation,
 ) -> PerformanceObservationRead:
+    valid = performance_observation_numeric_valid(row)
     return PerformanceObservationRead(
+        numeric_state="available" if valid else "unavailable",
+        numeric_reasons=[] if valid else [NUMERIC_REASON],
         id=row.id,
         project_id=row.project_id,
         run_id=row.run_id,
@@ -997,18 +1169,19 @@ def performance_observation_to_schema(
         metric_scope=row.metric_scope,
         statistic=row.statistic,
         direction=row.direction,
-        original_value=row.original_value,
+        original_value=numeric_value(row.original_value),
         original_unit=row.original_unit,
-        canonical_value=row.canonical_value,
+        canonical_value=numeric_value(row.canonical_value),
         canonical_unit=row.canonical_unit,
         sample_count=row.sample_count,
         producer=row.producer,
         producer_version=row.producer_version,
         workload=row.workload,
         dimension_signature=row.dimension_signature,
-        dimensions=row.dimensions,
-        threshold_status=row.threshold_status,
-        threshold_details=row.threshold_details,
+        dimensions=numeric_metadata(row.dimensions),
+        threshold_status=row.threshold_status if valid else NUMERIC_UNAVAILABLE,
+        recorded_threshold_status=row.threshold_status,
+        threshold_details=numeric_metadata(row.threshold_details),
         source_digest=row.source_digest,
         source_locator=row.source_locator,
         observed_at=row.observed_at,
@@ -1020,25 +1193,29 @@ def performance_baseline_to_schema(
     row: PerformanceBaselineSnapshot,
 ) -> PerformanceBaselineRead:
     members = sorted(row.members, key=lambda item: (item.position, item.id))
+    valid = performance_baseline_numeric_valid(row)
     return PerformanceBaselineRead(
+        numeric_state="available" if valid else "unavailable",
+        numeric_reasons=[] if valid else [NUMERIC_REASON],
+        recorded_status=row.status,
         id=row.id,
         project_id=row.project_id,
         current_run_id=row.current_run_id,
         current_observation_id=row.current_observation_id,
         policy_id=row.policy_id,
         input_digest=row.input_digest,
-        status=row.status,
+        status=row.status if valid else NUMERIC_UNAVAILABLE,
         cutoff_at=row.cutoff_at,
-        cohort_dimensions=row.cohort_dimensions,
-        compatibility=row.compatibility,
-        rejected_candidates=row.rejected_candidates,
+        cohort_dimensions=numeric_metadata(row.cohort_dimensions),
+        compatibility=numeric_metadata(row.compatibility),
+        rejected_candidates=numeric_metadata(row.rejected_candidates),
         run_count=row.run_count,
         sample_count=row.sample_count,
-        baseline_value=row.baseline_value,
-        baseline_min=row.baseline_min,
-        baseline_max=row.baseline_max,
-        baseline_mad=row.baseline_mad,
-        baseline_age_seconds=row.baseline_age_seconds,
+        baseline_value=row.baseline_value if valid else None,
+        baseline_min=row.baseline_min if valid else None,
+        baseline_max=row.baseline_max if valid else None,
+        baseline_mad=row.baseline_mad if valid else None,
+        baseline_age_seconds=numeric_value(row.baseline_age_seconds),
         aggregation=row.aggregation,
         members=[
             PerformanceBaselineMemberRead(
@@ -1048,7 +1225,7 @@ def performance_baseline_to_schema(
                 external_id=item.observation.run.external_id,
                 commit_sha=item.observation.run.commit_sha,
                 observed_at=item.observation.observed_at,
-                canonical_value=item.observation.canonical_value,
+                canonical_value=numeric_value(item.observation.canonical_value),
                 canonical_unit=item.observation.canonical_unit,
                 sample_count=item.observation.sample_count,
                 position=item.position,
@@ -1063,7 +1240,11 @@ def performance_comparison_to_schema(
     row: PerformanceComparison,
 ) -> PerformanceComparisonRead:
     observation = row.current_observation
+    valid = performance_comparison_numeric_valid(row)
     return PerformanceComparisonRead(
+        numeric_state="available" if valid else "unavailable",
+        numeric_reasons=[] if valid else [NUMERIC_REASON],
+        recorded_status=row.status,
         id=row.id,
         project_id=row.project_id,
         current_run_id=row.current_run_id,
@@ -1072,31 +1253,33 @@ def performance_comparison_to_schema(
         policy_id=row.policy_id,
         engine_version=row.engine_version,
         input_digest=row.input_digest,
-        status=row.status,
+        status=row.status if valid else NUMERIC_UNAVAILABLE,
         metric_name=observation.metric_name,
         metric_scope=observation.metric_scope,
         statistic=observation.statistic,
         direction=_policy_direction(row.policy, observation),
         workload=observation.workload,
         canonical_unit=observation.canonical_unit,
-        current_value=row.current_value,
-        baseline_value=row.baseline_value,
-        absolute_change=row.absolute_change,
-        relative_change=row.relative_change,
-        allowed_absolute_change=row.allowed_absolute_change,
-        allowed_relative_change=row.allowed_relative_change,
+        current_value=numeric_value(row.current_value),
+        baseline_value=row.baseline_value if valid else None,
+        absolute_change=row.absolute_change if valid else None,
+        relative_change=row.relative_change if valid else None,
+        allowed_absolute_change=row.allowed_absolute_change if valid else None,
+        allowed_relative_change=numeric_value(row.allowed_relative_change),
         current_sample_count=row.current_sample_count,
         baseline_run_count=row.baseline_run_count,
         baseline_sample_count=row.baseline_sample_count,
-        threshold_status=row.threshold_status,
-        effect_size=row.effect_size,
-        uncertainty=row.uncertainty,
-        compatibility=row.compatibility,
-        confounders=row.confounders,
+        threshold_status=row.threshold_status if valid else NUMERIC_UNAVAILABLE,
+        effect_size=row.effect_size if valid else None,
+        uncertainty=numeric_uncertainty(row.uncertainty, valid),
+        compatibility=numeric_metadata(row.compatibility),
+        confounders=row.confounders
+        if valid
+        else sorted({*row.confounders, NUMERIC_REASON}),
         current_evidence_id=row.current_evidence_id,
         baseline_evidence_ids=row.baseline_evidence_ids,
-        next_measurement=row.next_measurement,
-        summary=row.summary,
+        next_measurement=row.next_measurement if valid else NUMERIC_SUMMARY,
+        summary=row.summary if valid else NUMERIC_SUMMARY,
         baseline=performance_baseline_to_schema(row.baseline_snapshot),
         created_at=row.created_at,
     )
@@ -1213,7 +1396,7 @@ def evaluate_performance_fixture_case(case: dict[str, Any]) -> dict[str, Any]:
     if current_blockers:
         status = "INCOMPATIBLE_BASELINE"
     elif len(accepted) >= minimum:
-        baseline_value = statistics.median(values)
+        baseline_value = finite_median(values)
         classified = classify_performance_change(
             current_value=current_value,
             baseline_value=baseline_value,

@@ -36,6 +36,7 @@ import { BinaryEvidencePanel } from './BinaryEvidence';
 import { EvaluationPanel } from './EvaluationPanel';
 import { GitHubReportPanel } from './GitHubReport';
 import { OptionalProviderPanel, ProviderSettings } from './OptionalProvider';
+import { formatPerformancePercent, formatPerformanceValue } from './performance-format';
 
 const categoryLabel: Record<string, string> = {
   product_defect: 'Probable product defect',
@@ -71,14 +72,7 @@ const formatRate = (rate: TestHistory['rates'][string] | undefined): string => {
 
 const readableValue = (value: string): string => value.replaceAll('_', ' ');
 const performanceStatusClass = (value: string): string => statusClass(value.toLowerCase());
-const formatPerformanceValue = (value: number | null, unit: string): string => {
-  if (value === null || !Number.isFinite(value)) return 'Unavailable';
-  return `${new Intl.NumberFormat(undefined, { maximumSignificantDigits: 6 }).format(value)} ${unit}`;
-};
-const formatPerformanceDelta = (value: number | null): string => {
-  if (value === null || !Number.isFinite(value)) return 'Unavailable';
-  return `${value >= 0 ? '+' : ''}${(value * 100).toFixed(1)}%`;
-};
+const formatPerformanceDelta = (value: number | null): string => formatPerformancePercent(value, true);
 
 const newExternalId = (): string => `manual-${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}`;
 const tablePageSize = 10;
@@ -1792,7 +1786,7 @@ function App() {
           <p className="performance-advisory">Only prior observations with compatible workload, environment, producer, units, run scope, trust, and completeness may form a baseline. Missing or incompatible history is never presented as “no regression.”</p>
           <div className="performance-controls">
             <label>Performance run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => changeRun(event.target.value)}><option value="">Select a run</option>{runId && !runs.some(run => run.id === runId) && <option value={runId}>{runLoading ? 'Loading requested run…' : 'Requested run unavailable'}</option>}{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.commit_sha?.slice(0, 10) ?? 'head unknown'}</option>)}</select></label>
-            <label>Immutable policy<select value={performancePolicyId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setPerformancePolicyId(event.target.value)}><option value="">Default strict policy</option>{performancePolicies.map((policy) => <option key={policy.id} value={policy.id}>{policy.version} · {Math.round(policy.relative_tolerance * 100)}% · {policy.min_baseline_runs} runs</option>)}</select></label>
+            <label>Immutable policy<select value={performancePolicyId} onChange={(event: ChangeEvent<HTMLSelectElement>) => setPerformancePolicyId(event.target.value)}><option value="">Default strict policy</option>{performancePolicies.map((policy) => <option key={policy.id} value={policy.id} disabled={policy.numeric_state === 'unavailable'}>{policy.version} · {formatPerformancePercent(policy.relative_tolerance, false, 0)} · {policy.min_baseline_runs} runs</option>)}</select></label>
             {performancePolicies.length === 0 && <button type="button" onClick={registerDefaultPerformancePolicy} disabled={busy || !canAdminister || !projectId}>Register strict policy</button>}
             <button className="primary" type="button" onClick={generatePerformanceComparisons} disabled={busy || !canReview || performanceLoading || !runId || performanceObservations.length === 0}>Compare compatible baselines</button>
           </div>
@@ -1805,6 +1799,7 @@ function App() {
                 <div><strong>{observation.metric_name}</strong><small>{readableValue(observation.metric_scope)} · {readableValue(observation.statistic)} · {observation.workload}</small></div>
                 <span>{formatPerformanceValue(observation.canonical_value, observation.canonical_unit)}</span>
                 <span className={`state ${performanceStatusClass(observation.threshold_status)}`}>{readableValue(observation.threshold_status)}</span>
+                {observation.numeric_state === 'unavailable' && <small>Numeric result unavailable; original evidence remains available for review.</small>}
                 <a href={`/api/v1/evidence/${observation.evidence_id}`} target="_blank" rel="noreferrer">Evidence</a>
               </article>
             ))}
@@ -1824,11 +1819,12 @@ function App() {
                     <span className={`performance-status ${performanceStatusClass(comparison.status)}`}>{readableValue(comparison.status)}</span>
                   </div>
                   <p>{comparison.summary}</p>
+                  {comparison.numeric_state === 'unavailable' && <p className="history-provenance">Numeric result unavailable. Recorded status: {readableValue(comparison.recorded_status ?? 'unknown')}. The original record and measurements are preserved.</p>}
                   <div className="performance-summary">
                     <div><span>Current</span><strong>{formatPerformanceValue(comparison.current_value, comparison.canonical_unit)}</strong><small>{comparison.current_sample_count ?? 'unknown'} sample{comparison.current_sample_count === 1 ? '' : 's'}</small></div>
                     <div><span>Compatible baseline</span><strong>{formatPerformanceValue(comparison.baseline_value, comparison.canonical_unit)}</strong><small>{comparison.baseline_run_count} prior run{comparison.baseline_run_count === 1 ? '' : 's'} · {comparison.baseline_sample_count} samples</small></div>
                     <div><span>Absolute change</span><strong>{formatPerformanceValue(comparison.absolute_change, comparison.canonical_unit)}</strong><small>Allowed {formatPerformanceValue(comparison.allowed_absolute_change, comparison.canonical_unit)}</small></div>
-                    <div><span>Relative change</span><strong>{formatPerformanceDelta(comparison.relative_change)}</strong><small>Policy tolerance {(comparison.allowed_relative_change * 100).toFixed(1)}%</small></div>
+                    <div><span>Relative change</span><strong>{formatPerformanceDelta(comparison.relative_change)}</strong><small>Policy tolerance {formatPerformancePercent(comparison.allowed_relative_change)}</small></div>
                   </div>
                   {currentBlockers.length > 0 && <div className="performance-reasons"><strong>Current observation blockers</strong>{currentBlockers.map((reason) => <code key={reason}>{readableValue(reason)}</code>)}</div>}
                   {Object.keys(rejectedReasons).length > 0 && <div className="performance-reasons"><strong>Rejected baseline candidates</strong>{Object.entries(rejectedReasons).map(([reason, count]) => <code key={reason}>{readableValue(reason)} · {count}</code>)}</div>}
