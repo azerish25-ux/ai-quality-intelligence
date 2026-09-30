@@ -23,3 +23,15 @@ fixture version rather than silently relabeled as the general test dependency.
 
 The exported graph installed successfully in the local test environment. Dependency
 versions alone are not a vulnerability audit or supported-platform certification.
+
+The backend image consumes `backend/requirements-runtime.lock`, exported from the
+same uv graph without the development extra. Regenerate it alongside the dev export:
+
+```sh
+uv export --project backend --no-emit-project --no-header --format requirements-txt -o backend/requirements-runtime.lock
+```
+
+The gateway uses the vendor's unprivileged Nginx image, with both listening ports
+above 1024. The actual Docker smoke test checks nonzero UIDs for API, worker and
+gateway rather than inferring non-root execution from Dockerfile text alone.
+Vendor reference: https://github.com/nginx/docker-nginx-unprivileged

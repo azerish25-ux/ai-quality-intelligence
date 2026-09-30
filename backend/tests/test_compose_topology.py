@@ -36,3 +36,14 @@ def test_restore_extracts_before_application_import_initializes_storage():
     assert restore.index('archive.extractall(') < restore.index('from failurelens.')
     # Existing destinations must still be rejected, never overwritten silently.
     assert 'root.mkdir(exist_ok=True)' not in restore
+
+
+def test_application_images_keep_locked_dependencies_and_nonroot_gateway():
+    backend = (ROOT / 'backend/Dockerfile').read_text()
+    frontend = (ROOT / 'frontend/Dockerfile').read_text()
+    assert '--require-hashes -r /app/backend/requirements-runtime.lock' in backend
+    assert 'USER failurelens' in backend
+    assert 'nginxinc/nginx-unprivileged:1.27-alpine' in frontend
+    smoke = (ROOT / 'scripts/compose_recovery_smoke.sh').read_text()
+    assert 'for service in api worker dashboard' in smoke
+    assert 'runs as root' in smoke

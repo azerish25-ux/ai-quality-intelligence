@@ -297,3 +297,11 @@ an import-order error in the artifact restore verifier: application imports crea
 the destination before its deliberate fresh-directory assertion. Moved application
 imports after bounded extraction, preserving refusal to overwrite an existing
 destination. Added an ordering regression; the full restore gate must run again.
+
+### Runtime image hardening
+
+The backend image now consumes the hash-locked runtime-only dependency export from
+the same uv graph. Switched the gateway to the official unprivileged Nginx variant
+and added actual non-root UID assertions for all three application containers in
+the Docker smoke gate. Local topology/source regressions pass; runtime image and
+UID claims remain subject to actual CI execution.

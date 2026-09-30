@@ -16,6 +16,9 @@ cleanup() {
 }
 trap cleanup EXIT
 compose up --build --wait --wait-timeout 180
+for service in api worker dashboard; do
+  [[ "$(compose exec -T "$service" id -u)" != "0" ]] || { echo "$service runs as root" >&2; exit 1; }
+done
 # The API and durable worker share only an internal network with PostgreSQL.
 compose exec -T api python - <<'PY'
 import socket

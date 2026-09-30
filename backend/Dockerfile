@@ -9,8 +9,8 @@ WORKDIR /app
 
 COPY backend /app/backend
 COPY evaluation /app/evaluation
-RUN python -m pip install --upgrade pip \
-    && python -m pip install /app/backend
+RUN python -m pip install --require-hashes -r /app/backend/requirements-runtime.lock \
+    && python -m pip install --no-deps /app/backend
 
 ENV FAILURELENS_DATABASE_URL=postgresql+psycopg://failurelens:failurelens@db:5432/failurelens \
     FAILURELENS_ARTIFACT_ROOT=/var/lib/failurelens/artifacts \
