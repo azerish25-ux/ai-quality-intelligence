@@ -58,7 +58,7 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     depends_on:
       api:
         condition: service_healthy
@@ -71,3 +71,4 @@ volumes:
 networks:
   failurelens:
     driver: bridge
+    internal: true

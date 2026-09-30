@@ -158,3 +158,27 @@ npm installation failed with DNS errors. Exact remote CI must be inspected after
 publication; green M5.2 workflows do not verify M5.3. Masked images/rich trace serving,
 global security-audit pruning, assignment/notifications, backup/restore, real
 LedgerGuard evaluation and the other unclosed master requirements remain separate.
+
+## Disposable offline/recovery verification
+
+`scripts/compose_recovery_smoke.sh --confirm-disposable-stack` allocates a uniquely
+named Compose project and synthetic-only database, starts the real stack, checks
+that runtime outbound Internet is unavailable, seeds three analyses, and verifies
+restart persistence. It stops API/worker writers, takes a PostgreSQL custom-format
+backup plus the artifact volume, restores into a separate database and fresh
+artifact directory, then runs the real publication evidence validator against the
+restored citations. Cleanup removes only that uniquely named disposable stack.
+Requires Docker/Compose; the ordinary `failurelens` project is never targeted.
+
+Default dashboard/API ports bind to loopback. The application network is internal;
+dependencies/images are downloaded at build time, while the deterministic runtime
+has no default Internet route. An operator adding an optional provider must make
+an explicit network-policy/configuration decision; no runtime fallback adds egress.
+
+For real backups, quiesce API and worker together, back up PostgreSQL and the entire
+artifact volume as a matched pair, protect archives like the original private data,
+and test restore into an empty isolated database/volume before switching traffic.
+These archives are not encrypted by the script. Their directory/file modes are
+restricted; encryption, offsite destination, retention and key management remain
+operator responsibilities. Never feed an untrusted SQL/archive into restore tools.
+CI execution of the new smoke gate is pending publication at this checkpoint.

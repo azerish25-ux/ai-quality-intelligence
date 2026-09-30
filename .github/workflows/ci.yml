@@ -310,10 +310,12 @@ jobs:
 
   docker-config:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Validate Compose model
         run: docker compose config --quiet
       - name: Build application images
         run: docker compose build api dashboard
+      - name: Verify offline runtime, persistence and synthetic backup restore
+        run: bash scripts/compose_recovery_smoke.sh --confirm-disposable-stack

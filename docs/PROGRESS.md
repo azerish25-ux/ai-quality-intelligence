@@ -184,3 +184,13 @@ sentinel. They are regression combinations, not newly independent evaluation cas
 Report preview now independently rechecks current derivative scope/digests/restriction
 before exposing a previously validated analysis; a new post-analysis restriction test
 passes. Full adversarial and production isolation claims remain intentionally absent.
+
+### M9 isolated runtime/recovery gate prepared
+
+Inspection found the dashboard's Compose port exposed on all interfaces despite
+its documented loopback demo contract. It is corrected to `127.0.0.1:8080` and the
+runtime service network is internal. Added an actual Docker smoke gate for synthetic
+startup, denied Internet egress, restart persistence and PostgreSQL/artifact restore
+with real evidence validation. Shell syntax checked locally; Docker is unavailable
+here, so actual execution is pending authorized publication and the CI Docker job.
+No local Docker pass is claimed.
