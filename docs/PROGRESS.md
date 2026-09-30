@@ -194,3 +194,13 @@ startup, denied Internet egress, restart persistence and PostgreSQL/artifact res
 with real evidence validation. Shell syntax checked locally; Docker is unavailable
 here, so actual execution is pending authorized publication and the CI Docker job.
 No local Docker pass is claimed.
+
+### Synthetic history and complete walkthrough seed
+
+Added explicit demo-only `failurelens demo-history`: a separate idempotent 100-run,
+1,000-logical-observation history with retries, browser/branch/worker variation,
+incomplete runs and skipped/cancelled outcomes. The final persisted run demonstrates
+product defect, qualifying reviewed known flake and honest abstention. Two tests pass,
+including rerun idempotence and production rejection. An initial fixture failed its
+known-flake expectation because worker cohorts differed; corrected the synthetic
+fixture rather than weakening the history gate. This is not new benchmark evidence.

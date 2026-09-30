@@ -55,6 +55,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("doctor")
     sub.add_parser("demo")
+    sub.add_parser("demo-history", help="explicit synthetic 100-run history; demo mode only")
 
     ingest = sub.add_parser("ingest")
     ingest.add_argument("report", type=Path)
@@ -201,6 +202,9 @@ def main() -> None:
             user, record, raw = operator_recovery(session, args.username, reason=args.reason, activate=args.activate)
             print(json.dumps({"user_id": user.id, "token": raw, "expires_at": record.expires_at.isoformat(),
                               "notice": "Shown once. Redeem in the recovery form; keep this output private."}))
+        elif args.command == "demo-history":
+            from .demo_history import seed_history
+            print(json.dumps(seed_history(session), indent=2))
         elif args.command == "demo":
             print(json.dumps(seed_demo(session), indent=2))
         elif args.command == "ingest":
