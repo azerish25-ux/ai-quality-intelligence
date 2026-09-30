@@ -11,11 +11,12 @@ concurrency:
   cancel-in-progress: true
 jobs:
   indexed-api-reads:
+    name: Indexed api reads
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
         env:
           POSTGRES_DB: failurelens_load
           POSTGRES_USER: failurelens
@@ -30,6 +31,8 @@ jobs:
       FAILURELENS_ARTIFACT_ROOT: /tmp/loose-thread-load-artifacts
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.13'

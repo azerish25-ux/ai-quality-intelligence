@@ -1,0 +1,145 @@
+name: Loose Thread read-only Action consumer
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# This workflow executes tested code. It has no publishing token or write grant.
+permissions:
+  contents: read
+
+concurrency:
+  group: loose-thread-report-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test-shards:
+    name: Test report shard (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [analysis, ingestion]
+    env:
+      FAILURELENS_DATABASE_URL: "sqlite+pysqlite:///:memory:"
+      FAILURELENS_ARTIFACT_ROOT: /tmp/failurelens-shard-private
+      FAILURELENS_DEMO_MODE: "true"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Install locked committed backend
+        run: bash scripts/install_committed_backend.sh
+      - name: Execute actual regression shard
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/shard"
+          python -m pytest "backend/tests/test_${SHARD}.py" --junitxml="$RUNNER_TEMP/shard/results.xml"
+      - name: Preserve this shard even when tests fail
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: junit-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/shard/results.xml
+          if-no-files-found: warn
+          retention-days: 7
+
+  report:
+    name: Consume reports in disposable PostgreSQL
+    needs: test-shards
+    if: ${{ always() && !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+        env:
+          POSTGRES_DB: failurelens_action
+          POSTGRES_USER: failurelens
+          POSTGRES_PASSWORD: failurelens
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U failurelens -d failurelens_action"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      FAILURELENS_DATABASE_URL: postgresql+psycopg://failurelens:failurelens@127.0.0.1:5432/failurelens_action
+      FAILURELENS_ARTIFACT_ROOT: /tmp/failurelens-action-private
+      FAILURELENS_DEMO_MODE: "true"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Install locked committed backend for migration
+        run: bash scripts/install_committed_backend.sh
+      - name: Migrate disposable PostgreSQL
+        working-directory: backend
+        run: alembic upgrade head
+      - name: Download analysis shard
+        continue-on-error: true # The declared manifest preserves a missing artifact.
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: junit-${{ github.run_id }}-${{ github.run_attempt }}-analysis
+          path: ${{ runner.temp }}/shards/analysis
+      - name: Download ingestion shard
+        continue-on-error: true # Never infer completeness from the files that arrived.
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: junit-${{ github.run_id }}-${{ github.run_attempt }}-ingestion
+          path: ${{ runner.temp }}/shards/ingestion
+      - name: Build manifest from the planned shards
+        run: |
+          python integrations/github-action/bundle.py \
+            --root "$RUNNER_TEMP/shards" --output "$RUNNER_TEMP/expected-shards.zip" \
+            --shard analysis=analysis/results.xml --shard ingestion=ingestion/results.xml
+      - name: Consume the actual reports through the reusable Action
+        id: triage
+        uses: $/integrations/github-action
+        with:
+          report: ${{ runner.temp }}/expected-shards.zip
+          project: loose-thread-regression-shards
+          external-id: gha-${{ github.run_id }}
+          attempt: ${{ github.run_attempt }}
+          repository: ${{ github.repository }}
+          base-sha: ${{ github.event.pull_request.base.sha || github.event.before }}
+          head-sha: ${{ github.event.pull_request.head.sha || github.sha }}
+          branch: ${{ github.head_ref || github.ref_name }}
+          # These two selected regression files are not a full-suite run.
+          run-scope: unknown
+          comparison-trust: self_reported
+          expected-inputs: "2"
+          shard-count: "2"
+          database-url: ${{ env.FAILURELENS_DATABASE_URL }}
+      - name: Retain only sanitized output projections and status
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: loose-thread-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ steps.triage.outputs.report-path }}
+            ${{ steps.triage.outputs.report-json-path }}
+            ${{ steps.triage.outputs.status-path }}
+          if-no-files-found: error
+          retention-days: 14
+      - name: Require complete artifact transport, independent of advisory status
+        if: always()
+        env:
+          PROCESSING_STATUS: ${{ steps.triage.outputs.status }}
+          COMPLETENESS: ${{ steps.triage.outputs.completeness }}
+        run: |
+          test "$PROCESSING_STATUS" = reported
+          test "$COMPLETENESS" = complete

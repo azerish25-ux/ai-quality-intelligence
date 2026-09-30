@@ -1,0 +1,507 @@
+{
+  "development_only": false,
+  "finished_at": "2026-09-30T08:38:25.859914+00:00",
+  "provenance_unchanged": true,
+  "results": [
+    {
+      "baseline": {
+        "duration_seconds": 2.43,
+        "effect_calls": 0,
+        "exit_code": 0,
+        "mode": "baseline",
+        "mutation_applied": false,
+        "mutation_calls": 0,
+        "output_sha256": "580e1f28c271f2f49f996926ce68dc19ec3973df594bda85ccbca7096222c43e",
+        "phases": [
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_auth.py::test_viewer_is_project_scoped_and_cannot_mutate_reviews",
+            "when": "setup"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_auth.py::test_viewer_is_project_scoped_and_cannot_mutate_reviews",
+            "when": "call"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_auth.py::test_viewer_is_project_scoped_and_cannot_mutate_reviews",
+            "when": "teardown"
+          }
+        ],
+        "reason": "unmodified_focused_test_passed",
+        "status": "passed"
+      },
+      "case_id": "authorization",
+      "description": "Return administrator access without checking project membership or role.",
+      "mutant": {
+        "duration_seconds": 2.425,
+        "effect_calls": 2,
+        "exit_code": 1,
+        "mode": "mutant",
+        "mutation_applied": true,
+        "mutation_calls": 2,
+        "output_sha256": "3fb1acf0224642cdc1b011c616dfd72d38541ffffbd5a51958d72b31393ce05b",
+        "phases": [
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_auth.py::test_viewer_is_project_scoped_and_cannot_mutate_reviews",
+            "when": "setup"
+          },
+          {
+            "assertion_in_test": true,
+            "exception_type": "AssertionError",
+            "failure_line": 185,
+            "failure_source": "backend/tests/test_auth.py",
+            "outcome": "failed",
+            "test_id": "backend/tests/test_auth.py::test_viewer_is_project_scoped_and_cannot_mutate_reviews",
+            "when": "call"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_auth.py::test_viewer_is_project_scoped_and_cannot_mutate_reviews",
+            "when": "teardown"
+          }
+        ],
+        "reason": "selected_test_assertion_failed",
+        "status": "killed"
+      },
+      "target": "failurelens.auth.require_project_role",
+      "test_ids": [
+        "backend/tests/test_auth.py::test_viewer_is_project_scoped_and_cannot_mutate_reviews"
+      ],
+      "test_sha256": "c1c7929925c941d197b9a863ce8fe90d36e55b79a2e5173b77ccda6d33f8e02c"
+    },
+    {
+      "baseline": {
+        "duration_seconds": 1.573,
+        "effect_calls": 0,
+        "exit_code": 0,
+        "mode": "baseline",
+        "mutation_applied": false,
+        "mutation_calls": 0,
+        "output_sha256": "9aaa2f5d66fdaf33091c9641c2fcf87a3a3759a5abeeac622ac125fb0fe58aa3",
+        "phases": [
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_redaction.py::test_redacts_declared_sensitive_classes_and_preserves_evidence",
+            "when": "setup"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_redaction.py::test_redacts_declared_sensitive_classes_and_preserves_evidence",
+            "when": "call"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_redaction.py::test_redacts_declared_sensitive_classes_and_preserves_evidence",
+            "when": "teardown"
+          }
+        ],
+        "reason": "unmodified_focused_test_passed",
+        "status": "passed"
+      },
+      "case_id": "redaction",
+      "description": "Omit the authorization-header redaction pattern.",
+      "mutant": {
+        "duration_seconds": 1.673,
+        "effect_calls": 1,
+        "exit_code": 1,
+        "mode": "mutant",
+        "mutation_applied": true,
+        "mutation_calls": 1,
+        "output_sha256": "3d7cef28e1673b5691cde92fdaf5a5509845907379b7f7b3b2c9b43f4666684b",
+        "phases": [
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_redaction.py::test_redacts_declared_sensitive_classes_and_preserves_evidence",
+            "when": "setup"
+          },
+          {
+            "assertion_in_test": true,
+            "exception_type": "AssertionError",
+            "failure_line": 7,
+            "failure_source": "backend/tests/test_redaction.py",
+            "outcome": "failed",
+            "test_id": "backend/tests/test_redaction.py::test_redacts_declared_sensitive_classes_and_preserves_evidence",
+            "when": "call"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_redaction.py::test_redacts_declared_sensitive_classes_and_preserves_evidence",
+            "when": "teardown"
+          }
+        ],
+        "reason": "selected_test_assertion_failed",
+        "status": "killed"
+      },
+      "target": "failurelens.redaction.redact_text",
+      "test_ids": [
+        "backend/tests/test_redaction.py::test_redacts_declared_sensitive_classes_and_preserves_evidence"
+      ],
+      "test_sha256": "1a2120b9c1bfe7e7fdc370d64f6b73189e563196a2f8d5724a3ff59924f0521a"
+    },
+    {
+      "baseline": {
+        "duration_seconds": 2.074,
+        "effect_calls": 0,
+        "exit_code": 0,
+        "mode": "baseline",
+        "mutation_applied": false,
+        "mutation_calls": 0,
+        "output_sha256": "cfe2c701cdb6310ed843a445e6d98316a2b25914f9ca84d646c7a461b574fbaa",
+        "phases": [
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_evidence_validation.py::test_forged_evidence_reference_is_withheld",
+            "when": "setup"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_evidence_validation.py::test_forged_evidence_reference_is_withheld",
+            "when": "call"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_evidence_validation.py::test_forged_evidence_reference_is_withheld",
+            "when": "teardown"
+          }
+        ],
+        "reason": "unmodified_focused_test_passed",
+        "status": "passed"
+      },
+      "case_id": "missing-citation",
+      "description": "Replace an unresolved citation with available evidence instead of rejecting it.",
+      "mutant": {
+        "duration_seconds": 2.074,
+        "effect_calls": 1,
+        "exit_code": 1,
+        "mode": "mutant",
+        "mutation_applied": true,
+        "mutation_calls": 1,
+        "output_sha256": "0bbbd7338ff747be88c3f1cc1d4c002d111d419fff0ab3dcc26dfb1a4dd1b2da",
+        "phases": [
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_evidence_validation.py::test_forged_evidence_reference_is_withheld",
+            "when": "setup"
+          },
+          {
+            "assertion_in_test": true,
+            "exception_type": "AssertionError",
+            "failure_line": 188,
+            "failure_source": "backend/tests/test_evidence_validation.py",
+            "outcome": "failed",
+            "test_id": "backend/tests/test_evidence_validation.py::test_forged_evidence_reference_is_withheld",
+            "when": "call"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_evidence_validation.py::test_forged_evidence_reference_is_withheld",
+            "when": "teardown"
+          }
+        ],
+        "reason": "selected_test_assertion_failed",
+        "status": "killed"
+      },
+      "target": "failurelens.evidence_validation._validated_reference_ids",
+      "test_ids": [
+        "backend/tests/test_evidence_validation.py::test_forged_evidence_reference_is_withheld"
+      ],
+      "test_sha256": "a6add0b54850bc6dc8b6fe7f89e5566300a464a0aba11bfe40c07eafc610b0b9"
+    },
+    {
+      "baseline": {
+        "duration_seconds": 2.174,
+        "effect_calls": 0,
+        "exit_code": 0,
+        "mode": "baseline",
+        "mutation_applied": false,
+        "mutation_calls": 0,
+        "output_sha256": "802922442e38fcf52e3596951eadd2e9e23ab8393a4775f8b1ddc64b34702d12",
+        "phases": [
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_history.py::test_retries_collapse_and_absent_tests_are_not_counted_as_passes",
+            "when": "setup"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_history.py::test_retries_collapse_and_absent_tests_are_not_counted_as_passes",
+            "when": "call"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_history.py::test_retries_collapse_and_absent_tests_are_not_counted_as_passes",
+            "when": "teardown"
+          }
+        ],
+        "reason": "unmodified_focused_test_passed",
+        "status": "passed"
+      },
+      "case_id": "retry-as-run",
+      "description": "Count retry attempts as independent runs in the history denominator.",
+      "mutant": {
+        "duration_seconds": 2.225,
+        "effect_calls": 1,
+        "exit_code": 1,
+        "mode": "mutant",
+        "mutation_applied": true,
+        "mutation_calls": 1,
+        "output_sha256": "10a42d495328d76edbbdea4260e6111f7f7ef56264a78f0acdc1e81f08863068",
+        "phases": [
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_history.py::test_retries_collapse_and_absent_tests_are_not_counted_as_passes",
+            "when": "setup"
+          },
+          {
+            "assertion_in_test": true,
+            "exception_type": "AssertionError",
+            "failure_line": 205,
+            "failure_source": "backend/tests/test_history.py",
+            "outcome": "failed",
+            "test_id": "backend/tests/test_history.py::test_retries_collapse_and_absent_tests_are_not_counted_as_passes",
+            "when": "call"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_history.py::test_retries_collapse_and_absent_tests_are_not_counted_as_passes",
+            "when": "teardown"
+          }
+        ],
+        "reason": "selected_test_assertion_failed",
+        "status": "killed"
+      },
+      "target": "failurelens.history.build_test_history",
+      "test_ids": [
+        "backend/tests/test_history.py::test_retries_collapse_and_absent_tests_are_not_counted_as_passes"
+      ],
+      "test_sha256": "a8b1faca11f453882010a7e3b2a81bcf494e25d327e76f15de6d66189c087f9a"
+    },
+    {
+      "baseline": {
+        "duration_seconds": 1.624,
+        "effect_calls": 0,
+        "exit_code": 0,
+        "mode": "baseline",
+        "mutation_applied": false,
+        "mutation_calls": 0,
+        "output_sha256": "f98b08dd79dfacdae7f15e1e6c27616e98d20b82bb0171a7378f335d0200a6c6",
+        "phases": [
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_analysis.py::test_timeout_without_corroboration_abstains",
+            "when": "setup"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_analysis.py::test_timeout_without_corroboration_abstains",
+            "when": "call"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_analysis.py::test_timeout_without_corroboration_abstains",
+            "when": "teardown"
+          }
+        ],
+        "reason": "unmodified_focused_test_passed",
+        "status": "passed"
+      },
+      "case_id": "timeout-to-flake",
+      "description": "Classify an uncorroborated timeout as known flaky behavior.",
+      "mutant": {
+        "duration_seconds": 1.673,
+        "effect_calls": 1,
+        "exit_code": 1,
+        "mode": "mutant",
+        "mutation_applied": true,
+        "mutation_calls": 1,
+        "output_sha256": "d1d929e82b5b945fba171978884870e74d459c33c3acd01daf0bba668f07ab6e",
+        "phases": [
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_analysis.py::test_timeout_without_corroboration_abstains",
+            "when": "setup"
+          },
+          {
+            "assertion_in_test": true,
+            "exception_type": "AssertionError",
+            "failure_line": 28,
+            "failure_source": "backend/tests/test_analysis.py",
+            "outcome": "failed",
+            "test_id": "backend/tests/test_analysis.py::test_timeout_without_corroboration_abstains",
+            "when": "call"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_analysis.py::test_timeout_without_corroboration_abstains",
+            "when": "teardown"
+          }
+        ],
+        "reason": "selected_test_assertion_failed",
+        "status": "killed"
+      },
+      "target": "failurelens.analysis.analyze_failure",
+      "test_ids": [
+        "backend/tests/test_analysis.py::test_timeout_without_corroboration_abstains"
+      ],
+      "test_sha256": "3d8347eefd6d33858c63ed17b91aeb8b90ebcb7390f6f13f51172c686eb85f10"
+    },
+    {
+      "baseline": {
+        "duration_seconds": 2.075,
+        "effect_calls": 0,
+        "exit_code": 0,
+        "mode": "baseline",
+        "mutation_applied": false,
+        "mutation_calls": 0,
+        "output_sha256": "3c6fe47323f433cb4764614e82fdb9c55be52e77c92878f7e71000632254829d",
+        "phases": [
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_service.py::test_incomplete_run_is_explicit",
+            "when": "setup"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_service.py::test_incomplete_run_is_explicit",
+            "when": "call"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_service.py::test_incomplete_run_is_explicit",
+            "when": "teardown"
+          }
+        ],
+        "reason": "unmodified_focused_test_passed",
+        "status": "passed"
+      },
+      "case_id": "missing-shard",
+      "description": "Mark run scope complete despite an expected input/shard being absent.",
+      "mutant": {
+        "duration_seconds": 2.125,
+        "effect_calls": 1,
+        "exit_code": 1,
+        "mode": "mutant",
+        "mutation_applied": true,
+        "mutation_calls": 1,
+        "output_sha256": "fa0a88acb67844f638ed500b017406f88860bd79c7833ca41b34b70f7879f5f7",
+        "phases": [
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_service.py::test_incomplete_run_is_explicit",
+            "when": "setup"
+          },
+          {
+            "assertion_in_test": true,
+            "exception_type": "AssertionError",
+            "failure_line": 40,
+            "failure_source": "backend/tests/test_service.py",
+            "outcome": "failed",
+            "test_id": "backend/tests/test_service.py::test_incomplete_run_is_explicit",
+            "when": "call"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_service.py::test_incomplete_run_is_explicit",
+            "when": "teardown"
+          }
+        ],
+        "reason": "selected_test_assertion_failed",
+        "status": "killed"
+      },
+      "target": "failurelens.service._resolve_input_scope",
+      "test_ids": [
+        "backend/tests/test_service.py::test_incomplete_run_is_explicit"
+      ],
+      "test_sha256": "2dd51d990d40b6d90408e3b65569f23f923c53317a3796663e3cbdb93bada338"
+    },
+    {
+      "baseline": {
+        "duration_seconds": 1.622,
+        "effect_calls": 0,
+        "exit_code": 0,
+        "mode": "baseline",
+        "mutation_applied": false,
+        "mutation_calls": 0,
+        "output_sha256": "81951164b8757dd1a3b9ac7d0c5d071c4babf98fb99415c0128edee2b1b527e0",
+        "phases": [
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_github_publication.py::test_stale_before_first_write_does_not_publish",
+            "when": "setup"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_github_publication.py::test_stale_before_first_write_does_not_publish",
+            "when": "call"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_github_publication.py::test_stale_before_first_write_does_not_publish",
+            "when": "teardown"
+          }
+        ],
+        "reason": "unmodified_focused_test_passed",
+        "status": "passed"
+      },
+      "case_id": "stale-report",
+      "description": "Reuse the tested revision instead of the newly observed PR head.",
+      "mutant": {
+        "duration_seconds": 1.673,
+        "effect_calls": 3,
+        "exit_code": 1,
+        "mode": "mutant",
+        "mutation_applied": true,
+        "mutation_calls": 3,
+        "output_sha256": "d35da08fc82bacc3a10b87dc21ca6dd8958133d23a61e52d5f5c0b46e8e86cb1",
+        "phases": [
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_github_publication.py::test_stale_before_first_write_does_not_publish",
+            "when": "setup"
+          },
+          {
+            "assertion_in_test": true,
+            "exception_type": "AssertionError",
+            "failure_line": 70,
+            "failure_source": "backend/tests/test_github_publication.py",
+            "outcome": "failed",
+            "test_id": "backend/tests/test_github_publication.py::test_stale_before_first_write_does_not_publish",
+            "when": "call"
+          },
+          {
+            "outcome": "passed",
+            "test_id": "backend/tests/test_github_publication.py::test_stale_before_first_write_does_not_publish",
+            "when": "teardown"
+          }
+        ],
+        "reason": "selected_test_assertion_failed",
+        "status": "killed"
+      },
+      "target": "failurelens.github_publication.GitHubPublisher._head",
+      "test_ids": [
+        "backend/tests/test_github_publication.py::test_stale_before_first_write_does_not_publish"
+      ],
+      "test_sha256": "c8075b03e779f7044b14d3ba290a4a4636f7702745e2ea3f1fa6364bdef582fa"
+    }
+  ],
+  "schema_version": "safeguard-mutations-v1",
+  "scope": "synthetic targeted regression sensitivity; not held-out quality acceptance",
+  "source": {
+    "code_and_tests_sha256": "d158a3c3eac7e877cd76eebf9f463e9c992a886b600607a9f921769a0d4dbb64",
+    "measured_file_count": 166,
+    "source_dirty": false,
+    "source_sha": "1f7fe672ee940a4bf117517e399e134b5d05ed88",
+    "worktree_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "started_at": "2026-09-30T08:37:58.379800+00:00",
+  "status": "passed",
+  "summary": {
+    "baseline_passed": 7,
+    "error": 0,
+    "killed": 7,
+    "survived": 0
+  }
+}

@@ -11,10 +11,13 @@ concurrency:
   cancel-in-progress: true
 jobs:
   local-collector:
+    name: Local collector
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Actual isolated collector, durable trace and viewer
         run: bash scripts/compose_telemetry_smoke.sh --confirm-disposable-stack /tmp/loose-thread-telemetry-report
       - name: Preserve actual telemetry evidence including failures

@@ -16,7 +16,7 @@ from pathlib import PurePosixPath
 from typing import Any, Callable
 
 from .config import Settings
-from .redaction import redact_text
+from .redaction import analytic_scalar, redact_sensitive_field, redact_text, redaction_provenance
 
 PARSER_VERSION = "ingestion-v3"
 REGISTRY_VERSION = "adapter-registry-v1"
@@ -171,18 +171,12 @@ def _safe_json_value(value: Any, *, depth: int = 0) -> Any:
     if isinstance(value, dict):
         result: dict[str, Any] = {}
         for key, item in list(value.items())[:200]:
-            safe_key = str(key)[:240]
-            if safe_key.lower() in {
-                "authorization",
-                "cookie",
-                "set-cookie",
-                "password",
-                "token",
-                "access_token",
-                "refresh_token",
-                "api_key",
-            }:
-                result[safe_key] = "[REDACTED]"
+            safe_key = redact_text(str(key)[:240]).text
+            sensitive = redact_sensitive_field(safe_key, item)
+            if sensitive is not None:
+                result[safe_key] = sensitive.text
+            elif analytic_scalar(safe_key, item):
+                result[safe_key] = item
             else:
                 result[safe_key] = _safe_json_value(item, depth=depth + 1)
         return result
@@ -1410,10 +1404,22 @@ def _parsed_input(
     metadata: dict[str, Any] | None = None,
 ) -> ParsedInput:
     combined_metadata = {
-        **(metadata or {}),
+        **_safe_json_value(metadata or {}),
         **result.metadata,
         "registry_version": REGISTRY_VERSION,
     }
+    # Typed payloads are schema-validated by their adapter, and their bodies are
+    # sanitized by the typed persistence path. Correlation dimensions must use
+    # the same project context as primary test observations before binding.
+    for field in ("transaction_observation", "contract_observation", "domain_observation"):
+        value = combined_metadata.get(field)
+        if isinstance(value, dict):
+            value = dict(value)
+            for dimension in ("test_identity", "browser"):
+                if isinstance(value.get(dimension), str):
+                    value[dimension] = redact_text(value[dimension]).text
+            combined_metadata[field] = value
+    combined_metadata["redaction_policy"] = redaction_provenance()
     return ParsedInput(
         input_id=input_id,
         kind=spec.kind,

@@ -22,3 +22,6 @@ evaluation/reports/**/predictions.jsonl
 
 # Read-only pinned companion checkout used only by evaluation CI.
 .ledgerguard-evaluation-source/
+
+# Private generated correlation keys, even with a custom artifact root.
+.redaction/

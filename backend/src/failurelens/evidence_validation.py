@@ -14,8 +14,9 @@ from .transaction_evidence import inspect_multiplicity
 from .contract_evidence import CLAIM_TEXT, CONTRACT_CATEGORY, inspect_contract
 from .domain_evidence import inspect_domain
 from .storage import StorageError, read_stored_bytes
+from .redaction import REDACTION_VERSION, valid_project_provenance
 
-VALIDATION_VERSION = "evidence-validation-v3"
+VALIDATION_VERSION = "evidence-validation-v4"
 _ALLOWED_DERIVATIVE_MEDIA_TYPES = {
     "application/json",
     "application/vnd.failurelens.evidence+json",
@@ -287,6 +288,15 @@ def validate_evidence_records(
                 and derivative.retention_state == "active"
                 and derivative.media_type in _ALLOWED_DERIVATIVE_MEDIA_TYPES
             )
+            if derivative.redaction_version == REDACTION_VERSION:
+                # Verification needs immutable bytes and public provenance only.
+                # Key retirement must not revoke a valid historical citation.
+                recorded = derivative_payload.get("redaction") if derivative_payload else None
+                provenance_valid = (valid_project_provenance(recorded, evidence.project_id)
+                                    and recorded == derivative.metadata_json.get("redaction"))
+                if not provenance_valid:
+                    policy_safe = False
+                    reasons.append("redaction_provenance_mismatch")
             if not policy_safe:
                 reasons.append("derivative_not_approved_for_analysis")
 

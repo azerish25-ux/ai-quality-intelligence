@@ -9,8 +9,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: failurelens-source-export-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   export-source:
+    name: Export source
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

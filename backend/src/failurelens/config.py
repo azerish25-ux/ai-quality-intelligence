@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     telemetry_export_enabled: bool = False
     telemetry_endpoint: str | None = None
     artifact_root: Path = Path("./artifacts")
+    # Optional operator keyring; material is excluded from settings exports/repr.
+    redaction_keyring: SecretStr | None = Field(default=None, exclude=True, repr=False)
+    redaction_active_key_ref: str | None = None
     demo_mode: bool = True
     session_cookie_name: str = "failurelens_session"
     session_ttl_hours: int = Field(default=12, ge=1, le=24 * 30)

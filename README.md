@@ -33,7 +33,7 @@ all failures. No thresholds are weakened. See [reproduction and limits](docs/cam
 
 ## Verified operational and report workflows
 
-At source `8dbce9b`, [all ten ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36687238184)
+At source `9414d91`, [all ten ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36691730960)
 passed, including real PostgreSQL, producer fixtures, four browser lanes, non-root
 application containers, isolated runtime networking and actual database/artifact
 backup restore with citation validation. This certifies that named source, not an
@@ -45,8 +45,8 @@ fixed-cardinality metrics and default-disabled export. Its optional local-only
 collector/viewer profile passed real Docker verification at repair `8daa5c7` in
 [36687923599](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36687923599).
 The strict 50,000-execution read benchmark has both passing and failing shared-runner
-measurements, most recently 359.78 ms on one runner and 571.92 ms on another with
-unchanged application code. [All measurements and limits](docs/operational-benchmark.md).
+measurements, most recently 601.29 ms on an AMD runner and 389.46 ms on an Intel runner; the
+intervening correction concerns gateway logging, not the measured API read path. [All measurements and limits](docs/operational-benchmark.md).
 
 New workflows include an [authorized read-only GitHub report preview](docs/github-publication.md),
 [a bounded optional-provider proposal boundary](docs/optional-provider.md), and

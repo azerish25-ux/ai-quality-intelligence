@@ -1,10 +1,10 @@
 """No network/credentials: exercise the real HTTP client against a REST fixture."""
+
 import json
 from types import SimpleNamespace
 
 import httpx
 import pytest
-
 from failurelens.github_publication import GitHubPublisher, PublicationError, _marker
 from failurelens.github_report import render_markdown
 
@@ -25,18 +25,40 @@ class GitHub:
         assert request.url.host == "api.github.com"
         assert request.headers["authorization"] == "Bearer fake-test-token"
         if self.status != 200:
-            return httpx.Response(self.status, json={"message": "secret response should not leak"})
+            return httpx.Response(
+                self.status, json={"message": "secret response should not leak"}
+            )
         if "/pulls/" in request.url.path:
-            return httpx.Response(200, json={"state": "closed" if self.closed else "open", "head": {"sha": self.head}, "base": {"repo": {"full_name": "owner/repo"}}})
+            return httpx.Response(
+                200,
+                json={
+                    "state": "closed" if self.closed else "open",
+                    "head": {"sha": self.head},
+                    "base": {"repo": {"full_name": "owner/repo"}},
+                },
+            )
         if request.method == "GET":
-            return httpx.Response(200, json=self.pages(int(request.url.params["page"])) if self.pages else self.comments)
+            return httpx.Response(
+                200,
+                json=self.pages(int(request.url.params["page"]))
+                if self.pages
+                else self.comments,
+            )
         data = json.loads(request.content)
         self.writes.append((request.method, request.url.path, data))
         if request.method == "POST":
-            item = {"id": 123, "body": data["body"], "user": {"login": "github-actions[bot]", "type": "Bot"}}
+            item = {
+                "id": 123,
+                "body": data["body"],
+                "user": {"login": "github-actions[bot]", "type": "Bot"},
+            }
             self.comments.append(item)
         else:
-            item = next(c for c in self.comments if c["id"] == int(request.url.path.rsplit("/", 1)[1]))
+            item = next(
+                c
+                for c in self.comments
+                if c["id"] == int(request.url.path.rsplit("/", 1)[1])
+            )
             item["body"] = data["body"]
         if self.race:
             self.head = B
@@ -46,13 +68,26 @@ class GitHub:
 @pytest.fixture
 def api():
     server = GitHub()
-    publisher = GitHubPublisher("fake-test-token", transport=httpx.MockTransport(server.handle))
+    publisher = GitHubPublisher(
+        "fake-test-token", transport=httpx.MockTransport(server.handle)
+    )
     yield server, publisher
     publisher.close()
 
 
 def publish(publisher, **kwargs):
-    return publisher.publish(**({"repository": "owner/repo", "pull_number": 7, "project": "demo", "tested_head": A, "report": "HOLD_FOR_REVIEW\n"} | kwargs))
+    return publisher.publish(
+        **(
+            {
+                "repository": "owner/repo",
+                "pull_number": 7,
+                "project": "demo",
+                "tested_head": A,
+                "report": "HOLD_FOR_REVIEW\n",
+            }
+            | kwargs
+        )
+    )
 
 
 def test_create_update_and_idempotent_replay(api):
@@ -92,7 +127,14 @@ def test_head_change_after_write_replaced_with_safe_stale_advisory(api):
     assert B in server.comments[0]["body"]
 
 
-@pytest.mark.parametrize("user", [{"login": "attacker", "type": "User"}, {"login": "github-actions[bot]", "type": "User"}, {"login": "other[bot]", "type": "Bot"}])
+@pytest.mark.parametrize(
+    "user",
+    [
+        {"login": "attacker", "type": "User"},
+        {"login": "github-actions[bot]", "type": "User"},
+        {"login": "other[bot]", "type": "Bot"},
+    ],
+)
 def test_spoofed_marker_is_not_updated(api, user):
     server, publisher = api
     server.comments = [{"id": 1, "body": _marker("demo") + "\nspoof", "user": user}]
@@ -120,7 +162,9 @@ def test_paginated_comment_lookup(api):
     server, publisher = api
     publish(publisher)
     existing = server.comments.copy()
-    server.pages = lambda page: ([{"id": n, "body": "unrelated"} for n in range(100)] if page == 1 else existing)
+    server.pages = lambda page: (
+        [{"id": n, "body": "unrelated"} for n in range(100)] if page == 1 else existing
+    )
     assert publish(publisher).status == "unchanged"
 
 
@@ -142,7 +186,18 @@ def test_errors_are_bounded_and_redacted(api, status):
     assert not server.writes
 
 
-@pytest.mark.parametrize("kwargs", [{"repository": "owner/repo/../other"}, {"pull_number": True}, {"pull_number": 0}, {"tested_head": "abc123"}, {"tested_head": "A" * 40}, {"report": "x" * 55_001}, {"project": ""}])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"repository": "owner/repo/../other"},
+        {"pull_number": True},
+        {"pull_number": 0},
+        {"tested_head": "abc123"},
+        {"tested_head": "A" * 40},
+        {"report": "x" * 55_001},
+        {"project": ""},
+    ],
+)
 def test_invalid_inputs_fail_before_write(api, kwargs):
     server, publisher = api
     with pytest.raises(PublicationError):
@@ -159,20 +214,34 @@ def test_closed_pr_is_not_written(api):
 
 
 def test_empty_analysis_and_metadata_injection_are_safe():
-    run = SimpleNamespace(commit_sha="`\n@team <script>", base_sha=A, external_id="`\n<!-- forged -->", attempt=1, completeness="complete", received_inputs=1, expected_inputs=1)
+    run = SimpleNamespace(
+        commit_sha="`\n@team <script>",
+        base_sha=A,
+        external_id="`\n<!-- forged -->",
+        attempt=1,
+        completeness="complete",
+        received_inputs=1,
+        expected_inputs=1,
+    )
     body = render_markdown(run, [])
     assert "HOLD_FOR_REVIEW" in body
-    assert "@team" not in body and "<script>" not in body and "<!-- forged -->" not in body
+    assert (
+        "@team" not in body and "<script>" not in body and "<!-- forged -->" not in body
+    )
 
 
 def test_lost_write_ack_is_reconciled_without_duplicate(api):
     server, first = api
+
     def handler(request):
         response = server.handle(request)
         if request.method == "POST":
             raise httpx.ReadTimeout("simulated lost acknowledgement", request=request)
         return response
-    uncertain = GitHubPublisher("fake-test-token", transport=httpx.MockTransport(handler))
+
+    uncertain = GitHubPublisher(
+        "fake-test-token", transport=httpx.MockTransport(handler)
+    )
     try:
         with pytest.raises(PublicationError, match="reconcile"):
             publish(uncertain)
@@ -191,16 +260,20 @@ def test_invalid_bot_identity_rejected():
 
 def test_actual_receipt_must_match_configured_bot(api):
     server, _ = api
+
     def handler(request):
         result = server.handle(request)
-        if request.method == 'POST':
+        if request.method == "POST":
             payload = result.json()
-            payload['user'] = {'login': 'human-user', 'type': 'User'}
+            payload["user"] = {"login": "human-user", "type": "User"}
             return httpx.Response(200, json=payload)
         return result
-    publisher = GitHubPublisher('fake-test-token', transport=httpx.MockTransport(handler))
+
+    publisher = GitHubPublisher(
+        "fake-test-token", transport=httpx.MockTransport(handler)
+    )
     try:
-        with pytest.raises(PublicationError, match='unexpected author'):
+        with pytest.raises(PublicationError, match="unexpected author"):
             publish(publisher)
         assert len(server.writes) == 1
     finally:
@@ -210,13 +283,62 @@ def test_actual_receipt_must_match_configured_bot(api):
 def test_response_size_is_enforced_while_streaming():
     class LargeBody(httpx.SyncByteStream):
         def __iter__(self):
-            yield b'x' * 4_000_001
-            yield b'x' * 4_000_001
-            raise AssertionError('must stop reading after the bounded limit')
-    publisher = GitHubPublisher('fake-test-token', transport=httpx.MockTransport(
-        lambda _: httpx.Response(200, stream=LargeBody())))
+            yield b"x" * 4_000_001
+            yield b"x" * 4_000_001
+            raise AssertionError("must stop reading after the bounded limit")
+
+    publisher = GitHubPublisher(
+        "fake-test-token",
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(200, stream=LargeBody())
+        ),
+    )
     try:
-        with pytest.raises(PublicationError, match='bounded lookup'):
+        with pytest.raises(PublicationError, match="bounded lookup"):
             publish(publisher)
+    finally:
+        publisher.close()
+
+
+@pytest.mark.parametrize(
+    "repository",
+    [
+        "../private",
+        "./private",
+        "owner/..",
+        "owner/.",
+        "owner/%2e%2e",
+        "owner/repo/../other",
+        None,
+    ],
+)
+def test_repository_scope_is_rejected_before_any_transport(repository):
+    def forbidden(request):
+        pytest.fail("malformed repository reached GitHub transport")
+
+    publisher = GitHubPublisher(
+        "fake-test-token", transport=httpx.MockTransport(forbidden)
+    )
+    try:
+        with pytest.raises(PublicationError, match="invalid repository"):
+            publish(publisher, repository=repository)
+    finally:
+        publisher.close()
+
+
+def test_repository_dot_names_are_not_misidentified_as_traversal():
+    seen = []
+
+    def respond(request):
+        seen.append(str(request.url))
+        return httpx.Response(403)
+
+    publisher = GitHubPublisher(
+        "fake-test-token", transport=httpx.MockTransport(respond)
+    )
+    try:
+        with pytest.raises(PublicationError, match="HTTP 403"):
+            publish(publisher, repository="valid-owner/.github")
+        assert seen == ["https://api.github.com/repos/valid-owner/.github/pulls/7"]
     finally:
         publisher.close()

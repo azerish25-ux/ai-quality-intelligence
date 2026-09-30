@@ -15,12 +15,12 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.1.1",
     "typescript": "5.9.3",
     "vite": "8.3.1",
-    "vitest": "4.0.18",
-    "@playwright/test": "1.63.0"
+    "vitest": "4.1.11"
   }
 }

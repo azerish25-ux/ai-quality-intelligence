@@ -9,7 +9,7 @@ services:
       FAILURELENS_TELEMETRY_EXPORT_ENABLED: "true"
       FAILURELENS_TELEMETRY_ENDPOINT: http://otel-collector:4318/v1/traces
   otel-collector:
-    image: jaegertracing/jaeger:2.21.0
+    image: jaegertracing/jaeger:2.21.0@sha256:3d0ac795ff98aa04d1be04311d2dac6c25b4bfc8322dc02e53bc5b170c5018c3
     profiles: [telemetry]
     command: ["--config", "/etc/jaeger/local.yaml"]
     user: "10001:10001"
@@ -22,7 +22,7 @@ services:
       - ./integrations/telemetry/jaeger.yaml:/etc/jaeger/local.yaml:ro
     networks: [failurelens]
   telemetry-viewer:
-    image: nginxinc/nginx-unprivileged:1.27-alpine
+    image: nginxinc/nginx-unprivileged:1.27-alpine@sha256:65e3e85dbaed8ba248841d9d58a899b6197106c23cb0ff1a132b7bfe0547e4c0
     profiles: [telemetry]
     ports: ["127.0.0.1:16686:8080"]
     depends_on: [otel-collector]

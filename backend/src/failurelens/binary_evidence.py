@@ -16,7 +16,7 @@ from .binary_schemas import (BinaryDecisionCreate, BinaryDecisionRead, BinaryEvi
 from .config import Settings, get_settings
 from .image_codec import ImageCodecError, decode_image
 from . import models as m
-from .redaction import REDACTION_VERSION, redact_text
+from .redaction import REDACTION_VERSION, redact_text, redaction_provenance
 from .retention import lock_project
 from .schemas import ArtifactDerivativeSummary
 from .storage import StorageError, read_stored_bytes, store_derivative_bytes
@@ -122,12 +122,13 @@ def register_binary_inputs(session: Session, project: m.Project, run: m.Run,
                                 "evidence_derivative_id": derivative.id, "evidence_digest": derivative.digest})
         index = {"schema_version": "failurelens-safe-trace-2.0", "input_id": item.id,
                  "source_digest": item.digest, "summary": {k: v for k, v in item.metadata_json.items() if k != "events"},
-                 "events": safe_events}
+                 "events": safe_events, "redaction": redaction_provenance(project.id)}
         content = (json.dumps(index, sort_keys=True, ensure_ascii=False) + "\n").encode()
         derivative = _store_derivative(session, state, content, kind="safe-trace-index-v2",
             media_type="application/json", source_map={"version": "trace-source-map-v2", "input_id": item.id,
                 "source_digest": item.digest, "events": "each /events/N/source_locator"},
-            metadata={"index_version": "playwright-safe-index-v2", "indexed_events": len(safe_events)},
+            metadata={"index_version": "playwright-safe-index-v2", "indexed_events": len(safe_events),
+                      "redaction": redaction_provenance(project.id)},
             settings=settings, approval="auto_approved_text")
         state.current_derivative_id, state.state = derivative.id, "safe_index_available"
         # Avoid a second, ungoverned copy of the evidence in the run-input metadata API.

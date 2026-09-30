@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   producer-fixtures:
+    name: Producer fixtures
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -24,6 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          persist-credentials: false
           fetch-depth: 2
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -56,12 +58,13 @@ jobs:
           include-hidden-files: true
 
   backend:
+    name: Backend
     needs: producer-fixtures
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
         env:
           POSTGRES_DB: failurelens_test
           POSTGRES_USER: failurelens
@@ -80,6 +83,8 @@ jobs:
       FAILURELENS_DEMO_MODE: "true"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
@@ -98,10 +103,13 @@ jobs:
         run: pytest --cov=failurelens --cov-branch --cov-report=term-missing --cov-fail-under=75
 
   evaluation:
+    name: Evaluation
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
@@ -126,7 +134,7 @@ jobs:
     timeout-minutes: 15
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
         env:
           POSTGRES_DB: failurelens_evaluation
           POSTGRES_USER: failurelens
@@ -192,10 +200,13 @@ jobs:
           retention-days: 30
 
   frontend:
+    name: Frontend
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
@@ -228,7 +239,7 @@ jobs:
             browser: chromium
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
         env:
           POSTGRES_DB: failurelens_browser
           POSTGRES_USER: failurelens
@@ -249,6 +260,8 @@ jobs:
       FAILURELENS_DEMO_MODE: "true"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
@@ -256,11 +269,13 @@ jobs:
         with:
           node-version: "22"
       - name: Install application and browser dependencies
+        env:
+          BROWSER: ${{ matrix.browser }}
         run: |
           python -m pip install './backend[dev]'
           cd frontend
           npm ci --no-audit --no-fund
-          npx playwright install --with-deps "${{ matrix.browser }}"
+          npx playwright install --with-deps "$BROWSER"
       - name: Download exact-revision executed producer fixtures
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -293,7 +308,9 @@ jobs:
           exit 1
       - name: Cross-browser accessibility and API-backed journeys
         working-directory: frontend
-        run: npm run test:e2e -- --project="${{ matrix.project }}"
+        env:
+          PLAYWRIGHT_PROJECT: ${{ matrix.project }}
+        run: npm run test:e2e -- --project="$PLAYWRIGHT_PROJECT"
       - name: Upload browser diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -309,10 +326,13 @@ jobs:
           retention-days: 7
 
   docker-config:
+    name: Docker config
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Validate Compose model
         run: docker compose config --quiet
       - name: Build application images

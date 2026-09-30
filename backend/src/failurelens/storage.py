@@ -39,12 +39,16 @@ def safe_filename(name: str) -> str:
 
 
 def _resolve_under(root: Path, relative_path: str) -> Path:
+    if ".redaction" in PurePosixPath(relative_path).parts:
+        raise StorageError("reserved_storage_path", "Private operational state is not evidence storage")
     root_resolved = root.resolve()
     candidate = (root_resolved / relative_path).resolve()
     try:
-        candidate.relative_to(root_resolved)
+        relative = candidate.relative_to(root_resolved)
     except ValueError as exc:
         raise StorageError("unsafe_storage_path", "Stored artifact path escapes the configured root") from exc
+    if ".redaction" in relative.parts:
+        raise StorageError("reserved_storage_path", "Private operational state is not evidence storage")
     return candidate
 
 

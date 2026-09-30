@@ -511,3 +511,72 @@ out (504) as well as refuse (502); the probe now verifies those two genuine upst
 errors with bounded connect/request timeouts, never accepting success. Canary
 exclusion remains mandatory and the original failed job `109807337030` is retained.
 Fresh actual Docker execution is still required for this correction.
+
+
+### Verified gateway repair and retained performance variance
+
+At source `9414d91`, [all ten ordinary CI jobs passed](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36691730960),
+including **1,192 PostgreSQL tests, zero skips**, four browser lanes and the actual
+Docker success/upstream-error privacy canaries, non-root/offline and backup restore
+checks. The earlier `1f7fe67` Docker inheritance failure remains visible. Dedicated
+local-collector and seven-pair strict mutation workflows passed on `9414d91` too.
+The original mutation report at `1f7fe67` is retained with its verified artifact hash.
+
+The overview repair's actual `1f7fe67` load measurement **failed at 601.29 ms p95**
+on AMD EPYC 7763, zero request failures. The subsequent gateway-only correction
+`9414d91` **passed at 389.46 ms p95** on Intel Xeon 6973P-C, also zero failures.
+Both checksum-verified original metrics/request files are retained. The unchanged
+50,000-execution/concurrency-ten target, all-passing fixture, shared-runner limits
+and lack of whole-stack memory measurement remain explicit. This is still not
+stable or reference-hardware performance acceptance.
+
+### Project-keyed privacy and read-only Action integration
+
+Implemented project-domain HMAC-SHA256-128 pseudonyms for declared sensitive
+correlation fields, a private persistent offline key lifecycle, server-pinned key
+references for queued work, rotation/retirement behavior and key-free verification
+of immutable older citations. New validation-v4 checks public v3 provenance against
+digest-bound bytes. Strict typed UUID/integrity contracts remain untransformed;
+this is not universal anonymization or encrypted-original storage. The affected
+local run passed **441 tests, zero skips**, with **47 new privacy/lifecycle cases**.
+Review found and fixed malformed-token passthrough and an unbounded key lock;
+real subprocess regressions exercise lock timeout and fail-closed interrupted
+publication. Full combined clean-source and actual PostgreSQL/Docker acceptance
+are still pending for these edits. See `project-redaction.md`.
+
+The reusable read-only GitHub Action now emits sanitized JSON/Markdown, digest,
+completeness and fixed-field failure status. A real two-shard consuming workflow
+preserves explicitly missing required shards and uses disposable PostgreSQL.
+Snapshot input/counter projections are bounded without changing outcome denominators.
+The publisher rejects repository traversal before transport. **106 affected tests**,
+Action shell/YAML, scoped Ruff and offline workflow security checks passed locally;
+actual hosted Action execution remains pending. No write token, live comment,
+companion-repository modification or trusted-publisher activation was used.
+
+### Honest static/security gates and dependency maintenance
+
+Added a separately resolved and hash-exported quality-tool graph and bounded,
+source-free gate reports for full tracked Python lint/format, backend typing, lock
+consistency, dependency advisories, secret candidates and workflow security. Initial
+dirty-source scans expose hundreds of lint/format/secret candidates and roughly
+180 type findings; these are failed gates, not clean baselines or confirmed leaks.
+No blanket ignores or threshold waivers were added. Binary/archive/history secret
+coverage is explicitly not certified. The npm metadata audit's current invocation
+requires authorization and stays not run by default; it is not silently routed
+through CI. Details and reproducible opt-in behavior are in `quality-security.md`.
+
+Removed an obsolete one-shot transfer workflow containing an expired signed URL;
+its history and the candidate finding remain. Disabled retained checkout credentials,
+removed direct matrix interpolation into shell, pinned PostgreSQL/build/collector
+images to verified vendor OCI digests, and added missing workflow job names and
+source-export concurrency. The strict offline workflow auditor now reports **zero
+findings** on the current edited tree, without suppressions; hosted gates await
+publication. These checks are not container vulnerability scans.
+
+Upgraded pinned Vitest within major four from 4.0.18 to **4.1.11**, addressing the
+published UI/API and mocker path-traversal advisories. Local frontend verification
+passed **48 tests**, TypeScript and Vite production build. An earlier independent
+npm audit after the upgrade returned zero vulnerabilities; that does not mark the
+separately denied quality-gate invocation as passed. Build metadata now lives under
+node_modules/.cache, preserving the source-cleanliness contract instead of adding
+an ignore exemption.

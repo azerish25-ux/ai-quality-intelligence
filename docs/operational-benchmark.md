@@ -54,3 +54,11 @@ The new diagnostics reveal different CPU models (Intel Xeon 6973P-C versus AMD
 EPYC 7763) and higher server-stage durations on the latter. This is an observed
 environment difference, not a hardware-normalized result or proof of sole cause.
 Both results have zero request failures; stable target compliance is still open.
+
+The overview-query consolidation source `1f7fe67`
+[failed at 601.29 ms](../evaluation/reports/operational-1f7fe67-failed/README.md)
+on AMD EPYC 7763. The gateway-only correction `9414d91`
+[passed at 389.46 ms](../evaluation/reports/operational-9414d91-passed/README.md)
+on Intel Xeon 6973P-C. Both have zero request failures and preserve the exact
+workload/target. Every measurement remains; no single passing run establishes
+stable target compliance or fixes the previously identified history-route tail.

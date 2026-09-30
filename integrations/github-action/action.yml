@@ -37,11 +37,47 @@ inputs:
     description: Provenance of changed-file metadata; keep self_reported for untrusted PR artifacts
     required: false
     default: self_reported
+  attempt:
+    description: Trusted workflow run attempt
+    required: false
+    default: "1"
+  expected-inputs:
+    description: Expected required artifacts; a manifest must still declare each expected shard
+    required: false
+    default: ""
+  shard-count:
+    description: Trusted number of planned test shards
+    required: false
+    default: ""
   database-url:
     description: SQLAlchemy database URL; PostgreSQL is recommended
     required: false
     default: sqlite+pysqlite:///./failurelens-action.db
 outputs:
+  report-json-path:
+    description: Sanitized versioned JSON report path, empty on processing failure
+    value: ${{ steps.failurelens.outputs.report-json-path }}
+  status-path:
+    description: Fixed-field processing status JSON path, also emitted on processing failure
+    value: ${{ steps.failurelens.outputs.status-path }}
+  status:
+    description: reported or failed; not a release decision
+    value: ${{ steps.failurelens.outputs.status }}
+  ingestion-state:
+    description: Durable ingestion state
+    value: ${{ steps.failurelens.outputs.ingestion-state }}
+  run-status:
+    description: Persisted run processing state
+    value: ${{ steps.failurelens.outputs.run-status }}
+  completeness:
+    description: complete, partial, unknown or evidence_expired
+    value: ${{ steps.failurelens.outputs.completeness }}
+  advisory-status:
+    description: HOLD_FOR_REVIEW or NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE
+    value: ${{ steps.failurelens.outputs.advisory-status }}
+  report-digest:
+    description: SHA-256 of the canonical unsigned JSON projection
+    value: ${{ steps.failurelens.outputs.report-digest }}
   report-path:
     description: Sanitized Markdown report path
     value: ${{ steps.failurelens.outputs.report-path }}
@@ -56,11 +92,20 @@ runs:
   steps:
     - name: Install FailureLens
       shell: bash
-      run: python -m pip install "${GITHUB_ACTION_PATH}/../../backend"
+      run: |
+        set -euo pipefail
+        build_root=$(mktemp -d "${RUNNER_TEMP:-/tmp}/failurelens-action-build.XXXXXXXX")
+        trap 'rm -rf -- "$build_root"' EXIT
+        cp -R "${GITHUB_ACTION_PATH}/../../backend" "$build_root/backend"
+        python -m pip install --require-hashes -r "$build_root/backend/requirements.lock"
+        python -m pip install --no-deps --no-build-isolation "$build_root/backend"
     - name: Ingest, analyze, and report
       id: failurelens
       shell: bash
       env:
+        FAILURELENS_ATTEMPT: ${{ inputs.attempt }}
+        FAILURELENS_EXPECTED_INPUTS: ${{ inputs.expected-inputs }}
+        FAILURELENS_SHARD_COUNT: ${{ inputs.shard-count }}
         FAILURELENS_DATABASE_URL: ${{ inputs.database-url }}
         FAILURELENS_REPORT: ${{ inputs.report }}
         FAILURELENS_PROJECT: ${{ inputs.project }}
@@ -71,4 +116,4 @@ runs:
         FAILURELENS_BRANCH: ${{ inputs.branch }}
         FAILURELENS_RUN_SCOPE: ${{ inputs.run-scope }}
         FAILURELENS_COMPARISON_TRUST: ${{ inputs.comparison-trust }}
-      run: "${GITHUB_ACTION_PATH}/run.sh"
+      run: bash "${GITHUB_ACTION_PATH}/run.sh"

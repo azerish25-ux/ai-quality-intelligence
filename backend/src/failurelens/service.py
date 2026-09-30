@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import replace
+from functools import wraps
 import math
 import re
 from collections.abc import Sequence
@@ -57,7 +58,10 @@ from .performance import (
     infer_metric_direction,
     register_performance_observation,
 )
-from .redaction import REDACTION_VERSION, redact_sensitive_field, redact_text
+from .redaction import (REDACTION_VERSION, RedactionContext, analytic_scalar,
+                        current_redaction_context, redact_sensitive_field, redact_text,
+                        redaction_provenance, redaction_scope, valid_project_provenance)
+from .redaction_keys import RedactionKeyError, load_key
 from .telemetry import instrument, trace_context
 from .schemas import AnalysisResult, Confidence, IngestionRequest, ReviewCreate, RunMetadata
 from .storage import (
@@ -67,9 +71,46 @@ from .storage import (
 )
 
 INGEST_JOB_KIND = "ingest_and_analyze_v1"
-ARTIFACT_POLICY_VERSION = "artifact-policy-v1"
+ARTIFACT_POLICY_VERSION = "artifact-policy-v2"
 MAX_PERSISTED_PERFORMANCE_OBSERVATIONS = 20_000
 MAX_PERFORMANCE_VALUES_PER_METRIC = 32
+
+
+def _new_redaction_context(session: Session, project_id: str, settings: Settings,
+                           *, key_reference: str | None = None) -> RedactionContext:
+    try:
+        key = load_key(settings, expected_reference=key_reference)
+    except RedactionKeyError as exc:
+        if exc.code != "redaction_key_missing" or key_reference is not None:
+            raise
+        # A DB-only restore or loss of the entire key directory must not silently
+        # initialize a new correlation epoch. Version columns survive retention.
+        prior = any(session.scalar(query.limit(1)) is not None for query in (
+            select(Artifact.id).where(Artifact.redaction_version == REDACTION_VERSION),
+            select(ArtifactDerivative.id).where(ArtifactDerivative.redaction_version == REDACTION_VERSION),
+            select(Ingestion.id).where(Ingestion.policy_version == ARTIFACT_POLICY_VERSION,
+                                      Ingestion.source_metadata["redaction_policy"]["version"].as_string()
+                                      == REDACTION_VERSION),
+        ))
+        if prior:
+            raise RedactionKeyError("redaction_key_missing_restore_required") from None
+        key = load_key(settings, allow_local_create=True)
+    return RedactionContext.from_key(project_id, key)
+
+
+def _scoped_parsed_ingestion(function):
+    @wraps(function)
+    def scoped(session, project, *args, **kwargs):
+        settings = kwargs.get("settings") or get_settings()
+        context = current_redaction_context()
+        if context is not None:
+            if context.project_id != project.id:
+                raise RedactionKeyError("redaction_project_context_mismatch")
+            return function(session, project, *args, **kwargs)
+        context = _new_redaction_context(session, project.id, settings)
+        with redaction_scope(context):
+            return function(session, project, *args, **kwargs)
+    return scoped
 
 
 def _performance_statistic(value: str) -> str:
@@ -437,6 +478,9 @@ def _sanitize_evidence_value_inner(
                 classes.add("truncated")
                 break
             safe_key = redact_text(str(key)[:512]).text
+            if analytic_scalar(safe_key, item):
+                safe[safe_key] = item
+                continue
             sensitive = redact_sensitive_field(safe_key, item)
             if sensitive is not None:
                 safe[safe_key] = sensitive.text
@@ -505,10 +549,7 @@ def _get_or_create_text_derivative(
         "excerpt": excerpt,
         "observation": observation,
         "source_locator": source_locator,
-        "redaction": {
-            "version": REDACTION_VERSION,
-            "classes": sorted(redaction_classes),
-        },
+        "redaction": {**redaction_provenance(project.id), "classes": sorted(redaction_classes)},
     }
     content = _canonical_json_bytes(payload)
     digest = hashlib.sha256(content).hexdigest()
@@ -554,6 +595,7 @@ def _get_or_create_text_derivative(
         metadata_json={
             "schema_version": payload["schema_version"],
             "redaction_classes": sorted(redaction_classes),
+            "redaction": payload["redaction"],
         },
     )
     session.add(derivative)
@@ -626,6 +668,7 @@ def _bind_changed_file_trust(
 
 
 @instrument("ingestion")
+@_scoped_parsed_ingestion
 def ingest_parsed_report(
     session: Session,
     project: Project,
@@ -646,9 +689,11 @@ def ingest_parsed_report(
     parsed_completeness: str | None = None,
     manifest_version: str = "standalone",
     restricted: bool = True,
+    settings: Settings | None = None,
 ) -> Run:
     from .retention import lock_project
     lock_project(session, project.id)
+    settings = settings or get_settings()
     input_records = _bind_changed_file_trust(
         input_records, effective_trust=metadata.comparison_trust
     )
@@ -704,6 +749,7 @@ def ingest_parsed_report(
         cluster_project_failures(session, project.id)
         return existing
 
+    safe_source_metadata, _ = _sanitize_evidence_value(metadata.source_metadata, max_text=settings.analysis_text_budget)
     input_summary = [
         {
             "id": item.input_id,
@@ -739,7 +785,7 @@ def ingest_parsed_report(
         manifest_digest=digest,
         started_at=datetime.now(UTC),
         source_metadata={
-            **metadata.source_metadata,
+            **safe_source_metadata,
             "source_format": source_format,
             "parser_version": parser_version,
             "run_scope": metadata.run_scope,
@@ -753,6 +799,7 @@ def ingest_parsed_report(
             "manifest_version": manifest_version,
             "observation_count": len(observations),
             "input_summary": input_summary,
+            "redaction_policy": redaction_provenance(project.id),
         },
     )
     session.add(run)
@@ -774,6 +821,7 @@ def ingest_parsed_report(
             "manifest_version": manifest_version,
             "warnings": list(parser_warnings),
             "inputs": input_summary,
+            "redaction_policy": redaction_provenance(project.id),
         },
     )
     session.add(artifact)
@@ -794,7 +842,7 @@ def ingest_parsed_report(
             media_type=item.media_type,
             parser_version=item.parser_version,
             warnings=list(item.warnings),
-            metadata_json=item.metadata,
+            metadata_json={**item.metadata, "redaction_policy": redaction_provenance(project.id)},
         )
         session.add(run_input)
         run_inputs_by_input_id[item.input_id] = run_input
@@ -809,7 +857,6 @@ def ingest_parsed_report(
                 list(item.warnings),
             )
 
-    settings = get_settings()
     for observation_index, observation in enumerate(observations):
         try:
             outcome = Outcome(observation.outcome)
@@ -971,6 +1018,9 @@ def ingest_parsed_report(
     from .binary_evidence import register_binary_inputs
     register_binary_inputs(session, project, run, artifact, settings)
 
+    for run_input in run_inputs_by_input_id.values():
+        run_input.metadata_json = {**run_input.metadata_json, "redaction_policy": redaction_provenance(project.id)}
+    run.source_metadata = {**run.source_metadata, "redaction_policy": redaction_provenance(project.id)}
     run.status = RunStatus.complete if completeness == "complete" else RunStatus.partial
     run.ended_at = datetime.now(UTC)
     try:
@@ -1147,6 +1197,9 @@ def enqueue_artifact_ingestion(
         return existing
 
     settings = settings or get_settings()
+    context = _new_redaction_context(session, project.id, settings)
+    with redaction_scope(context):
+        safe_source_metadata, _ = _sanitize_evidence_value(metadata.source_metadata, max_text=settings.analysis_text_budget)
     ingestion = Ingestion(
         project_id=project.id,
         external_id=metadata.external_id,
@@ -1157,7 +1210,8 @@ def enqueue_artifact_ingestion(
         branch=metadata.branch,
         source_format=source_format,
         source_metadata={
-            **metadata.source_metadata,
+            **safe_source_metadata,
+            "redaction_policy": context.provenance(),
             "declared_expected_inputs": metadata.expected_inputs,
             "run_scope": metadata.run_scope,
             "comparison_trust": metadata.comparison_trust,
@@ -1276,6 +1330,26 @@ def cancel_ingestion(session: Session, ingestion: Ingestion) -> Ingestion:
 
 @instrument("ingestion")
 def process_artifact_ingestion(
+    session: Session, ingestion: Ingestion, *, settings: Settings | None = None,
+    heartbeat: Any | None = None,
+) -> Run:
+    settings = settings or get_settings()
+    pin = (ingestion.source_metadata.get("redaction_policy")
+           if ingestion.policy_version == ARTIFACT_POLICY_VERSION else None)
+    if ingestion.policy_version == ARTIFACT_POLICY_VERSION and not valid_project_provenance(pin, ingestion.project_id):
+        raise RedactionKeyError("redaction_ingestion_pin_invalid")
+    context = _new_redaction_context(session, ingestion.project_id, settings,
+                                    key_reference=pin["key_ref"] if pin else None)
+    if pin is None:
+        # Server migration of a queued legacy record; do not trust artifact fields.
+        ingestion.source_metadata = {**ingestion.source_metadata, "redaction_policy": context.provenance()}
+        ingestion.policy_version = ARTIFACT_POLICY_VERSION
+        session.commit()
+    with redaction_scope(context):
+        return _process_artifact_ingestion(session, ingestion, settings=settings, heartbeat=heartbeat)
+
+
+def _process_artifact_ingestion(
     session: Session,
     ingestion: Ingestion,
     *,
@@ -1361,6 +1435,7 @@ def process_artifact_ingestion(
         parsed_completeness=parsed.completeness,
         manifest_version=parsed.manifest_version,
         restricted=True,
+        settings=settings,
     )
     failures = list(session.scalars(select(Failure).where(Failure.run_id == run.id)).all())
     for failure in failures:

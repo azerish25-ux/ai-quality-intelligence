@@ -1,0 +1,143 @@
+name: Loose Thread quality and security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      npm_audit:
+        description: 'Approve sending dependency names/versions, possible full lock tree and runtime metadata to registry.npmjs.org for one audit (see docs/quality-security.md)'
+        type: boolean
+        default: false
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Quality gate (${{ matrix.check }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [locks, lint, format, types, python-audit, secrets, workflows]
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PIP_CACHE_DIR: ${{ runner.temp }}/quality-pip-cache
+      UV_CACHE_DIR: ${{ runner.temp }}/quality-uv-cache
+      XDG_CACHE_HOME: ${{ runner.temp }}/quality-cache
+      NPM_CONFIG_CACHE: ${{ runner.temp }}/quality-npm-cache
+    steps:
+      - name: Check out exact source without retained credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Install isolated hash-locked quality tools
+        shell: bash
+        run: |
+          python -m venv "$RUNNER_TEMP/quality-tools"
+          "$RUNNER_TEMP/quality-tools/bin/python" -m pip install --require-hashes -r tools/quality/requirements.lock
+      - name: Install separate hash-locked application typing environment
+        if: matrix.check == 'types'
+        shell: bash
+        run: |
+          python -m venv "$RUNNER_TEMP/quality-app"
+          "$RUNNER_TEMP/quality-app/bin/python" -m pip install --require-hashes -r backend/requirements.lock
+      - name: Execute gate and preserve actual failure
+        shell: bash
+        env:
+          QUALITY_CHECK: ${{ matrix.check }}
+        run: |
+          "$RUNNER_TEMP/quality-tools/bin/python" scripts/quality_checks.py "$QUALITY_CHECK" \
+            --app-python "$RUNNER_TEMP/quality-app/bin/python" \
+            --output "$RUNNER_TEMP/quality-reports/$QUALITY_CHECK.json"
+      - name: State omitted npm audit explicitly
+        if: always() && matrix.check == 'locks' && !(github.event_name == 'workflow_dispatch' && inputs.npm_audit)
+        shell: bash
+        run: |
+          echo 'npm dependency audit: NOT RUN. Registry metadata transmission requires approval; a skipped audit is not a pass.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve bounded source-free result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: quality-${{ matrix.check }}-${{ github.sha }}
+          path: ${{ runner.temp }}/quality-reports/${{ matrix.check }}.json
+          if-no-files-found: error
+          retention-days: 14
+
+  npm-audit:
+    name: npm audit (manual approval required; otherwise not run)
+    if: github.event_name == 'workflow_dispatch' && inputs.npm_audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PIP_CACHE_DIR: ${{ runner.temp }}/quality-pip-cache
+      XDG_CACHE_HOME: ${{ runner.temp }}/quality-cache
+      NPM_CONFIG_CACHE: ${{ runner.temp }}/quality-npm-cache
+    steps:
+      - name: Check out exact source without retained credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Install pinned Node and bundled npm
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24.19.0"
+      - name: Install isolated hash-locked quality tools
+        shell: bash
+        run: |
+          python -m venv "$RUNNER_TEMP/quality-tools"
+          "$RUNNER_TEMP/quality-tools/bin/python" -m pip install --require-hashes -r tools/quality/requirements.lock
+      - name: Execute explicitly approved npm registry audit
+        shell: bash
+        run: |
+          "$RUNNER_TEMP/quality-tools/bin/python" scripts/quality_checks.py npm-audit \
+            --allow-npm-registry-audit --output "$RUNNER_TEMP/quality-reports/npm-audit.json"
+      - name: Preserve bounded source-free result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: quality-npm-audit-${{ github.sha }}
+          path: ${{ runner.temp }}/quality-reports/npm-audit.json
+          if-no-files-found: error
+          retention-days: 14
+
+
+  acceptance:
+    name: Complete quality and security acceptance
+    needs: [checks, npm-audit]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require every gate including an actually executed dependency audit
+        shell: bash
+        env:
+          INDEPENDENT_CHECKS_RESULT: ${{ needs.checks.result }}
+          NPM_AUDIT_RESULT: ${{ needs.npm-audit.result }}
+        run: |
+          if [ "$NPM_AUDIT_RESULT" != success ]; then
+            echo 'Security acceptance BLOCKED: npm audit did not pass, including NOT RUN pending authorization.' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          if [ "$INDEPENDENT_CHECKS_RESULT" != success ]; then
+            echo 'Quality acceptance FAILED: one or more independent gates did not pass.' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo 'All exact-source quality/security gates passed.' >> "$GITHUB_STEP_SUMMARY"
