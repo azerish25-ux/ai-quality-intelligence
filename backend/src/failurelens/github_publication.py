@@ -13,6 +13,7 @@ import json
 import re
 
 import httpx
+from .telemetry import instrument
 
 
 class PublicationError(RuntimeError):
@@ -114,6 +115,7 @@ class GitHubPublisher:
                       "This advisory does not approve a release or suppress failures.\n")
         return marker + "\n" + metadata + "\n" + report
 
+    @instrument("publication")
     def publish(self, *, repository: str, pull_number: int, project: str,
                 tested_head: str, report: str) -> PublicationResult:
         if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):

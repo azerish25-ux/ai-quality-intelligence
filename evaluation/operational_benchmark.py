@@ -79,6 +79,40 @@ def measure(base, routes, *, concurrency, samples):
         return list(pool.map(one, range(samples)))
 
 
+def hardware_details():
+    """Read only bounded non-identifying CPU/cgroup resource metadata."""
+    result = {}
+    for name, path in [('cpu_quota', '/sys/fs/cgroup/cpu.max'),
+                       ('memory_limit', '/sys/fs/cgroup/memory.max')]:
+        try:
+            with Path(path).open() as handle:
+                result[name] = handle.read(100).strip()
+        except OSError:
+            result[name] = None
+    try:
+        with Path('/proc/cpuinfo').open() as handle:
+            lines = handle.read(65536).splitlines()
+        result['cpu_model'] = next((line.split(':', 1)[1].strip()[:160]
+            for line in lines if line.startswith('model name')), None)
+    except OSError:
+        result['cpu_model'] = None
+    result['load_average'] = list(os.getloadavg()) if hasattr(os, 'getloadavg') else None
+    return result
+
+
+def read_stage_metrics(base):
+    """A diagnostic failure must not discard already completed load measurements."""
+    try:
+        response = httpx.get(base + '/api/v1/operations/telemetry', timeout=5, trust_env=False)
+        response.raise_for_status()
+        metrics = response.json()
+        if not isinstance(metrics, dict) or metrics.get('schema_version') != 'bounded-telemetry-v1':
+            raise ValueError('unexpected telemetry schema')
+        return {'status': 'available', 'metrics': metrics}
+    except (httpx.HTTPError, ValueError):
+        return {'status': 'unavailable', 'metrics': None}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--confirm-disposable-database', action='store_true', required=True)
@@ -121,7 +155,10 @@ def main():
             if not ready:
                 raise RuntimeError('API readiness timed out')
             cold = measure(base, routes, concurrency=1, samples=4)
+            hardware_before = hardware_details()
             warm = measure(base, routes, concurrency=10, samples=200)
+            hardware_after = hardware_details()
+            stage_metrics = read_stage_metrics(base)
         finally:
             proc.terminate()
             try:
@@ -137,6 +174,8 @@ def main():
         'hardware': {'platform': platform.platform(), 'logical_cpus': os.cpu_count(),
                      'python': platform.python_version(), 'reference_hardware_normalized': False},
         'database_pool': {'size': settings.database_pool_size, 'max_overflow': settings.database_max_overflow},
+        'hardware_before': hardware_before, 'hardware_after': hardware_after,
+        'api_stage_metrics': stage_metrics,
         'seed_seconds': seed_seconds, 'cold_reads': cold, 'warm_p95_ms': p95,
         'warm_p50_ms': percentile(successful, .5) if successful else None,
         'failed_requests': failures, 'client_max_rss_kib': resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,

@@ -377,3 +377,31 @@ All ten ordinary CI jobs at the same `845f53d` source passed in
 PostgreSQL backend, actual producers, frontend, legacy evaluation, executed component
 integrity, all four browser lanes and the Docker non-root/offline/recovery gate.
 This scoped verification is not full-project or classifier-quality completion.
+
+### Bounded tracing and current load evidence
+
+The docs-only `78b45dd` source passed all ordinary CI but failed the read target at
+572.62 ms in workflow `36681988614`. Its checksum-verified artifact is retained.
+Runtime/workload match the earlier 312.37 ms pass; stable acceptance is unproven.
+CPU/quota/load and bounded server-stage diagnostics are added without relaxing gates.
+
+Manual OTel spans, durable traceparent propagation, redacted structured logging,
+admin-only process metrics and explicitly enabled bounded OTLP transport are
+implemented. A real loopback receiver caught environment-header inheritance in
+the stock exporter; the explicit transport prevents it. No external collector,
+paid model or live GitHub comment was used. See `telemetry.md` for scope and limits.
+
+Resumed review found missing telemetry lifecycle cleanup, missing unhandled-500
+accounting and a slow-header response able to exceed the nominal network timeout.
+Added shared shutdown/export deadlines, one in-flight transport limit, graceful
+worker SIGTERM, explicit span-specific limits and fixed-cardinality result counters.
+Focused loopback, durable-context and privacy regressions cover these discoveries.
+The earlier dirty-source full suite correctly failed its clean-source integrity
+gate (1 failed, 1,024 passed, four PostgreSQL-only skips); it was not waived.
+
+Added an explicit isolated local Jaeger collector/viewer profile and a real Docker
+CI check for PostgreSQL-backed ingestion, API/worker trace continuity, sensitive
+canary absence, viewer ingress, denied runtime Internet and collector outage.
+Local shell/YAML/topology checks pass; actual collector execution is pending CI.
+Performance diagnostics preserve completed load evidence even if the separate
+metrics endpoint is unavailable. Frozen evaluation labels and thresholds are unchanged.

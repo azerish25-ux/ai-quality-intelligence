@@ -39,3 +39,9 @@ The [fourth executed result](../evaluation/reports/operational-845f53d-passed/RE
 passes the declared read target at 312.37 ms p95 with zero failures. This fixture is
 explicitly all-passing history with no failure/analysis rows; it does not establish
 mixed failure-heavy read performance. All three original failures remain retained.
+
+A later docs-only source `78b45dd` **failed** at 572.62 ms with the exact same
+runtime/workload, so the earlier pass is not stable acceptance. Its original
+[failed evidence](../evaluation/reports/operational-78b45dd-failed/README.md) is
+retained. Subsequent measurements additionally capture bounded CPU model/quota/load
+metadata and process-local stage metrics, without changing samples or thresholds.

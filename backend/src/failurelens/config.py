@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+pysqlite:///./failurelens.db"
     database_pool_size: int = Field(default=10, ge=1, le=50)
     database_max_overflow: int = Field(default=10, ge=0, le=50)
+    telemetry_export_enabled: bool = False
+    telemetry_endpoint: str | None = None
     artifact_root: Path = Path("./artifacts")
     demo_mode: bool = True
     session_cookie_name: str = "failurelens_session"

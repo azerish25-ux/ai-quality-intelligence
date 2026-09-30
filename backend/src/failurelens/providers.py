@@ -17,6 +17,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .redaction import redact_text
+from .telemetry import instrument
 
 Category = Literal["product_defect", "test_defect", "infrastructure_failure", "known_flake", "insufficient_evidence"]
 PROMPT_VERSION = "proposal-only-v1"
@@ -119,6 +120,7 @@ class HTTPModelProvider:
     def close(self):
         self.client.close()
 
+    @instrument("provider")
     def propose(self, *, deterministic_category: Category, evidence: list[dict],
                 budget: RunBudget, cancel: threading.Event | None = None) -> ProviderResult:
         cancel = cancel or threading.Event()

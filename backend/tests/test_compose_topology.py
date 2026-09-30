@@ -47,3 +47,41 @@ def test_application_images_keep_locked_dependencies_and_nonroot_gateway():
     smoke = (ROOT / 'scripts/compose_recovery_smoke.sh').read_text()
     assert 'for service in api worker dashboard' in smoke
     assert 'runs as root' in smoke
+
+
+def test_optional_telemetry_is_local_bounded_and_never_exposed_as_otlp_ingress():
+    base = yaml.safe_load((ROOT / 'compose.yaml').read_text())
+    overlay = yaml.safe_load((ROOT / 'compose.telemetry.yaml').read_text())
+    for service in ('api', 'worker'):
+        assert 'FAILURELENS_TELEMETRY_EXPORT_ENABLED' not in base['services'][service]['environment']
+        settings = overlay['services'][service]['environment']
+        assert settings['FAILURELENS_TELEMETRY_EXPORT_ENABLED'] == 'true'
+        assert settings['FAILURELENS_TELEMETRY_ENDPOINT'] == 'http://otel-collector:4318/v1/traces'
+    collector = overlay['services']['otel-collector']
+    assert collector['profiles'] == ['telemetry']
+    assert collector['networks'] == ['failurelens'] and not collector.get('ports')
+    assert collector['user'] == '10001:10001' and collector['read_only'] is True
+    assert collector['mem_limit'] == '256m' and collector['cap_drop'] == ['ALL']
+    viewer = overlay['services']['telemetry-viewer']
+    assert viewer['profiles'] == ['telemetry']
+    assert viewer['ports'] == ['127.0.0.1:16686:8080']
+    proxy = (ROOT / 'integrations/telemetry/viewer.conf').read_text()
+    assert 'proxy_pass http://otel-collector:16686;' in proxy
+    assert 'proxy_pass $' not in proxy and 'limit_except GET HEAD { deny all; }' in proxy
+    config = yaml.safe_load((ROOT / 'integrations/telemetry/jaeger.yaml').read_text())
+    assert set(config['exporters']) == {'jaeger_storage_exporter'}
+    assert set(config['extensions']) == {'jaeger_storage', 'jaeger_query'}
+    assert config['processors']['batch']['send_batch_max_size'] == 64
+    assert config['extensions']['jaeger_storage']['backends']['local_memory']['memory']['max_traces'] == 1000
+    assert config['receivers']['otlp']['protocols']['http']['max_request_body_size'] == 1048576
+
+
+def test_telemetry_smoke_requires_actual_durable_trace_and_collector_failure_check():
+    script = (ROOT / 'scripts/compose_telemetry_smoke.sh').read_text()
+    assert '--confirm-disposable-stack' in script
+    assert 'docker compose -f compose.yaml -f compose.telemetry.yaml --profile telemetry -p "$PROJECT"' in script
+    assert "query + '/api/traces/' + trace_id" in script
+    assert 'assert required <= names' in script
+    assert "assert state == 'succeeded'" in script
+    assert 'compose stop otel-collector' in script
+    assert 'collector-down-readiness.json' in script

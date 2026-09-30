@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import socket
+import signal
+import threading
 import time
 from datetime import UTC, datetime, timedelta
 from typing import Callable
@@ -15,6 +17,7 @@ from .ingestion import IngestionError
 from .models import Ingestion, IngestionState, Job, JobState
 from .service import INGEST_JOB_KIND, process_artifact_ingestion
 from .storage import StorageError
+from .telemetry import configure_telemetry, shutdown_telemetry, observe_result, stage, SpanKind
 
 
 PERMANENT_INGESTION_ERRORS = {
@@ -58,12 +61,17 @@ def claim_next(session: Session, worker_id: str, lease_seconds: int) -> Job | No
     job = session.scalar(query)
     if not job:
         return None
+    recovered_lease = job.state is JobState.running
     job.state = JobState.running
     job.lease_owner = worker_id
     job.lease_expires_at = now + timedelta(seconds=lease_seconds)
     job.attempts += 1
     session.commit()
     session.refresh(job)
+    if recovered_lease:
+        with stage("job") as span:
+            span.set_attribute("job.event", "recovered_lease")
+            observe_result("worker_events", "recovered_lease")
     return job
 
 
@@ -144,7 +152,7 @@ def fail(
     session.commit()
 
 
-def process_claimed(
+def _process_claimed(
     session: Session,
     job: Job,
     worker_id: str,
@@ -204,6 +212,16 @@ def process_claimed(
     flush_deletions(session, ingestion.project_id, settings)
 
 
+def process_claimed(session: Session, job: Job, worker_id: str, settings: Settings) -> None:
+    parent = job.payload.get("traceparent") if isinstance(job.payload, dict) else None
+    with stage("job", parent=parent, kind=SpanKind.CONSUMER) as span:
+        span.set_attribute("job.kind", job.kind if job.kind in {INGEST_JOB_KIND, "retention_cleanup_v1", "noop"} else "unsupported")
+        span.set_attribute("job.attempt", max(0, min(20, job.attempts)))
+        created = job.created_at.replace(tzinfo=UTC) if job.created_at.tzinfo is None else job.created_at
+        span.set_attribute("job.queue_delay_ms", max(0, (datetime.now(UTC) - created).total_seconds() * 1000))
+        _process_claimed(session, job, worker_id, settings)
+
+
 def process_next(
     session: Session,
     worker_id: str,
@@ -252,19 +270,37 @@ def main() -> None:
     parser.add_argument("--poll-seconds", type=float, default=1.0)
     args = parser.parse_args()
     initialize_database()
-    worker_id = f"{socket.gethostname()}-{int(time.time())}"
-    next_retention_sweep = 0.0
-    while True:
-        if time.monotonic() >= next_retention_sweep:
-            from .retention import schedule_due
-            with SessionLocal() as maintenance_session:
-                schedule_due(maintenance_session)
-            next_retention_sweep = time.monotonic() + 60
-        worked = run_once(worker_id)
-        if args.once:
-            return
-        if not worked:
-            time.sleep(max(0.1, args.poll_seconds))
+    configure_telemetry()
+    stopped = threading.Event()
+    previous_handlers = {}
+
+    def request_stop(signum, frame):
+        # Finish the currently claimed job, then drain telemetry before exit.
+        stopped.set()
+
+    try:
+        if threading.current_thread() is threading.main_thread():
+            for signum in (signal.SIGTERM, signal.SIGINT):
+                previous_handlers[signum] = signal.signal(signum, request_stop)
+        worker_id = f"{socket.gethostname()}-{int(time.time())}"
+        next_retention_sweep = 0.0
+        while not stopped.is_set():
+            if time.monotonic() >= next_retention_sweep:
+                from .retention import schedule_due
+                with SessionLocal() as maintenance_session:
+                    schedule_due(maintenance_session)
+                next_retention_sweep = time.monotonic() + 60
+            if stopped.is_set():
+                break
+            worked = run_once(worker_id)
+            if args.once:
+                return
+            if not worked:
+                stopped.wait(max(0.1, args.poll_seconds))
+    finally:
+        for signum, handler in previous_handlers.items():
+            signal.signal(signum, handler)
+        shutdown_telemetry()
 
 
 if __name__ == "__main__":

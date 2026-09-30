@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .telemetry import instrument
+
 import hashlib
 import json
 from dataclasses import dataclass
@@ -164,6 +166,7 @@ def _json_pointer(payload: dict[str, Any], pointer: str) -> Any:
     return value
 
 
+@instrument("evidence")
 def validate_evidence_records(
     failure: Failure,
     evidence_rows: list[Evidence],
@@ -511,6 +514,7 @@ def _claim_validation(
     return validated_claim, verified
 
 
+@instrument("validation")
 def validate_decision(
     *,
     failure: Failure,

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .telemetry import instrument
+
 import hashlib
 import os
 import re
@@ -141,6 +143,7 @@ async def store_stream(
         raise
 
 
+@instrument("persistence")
 def store_bytes(
     content: bytes,
     *,
@@ -181,6 +184,7 @@ def store_bytes(
 
 
 
+@instrument("persistence")
 def store_derivative_bytes(
     content: bytes,
     *,

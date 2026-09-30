@@ -402,6 +402,9 @@ def _reviewed_known_flake_events(
     return events, review_truncated
 
 
+from .telemetry import instrument
+
+@instrument("history")
 def build_test_history(
     session: Session,
     *,

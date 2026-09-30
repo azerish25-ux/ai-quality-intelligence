@@ -1,0 +1,62 @@
+{
+  "schema_version": "operational-benchmark-v1",
+  "source_revision": "78b45dd1cad2a1279f444562bf3932e431561745",
+  "scope": "synthetic_indexed_api_reads",
+  "database": "postgresql",
+  "database_version": "17.11",
+  "workload": {
+    "runs": 1000,
+    "logical_executions": 50000,
+    "concurrency": 10,
+    "warm_samples": 200
+  },
+  "hardware": {
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "logical_cpus": 4,
+    "python": "3.13.15",
+    "reference_hardware_normalized": false
+  },
+  "database_pool": {
+    "size": 10,
+    "max_overflow": 10
+  },
+  "seed_seconds": 5.096901506000009,
+  "cold_reads": [
+    {
+      "route": "runs",
+      "elapsed_ms": 254.49678800001152,
+      "ok": true
+    },
+    {
+      "route": "00000000-0000-0000-0000-0000000003e8",
+      "elapsed_ms": 27.662989000006633,
+      "ok": true
+    },
+    {
+      "route": "history",
+      "elapsed_ms": 118.9241439999904,
+      "ok": true
+    },
+    {
+      "route": "overview",
+      "elapsed_ms": 44.011986000001,
+      "ok": true
+    }
+  ],
+  "warm_p95_ms": 572.6224059999936,
+  "warm_p50_ms": 262.3877249999964,
+  "failed_requests": 0,
+  "client_max_rss_kib": 145220,
+  "api_child_max_rss_kib": 161252,
+  "database_memory_measured": false,
+  "whole_stack_memory_measured": false,
+  "targets": {
+    "zero_failed_requests": true,
+    "api_read_p95_under_500ms": false
+  },
+  "limitations": [
+    "Synthetic read workload, not classification evaluation or ingestion throughput",
+    "Actual CI hardware is reported, not normalized to the 2-vCPU reference",
+    "Client timings include HTTP connection overhead; DB and whole-stack memory are not measured"
+  ]
+}

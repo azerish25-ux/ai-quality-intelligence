@@ -165,6 +165,7 @@ from .service import (
 from .storage import StorageError, store_stream
 from .operations_api import router as operations_router
 from .retention import lock_project
+from .telemetry import configure_telemetry, shutdown_telemetry, metrics_snapshot, observe_http_status, stage, SpanKind
 from .governance import review_queue_page
 
 
@@ -173,12 +174,16 @@ async def lifespan(_: FastAPI):
     initialize_database()
     settings = get_settings()
     settings.validate_security()
-    if not settings.demo_mode:
-        from .db import SessionLocal
+    configure_telemetry()
+    try:
+        if not settings.demo_mode:
+            from .db import SessionLocal
 
-        with SessionLocal() as session:
-            ensure_bootstrap_administrator(session, settings)
-    yield
+            with SessionLocal() as session:
+                ensure_bootstrap_administrator(session, settings)
+        yield
+    finally:
+        shutdown_telemetry()
 
 
 app = FastAPI(
@@ -209,7 +214,24 @@ async def safe_request_validation(_: Request, exc: RequestValidationError):
 
 @app.middleware("http")
 async def private_api_responses(request: Request, call_next):
-    response = await call_next(request)
+    with stage("http", parent=request.headers.get("traceparent"), kind=SpanKind.SERVER) as span:
+        method = request.method if request.method in {"GET", "POST", "PATCH", "DELETE", "PUT", "HEAD", "OPTIONS"} else "OTHER"
+        span.set_attribute("http.request.method", method)
+        status_code = None
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+        except Exception:
+            # Starlette's outer error middleware turns this into a 500 response.
+            status_code = 500
+            raise
+        finally:
+            # The registered route template contains no request IDs/query values.
+            route = getattr(request.scope.get("route"), "path", "unmatched")
+            span.set_attribute("http.route", str(route)[:160])
+            if status_code is not None:
+                span.set_attribute("http.response.status_code", status_code)
+                observe_http_status(status_code)
     if request.url.path.startswith("/api/"):
         # Responses can contain approved evidence and one-time credentials. They
         # must not survive logout or expiry in browser/shared HTTP caches.
@@ -2400,3 +2422,18 @@ def github_report_preview(
         raise HTTPException(404, "run not found")
     require_project_role(session, principal, run.project_id)
     return report_snapshot(session, run)
+
+
+@app.get("/api/v1/operations/telemetry")
+def operational_telemetry(
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> dict:
+    require_system_administrator(principal)
+    from .models import Job, JobState
+    counts = {state.value: 0 for state in JobState}
+    counts.update({state.value: int(count) for state, count in session.execute(
+        select(Job.state, func.count(Job.id)).group_by(Job.state))})
+    oldest = session.scalar(select(func.min(Job.created_at)).where(Job.state == JobState.queued))
+    return {**metrics_snapshot(), "queue": {"states": counts,
+        "oldest_queued_age_seconds": max(0.0, (datetime.now(UTC) - as_utc(oldest)).total_seconds()) if oldest else None}}

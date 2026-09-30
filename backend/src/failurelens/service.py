@@ -58,6 +58,7 @@ from .performance import (
     register_performance_observation,
 )
 from .redaction import REDACTION_VERSION, redact_sensitive_field, redact_text
+from .telemetry import instrument, trace_context
 from .schemas import AnalysisResult, Confidence, IngestionRequest, ReviewCreate, RunMetadata
 from .storage import (
     StoredUpload,
@@ -393,7 +394,14 @@ def manifest_digest(payload: dict[str, Any]) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def _sanitize_evidence_value(
+@instrument("redaction")
+def _sanitize_evidence_value(value: Any, *, max_text: int, depth: int = 0,
+                             _remaining: list[int] | None = None) -> tuple[Any, set[str]]:
+    """Trace one bounded structured-redaction operation, not each recursive field."""
+    return _sanitize_evidence_value_inner(value, max_text=max_text, depth=depth, _remaining=_remaining)
+
+
+def _sanitize_evidence_value_inner(
     value: Any,
     *,
     max_text: int,
@@ -434,7 +442,7 @@ def _sanitize_evidence_value(
                 safe[safe_key] = sensitive.text
                 classes.update(sensitive.classes)
                 continue
-            safe_value, child_classes = _sanitize_evidence_value(
+            safe_value, child_classes = _sanitize_evidence_value_inner(
                 item,
                 max_text=max_text,
                 depth=depth + 1,
@@ -451,7 +459,7 @@ def _sanitize_evidence_value(
                 safe_items.append("[TRUNCATED:analysis-text-budget-or-list-limit]")
                 classes.add("truncated")
                 break
-            safe_item, child_classes = _sanitize_evidence_value(
+            safe_item, child_classes = _sanitize_evidence_value_inner(
                 item,
                 max_text=max_text,
                 depth=depth + 1,
@@ -460,7 +468,7 @@ def _sanitize_evidence_value(
             safe_items.append(safe_item)
             classes.update(child_classes)
         return safe_items, classes
-    return _sanitize_evidence_value(
+    return _sanitize_evidence_value_inner(
         str(value),
         max_text=max_text,
         depth=depth,
@@ -617,6 +625,7 @@ def _bind_changed_file_trust(
     return tuple(bound)
 
 
+@instrument("ingestion")
 def ingest_parsed_report(
     session: Session,
     project: Project,
@@ -1172,7 +1181,7 @@ def enqueue_artifact_ingestion(
     job = Job(
         project_id=project.id,
         kind=INGEST_JOB_KIND,
-        payload={"ingestion_id": ingestion.id, "job_schema": "1.0"},
+        payload={"ingestion_id": ingestion.id, "job_schema": "1.0", **trace_context()},
         state=JobState.queued,
         max_attempts=settings.job_max_attempts,
     )
@@ -1222,7 +1231,7 @@ def retry_ingestion(
     job = Job(
         project_id=ingestion.project_id,
         kind=INGEST_JOB_KIND,
-        payload={"ingestion_id": ingestion.id, "job_schema": "1.0"},
+        payload={"ingestion_id": ingestion.id, "job_schema": "1.0", **trace_context()},
         state=JobState.queued,
         max_attempts=settings.job_max_attempts,
     )
@@ -1265,6 +1274,7 @@ def cancel_ingestion(session: Session, ingestion: Ingestion) -> Ingestion:
     return ingestion
 
 
+@instrument("ingestion")
 def process_artifact_ingestion(
     session: Session,
     ingestion: Ingestion,
@@ -1464,6 +1474,7 @@ def select_failure_evidence(session: Session, failure: Failure) -> list[Evidence
     )
 
 
+@instrument("analysis")
 def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
     from fastapi import HTTPException
     from .retention import lock_project

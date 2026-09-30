@@ -164,6 +164,9 @@ Retained M6.3 measurement source: `f1269c3ce52d4bf64f8614aacd34d99903a99b5f`. Th
 | R-M8-PREVIEW | Authorized shared JSON/Markdown report preview | PASS | `github_snapshot.py`, API/CLI integration and scope/retry/expiry tests; exact-source ordinary CI `36653389182` at `9d8a5b9` passed. Newer restriction-revalidation regression needs its own CI. |
 | R-M8-UI | Inert preview/download and current product branding | PARTIAL | Local type/build and 48 frontend tests pass; actual API/browser journey added, execution pending delivery. |
 | R-M9-CAPABILITY | Network/process/GitHub mutation boundary regressions | PARTIAL | Forty local passing normalized-input attack combinations with capability spies; not complete OS/binary/adversarial acceptance. |
+| R-M9-TRACE | Bounded manual spans and durable trace context | PARTIAL | `telemetry.py`, fixed enums/counters, explicit disabled-by-default OTLP, actual loopback canaries and durable-worker tests. New batch requires exact-source full suite/CI; no external collector invoked. |
+| R-M9-COLLECTOR | Optional isolated local collector/viewer | NOT RUN | `compose.telemetry.yaml`, pinned Jaeger 2.21.0, internal-only OTLP and loopback viewer, real `telemetry.yml` smoke gate. Local topology/shell checks do not certify Docker execution. |
+| R-M9-LOAD | Actual 50,000-execution read target | PARTIAL | Original failures and 312.37 ms passing measurement preserved; identical-runtime docs-only follow-up failed at 572.62 ms. Stable acceptance and failure-heavy/reference-resource workloads remain open. |
 
 The original benchmark quality failure is still FAIL. These additions neither
 change acceptance thresholds nor complete M6, M7, M8, M9 or the full master project.

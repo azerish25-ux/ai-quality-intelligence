@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .telemetry import instrument
+
 import hashlib
 import json
 import math
@@ -807,6 +809,7 @@ def _member_set(session: Session, cluster: FailureCluster) -> set[str]:
     return {item.failure_id for item in current_memberships(session, cluster)}
 
 
+@instrument("clustering")
 def cluster_project_failures(
     session: Session,
     project_id: str,

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .telemetry import instrument
+
 import hashlib
 import io
 import json
@@ -1061,6 +1063,7 @@ def _is_symlink(info: zipfile.ZipInfo) -> bool:
     return mode == stat.S_IFLNK
 
 
+@instrument("validation")
 def _validate_zip_infos(
     infos: list[zipfile.ZipInfo],
     settings: Settings,
@@ -1808,6 +1811,7 @@ def parse_zip_bundle(content: bytes, filename: str, settings: Settings) -> Parse
         )
 
 
+@instrument("parsing")
 def parse_artifact(
     content: bytes,
     filename: str,
