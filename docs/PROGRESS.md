@@ -137,3 +137,15 @@ batch is remotely delivered as `c3d98983c4e69fe66a3b640c5602bcce7df6489d` (tree
 A local complete suite attempt cannot substitute for CI: real producer fixtures were
 not generated locally (16 explicit failures), and four PostgreSQL cases skipped.
 No gate was removed. Exact-source CI results remain pending at this checkpoint.
+
+## M7 optional-provider boundary foundation — 2026-09-30
+
+Implemented an explicitly disabled-by-default HTTP proposal adapter and a DB-backed
+bridge selecting independently revalidated safe evidence. Deterministic analysis is
+never replaced. Bounded transport, cancellation, budgets, circuit failure handling,
+unknown-cost semantics, proposal schema/citations and product-risk downgrade gates
+are covered by transport fixtures. No paid or real-model request was made. Persistent
+invocation/budget/UI scope remains open; see [provider contract](optional-provider.md).
+Previous report-preview batch delivered to main as `9d8a5b93326fdeb8569554e73ea3b080ac0e7fd8`.
+All ten ordinary CI jobs at preceding `c3d9898` passed in run `36652899198`.
+This statement does not certify later source, and frozen benchmark failure is retained.
