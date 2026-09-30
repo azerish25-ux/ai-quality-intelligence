@@ -87,3 +87,19 @@ def test_telemetry_smoke_requires_actual_durable_trace_and_collector_failure_che
     assert 'collector-down-readiness.json' in script
     assert 'http://127.0.0.1:16686/api/v3/services' in script
     assert "json.load(open(sys.argv[1]))['services']" in script
+
+
+def test_gateway_logs_use_only_allowlisted_method_and_status():
+    for name in ('frontend/nginx.conf', 'integrations/telemetry/viewer.conf'):
+        source = (ROOT / name).read_text()
+        format_line = next(line for line in source.splitlines() if line.startswith('log_format '))
+        assert 'escape=json' in format_line
+        assert '$failurelens_method' in format_line and '$status' in format_line
+        assert all(field not in format_line for field in ('$request_uri', '$request ', '$remote_addr', '$http_'))
+        assert 'map $request_method $failurelens_method {' in source and 'default OTHER;' in source
+        assert 'error_log /dev/null;' in source
+    smoke = (ROOT / 'scripts/compose_recovery_smoke.sh').read_text()
+    assert 'synthetic-gateway-query-canary-762' in smoke
+    assert 'synthetic-gateway-error-canary-941' in smoke
+    assert "== '502'" in smoke
+    assert 'Gateway or application logs exposed synthetic query canary' in smoke

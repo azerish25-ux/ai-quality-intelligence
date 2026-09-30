@@ -35,6 +35,15 @@ names, resource IDs, user identifiers, exception text/events or links are emitte
 Structured package logs contain redacted messages and valid trace IDs; unknown
 extras and stack/exception text are omitted. Redaction is defense in depth, not
 proof that arbitrary sensitive strings can safely be logged.
+Uvicorn's default access formatter is replaced: it emits only a fixed event,
+allowlisted HTTP method and numeric response status. Request URLs/query values,
+resource IDs, peer addresses and arbitrary server arguments never enter that
+record. Uvicorn errors/lifecycle messages use fixed event codes; existing unsafe
+handlers in both logger trees are removed so they cannot duplicate raw output.
+The fixed-route Nginx gateways likewise emit only allowlisted methods and numeric
+statuses. Their unstructured runtime error log is disabled because Nginx cannot
+redact request paths/queries from that format. This deliberately sacrifices proxy
+error detail; use status counts, readiness and application stage records instead.
 
 System administrators can GET `/api/v1/operations/telemetry` for current-process
 stage durations/counts, exception counts, category/provider-call outcomes, HTTP
@@ -80,7 +89,11 @@ queries the collected parent trace, checks required stages and secret/baggage
 canaries, verifies viewer ingress, retains runtime Internet denial and checks core
 readiness after stopping the collector. The dedicated `telemetry.yml` job retains
 actual results and failures. Docker is unavailable in the development cloud shell;
-actual execution is pending exact-source CI until recorded in the delivery ledger.
+the first probe failed on an obsolete service-list route and is retained. The
+repair at `8daa5c7` passed actual collector, viewer ingress and outage checks in
+[run 36687923599](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36687923599).
+[Retained exact-source results](../evaluation/reports/telemetry-8daa5c7-passed/README.md).
+This is HTTP integration evidence, not a visual Jaeger UI audit.
 
 Configuration references checked 2026-09-30:
 [Jaeger v2 architecture](https://www.jaegertracing.io/docs/2.21/architecture/),

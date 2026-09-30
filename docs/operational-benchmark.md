@@ -45,3 +45,12 @@ runtime/workload, so the earlier pass is not stable acceptance. Its original
 [failed evidence](../evaluation/reports/operational-78b45dd-failed/README.md) is
 retained. Subsequent measurements additionally capture bounded CPU model/quota/load
 metadata and process-local stage metrics, without changing samples or thresholds.
+
+The telemetry implementation `8dbce9b` then
+[passed at 359.78 ms](../evaluation/reports/operational-8dbce9b-passed/README.md),
+while the runtime-identical viewer-test/docs repair `8daa5c7`
+[failed at 571.92 ms](../evaluation/reports/operational-8daa5c7-failed/README.md).
+The new diagnostics reveal different CPU models (Intel Xeon 6973P-C versus AMD
+EPYC 7763) and higher server-stage durations on the latter. This is an observed
+environment difference, not a hardware-normalized result or proof of sole cause.
+Both results have zero request failures; stable target compliance is still open.

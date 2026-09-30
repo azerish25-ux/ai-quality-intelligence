@@ -57,15 +57,77 @@ class JsonFormatter(logging.Formatter):
             'correlation_id': correlation_id.get() if re.fullmatch(r'[0-9a-f]{32}', correlation_id.get() or '') else None}, separators=(',', ':'))
 
 
+_HTTP_METHODS = frozenset({'GET', 'POST', 'PATCH', 'DELETE', 'PUT', 'HEAD', 'OPTIONS'})
+_SERVER_EVENTS = {
+    'Started server process [%d]': 'server_started',
+    'Finished server process [%d]': 'server_stopped',
+    'Waiting for application startup.': 'application_starting',
+    'Application startup complete.': 'application_started',
+    'Shutting down': 'server_stopping',
+    'Waiting for application shutdown.': 'application_stopping',
+    'Application shutdown complete.': 'application_stopped',
+    'Exception in ASGI application\n': 'application_error',
+    'Invalid HTTP request received.': 'invalid_http_request',
+    'Exceeded concurrency limit.': 'concurrency_limit',
+}
+_LOG_LEVELS = {logging.DEBUG: 'DEBUG', logging.INFO: 'INFO', logging.WARNING: 'WARNING',
+               logging.ERROR: 'ERROR', logging.CRITICAL: 'CRITICAL'}
+
+
+class UvicornJsonFormatter(logging.Formatter):
+    """Never interpolate server logs: their arguments can be arbitrary requests.
+
+    Uvicorn's pinned HTTP access format supplies client, method, URL, protocol and
+    status in that order. Unknown shapes fail closed rather than stringify data.
+    Server/error logs retain only fixed event names; traceback/stack/extras and
+    arguments (including websocket URLs and peer addresses) are never emitted.
+    """
+    def format(self, record: logging.LogRecord) -> str:
+        access = record.name == 'uvicorn.access' or record.name.startswith('uvicorn.access.')
+        payload = {
+            'timestamp': datetime.now(UTC).isoformat(),
+            'level': _LOG_LEVELS.get(record.levelno, 'OTHER'),
+            'logger': 'uvicorn.access' if access else 'uvicorn.error',
+        }
+        if access:
+            method, status = 'OTHER', None
+            if isinstance(record.args, tuple) and len(record.args) == 5:
+                candidate_method, candidate_status = record.args[1], record.args[4]
+                if type(candidate_method) is str and candidate_method in _HTTP_METHODS:
+                    method = candidate_method
+                if type(candidate_status) is int and 100 <= candidate_status < 600:
+                    status = candidate_status
+            payload.update({'message': 'http_request', 'http.request.method': method,
+                            'http.response.status_code': status})
+        else:
+            event = _SERVER_EVENTS.get(record.msg) if type(record.msg) is str else None
+            payload['message'] = event or ('server_exception' if record.exc_info else 'server_log')
+        return json.dumps(payload, separators=(',', ':'))
+
+
 def configure_logging() -> None:
-    logger = logging.getLogger('failurelens')
-    if not any(getattr(handler, '_failurelens_safe', False) for handler in logger.handlers):
-        handler = logging.StreamHandler()
-        handler._failurelens_safe = True
-        handler.setFormatter(JsonFormatter())
-        logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
-    logger.propagate = False
+    # Uvicorn installs ordinary handlers before importing the app. Replace, rather
+    # than append to, every existing handler in our two logger trees: an unsafe
+    # child or parent handler must not duplicate a redacted record as raw text.
+    roots = {'failurelens': JsonFormatter(), 'uvicorn': UvicornJsonFormatter(),
+             'uvicorn.access': UvicornJsonFormatter(), 'uvicorn.error': UvicornJsonFormatter()}
+    with _lock:
+        for name in roots:
+            logging.getLogger(name)
+        for name, logger in list(logging.root.manager.loggerDict.items()):
+            if not isinstance(logger, logging.Logger):
+                continue
+            if name not in roots and not name.startswith(('failurelens.', 'uvicorn.')):
+                continue
+            logger.handlers[:] = []
+            logger.propagate = name not in roots
+            if name in roots:
+                handler = logging.StreamHandler()
+                handler._failurelens_safe = True
+                handler.setLevel(logging.INFO)
+                handler.setFormatter(roots[name])
+                logger.addHandler(handler)
+                logger.setLevel(logging.INFO)
 
 
 def validate_endpoint(endpoint: str | None) -> str:

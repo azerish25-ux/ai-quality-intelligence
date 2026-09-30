@@ -12,7 +12,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, load_only, selectinload
 
 from .auth import (
     Principal,
@@ -642,15 +642,19 @@ def overview(
 ) -> dict:
     project_ids = visible_project_ids(session, principal)
 
-    def scoped_count(model, project_column) -> int:
-        query = select(func.count(model.id))
+    def scoped_count(model, project_column, *conditions):
+        query = select(func.count(model.id)).where(*conditions)
         if project_ids is not None:
-            if not project_ids:
-                return 0
             query = query.where(project_column.in_(project_ids))
-        return int(session.scalar(query) or 0)
+        return query.scalar_subquery()
 
-    analysis_query = select(Analysis).join(Failure, Failure.id == Analysis.failure_id)
+    analysis_query = (
+        select(Analysis)
+        .join(Failure, Failure.id == Analysis.failure_id)
+        .options(load_only(
+            Analysis.category, Analysis.validation_version, Analysis.validation_results
+        ))
+    )
     if project_ids is None:
         analyses = list(session.scalars(analysis_query).all())
     elif project_ids:
@@ -669,36 +673,18 @@ def overview(
         )
         for item in analyses
     )
-    active_query = select(func.count(Ingestion.id)).where(
-        Ingestion.state.in_([IngestionState.queued, IngestionState.running])
-    )
-    cluster_query = select(func.count(FailureCluster.id)).where(
-        FailureCluster.status == "active"
-    )
-    if project_ids is None:
-        active_ingestions = int(session.scalar(active_query) or 0)
-        cluster_count = int(session.scalar(cluster_query) or 0)
-        project_count = int(session.scalar(select(func.count(Project.id))) or 0)
-    elif project_ids:
-        active_ingestions = int(
-            session.scalar(active_query.where(Ingestion.project_id.in_(project_ids))) or 0
-        )
-        cluster_count = int(
-            session.scalar(
-                cluster_query.where(FailureCluster.project_id.in_(project_ids))
-            )
-            or 0
-        )
-        project_count = len(project_ids)
-    else:
-        active_ingestions = cluster_count = project_count = 0
-    return {
-        "projects": project_count,
+    count_queries = {
         "runs": scoped_count(Run, Run.project_id),
         "ingestions": scoped_count(Ingestion, Ingestion.project_id),
-        "active_ingestions": active_ingestions,
+        "active_ingestions": scoped_count(
+            Ingestion,
+            Ingestion.project_id,
+            Ingestion.state.in_([IngestionState.queued, IngestionState.running]),
+        ),
         "failures": scoped_count(Failure, Failure.project_id),
-        "clusters": cluster_count,
+        "clusters": scoped_count(
+            FailureCluster, FailureCluster.project_id, FailureCluster.status == "active"
+        ),
         "impact_recommendations": scoped_count(
             ImpactRecommendation, ImpactRecommendation.project_id
         ),
@@ -712,6 +698,24 @@ def overview(
             InfrastructureCorrelationSnapshot,
             InfrastructureCorrelationSnapshot.project_id,
         ),
+    }
+    if project_ids is None:
+        count_queries["projects"] = select(func.count(Project.id)).scalar_subquery()
+    # Independent scalar subqueries preserve each table's count and scope without
+    # a multiplying join, while using one database round-trip for all counters.
+    if project_ids is None or project_ids:
+        counts = {
+            key: int(value or 0)
+            for key, value in session.execute(
+                select(*(query.label(key) for key, query in count_queries.items()))
+            ).one()._mapping.items()
+        }
+    else:
+        counts = dict.fromkeys(count_queries, 0)
+    project_count = counts.pop("projects") if project_ids is None else len(project_ids)
+    return {
+        "projects": project_count,
+        **counts,
         "analyses": len(analyses),
         "categories": {
             category.value: publication_categories.get(category.value, 0)

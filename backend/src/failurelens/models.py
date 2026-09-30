@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum, Float, ForeignKey, ForeignKeyConstraint, Index, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -1588,3 +1588,79 @@ class BinaryEvidenceDecision(Base):
     reason: Mapped[str] = mapped_column(Text)
     masks: Mapped[list[dict[str, int]]] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ModelRunBudget(Base):
+    """Monotonic reservation accounting, shared by every provider for a run."""
+    __tablename__ = "model_run_budgets"
+    __table_args__ = (
+        UniqueConstraint("run_id", "project_id", name="uq_model_budget_scope"),
+        CheckConstraint("max_requests > 0 AND max_reserved_tokens > 0 AND requests >= 0 AND reserved_tokens >= 0", name="ck_model_budget_nonnegative"),
+    )
+    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    max_requests: Mapped[int] = mapped_column(Integer)
+    max_reserved_tokens: Mapped[int] = mapped_column(Integer)
+    requests: Mapped[int] = mapped_column(Integer, default=0)
+    reserved_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ModelInvocation(Base):
+    """Immutable scoped identity; only validated proposal text may be retained."""
+    __tablename__ = "model_invocations"
+    __table_args__ = (
+        UniqueConstraint("project_id", "idempotency_digest", name="uq_model_invocation_idempotency"),
+        ForeignKeyConstraint(["run_id", "project_id"], ["model_run_budgets.run_id", "model_run_budgets.project_id"], ondelete="CASCADE"),
+        Index("ix_model_invocations_recovery", "project_id", "run_id", "status", "lease_expires_at"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
+    analysis_id: Mapped[str] = mapped_column(ForeignKey("analyses.id", ondelete="CASCADE"), index=True)
+    analysis_revision: Mapped[int] = mapped_column(Integer)
+    analysis_digest: Mapped[str] = mapped_column(String(64))
+    evidence_digest: Mapped[str] = mapped_column(String(64))
+    request_digest: Mapped[str] = mapped_column(String(64))
+    provider_digest: Mapped[str] = mapped_column(String(64))
+    idempotency_digest: Mapped[str] = mapped_column(String(64))
+    deterministic_category: Mapped[str] = mapped_column(String(40))
+    prompt_version: Mapped[str] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(40), default="running")
+    reason: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    proposal_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    owner_token: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    lease_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ModelAttempt(Base):
+    """Committed before transport. Unfinished attempts retain all reservations."""
+    __tablename__ = "model_attempts"
+    __table_args__ = (
+        UniqueConstraint("invocation_id", "number", name="uq_model_attempt_number"),
+        CheckConstraint("number > 0 AND reserved_tokens > 0 AND accounted_tokens >= reserved_tokens", name="ck_model_attempt_reservation"),
+        CheckConstraint("(prompt_tokens IS NULL AND completion_tokens IS NULL) OR (prompt_tokens IS NOT NULL AND completion_tokens IS NOT NULL AND prompt_tokens >= 0 AND completion_tokens >= 0)", name="ck_model_attempt_usage"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    invocation_id: Mapped[str] = mapped_column(ForeignKey("model_invocations.id", ondelete="CASCADE"), index=True)
+    owner_token: Mapped[str] = mapped_column(String(36))
+    number: Mapped[int] = mapped_column(Integer)
+    reserved_tokens: Mapped[int] = mapped_column(Integer)
+    accounted_tokens: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(40), default="reserved")
+    reason: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    http_status: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    spend_status: Mapped[str] = mapped_column(String(40), default="unknown")
+    prompt_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    completion_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    estimated_cost: Mapped[float | None] = mapped_column(Float, nullable=True)
+    cost_status: Mapped[str] = mapped_column(String(40), default="unknown")
+    input_price_per_million: Mapped[float | None] = mapped_column(Float, nullable=True)
+    output_price_per_million: Mapped[float | None] = mapped_column(Float, nullable=True)
+    pricing_source: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    pricing_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

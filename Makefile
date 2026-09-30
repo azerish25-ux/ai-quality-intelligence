@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 PYTHON ?= python
 
-.PHONY: bootstrap demo test test-e2e evaluate security-test verify up down
+.PHONY: bootstrap demo test test-e2e evaluate security-test safeguard-mutations verify up down
 
 bootstrap:
 	$(PYTHON) -m pip install --require-hashes -r backend/requirements.lock
@@ -29,8 +29,22 @@ evaluate:
 	PYTHONPATH=backend/src $(PYTHON) evaluation/performance_harness.py --output evaluation/reports/latest
 	PYTHONPATH=backend/src $(PYTHON) evaluation/infrastructure_harness.py --output evaluation/reports/latest
 
+# Current authorization, evidence, capability and publication trust boundaries.
+# Synthetic/SQLite and mock transports only; real producers/PostgreSQL remain in CI.
+SECURITY_TESTS := auth redaction ingestion ingestion_m2_adapters durable_ingestion \
+	analysis service evidence_validation binary_evidence trace_safety \
+	adversarial_boundaries history history_reuse clustering infrastructure impact \
+	performance contract_evidence domain_evidence transaction_evidence \
+	transaction_finality github_report github_snapshot github_publication \
+	providers operations telemetry mutation_safeguards
+
 security-test:
-	cd backend && PYTHONPATH=src pytest -q tests/test_redaction.py tests/test_ingestion.py tests/test_analysis.py tests/test_clustering.py tests/test_history.py tests/test_infrastructure.py tests/test_impact.py tests/test_performance.py
+	PYTHONPATH=backend/src:. $(PYTHON) -m pytest -q $(addprefix backend/tests/test_,$(addsuffix .py,$(SECURITY_TESTS)))
+
+# Opt-in and an explicit fresh destination remain required even through Make.
+# Example: make safeguard-mutations MUTATION_ARGS='--confirm-synthetic-mutations --output /tmp/safeguards.json'
+safeguard-mutations:
+	PYTHONPATH=backend/src:. $(PYTHON) -m evaluation.mutation_runner $(MUTATION_ARGS)
 
 verify:
 	./scripts/verify.sh

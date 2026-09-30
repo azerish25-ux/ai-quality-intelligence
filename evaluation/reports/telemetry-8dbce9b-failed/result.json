@@ -1,0 +1,1 @@
+{"status": "passed", "scope": "synthetic_actual_local_collector", "durable_job": "succeeded", "trace_stages": ["analysis", "clustering", "evidence", "history", "http", "ingestion", "job", "parsing", "persistence", "redaction", "validation"], "sensitive_canaries_absent": true, "runtime_external_network_blocked": true}

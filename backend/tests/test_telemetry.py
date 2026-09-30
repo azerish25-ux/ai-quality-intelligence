@@ -474,3 +474,191 @@ def test_ambient_tracestate_is_not_exported_or_persisted(spans):
     assert recorded.parent.span_id == 456
     assert not recorded.context.trace_state
     assert 'private-canary' not in recorded.to_json()
+
+
+@pytest.fixture
+def configured_log_stream(monkeypatch):
+    import io
+    import sys
+    names = {'failurelens', 'failurelens.test_child', 'uvicorn', 'uvicorn.error',
+             'uvicorn.access', 'uvicorn.error.test_child', 'uvicorn.access.test_child'}
+    names.update(name for name, logger in logging.root.manager.loggerDict.items()
+                 if isinstance(logger, logging.Logger) and
+                 (name.startswith('failurelens.') or name.startswith('uvicorn.')))
+    saved = {name: (list(logging.getLogger(name).handlers), logging.getLogger(name).level,
+                    logging.getLogger(name).propagate, logging.getLogger(name).disabled)
+             for name in names}
+    stream = io.StringIO()
+    monkeypatch.setattr(sys, 'stderr', stream)
+    yield stream
+    for name, (handlers, level, propagate, disabled) in saved.items():
+        logger = logging.getLogger(name)
+        logger.handlers[:] = handlers
+        logger.setLevel(level)
+        logger.propagate = propagate
+        logger.disabled = disabled
+
+
+def test_uvicorn_access_logs_emit_only_bounded_method_and_status():
+    record = logging.LogRecord('uvicorn.access', logging.INFO, __file__, 1,
+        '%s - "%s %s HTTP/%s" %d', ('203.0.113.99:45678', 'POST',
+        '/api/v1/projects/private-id/ingestions?filename=private-file&opaque=private-query', '1.1', 202), None)
+    record.private_extra = 'private-extra'
+    record.stack_info = 'private-stack'
+    value = t.UvicornJsonFormatter().format(record)
+    body = json.loads(value)
+    assert body['message'] == 'http_request'
+    assert body['http.request.method'] == 'POST'
+    assert body['http.response.status_code'] == 202
+    assert set(body) == {'timestamp', 'level', 'logger', 'message',
+                         'http.request.method', 'http.response.status_code'}
+    assert 'private-' not in value and '203.0.113.99' not in value and '45678' not in value
+
+
+@pytest.mark.parametrize('args', [(), ('private-client', 'private-method', '/private-path', 'private-version', 'private-status'),
+    ('private-client', ['GET'], '/private-path', '1.1', 999),
+    ('private-client', 'GET', '/private-path', '1.1', True),
+    {'private-key': 'private-value'}])
+def test_uvicorn_access_unknown_shapes_fail_closed(args):
+    record = logging.LogRecord('uvicorn.access', logging.INFO, __file__, 1,
+        'private-message', (), None)
+    record.args = args
+    body = json.loads(t.UvicornJsonFormatter().format(record))
+    assert body['http.request.method'] in {'GET', 'OTHER'}
+    assert body['http.response.status_code'] is None
+    assert 'private-' not in json.dumps(body)
+
+
+def test_uvicorn_error_logs_drop_message_arguments_exceptions_and_stacks():
+    import sys
+    try:
+        raise RuntimeError('private-exception /private-url?opaque=private-query')
+    except RuntimeError:
+        exc_info = sys.exc_info()
+    record = logging.LogRecord('uvicorn.error', logging.ERROR, __file__, 1,
+        'private-message %s', ('private-argument',), exc_info)
+    record.stack_info = 'private-stack'
+    record.private_extra = 'private-extra'
+    body = json.loads(t.UvicornJsonFormatter().format(record))
+    assert body['message'] == 'server_exception'
+    assert 'private-' not in json.dumps(body)
+    assert 'Traceback' not in json.dumps(body)
+    record.msg = 'Exception in ASGI application\n'
+    assert json.loads(t.UvicornJsonFormatter().format(record))['message'] == 'application_error'
+
+
+def test_uvicorn_formatter_does_not_stringify_unknown_log_objects():
+    class UnsafeObject:
+        def __str__(self):
+            raise AssertionError('must not interpolate an untrusted server object')
+
+    record = logging.LogRecord('uvicorn.error', logging.ERROR, __file__, 1,
+        UnsafeObject(), (), None)
+    assert json.loads(t.UvicornJsonFormatter().format(record))['message'] == 'server_log'
+    record.name = 'uvicorn.access'
+    record.args = (UnsafeObject(), UnsafeObject(), UnsafeObject(), UnsafeObject(), UnsafeObject())
+    body = json.loads(t.UvicornJsonFormatter().format(record))
+    assert body['http.request.method'] == 'OTHER'
+    assert body['http.response.status_code'] is None
+
+
+def test_configure_logging_replaces_unsafe_handlers_without_duplicate_output(configured_log_stream, monkeypatch):
+    import io
+    import sys
+    monkeypatch.setattr(sys, "stderr", configured_log_stream)
+    unsafe_stream = io.StringIO()
+    names = ('failurelens', 'failurelens.test_child', 'uvicorn', 'uvicorn.error',
+             'uvicorn.access', 'uvicorn.error.test_child', 'uvicorn.access.test_child')
+    for name in names:
+        logger = logging.getLogger(name)
+        logger.handlers[:] = [logging.StreamHandler(unsafe_stream)]
+        logger.propagate = True
+        logger.setLevel(logging.INFO)
+    # Repeat initialization, including preexisting child handlers, without adding
+    # duplicate safe handlers or retaining Uvicorn's original unsafe handlers.
+    t.configure_logging()
+    t.configure_logging()
+    logging.getLogger('uvicorn.access').info('%s - "%s %s HTTP/%s" %d',
+        '203.0.113.99:45678', 'GET', '/private-path?opaque=private-query', '1.1', 200)
+    logging.getLogger('uvicorn.error.test_child').error('private-message %s', 'private-argument', stack_info=True)
+    logging.getLogger('failurelens.test_child').error('token=private-package-token person@example.invalid')
+    values = [json.loads(line) for line in configured_log_stream.getvalue().splitlines()]
+    assert len(values) == 3
+    assert unsafe_stream.getvalue() == ''
+    assert 'private-' not in configured_log_stream.getvalue()
+    assert 'person@example.invalid' not in configured_log_stream.getvalue()
+    assert '203.0.113.99' not in configured_log_stream.getvalue()
+    assert 'Traceback' not in configured_log_stream.getvalue()
+    assert values[0]['http.response.status_code'] == 200
+    assert values[1]['message'] == 'server_log'
+    assert '[REDACTED:' in values[2]['message']
+
+
+def test_real_uvicorn_request_and_exception_logs_hide_request_canaries(tmp_path):
+    import os
+    from pathlib import Path
+    import socket
+    import subprocess
+    import sys
+    import time
+    import httpx
+    # Run the real pinned server/default log config in an isolated process. It
+    # installs its usual unsafe handlers before the application lifespan replaces
+    # them, as the production entry point does.
+    with socket.socket() as sock:
+        sock.bind(('127.0.0.1', 0))
+        port = sock.getsockname()[1]
+    script = '''
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+import uvicorn
+from failurelens.telemetry import configure_logging
+@asynccontextmanager
+async def lifespan(app):
+    configure_logging()
+    yield
+app = FastAPI(lifespan=lifespan)
+@app.get('/ready')
+def ready():
+    return {'ready': True}
+@app.post('/request/{resource}')
+def accept(resource: str):
+    return {'accepted': True}
+@app.get('/failure/{resource}')
+def fail(resource: str):
+    raise RuntimeError('private-uvicorn-exception')
+uvicorn.run(app, host='127.0.0.1', port=PORT, access_log=True)
+'''.replace('PORT', str(port))
+    environment = {**os.environ, 'PYTHONPATH': str(Path(__file__).resolve().parents[1] / 'src')}
+    process = subprocess.Popen([sys.executable, '-c', script], env=environment,
+        cwd=tmp_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        with httpx.Client(base_url=f'http://127.0.0.1:{port}', trust_env=False, timeout=1) as client:
+            deadline = time.monotonic() + 10
+            while True:
+                try:
+                    if client.get('/ready').status_code == 200:
+                        break
+                except httpx.HTTPError:
+                    pass
+                if time.monotonic() > deadline or process.poll() is not None:
+                    pytest.fail('isolated Uvicorn did not become ready')
+                time.sleep(0.02)
+            assert client.post('/request/private-resource?opaque=private-query&filename=private-file').status_code == 200
+            assert client.get('/failure/private-resource?opaque=private-query').status_code == 500
+    finally:
+        process.terminate()
+        try:
+            stdout, stderr = process.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            stdout, stderr = process.communicate(timeout=5)
+    output = stdout + stderr
+    assert 'private-' not in output
+    assert 'Traceback' not in output
+    records = [json.loads(line) for line in output.splitlines() if line.startswith('{')]
+    access = [row for row in records if row['logger'] == 'uvicorn.access']
+    assert any(row['http.request.method'] == 'POST' and row['http.response.status_code'] == 200 for row in access)
+    assert any(row['http.response.status_code'] == 500 for row in access)
+    assert any(row['message'] == 'application_error' for row in records)
+    assert all('127.0.0.1' not in json.dumps(row) for row in records)

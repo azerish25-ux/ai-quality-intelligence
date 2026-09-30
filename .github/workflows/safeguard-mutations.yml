@@ -1,0 +1,47 @@
+name: Synthetic safeguard mutation sensitivity
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: safeguard-mutations-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  safeguard-mutations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: backend/src:.
+      FAILURELENS_DATABASE_URL: "sqlite+pysqlite:///:memory:"
+      FAILURELENS_DEMO_MODE: "true"
+      FAILURELENS_TELEMETRY_EXPORT_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Install exact committed backend from the locked dependency graph
+        run: bash scripts/install_committed_backend.sh
+      - name: Verify false-kill rejection and subprocess isolation
+        run: python -m pytest backend/tests/test_mutation_safeguards.py
+      - name: Run clean-source baselines and explicitly opted-in synthetic mutations
+        run: >-
+          python -m evaluation.mutation_runner --confirm-synthetic-mutations
+          --output /tmp/loose-thread-safeguard-mutations/report.json
+      - name: Preserve the fresh exact-source report, including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: safeguard-mutations-${{ github.sha }}
+          path: /tmp/loose-thread-safeguard-mutations/report.json
+          if-no-files-found: error
+          retention-days: 30

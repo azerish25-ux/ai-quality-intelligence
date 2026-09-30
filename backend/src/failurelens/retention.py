@@ -149,6 +149,8 @@ def _scrub_run(session: Session, run: m.Run, version: int) -> None:
         summary=EXPIRED, claims=[], hypotheses=[], confidence_explanation=EXPIRED,
         missing_evidence=["evidence_expired"], next_investigation=[], abstention_reason=EXPIRED,
         provenance={"retention_state": "expired"}, validation_results={"status": "expired"}))
+    # Validated provider proposals can quote expiring evidence; accounting remains.
+    session.execute(update(m.ModelInvocation).where(m.ModelInvocation.run_id == run.id).values(proposal_json=None))
     session.execute(update(m.ReviewEvent).where(m.ReviewEvent.analysis_id.in_(analysis_ids)).values(
         reason=EXPIRED, investigation_outcome=None, hypothesis_decisions=[]))
     session.execute(update(m.Ingestion).where(m.Ingestion.run_id == run.id).values(source_metadata={},

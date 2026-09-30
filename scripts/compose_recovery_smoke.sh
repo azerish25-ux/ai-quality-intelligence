@@ -30,6 +30,7 @@ else:
     raise SystemExit('Runtime external-network isolation failed')
 PY
 curl --fail --silent http://127.0.0.1:8080/ > "$OUT/dashboard.html"
+curl --fail --silent 'http://127.0.0.1:8000/health/ready?token=synthetic-gateway-query-canary-762' > /dev/null
 curl --fail --silent -X POST http://127.0.0.1:8000/api/v1/demo/seed > "$OUT/seed.json"
 curl --fail --silent http://127.0.0.1:8000/api/v1/overview > "$OUT/before.json"
 python - "$OUT/before.json" <<'PY'
@@ -48,6 +49,13 @@ assert json.load(open(sys.argv[1]))==json.load(open(sys.argv[2])), 'restart lost
 PY
 # Quiesce writers, then back up DB and private artifact volume as one snapshot.
 compose stop api worker
+# Exercise a real proxy error too: unstructured Nginx errors must not reveal URLs.
+[[ "$(curl --silent -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8000/health/ready?token=synthetic-gateway-error-canary-941')" == '502' ]]
+compose logs --no-color api dashboard > "$OUT/gateway-privacy.log"
+if grep -Eq 'synthetic-gateway-(query-canary-762|error-canary-941)' "$OUT/gateway-privacy.log"; then
+  echo 'Gateway or application logs exposed synthetic query canary' >&2
+  exit 1
+fi
 compose exec -T db pg_dump -U failurelens --format=custom failurelens > "$OUT/database.dump"
 compose run --rm --no-deps --entrypoint tar api -C /var/lib/failurelens/artifacts -cf - . > "$OUT/artifacts.tar"
 chmod 600 "$OUT/database.dump" "$OUT/artifacts.tar"

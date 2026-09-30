@@ -33,19 +33,27 @@ all failures. No thresholds are weakened. See [reproduction and limits](docs/cam
 
 ## Verified operational and report workflows
 
-At source `3a9a89a`, [all ten ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36677114640)
+At source `8dbce9b`, [all ten ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36687238184)
 passed, including real PostgreSQL, producer fixtures, four browser lanes, non-root
 application containers, isolated runtime networking and actual database/artifact
 backup restore with citation validation. This certifies that named source, not an
 unmeasured later commit. Frozen classifier quality targets still fail as described
 above; operational correctness is not a replacement for diagnostic acceptance.
 
+The [bounded telemetry contract](docs/telemetry.md) covers durable trace context,
+fixed-cardinality metrics and default-disabled export. Its optional local-only
+collector/viewer profile passed real Docker verification at repair `8daa5c7` in
+[36687923599](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36687923599).
+The strict 50,000-execution read benchmark has both passing and failing shared-runner
+measurements, most recently 359.78 ms on one runner and 571.92 ms on another with
+unchanged application code. [All measurements and limits](docs/operational-benchmark.md).
+
 New workflows include an [authorized read-only GitHub report preview](docs/github-publication.md),
 [a bounded optional-provider proposal boundary](docs/optional-provider.md), and
 [100-run synthetic history](docs/synthetic-history.md). See the concrete
 [known-failure catalog](docs/limitations.md) and [contributor guide](CONTRIBUTING.md).
 
-Actual API-backed report captures at the verified source, using synthetic demo data:
+Actual API-backed report captures at earlier verified source `3a9a89a`, using synthetic demo data:
 
 ![Desktop advisory report with exact provenance and Markdown download](docs/assets/report-desktop-3a9a89a.png)
 
@@ -102,7 +110,7 @@ The reusable composite Action uses the same ingestion and report path. **Complet
 
 ## Evaluation truthfulness
 
-Two different classification datasets must not be conflated:
+These separate classification datasets must not be conflated:
 
 | Dataset | What it establishes | Limitations |
 |---|---|---|
@@ -138,9 +146,9 @@ This verifies historical bytes and results; it does not pretend to perform a fre
 
 ## Verification
 
-At accepted source `0e98962`, PostgreSQL backend verification passed **307 tests without skips**, with **84.96% branch-aware coverage** against the unchanged 75% gate. Actual producer contracts, frontend unit tests/type-check/build, all four browser lanes, the executed component/evidence job, five historical regression harnesses and Docker configuration/image builds passed. Desktop and narrow evaluation screenshots were inspected.
+At source `8dbce9b`, PostgreSQL backend verification passed **1,053 tests without skips**, with **86.94% branch-aware coverage** against the unchanged 75% gate. Actual producer contracts, frontend unit tests/type-check/build, all four browser lanes, the executed component/evidence job, historical regression harnesses and Docker offline/recovery verification passed. These are scoped ordinary regression results; the frozen quality-target failure remains.
 
-Local verification is separate: 303 tests passed, four PostgreSQL-only cases were skipped, and branch-aware coverage was 82.36%. Fifty-four new execution/snapshot regressions are included. Docker image builds are not an offline/backup/restore acceptance claim. See the [delivery ledger](docs/PROGRESS.md) for exact source/job references and historical failures.
+Local verification of the same source is separate: **1,049 tests passed**, four PostgreSQL-only cases were skipped, and branch-aware coverage was **84.65%**. Local producer bytes were checksum-verified CI exports, not freshly executed local producers. See the [delivery ledger](docs/PROGRESS.md) for exact source/job references, subsequent revisions and historical failures.
 
 For development:
 

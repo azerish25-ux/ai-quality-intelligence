@@ -417,3 +417,76 @@ service-list probe because Jaeger 2.21 removed the internal `/api/services` rout
 Updated the probe to the documented stable `/api/v3/services` contract and added a
 regression. The failed job remains visible; viewer and collector-outage acceptance
 still require a fresh successful exact-source execution.
+
+All ten ordinary CI jobs at `8dbce9b` passed in `36687238184`; the actual PostgreSQL
+backend passed **1,053 tests, zero skips, 86.94% branch-aware coverage**. Its unchanged
+load run passed at **359.78 ms p95**, zero failures. The viewer repair `8daa5c7`
+passed actual local collector/viewer/outage execution in `36687923599`, including
+all eleven emitted stage names. Original checksum-verified outcome files and the
+preceding failure are retained under `evaluation/reports/telemetry-*`.
+
+The same runtime at `8daa5c7` nevertheless failed load again at **571.92 ms p95**,
+zero request failures. This runner reports AMD EPYC 7763 versus the preceding
+passing Intel Xeon 6973P-C; both expose four logical CPUs. Hardware differs and
+server-stage timings rose, but causality and stable performance remain unproven.
+Both exact reports remain preserved. No reference normalization or gate waiver.
+
+The actual tracing logs exposed Uvicorn's default raw URL/query/client-address
+access records. Added fixed-field access records and fixed-code lifecycle/error
+records, replacing unsafe duplicate handlers. Eighty-one local affected tests,
+including a real loopback Uvicorn request/error canary test, pass on the new dirty
+working source; exact committed-source verification remains pending for this repair.
+The gateway configuration now uses the same method/status-only logging contract.
+Added real success and stopped-upstream 502 query-canary checks to the Docker
+recovery smoke gate. Proxy error detail is intentionally omitted because the
+unstructured Nginx error format cannot redact request targets; actual fresh Docker
+verification is required before this additional boundary is certified.
+
+Prepared seven isolated safeguard mutations with baseline-first, assertion-only
+kill scoring and explicit collection/setup/provenance error states. The first
+development run recorded seven passing baselines and seven kills; 38 new runner
+regressions passed. A later concurrent edit correctly invalidated the repeat's
+provenance (zero accepted kills, seven errors), and the broader security suite
+recorded 649 passes plus one provenance assertion failure. No retries or waivers
+were used to relabel that run. Final mutation acceptance requires stable committed
+source and is separate from unchanged classifier-quality failures.
+
+Removed the historical CLI/worker coverage omissions so future backend-configured
+reports expose those untested branches too. The existing 75% regression gate is
+unchanged; the master prompt's 90% overall / 95% critical-module visibility targets
+are not claimed achieved. Dependency declarations are unchanged by this reporting
+configuration edit; both lock exports are still checked against the resolved graph.
+
+### Durable provider accounting foundation
+
+Added migration `d3a5f7c9b120`, persistent per-run request/token ceilings, scoped
+idempotent invocation records, committed-before-transport per-attempt reservations,
+immutable input revalidation, recovery fencing and safe late usage reconciliation.
+Reported usage survives rejected proposals; unknown/ambiguous spend keeps its
+reservation. Retention removes proposal text without erasing accounting. URL,
+configuration, response shape, compressed-body and total-deadline boundaries have
+targeted regressions; deadline-expired providers cannot create more requests.
+
+The local affected run passed **138 tests with five PostgreSQL-only skips**,
+including independent-session SQLite races and Alembic upgrade/downgrade/upgrade.
+Real PostgreSQL contention, expiry-during-transport and late-owner cases require
+exact-source CI. These are explicitly opt-in internal interfaces; no API/UI/job
+activation, real model invocation or paid provider evaluation occurred. Per-instance
+rate/circuit limits and text-byte reservations are not distributed rate enforcement
+or a guaranteed actual billing ceiling. M7 service integration remains unfinished.
+
+### Read-path diagnosis and bounded query repair
+
+Per-request evidence at `8daa5c7` identifies history as the failing workload's tail:
+all 23 requests above 500 ms use the history route. Read-only local SQLite profiling
+shows allocation/GC pressure but does not establish the cause on PostgreSQL/CI or
+justify disabling GC, changing serialization, caching stale scope or truncating
+denominators. None of those changes were made.
+
+Separately consolidated overview counters into one scalar-subquery SELECT instead
+of ten round-trips, retaining each table's independent project filter and every
+analysis revision's publication validation. Only category/validation fields are
+loaded for analysis counts. New multi-project, current-state, membership-revocation,
+token and SQL-projection regressions preserve the response contract. This reduces
+known query work; improvement of the strict history-dominated target still requires
+actual remeasurement on the new source.

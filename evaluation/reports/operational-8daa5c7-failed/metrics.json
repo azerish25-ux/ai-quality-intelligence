@@ -1,0 +1,153 @@
+{
+  "schema_version": "operational-benchmark-v1",
+  "source_revision": "8daa5c7e3ebb20e9c7519ae6e5e9e6a4afe79e5f",
+  "scope": "synthetic_indexed_api_reads",
+  "database": "postgresql",
+  "database_version": "17.11",
+  "workload": {
+    "runs": 1000,
+    "logical_executions": 50000,
+    "concurrency": 10,
+    "warm_samples": 200
+  },
+  "hardware": {
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "logical_cpus": 4,
+    "python": "3.13.15",
+    "reference_hardware_normalized": false
+  },
+  "database_pool": {
+    "size": 10,
+    "max_overflow": 10
+  },
+  "hardware_before": {
+    "cpu_quota": null,
+    "memory_limit": null,
+    "cpu_model": "AMD EPYC 7763 64-Core Processor",
+    "load_average": [
+      0.8017578125,
+      0.2412109375,
+      0.0849609375
+    ]
+  },
+  "hardware_after": {
+    "cpu_quota": null,
+    "memory_limit": null,
+    "cpu_model": "AMD EPYC 7763 64-Core Processor",
+    "load_average": [
+      0.986328125,
+      0.29931640625,
+      0.10595703125
+    ]
+  },
+  "api_stage_metrics": {
+    "status": "available",
+    "metrics": {
+      "schema_version": "bounded-telemetry-v1",
+      "scope": "current_process_completed_calls",
+      "export_enabled": false,
+      "stage_counts": {
+        "http": {
+          "completed_calls": 205,
+          "exception_calls": 0,
+          "duration_ms_sum": 45848.82863899987,
+          "duration_ms_max": 755.8787139999907,
+          "buckets": [
+            0,
+            2,
+            28,
+            168,
+            7,
+            0,
+            0
+          ]
+        },
+        "history": {
+          "completed_calls": 51,
+          "exception_calls": 0,
+          "duration_ms_sum": 10252.797866000039,
+          "duration_ms_max": 464.4165409999914,
+          "buckets": [
+            0,
+            0,
+            2,
+            49,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "histogram_upper_bounds_ms": [
+        5,
+        25,
+        100,
+        500,
+        2000,
+        10000,
+        "infinity"
+      ],
+      "analysis_call_categories": {},
+      "http_response_classes": {
+        "2xx": 205
+      },
+      "provider_call_outcomes": {},
+      "result_counts": {},
+      "limitations": [
+        "Process-local counters reset on restart and are not unique analysis counts",
+        "No raw artifacts, prompts, test names, credentials or user identifiers are recorded"
+      ],
+      "queue": {
+        "states": {
+          "queued": 0,
+          "running": 0,
+          "succeeded": 0,
+          "partial": 0,
+          "failed": 0,
+          "cancelled": 0,
+          "dead_lettered": 0
+        },
+        "oldest_queued_age_seconds": null
+      }
+    }
+  },
+  "seed_seconds": 5.012274513000008,
+  "cold_reads": [
+    {
+      "route": "runs",
+      "elapsed_ms": 254.17069899999944,
+      "ok": true
+    },
+    {
+      "route": "00000000-0000-0000-0000-0000000003e8",
+      "elapsed_ms": 28.547501999995006,
+      "ok": true
+    },
+    {
+      "route": "history",
+      "elapsed_ms": 119.38234499999112,
+      "ok": true
+    },
+    {
+      "route": "overview",
+      "elapsed_ms": 45.207168999993996,
+      "ok": true
+    }
+  ],
+  "warm_p95_ms": 571.9221410000017,
+  "warm_p50_ms": 272.86655800000403,
+  "failed_requests": 0,
+  "client_max_rss_kib": 146580,
+  "api_child_max_rss_kib": 158844,
+  "database_memory_measured": false,
+  "whole_stack_memory_measured": false,
+  "targets": {
+    "zero_failed_requests": true,
+    "api_read_p95_under_500ms": false
+  },
+  "limitations": [
+    "Synthetic read workload, not classification evaluation or ingestion throughput",
+    "Actual CI hardware is reported, not normalized to the 2-vCPU reference",
+    "Client timings include HTTP connection overhead; DB and whole-stack memory are not measured"
+  ]
+}
