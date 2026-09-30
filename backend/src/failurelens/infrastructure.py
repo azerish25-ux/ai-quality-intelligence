@@ -447,6 +447,7 @@ def build_infrastructure_correlation(
     window_seconds: int = DEFAULT_WINDOW_SECONDS,
     minimum_support: int = DEFAULT_MINIMUM_SUPPORT,
     persist: bool = False,
+    request_history: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if window_seconds < 0 or window_seconds > 86_400:
         raise ValueError("window_seconds must be between 0 and 86400")
@@ -457,29 +458,57 @@ def build_infrastructure_correlation(
 
     cutoff_utc = _as_utc(cutoff)
     after_utc = _as_utc(after) if after is not None else None
-    history = build_test_history(
-        session,
-        selected_execution=selected_execution,
-        selected_run=selected_run,
-        cutoff=cutoff_utc,
-        after=after_utc,
-        browser=browser,
-        match_browser=match_browser,
-        branch=branch,
-        match_branch=match_branch,
-        environment=environment,
-        match_environment=match_environment,
-        run_scope=run_scope,
-        worker_count=worker_count,
-        match_worker_count=match_worker_count,
-        shard_count=shard_count,
-        match_shard_count=match_shard_count,
-        timezone_name=timezone_name,
-        exclude_run_id=exclude_run_id,
-        strict_fingerprint=strict_fingerprint,
-        observation_limit=MAX_CORRELATION_RUNS,
-        observation_offset=0,
-    )
+    # Reuse only a complete, same-scope history calculated inside this request.
+    # This is not a cross-request cache and is never accepted from API input.
+    if request_history is not None:
+        logical = request_history.get("logical_test", {})
+        window = request_history.get("window", {})
+        filters = request_history.get("filters", {})
+        expected_logical = {"project_id": selected_run.project_id,
+            "repository": selected_run.repository, "framework": selected_run.framework,
+            "test_identity": selected_execution.test_identity, "suite": selected_execution.suite,
+            "source_path": selected_execution.source_path, "parameterization": selected_execution.parameterization}
+        expected_filters = {"browser": browser if match_browser else None, "browser_match": match_browser,
+            "branch": branch if match_branch else None, "branch_match": match_branch,
+            "environment": environment if match_environment else None, "environment_match": match_environment,
+            "run_scope": run_scope, "worker_count": worker_count if match_worker_count else None,
+            "worker_count_match": match_worker_count, "shard_count": shard_count if match_shard_count else None,
+            "shard_count_match": match_shard_count}
+        pagination = request_history.get("pagination", {})
+        observations = request_history.get("observations", [])
+        if (any(logical.get(k) != v for k, v in expected_logical.items()) or
+                any(filters.get(k) != v for k, v in expected_filters.items()) or
+                window.get("before") != cutoff_utc.isoformat() or
+                window.get("after") != (after_utc.isoformat() if after_utc else None) or
+                window.get("timezone") != timezone_name or window.get("excluded_run_id") != exclude_run_id or
+                pagination.get("offset") != 0 or pagination.get("limit", 0) < MAX_CORRELATION_RUNS or
+                len(observations) != min(pagination.get("total", -1), MAX_CORRELATION_RUNS)):
+            raise ValueError("request history scope or completeness mismatch")
+        history = request_history
+    else:
+        history = build_test_history(
+            session,
+            selected_execution=selected_execution,
+            selected_run=selected_run,
+            cutoff=cutoff_utc,
+            after=after_utc,
+            browser=browser,
+            match_browser=match_browser,
+            branch=branch,
+            match_branch=match_branch,
+            environment=environment,
+            match_environment=match_environment,
+            run_scope=run_scope,
+            worker_count=worker_count,
+            match_worker_count=match_worker_count,
+            shard_count=shard_count,
+            match_shard_count=match_shard_count,
+            timezone_name=timezone_name,
+            exclude_run_id=exclude_run_id,
+            strict_fingerprint=strict_fingerprint,
+            observation_limit=MAX_CORRELATION_RUNS,
+            observation_offset=0,
+        )
     history_members = _collapse_history_observations(history["observations"])
     run_ids = [str(item["run_id"]) for item in history_members]
     runs = {

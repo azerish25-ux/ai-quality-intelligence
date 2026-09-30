@@ -37,6 +37,7 @@ from .demo import seed_demo
 from .evidence_validation import persisted_analysis_is_publication_validated
 from .history import build_test_history
 from .infrastructure import (
+    MAX_CORRELATION_RUNS,
     build_infrastructure_correlation,
     create_infrastructure_event,
     get_infrastructure_correlation,
@@ -2137,8 +2138,8 @@ def test_history_get(
                 if execution.failure is not None
                 else None
             ),
-            observation_limit=limit,
-            observation_offset=offset,
+            observation_limit=MAX_CORRELATION_RUNS,
+            observation_offset=0,
         )
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
@@ -2168,9 +2169,14 @@ def test_history_get(
                 else None
             ),
             persist=False,
+            request_history=report,
         )
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
+    # Pagination changes only the returned rows, never any statistical denominator.
+    report["observations"] = report["observations"][offset:offset + limit]
+    report["pagination"] = {**report["pagination"], "offset": offset, "limit": limit,
+                            "returned": len(report["observations"])}
     return TestHistoryRead.model_validate(report)
 
 

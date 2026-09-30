@@ -10,7 +10,7 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from .models import (
     Analysis,
@@ -434,7 +434,6 @@ def build_test_history(
         select(TestExecution, Run)
         .join(Run, TestExecution.run_id == Run.id)
         .where(*conditions)
-        .options(selectinload(TestExecution.run))
         .order_by(
             func.coalesce(Run.started_at, Run.created_at),
             Run.id,

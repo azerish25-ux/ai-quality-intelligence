@@ -31,6 +31,27 @@ reviews must be excluded. The independent scorer retains exact source/input
 digests, five repeated decisions, baselines, a five-class confusion matrix and
 all failures. No thresholds are weakened. See [reproduction and limits](docs/campaign-evaluation.md).
 
+## Verified operational and report workflows
+
+At source `3a9a89a`, [all ten ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36677114640)
+passed, including real PostgreSQL, producer fixtures, four browser lanes, non-root
+application containers, isolated runtime networking and actual database/artifact
+backup restore with citation validation. This certifies that named source, not an
+unmeasured later commit. Frozen classifier quality targets still fail as described
+above; operational correctness is not a replacement for diagnostic acceptance.
+
+New workflows include an [authorized read-only GitHub report preview](docs/github-publication.md),
+[a bounded optional-provider proposal boundary](docs/optional-provider.md), and
+[100-run synthetic history](docs/synthetic-history.md). See the concrete
+[known-failure catalog](docs/limitations.md) and [contributor guide](CONTRIBUTING.md).
+
+Actual API-backed report captures at the verified source, using synthetic demo data:
+
+![Desktop advisory report with exact provenance and Markdown download](docs/assets/report-desktop-3a9a89a.png)
+
+[Open the narrow-screen report capture](docs/assets/report-narrow-3a9a89a.png).
+[Capture provenance and artifact digests](docs/assets/provenance.json).
+
 ## Start the stack
 
 ```bash

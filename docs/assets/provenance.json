@@ -1,0 +1,22 @@
+[
+  {
+    "file": "report-desktop-3a9a89a.png",
+    "sha256": "edb4ee3a6a5a5ab8f293a6337d1cae294bc0313be8dc5f31bce2b23f464065d3",
+    "source_revision": "3a9a89ae1080b66469e08cafe8614208f0b95c44",
+    "workflow_run": 36677114640,
+    "artifact_id": 11080308896,
+    "artifact_sha256": "6440612249a04151fe20d11f6cf938ad21333b755e5ef2b6e9b5ce9f385acbe4",
+    "kind": "actual_playwright_capture",
+    "scope": "synthetic-demo read-only report panel; not production user data"
+  },
+  {
+    "file": "report-narrow-3a9a89a.png",
+    "sha256": "60f664346f7e92bbb76e7d8d0bb3105b440899a338de88a986d094eb97ddc7c5",
+    "source_revision": "3a9a89ae1080b66469e08cafe8614208f0b95c44",
+    "workflow_run": 36677114640,
+    "artifact_id": 11079923116,
+    "artifact_sha256": "74749fa782dc15ce2a95d6b83985b5c42c7ac4f8af9f4dd9ac53f1446e2f2ab4",
+    "kind": "actual_playwright_capture",
+    "scope": "synthetic-demo read-only report panel; not production user data"
+  }
+]

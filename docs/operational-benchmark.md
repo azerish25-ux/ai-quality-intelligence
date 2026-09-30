@@ -24,3 +24,6 @@ reported separately; database and whole-stack memory remain unmeasured. API star
 readiness and seed time are outside the warm-read timing denominator and named
 separately. Actual acceptance awaits the workflow result; no performance is promised
 from the presence of the harness.
+
+The first executed measurement failed: [retained original result](../evaluation/reports/operational-4385f69-failed/README.md).
+Subsequent optimization must preserve the workload and original 500 ms target.

@@ -314,3 +314,25 @@ outcomes, actual hardware/source metadata and retained failure reports. It prese
 the original <500 ms p95 target and requires zero failed requests. Two local harness
 regressions pass; actual performance is NOT RUN until the dedicated workflow executes.
 This workload does not alter the classification corpus or evaluation denominator.
+
+### First operational measurement and evidence-preserving optimization
+
+The actual PostgreSQL load workflow at `4385f69`, run `36677790715`, completed 200
+requests at concurrency ten over 50,000 executions with zero request failures, but
+**p95 2,805.73 ms fails the unchanged 500 ms target**. The downloaded artifact's
+SHA-256 was verified; original metrics/requests are retained in
+`evaluation/reports/operational-4385f69-failed/`. Four logical runner CPUs are reported;
+no reference-hardware normalization or whole-stack memory claim is made.
+
+Inspection found the history API recomputed the same full history for infrastructure
+correlations in the same request and eagerly reloaded already selected run objects.
+It now reuses only a complete same-scope request-local history, checks logical scope,
+cutoff/cohorts and completeness, and paginates only the returned observations. There
+is no cross-request cache or stale authorization reuse. Thirty-two relevant history,
+correlation and reuse tests pass, including unchanged full denominators and rejection
+of cross-scope/incomplete inputs. The workload, target and original failed report are
+unchanged; actual performance improvement still requires the next measured run.
+
+Real desktop and narrow report-panel screenshots at verified source `3a9a89a` were
+checksum-verified and visually inspected, then added to README with exact capture
+provenance. They contain only the controlled synthetic demo.
