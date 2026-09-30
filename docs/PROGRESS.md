@@ -281,3 +281,12 @@ edge network, publishing both loopback entry points through it. API, worker and 
 remain internal-only, and the original outbound-denial assertion remains mandatory.
 Failure cleanup now prints bounded logs for diagnosis. Restore execution remains
 pending until this repaired source passes its actual Docker job.
+
+### Narrow report layout regression
+
+The first exact-source diagnostic/campaign/full-stack browser runs caught horizontal
+page overflow on narrow screens. The new report's 64-character digest was unbroken
+outside its wrapped preview region. Applied scoped wrapping to report metadata and
+flexible panel controls, and added a dedicated real narrow-browser regression for
+both collapsed and expanded report text. Original viewport assertions remain intact;
+no test was skipped or weakened. Fresh browser execution is required for this repair.

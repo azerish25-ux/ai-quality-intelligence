@@ -52,3 +52,17 @@ import { evaluationJourney } from './evaluation-journey';
 test('executed evaluation evidence and limitations remain readable on narrow screens', async ({ page, request }, info) => {
   await evaluationJourney(page, request, info);
 });
+
+test('report digest and expanded evidence text stay inside the narrow viewport', async ({ page }, info) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Load synthetic demo' }).click();
+  const panel = page.locator('#github-report');
+  await expect(panel.getByRole('button', { name: 'Download Markdown report' })).toBeVisible();
+  await panel.scrollIntoViewIfNeeded();
+  const withinViewport = () => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
+  await expect.poll(withinViewport).toBe(true);
+  await panel.getByText('Inspect sanitized report text', { exact: true }).click();
+  await expect(panel.getByLabel('Sanitized GitHub report')).toContainText('HOLD_FOR_REVIEW');
+  await expect.poll(withinViewport).toBe(true);
+  await panel.screenshot({ path: info.outputPath('github-report-narrow.png') });
+});
