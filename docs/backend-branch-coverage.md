@@ -19,14 +19,14 @@ An additional Python runtime namespace outside the current `failurelens` package
 is rejected until the collector's overall scope is explicitly expanded; it cannot
 silently disappear from the denominator.
 
-The following 33 files each have an independent 95% branch-only target. The full
+The following 34 files each have an independent 95% branch-only target. The full
 file is measured when security-sensitive work and routine work share a module.
 Paths below are relative to `backend/src/failurelens`, with `.py` implied.
 
 | Group | Files | Rationale |
 | --- | --- | --- |
 | Evidence and storage | `evidence_validation`, `contract_evidence`, `transaction_evidence`, `domain_evidence`, `binary_evidence`, `trace_evidence`, `github_evidence`, `storage`, `image_codec`, `image_worker` | Evidence scope, integrity, availability, bounded parsing and decoding |
-| Authorization and configuration | `auth`, `accounts`, `config`, `api`, `operations_api`, `binary_api`, `provider_api`, `github_api` | Identity, roles, deployment configuration and mixed API permission boundaries |
+| Authorization and configuration | `auth`, `accounts`, `config`, `db`, `api`, `operations_api`, `binary_api`, `provider_api`, `github_api` | Identity, roles, authentication transaction ownership, deployment configuration and mixed API permission boundaries |
 | Redaction | `redaction`, `redaction_keys` | Source sanitization and correlation-key handling |
 | Dangerous dismissal and reports | `analysis`, `history`, `providers`, `impact`, `github_report`, `github_report_sections`, `github_snapshot` | Non-reassurance, prior-only history, recommendations and published evidence selection |
 | Publication and provider execution | `service`, `provider_service`, `provider_jobs`, `provider_proxy`, `github_publication_service`, `github_publication` | Revalidation at shared service boundaries, provider execution and external publication |
@@ -37,6 +37,12 @@ remain in the overall denominator. Branch coverage does not establish assertion
 quality, independent held-out performance, PostgreSQL behavior, or security immunity.
 Policy changes require review before a new measurement; lowering targets or
 removing difficult files to obtain acceptance is not supported.
+
+The initial published measurement at `48e6336` declared 33 critical files. The
+subsequent authentication repair adds an independent-transaction storage validator
+to `db.py`, so this module is added to the critical policy before measuring that
+repair. Historical results retain their original 33-file policy; no old report is
+silently rescored or treated as acceptance for the expanded source.
 
 ## Fresh collection and independent checking
 

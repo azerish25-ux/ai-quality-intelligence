@@ -1151,7 +1151,7 @@
       "detector": "Secret Keyword",
       "evidence": "frontend test-only literal and assertion",
       "file": "backend/tests/test_operations.py",
-      "file_sha256": "6c6ddb6c930dcd325788e3829f6dd1ad34f5f1336bbe7399b0f3842b2a28a647",
+      "file_sha256": "d5dc23d91d4ccad716593acba496d79495f2fa280335279a8faadb9f12fde5b9",
       "occurrences": [
         {
           "context_sha256": "4aaf024ad8fe7dd6bdde60eab7d25b5ee9b9dadd77dbce1e7ae7efe8415806cb",
@@ -1170,7 +1170,7 @@
       "detector": "Secret Keyword",
       "evidence": "frontend test-only literal and assertion",
       "file": "backend/tests/test_operations.py",
-      "file_sha256": "6c6ddb6c930dcd325788e3829f6dd1ad34f5f1336bbe7399b0f3842b2a28a647",
+      "file_sha256": "d5dc23d91d4ccad716593acba496d79495f2fa280335279a8faadb9f12fde5b9",
       "occurrences": [
         {
           "context_sha256": "e2609e91fa5fe098a32dbac3dd9d5536798c87388cbb95a5e5e1c60466849e07",
@@ -1189,7 +1189,7 @@
       "detector": "Secret Keyword",
       "evidence": "test_password_change_reauthenticates_rotates_and_revokes",
       "file": "backend/tests/test_operations.py",
-      "file_sha256": "6c6ddb6c930dcd325788e3829f6dd1ad34f5f1336bbe7399b0f3842b2a28a647",
+      "file_sha256": "d5dc23d91d4ccad716593acba496d79495f2fa280335279a8faadb9f12fde5b9",
       "occurrences": [
         {
           "context_sha256": "3ca1cdd87a8f6588e4057251cf0bfa834346b145af49e24b655e8738c38e796b",

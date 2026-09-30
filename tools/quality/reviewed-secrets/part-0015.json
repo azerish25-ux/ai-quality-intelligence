@@ -1031,7 +1031,7 @@
       "detector": "Secret Keyword",
       "evidence": "The test binds a temporary SQLite database and injected fixture worker; socket connection and DNS calls are explicitly forbidden.",
       "file": "backend/tests/test_provider_deployment_fixture.py",
-      "file_sha256": "10000de42d12a5bdd9f4862205d473991058b564abf1b23d94770dd5b6573737",
+      "file_sha256": "d057a66f12961b95041620986f7b22b52bf6ced5703f0765740c76f94806046e",
       "occurrences": [
         {
           "context_sha256": "9ffebb6a9bc599e835b4739fccd3525b6a499b42a2c31fde60b97b40e2315fd8",
@@ -1050,7 +1050,7 @@
       "detector": "Secret Keyword",
       "evidence": "The workflow fixture uses an isolated test database/session factory and local TestClient with constructor-injected provider transports.",
       "file": "backend/tests/test_provider_workflow.py",
-      "file_sha256": "1a7f08fa63aef6e970fdd6e9df49f01dbfe2a07c74587d42e5841d54d6d574d9",
+      "file_sha256": "ea83a09ca65d52d383387ac08a202d6009cca909870450bc506a2a3a6a91dac6",
       "occurrences": [
         {
           "context_sha256": "f579ce117bd1fdfd2392c02d9cf3c5b75d48842d2fb5135136fa7e43e6d43ebc",
@@ -1073,11 +1073,11 @@
       "detector": "Basic Auth Credentials",
       "evidence": "The malformed-configuration test uses a reserved example hostname, requests only local API preview and asserts the canary is absent from the response and captured logs.",
       "file": "backend/tests/test_provider_workflow.py",
-      "file_sha256": "1a7f08fa63aef6e970fdd6e9df49f01dbfe2a07c74587d42e5841d54d6d574d9",
+      "file_sha256": "ea83a09ca65d52d383387ac08a202d6009cca909870450bc506a2a3a6a91dac6",
       "occurrences": [
         {
           "context_sha256": "4f424abeb91bc77eb45df80bc2c84b734ad18cb07068d63d3204f80c43af617a",
-          "line": 639
+          "line": 642
         }
       ],
       "reason": "Synthetic endpoint userinfo canary used to verify invalid-configuration rejection and log/response non-disclosure.",
@@ -1092,11 +1092,11 @@
       "detector": "Basic Auth Credentials",
       "evidence": "The malformed-configuration test uses a reserved example hostname, requests only local API preview and asserts the canary is absent from the response and captured logs.",
       "file": "backend/tests/test_provider_workflow.py",
-      "file_sha256": "1a7f08fa63aef6e970fdd6e9df49f01dbfe2a07c74587d42e5841d54d6d574d9",
+      "file_sha256": "ea83a09ca65d52d383387ac08a202d6009cca909870450bc506a2a3a6a91dac6",
       "occurrences": [
         {
           "context_sha256": "a9a3ae3a97eb8ab480dc8a4171a3e285f96a762eada1c6ffab582eba2eb4f40a",
-          "line": 645
+          "line": 648
         }
       ],
       "reason": "Synthetic proxy userinfo canary used to verify invalid-configuration rejection and log/response non-disclosure.",
@@ -1111,15 +1111,15 @@
       "detector": "Hex High Entropy String",
       "evidence": "The migration preservation regression upgrades and downgrades a temporary SQLite database to the declared durable-ledger predecessor revision.",
       "file": "backend/tests/test_provider_workflow.py",
-      "file_sha256": "1a7f08fa63aef6e970fdd6e9df49f01dbfe2a07c74587d42e5841d54d6d574d9",
+      "file_sha256": "ea83a09ca65d52d383387ac08a202d6009cca909870450bc506a2a3a6a91dac6",
       "occurrences": [
         {
           "context_sha256": "877a77d7a8cec2b1d8f8eb784cccfb4af8ad2ce9224a2ee726f5a47857b964c2",
-          "line": 903
+          "line": 906
         },
         {
           "context_sha256": "36fc7474cc6615c2eb8dd17905afef536e44ec13d002987c7eb2d5a56202e13b",
-          "line": 918
+          "line": 921
         }
       ],
       "reason": "Existing Alembic revision identifier used as the upgrade/downgrade target, not authentication material.",

@@ -132,6 +132,105 @@
       "reviewed_by": "repository agent independent source-context adjudication",
       "reviewed_on": "2026-09-30",
       "value_sha256": "bbef85e9b85f791dfa86709f1664de81955ad11ec0692d1888adfa95b9b0b3aa"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "seed_credential creates the account through supplied fixture session factories; callers use temporary SQLite files or the pg_factory disposable PostgreSQL schema. No literal copy exists outside this test module.",
+      "file": "backend/tests/test_auth_transactions.py",
+      "file_sha256": "570f45318fb5f003cf3d946f282d8b89bca089f501fe0cacd18a174850487bee",
+      "occurrences": [
+        {
+          "context_sha256": "8f5864b0c07431114f8f0b2d1dbb6e2e07df9fd53db7bb044f97aaa6192eeba9",
+          "line": 37
+        }
+      ],
+      "reason": "Synthetic password used only to create the temporary transaction-test account. It authenticates a disposable fixture account, not an external or production identity.",
+      "review_id": "m9-auth-membership-0001",
+      "review_reference": "docs/security.md",
+      "reviewed_by": "repository agent independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "31a7c60559d14274a1ac02ff0f499c77128551354e3f8bfc492ea21cb8cdacc2"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "ORIGINAL_PASSWORD flows through configuration, create_user and verify_password in bootstrap regressions using the conftest session fixture backed by tmp_path/application.db.",
+      "file": "backend/tests/test_bootstrap_security.py",
+      "file_sha256": "0690cc0c8c9215db68d5556305449cd2a6563db40fee940cafbb861b69a4a538",
+      "occurrences": [
+        {
+          "context_sha256": "fd353784251d3dafe0f91727c76d8c29620d9b2170dc1a443544aeac39ee9585",
+          "line": 13
+        }
+      ],
+      "reason": "Synthetic original bootstrap password used to create and verify accounts only in the temporary SQLite test database. Production-mode settings exercise bootstrap invariants without configuring a production service.",
+      "review_id": "m9-auth-membership-0002",
+      "review_reference": "docs/security.md",
+      "reviewed_by": "repository agent independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "eaa1c1d29bb9db15f4bfc2417a154fec398f04f2ed753d77d9284c2474454304"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "CHANGED_PASSWORD is supplied only by bootstrap-security regressions; assertions preserve the original password hash and reject verification of the changed value in temporary SQLite storage.",
+      "file": "backend/tests/test_bootstrap_security.py",
+      "file_sha256": "0690cc0c8c9215db68d5556305449cd2a6563db40fee940cafbb861b69a4a538",
+      "occurrences": [
+        {
+          "context_sha256": "51fa9609fcdb5a163dd8d6c1939f0b8a889a4d193b739701dbf1690ebcc29778",
+          "line": 14
+        }
+      ],
+      "reason": "Synthetic replacement-password canary used to prove repeated bootstrap cannot reset, elevate or reactivate existing fixture accounts. It is rejected as an account replacement and has no external identity.",
+      "review_id": "m9-auth-membership-0003",
+      "review_reference": "docs/security.md",
+      "reviewed_by": "repository agent independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3e6ce5d68883bc8d5d0e63a723af020e37510c842c48623543bc61489bb4a82c"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "Both seed_memberships create_user calls use this password. Callers use membership_factory temporary SQLite storage or pg_factory disposable PostgreSQL schemas; no literal copy exists outside this module.",
+      "file": "backend/tests/test_membership_mutations.py",
+      "file_sha256": "d9f683830d3e8f68dca08a8585848e66d756a1423b59e72da18c602d829897ee",
+      "occurrences": [
+        {
+          "context_sha256": "a453c9b5b0dc130ffa109b0b5dc8b9efab06fbdb9a7f0fe9305237fba7ce34f0",
+          "line": 63
+        },
+        {
+          "context_sha256": "5737563299eb6f88eb5735b8b55940d49391178df63e59f99fc9fb102d8f6580",
+          "line": 92
+        }
+      ],
+      "reason": "Synthetic shared password for membership-test users and newcomer creation. It authenticates only disposable fixture accounts; no production or external account uses this test literal.",
+      "review_id": "m9-auth-membership-0004",
+      "review_reference": "docs/security.md",
+      "reviewed_by": "repository agent independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "390df9f2f582d3fbcc15501c5fb34a307d5d2aa6d3eccbda67fafaa35921e813"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/source_revision matches published source and workflow 36756008925 artifact 11116428727; original ZIP SHA-256 and retained member bytes were independently recomputed without opening the excluded API log.",
+      "file": "evaluation/reports/operational-48e6336-failed/metrics.json",
+      "file_sha256": "e3e831d506e2072227624ba295a6876073a48f090f2dc7e256b08eeb2880292e",
+      "occurrences": [
+        {
+          "context_sha256": "4a20c133ca13b245c6cea3da17c1f933b93a5d08c065b620f44a8e867df00bc6",
+          "line": 3
+        }
+      ],
+      "reason": "Public 40-hex Git source revision in the exact original synthetic operational benchmark metrics; not authentication material.",
+      "review_id": "m9-operational-retention-0004",
+      "review_reference": "evaluation/reports/operational-48e6336-failed/README.md",
+      "reviewed_by": "repository agent independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "584857dc942f9e979e6a41c4a6085a7b0fe579a32fdc8bb86cca7c4fa0f8efbb"
     }
   ],
   "schema_version": 1

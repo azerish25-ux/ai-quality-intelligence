@@ -46,6 +46,7 @@ CRITICAL_GROUPS = {
         "auth",
         "accounts",
         "config",
+        "db",
         "api",
         "operations_api",
         "binary_api",

@@ -1013,3 +1013,80 @@ failed. Its branch counts were **3,045/3,840**, but failed regression execution
 cannot grant branch acceptance. The original report/data pair and logs remain
 separate from the next repaired-source run; no publication was made from this
 failed checkpoint.
+
+### Committed measurement and policy-race delivery
+
+The repaired clean local source `03df4f6` passed **2,132 backend tests with 27
+PostgreSQL-only skips**, all five legacy harnesses, the SQLite migration roundtrip,
+frontend build and **200 frontend tests**. All six offline gates passed, with
+3,120 secret candidates resolved and zero unresolved. Source and frozen inputs
+were unchanged. Branch-only coverage was **3,047/3,840 = 79.3490%**, combined
+coverage 88.5414%; the master branch gate still failed, both audits remained NOT
+RUN, and the overall verifier deliberately exited nonzero.
+
+Published `48e63361a742ef32df708fa2709ceb640e035f78` has that exact tested tree,
+`1cc91fed722247622454fb10b1486ce6f9df88fc`. In
+[CI run 36756008656](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36756008656),
+all twelve ordinary jobs pass, including **2,159 actual PostgreSQL tests with zero
+skips**, all eight immutable-policy races, all browser lanes and Docker/producer
+checks. Hosted branch coverage is **3,055/3,840 = 79.5573%**, combined coverage
+88.6295%. The independent branch job downloaded the exact source-free report/data
+pair, recomputed the evidence and correctly failed its unchanged 90%/95% targets;
+it did not fail because evidence was missing or invalid. The workflow therefore
+remains red despite passing ordinary regressions.
+
+The separate Action, provider, telemetry, mutation, full-stack, diagnostic,
+finality, campaign and source-export workflows pass. Seven independent security
+jobs pass; the required aggregate remains failed because npm audit is NOT RUN.
+The frozen classifier gate still fails. The unchanged operational workload also
+[fails at 634.498979 ms](../evaluation/reports/operational-48e6336-failed/README.md)
+on AMD EPYC 9V74: all four cold and 200 warm requests succeeded. Original metrics
+and request bytes are retained with verified artifact and member digests. None of
+these results completes the master project or establishes stable performance.
+
+### Authentication transaction and membership boundary repairs
+
+Fresh request sessions reproduced a metadata defect: successful bearer/cookie
+`/auth/me` requests flushed `last_used_at` but rolled it back when the handler
+session closed. Credential validation now owns an engine-bound transaction that
+commits and closes before returning a principal. Business transactions retain
+their own commit/rollback behavior. Tests cover invalid credentials, commit
+failure, subsequent recovery, and a failed handler whose business insert rolls
+back while successful authentication metadata remains. The timestamp records
+credential validation, including requests later denied or failed; expiry and
+permissions do not depend on it.
+
+Authentication requires independent connections using standard QueuePool/NullPool
+PostgreSQL or ordinary file-backed SQLite. Shared pools, existing Connection or
+Session bindings, per-model overrides and SQLite URI modes are rejected before
+credential access. Independent review reproduced two URI bypasses and confirmed
+their repairs open zero connections. Credential-free demo use remains supported
+with in-memory SQLite. This adds a security boundary to `db.py`, which is declared
+as the 34th critical coverage file before the next measurement; the 95% target is
+unchanged. Thirty focused transaction cases pass. Three additional real-PostgreSQL
+cases remain locally skipped and verify distinct live backend connections plus
+persistence/rollback when executed in CI.
+
+Membership review reproduced schema-valid normalized usernames escaping as HTTP
+500 and stale authorization after a concurrent actor/role/session change.
+Mutations now return 422 for invalid normalized usernames, reserve the shared
+project boundary and refresh actor, credential and membership state before
+rechecking permission. PostgreSQL uses its row lock. Independent testing also
+reproduced two successful SQLite demotions leaving zero administrators; a narrow
+SQLite no-op Project UPDATE now reserves the writer before permission/count reads.
+It does not commit or reset the caller transaction. Stale WAL upgrades fail closed,
+and existing inactive-administrator counting is unchanged.
+
+All three real-file SQLite race variants failed before repair and pass afterward.
+Independent verification observes one success, one 409, one remaining administrator
+and one success audit. The focused membership/auth/operations run passed **82
+tests with 21 PostgreSQL-only skips**; the separate original auth/provider-focused
+run passed 113 cases before the two URI regressions were added. Four new bootstrap
+security cases and the corrected existing production-bootstrap scenario pass:
+bootstrap never promotes/reactivates an existing ordinary user, replaces its
+password or creates a later administrator under a changed configuration. The prior
+existing test accidentally used demo mode for that last assertion.
+
+These changes have focused and independent review evidence. Clean full-source
+collection, exact-source PostgreSQL execution and hosted regression remain
+required before delivery; no new coverage percentage is claimed yet.

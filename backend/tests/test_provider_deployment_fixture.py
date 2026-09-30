@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from failurelens.api import app
 from failurelens.config import get_settings
-from failurelens.db import Base, get_session
+from failurelens.db import Base, get_authentication_session_factory, get_session
 from failurelens.provider_jobs import heartbeat_provider_worker, run_provider_once
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
@@ -67,6 +67,7 @@ def test_synthetic_fixture_seed_api_submission_worker_and_outage(
     monkeypatch.setattr(socket, "getaddrinfo", forbidden)
     monkeypatch.setattr(fixture_check, "eventually", tick)
     app.dependency_overrides[get_session] = sessions
+    app.dependency_overrides[get_authentication_session_factory] = lambda: factory
     try:
         fixtures = fixture_check.seed()
         assert heartbeat_provider_worker(factory, settings)

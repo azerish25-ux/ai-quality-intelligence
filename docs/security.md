@@ -29,6 +29,30 @@ Loose Thread has three authenticated principal types:
 
 Human passwords are salted with Python's maintained `scrypt` primitive. Session and ingestion secrets are generated from cryptographic randomness and only SHA-256 digests are stored. Session cookies are `HttpOnly` and `SameSite=Lax`; production configuration must also enable `Secure`. Project ingestion secrets are returned exactly once when created. Their stored record exposes only a short prefix, scope, creator, timestamps, expiry, and revocation state.
 
+Successful credential validation commits `last_used_at` in its own short database
+transaction before returning the principal. This timestamp records authentication,
+including a request whose later authorization or handler fails; it does not extend
+expiry, change retention, or grant permissions. Invalid, expired, revoked and
+inactive-user credentials are not touched. If that transaction cannot commit,
+authentication fails and the handler does not run. Handler writes retain their
+existing explicit commit and rollback behavior, and account mutations still
+revalidate the user and session under their ordered locks.
+
+Credential authentication supports PostgreSQL and file-backed SQLite with the
+standard SQLAlchemy `QueuePool` or `NullPool`, using an engine-bound `sessionmaker`
+that obtains independent database connections. SQLite must use an ordinary
+filesystem filename; `file:` URI filenames and `uri`, `mode` or `cache` URL
+parameters are rejected, including alternative in-memory VFS configurations and
+encoded URI parameter injection. In-memory/shared-cache SQLite,
+`StaticPool`, `SingletonThreadPool`, other pool types, existing Connection or
+Session bindings and per-model bind overrides are rejected before credential
+access. Custom connection creators or hooks that reuse a physical connection are
+outside this contract. Credential-free demo requests need no authentication
+Session and may still use in-memory SQLite. Tests and embedding applications that
+override handler storage must also override `get_authentication_session_factory`
+with a supported engine-bound factory; a handler Session is not authentication
+storage.
+
 Every project or resource identifier is resolved to its owning project before access is granted. A user without membership receives the same not-found response for a guessed cross-project identifier as for a missing resource. A member with insufficient privileges receives a forbidden response. Ingestion credentials cannot list projects, read evidence, inspect runs, create reviews, change settings, or act outside their assigned project.
 
 Human review, cluster correction, and impact override APIs derive the actor from the authenticated principal. Client request bodies cannot name or impersonate an actor. Security-sensitive settings and human decisions append application audit events containing the verified actor, action, project, resource, reason, result, and safe metadata. These rows are append-only through the application; they are not claimed to be cryptographically immutable against a database administrator.

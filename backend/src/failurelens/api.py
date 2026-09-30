@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections import Counter
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -11,7 +12,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session, load_only, selectinload
 
 from .auth import (
@@ -295,6 +296,59 @@ def _membership_schema(row: ProjectMembership) -> ProjectMembershipRead:
         created_at=row.created_at,
         updated_at=row.updated_at,
     )
+
+
+def _lock_membership_administrator(
+    session: Session, principal: Principal, project_id: str
+) -> Principal:
+    if session.get_bind().dialect.name == "sqlite":
+        # SQLite ignores FOR UPDATE. Reserve its writer before permission/count
+        # reads without committing or resetting a caller-owned transaction. An
+        # already-stale read snapshot must fail its upgrade, never be retried.
+        session.execute(
+            update(Project).where(Project.id == project_id).values(id=Project.id)
+        )
+    _require_project(session, principal, project_id, ProjectRole.administrator)
+    # Membership rows are distinct, so locking the edited row cannot protect the
+    # project-wide administrator count. Hold this shared boundary through commit.
+    lock_project(session, project_id)
+    if principal.kind == "user":
+        actor = (
+            session.get(User, principal.user_id, populate_existing=True)
+            if principal.user_id
+            else None
+        )
+        current = (
+            session.get(AuthSession, principal.session_id, populate_existing=True)
+            if principal.session_id
+            else None
+        )
+        if (
+            actor is None
+            or not actor.is_active
+            or current is None
+            or current.user_id != actor.id
+            or current.revoked_at is not None
+            or as_utc(current.expires_at) <= utcnow()
+        ):
+            raise HTTPException(401, "session is no longer active")
+        principal = replace(
+            principal,
+            display_name=actor.display_name,
+            system_admin=actor.is_system_admin,
+        )
+        # An earlier permission check may have cached the old membership while
+        # this transaction waited for a preceding administrator's mutation.
+        session.scalar(
+            select(ProjectMembership)
+            .where(
+                ProjectMembership.project_id == project_id,
+                ProjectMembership.user_id == actor.id,
+            )
+            .execution_options(populate_existing=True)
+        )
+    require_project_role(session, principal, project_id, ProjectRole.administrator)
+    return principal
 
 
 def _ingestion_token_schema(row: IngestionToken) -> IngestionTokenRead:
@@ -975,8 +1029,11 @@ def project_members_create(
     principal: Annotated[Principal, Depends(current_principal)],
     session: Annotated[Session, Depends(get_session)],
 ) -> ProjectMembershipRead:
-    _require_project(session, principal, project_id, ProjectRole.administrator)
-    username = normalize_username(request.username)
+    principal = _lock_membership_administrator(session, principal, project_id)
+    try:
+        username = normalize_username(request.username)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
     user = session.scalar(
         select(User)
         .where(User.username == username)
@@ -1033,7 +1090,7 @@ def project_members_update(
     principal: Annotated[Principal, Depends(current_principal)],
     session: Annotated[Session, Depends(get_session)],
 ) -> ProjectMembershipRead:
-    _require_project(session, principal, project_id, ProjectRole.administrator)
+    principal = _lock_membership_administrator(session, principal, project_id)
     row = session.scalar(
         select(ProjectMembership)
         .where(
@@ -1041,6 +1098,7 @@ def project_members_update(
             ProjectMembership.project_id == project_id,
         )
         .options(selectinload(ProjectMembership.user))
+        .execution_options(populate_existing=True)
     )
     if row is None:
         raise HTTPException(404, "membership not found")
@@ -1089,9 +1147,16 @@ def project_members_delete(
     principal: Annotated[Principal, Depends(current_principal)],
     session: Annotated[Session, Depends(get_session)],
 ) -> Response:
-    _require_project(session, principal, project_id, ProjectRole.administrator)
-    row = session.get(ProjectMembership, membership_id)
-    if row is None or row.project_id != project_id:
+    principal = _lock_membership_administrator(session, principal, project_id)
+    row = session.scalar(
+        select(ProjectMembership)
+        .where(
+            ProjectMembership.id == membership_id,
+            ProjectMembership.project_id == project_id,
+        )
+        .execution_options(populate_existing=True)
+    )
+    if row is None:
         raise HTTPException(404, "membership not found")
     if row.role == ProjectRole.administrator:
         admin_count = int(

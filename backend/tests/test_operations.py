@@ -230,8 +230,10 @@ def test_deactivation_survives_bootstrap_restart_and_preserves_attribution(
     ensure_bootstrap_administrator(
         session,
         Settings(
+            demo_mode=False,
             bootstrap_admin_username="other-bootstrap",
             bootstrap_admin_password=PASSWORD,
+            session_cookie_secure=True,
         ),
     )
     assert (

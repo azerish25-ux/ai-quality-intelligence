@@ -75,3 +75,11 @@ either set. Stage/failure diagnostics now also record unsuccessful initializatio
 seeding, startup, readiness and measurement, with bounded process cleanup. The
 successful-warm timing denominator, workload and 500 ms target are unchanged;
 none of these results establishes stable or reference-hardware acceptance.
+
+The next exact published source `48e6336`
+[fails at 634.50 ms](../evaluation/reports/operational-48e6336-failed/README.md)
+on AMD EPYC 9V74 in
+[run 36756008925](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36756008925).
+All four cold and 200 warm requests succeeded, and measurement completed. Its
+original bytes, source/run/job binding and independently recomputed percentiles
+are retained. This additional failure does not replace any earlier result.

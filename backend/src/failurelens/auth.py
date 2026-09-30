@@ -10,10 +10,10 @@ from typing import Annotated, Literal
 
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, selectinload, sessionmaker
 
 from .config import Settings, get_settings
-from .db import get_session
+from .db import get_authentication_session_factory, validate_authentication_storage
 from .models import (
     AuditEvent,
     AuthSession,
@@ -314,25 +314,31 @@ def _authenticate_ingestion_token(session: Session, raw_token: str) -> Principal
 
 def current_principal(
     request: Request,
-    session: Annotated[Session, Depends(get_session)],
+    factory: Annotated[
+        sessionmaker[Session], Depends(get_authentication_session_factory)
+    ],
 ) -> Principal:
     settings = get_settings()
     raw_token = _extract_raw_token(request, settings)
     if raw_token:
-        principal: Principal | None
-        if raw_token.startswith("fls_"):
-            principal = _authenticate_session(session, raw_token)
-        elif raw_token.startswith("fli_"):
-            principal = _authenticate_ingestion_token(session, raw_token)
-        else:
-            principal = _authenticate_session(session, raw_token)
-            if principal is None:
+        validate_authentication_storage(factory)
+        # Finish the metadata transaction before publishing the principal or
+        # opening a handler's transaction. A commit failure fails authentication.
+        with factory.begin() as session:
+            principal: Principal | None
+            if raw_token.startswith("fls_"):
+                principal = _authenticate_session(session, raw_token)
+            elif raw_token.startswith("fli_"):
                 principal = _authenticate_ingestion_token(session, raw_token)
-        if principal is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="credential is invalid, expired, or revoked",
-            )
+            else:
+                principal = _authenticate_session(session, raw_token)
+                if principal is None:
+                    principal = _authenticate_ingestion_token(session, raw_token)
+            if principal is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="credential is invalid, expired, or revoked",
+                )
         request.state.principal = principal
         return principal
     if settings.demo_mode:

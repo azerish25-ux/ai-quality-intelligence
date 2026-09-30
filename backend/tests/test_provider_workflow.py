@@ -13,7 +13,7 @@ from failurelens import models as m
 from failurelens.api import app
 from failurelens.auth import Principal, create_auth_session, create_user
 from failurelens.config import Settings
-from failurelens.db import get_session
+from failurelens.db import get_authentication_session_factory, get_session
 from failurelens.jobs import claim_next
 from failurelens.provider_jobs import (
     ApplicationAttemptBudget,
@@ -94,6 +94,9 @@ def workflow(ledger_factory, monkeypatch):
             yield session
 
     app.dependency_overrides[get_session] = sessions
+    app.dependency_overrides[get_authentication_session_factory] = lambda: (
+        ledger_factory
+    )
     client = TestClient(app)
     client.headers["Authorization"] = f"Bearer {token}"
     base = "/api/v1/projects/{project_id}/runs/{run_id}/analyses/{analysis_id}/provider".format(

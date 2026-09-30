@@ -130,7 +130,7 @@ def revoke_session(
     principal: Annotated[Principal, Depends(current_principal)],
     session: Annotated[Session, Depends(get_session)],
 ):
-    session.rollback()  # discard authentication touch before ordered account locks
+    session.rollback()  # start a fresh handler transaction before ordered account locks
     user_id = _human(principal)
     accounts.active_actor(session, principal)
     row = session.scalar(
@@ -188,7 +188,7 @@ def revoke_user_sessions(
     principal: Annotated[Principal, Depends(current_principal)],
     session: Annotated[Session, Depends(get_session)],
 ):
-    session.rollback()  # discard authentication touch before ordered account locks
+    session.rollback()  # start a fresh handler transaction before ordered account locks
     accounts._admin_lock(session, principal, user_id, body.current_password)
     accounts.revoke_all(session, user_id)
     record_audit_event(
@@ -210,7 +210,7 @@ def change_password(
     principal: Annotated[Principal, Depends(current_principal)],
     session: Annotated[Session, Depends(get_session)],
 ):
-    session.rollback()  # discard authentication touch before ordered account locks
+    session.rollback()  # start a fresh handler transaction before ordered account locks
     user = accounts.verify_actor(session, principal, body.current_password)
     user.password_hash = hash_password(body.new_password)
     user.lifecycle_version += 1
@@ -247,7 +247,7 @@ def update_account(
     principal: Annotated[Principal, Depends(current_principal)],
     session: Annotated[Session, Depends(get_session)],
 ):
-    session.rollback()  # discard authentication touch before ordered account locks
+    session.rollback()  # start a fresh handler transaction before ordered account locks
     return accounts.change_account(
         session,
         principal,
@@ -268,7 +268,7 @@ def create_recovery(
     principal: Annotated[Principal, Depends(current_principal)],
     session: Annotated[Session, Depends(get_session)],
 ):
-    session.rollback()  # discard authentication touch before ordered account locks
+    session.rollback()  # start a fresh handler transaction before ordered account locks
     user, recovery, token = accounts.issue_recovery(
         session,
         principal,
