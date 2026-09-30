@@ -1,5 +1,7 @@
 def test_api_vertical_slice(client) -> None:
-    project_response = client.post("/api/v1/projects", json={"slug": "api-project", "name": "API Project"})
+    project_response = client.post(
+        "/api/v1/projects", json={"slug": "api-project", "name": "API Project"}
+    )
     assert project_response.status_code == 201
     project_id = project_response.json()["id"]
     ingestion = client.post(
@@ -9,12 +11,14 @@ def test_api_vertical_slice(client) -> None:
             "repository": "owner/repo",
             "commit_sha": "abcdef0",
             "expected_inputs": 1,
-            "observations": [{
-                "test_identity": "payments::duplicate",
-                "outcome": "failed",
-                "message": "duplicate committed transfer caused ledger unbalanced",
-                "details": {"data_integrity_violation": True},
-            }],
+            "observations": [
+                {
+                    "test_identity": "payments::duplicate",
+                    "outcome": "failed",
+                    "message": "duplicate committed transfer caused ledger unbalanced",
+                    "details": {"data_integrity_violation": True},
+                }
+            ],
         },
     )
     assert ingestion.status_code == 202
@@ -26,7 +30,11 @@ def test_api_vertical_slice(client) -> None:
     assert analysis.json()["category"] == "product_defect"
     review = client.post(
         f"/api/v1/analyses/{analysis.json()['analysis_id']}/reviews",
-        json={"decision": "accept", "reason": "Evidence demonstrates the duplicate committed effect", "expected_version": 0},
+        json={
+            "decision": "accept",
+            "reason": "Evidence demonstrates the duplicate committed effect",
+            "expected_version": 0,
+        },
     )
     assert review.status_code == 201
     assert review.json()["version"] == 1
@@ -53,10 +61,11 @@ def test_overview_and_demo_seed(client) -> None:
     assert sorted(item["member_count"] for item in clusters) == [1, 2]
 
 
-def test_evidence_endpoint_exposes_only_safe_derivative_metadata(client, session) -> None:
-    from sqlalchemy import select
-
+def test_evidence_endpoint_exposes_only_safe_derivative_metadata(
+    client, session
+) -> None:
     from failurelens.models import Evidence, Failure
+    from sqlalchemy import select
 
     project_response = client.post(
         "/api/v1/projects",
@@ -136,7 +145,9 @@ def test_cluster_api_exposes_explanations_revisions_and_review(client) -> None:
         assert response.status_code == 202
         run_id = response.json()["id"]
         run_ids.append(run_id)
-        failure_ids.append(client.get(f"/api/v1/runs/{run_id}/failures").json()[0]["id"])
+        failure_ids.append(
+            client.get(f"/api/v1/runs/{run_id}/failures").json()[0]["id"]
+        )
 
     overview = client.get("/api/v1/overview").json()
     assert overview["clusters"] == 1
@@ -150,9 +161,7 @@ def test_cluster_api_exposes_explanations_revisions_and_review(client) -> None:
     assert cluster["member_count"] == 2
     assert cluster["representative_test_identity"] == "checkout::payment"
 
-    run_clusters = client.get(
-        f"/api/v1/runs/{run_ids[0]}/clusters?limit=1&offset=0"
-    )
+    run_clusters = client.get(f"/api/v1/runs/{run_ids[0]}/clusters?limit=1&offset=0")
     assert run_clusters.status_code == 200
     assert [item["id"] for item in run_clusters.json()] == [cluster["id"]]
 
@@ -253,51 +262,70 @@ def test_cluster_detail_includes_incoming_merge_decision(client) -> None:
     assert decisions[0]["target_cluster_id"] == target["id"]
 
 
-def test_run_detail_envelope_matches_openapi_and_lifecycle_fields(client, session) -> None:
+def test_run_detail_envelope_matches_openapi_and_lifecycle_fields(
+    client, session
+) -> None:
     from datetime import timedelta
+
     from failurelens.models import Run, utcnow
     from failurelens.schemas import RunDetailRead
 
-    seeded = client.post('/api/v1/demo/seed').json()
-    run = session.get(Run, seeded['run_id'])
+    seeded = client.post("/api/v1/demo/seed").json()
+    run = session.get(Run, seeded["run_id"])
     run.evidence_expired_at = utcnow() - timedelta(seconds=1)
     session.commit()
     response = client.get(f"/api/v1/runs/{run.id}")
     assert response.status_code == 200
     payload = response.json()
-    assert set(payload) == {'run', 'failure_types', 'failure_count'}
+    assert set(payload) == {"run", "failure_types", "failure_count"}
     parsed = RunDetailRead.model_validate(payload)
     assert parsed.run.id == run.id
-    assert parsed.run.project_id == seeded['project_id']
+    assert parsed.run.project_id == seeded["project_id"]
     assert parsed.run.evidence_expired_at is not None
     assert parsed.failure_count == 3
-    schema = client.get('/openapi.json').json()
-    response_schema = schema['paths']['/api/v1/runs/{run_id}']['get']['responses']['200']['content']['application/json']['schema']
-    assert response_schema['$ref'] == '#/components/schemas/RunDetailRead'
+    schema = client.get("/openapi.json").json()
+    response_schema = schema["paths"]["/api/v1/runs/{run_id}"]["get"]["responses"][
+        "200"
+    ]["content"]["application/json"]["schema"]
+    assert response_schema["$ref"] == "#/components/schemas/RunDetailRead"
 
 
 def test_demo_seed_returns_its_own_run_when_newer_runs_exist(client) -> None:
-    seeded = client.post('/api/v1/demo/seed').json()
-    newer = client.post(f"/api/v1/projects/{seeded['project_id']}/ingestions", json={
-        'external_id': 'newer-non-demo-run',
-        'observations': [{'test_identity': 'passing-control', 'outcome': 'passed'}],
-    })
+    seeded = client.post("/api/v1/demo/seed").json()
+    newer = client.post(
+        f"/api/v1/projects/{seeded['project_id']}/ingestions",
+        json={
+            "external_id": "newer-non-demo-run",
+            "observations": [{"test_identity": "passing-control", "outcome": "passed"}],
+        },
+    )
     assert newer.status_code == 202
-    assert newer.json()['id'] != seeded['run_id']
-    repeated = client.post('/api/v1/demo/seed')
+    assert newer.json()["id"] != seeded["run_id"]
+    repeated = client.post("/api/v1/demo/seed")
     assert repeated.status_code == 200
     assert repeated.json() == seeded
-    assert client.get(f"/api/v1/runs/{seeded['run_id']}").json()['failure_count'] == 3
+    assert client.get(f"/api/v1/runs/{seeded['run_id']}").json()["failure_count"] == 3
 
 
 def test_run_detail_keeps_failures_without_exception_types(client) -> None:
-    project = client.post('/api/v1/projects', json={'slug': 'untyped-failure', 'name': 'Untyped'}).json()
-    response = client.post(f"/api/v1/projects/{project['id']}/ingestions", json={
-        'external_id': 'missing-exception-type',
-        'observations': [{'test_identity': 'unknown-error', 'outcome': 'failed', 'message': 'ambiguous failure'}],
-    })
+    project = client.post(
+        "/api/v1/projects", json={"slug": "untyped-failure", "name": "Untyped"}
+    ).json()
+    response = client.post(
+        f"/api/v1/projects/{project['id']}/ingestions",
+        json={
+            "external_id": "missing-exception-type",
+            "observations": [
+                {
+                    "test_identity": "unknown-error",
+                    "outcome": "failed",
+                    "message": "ambiguous failure",
+                }
+            ],
+        },
+    )
     assert response.status_code == 202
     detail = client.get(f"/api/v1/runs/{response.json()['id']}")
     assert detail.status_code == 200
-    assert detail.json()['failure_count'] == 1
-    assert sum(detail.json()['failure_types'].values()) == 1
+    assert detail.json()["failure_count"] == 1
+    assert sum(detail.json()["failure_types"].values()) == 1

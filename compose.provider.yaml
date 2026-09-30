@@ -1,0 +1,84 @@
+# Explicit optional model deployment; never use without operator approval.
+# docker compose -f compose.yaml -f compose.provider.yaml --profile provider up --build
+services:
+  db:
+    environment:
+      POSTGRES_PASSWORD: ${FAILURELENS_PROVIDER_DATABASE_PASSWORD:?Set a private operator PostgreSQL password}
+  api:
+    # Bootstrap credentials are separate from the model credential and stay in
+    # the API only. Use a fresh secured database with trusted accounts.
+    env_file:
+      - ${FAILURELENS_PROVIDER_API_ENV_FILE:?Set the private API bootstrap environment file}
+    environment: &provider-metadata
+      FAILURELENS_DATABASE_URL: ${FAILURELENS_PROVIDER_DATABASE_URL:?Set the private operator PostgreSQL connection URL}
+      FAILURELENS_DEMO_MODE: "false"
+      FAILURELENS_SESSION_COOKIE_SECURE: "true"
+      FAILURELENS_PROVIDER_ENABLED: "true"
+      FAILURELENS_PROVIDER_ID: ${FAILURELENS_PROVIDER_ID:?Set an operator provider ID}
+      FAILURELENS_PROVIDER_ALLOWED_PROJECT_IDS: ${FAILURELENS_PROVIDER_ALLOWED_PROJECT_IDS:?Set explicit approved project IDs}
+      FAILURELENS_PROVIDER_ENDPOINT: ${FAILURELENS_PROVIDER_ENDPOINT:?Set the approved HTTPS endpoint on port 443}
+      FAILURELENS_PROVIDER_MODEL: ${FAILURELENS_PROVIDER_MODEL:?Set the approved model}
+      FAILURELENS_PROVIDER_PROXY: http://provider-proxy:8080
+      FAILURELENS_PROVIDER_TIMEOUT_SECONDS: "20"
+      FAILURELENS_PROVIDER_MAX_ATTEMPTS: "1"
+      FAILURELENS_PROVIDER_CONCURRENCY: "2"
+      FAILURELENS_PROVIDER_MIN_INTERVAL_SECONDS: "1"
+      FAILURELENS_PROVIDER_MAX_RUN_REQUESTS: "5"
+      FAILURELENS_PROVIDER_MAX_RUN_RESERVED_TOKENS: "20000"
+  worker:
+    environment:
+      FAILURELENS_DATABASE_URL: ${FAILURELENS_PROVIDER_DATABASE_URL:?Set the private operator PostgreSQL connection URL}
+      FAILURELENS_DEMO_MODE: "false"
+      FAILURELENS_SESSION_COOKIE_SECURE: "true"
+  provider-worker:
+    profiles: [provider]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["python", "-m", "failurelens.provider_jobs"]
+    # This operator-controlled file contains FAILURELENS_PROVIDER_TOKEN only.
+    # It is never mounted into, or loaded by, the API, normal worker or proxy.
+    env_file:
+      - ${FAILURELENS_PROVIDER_WORKER_ENV_FILE:?Set the worker-only credential environment file}
+    environment:
+      <<: *provider-metadata
+      FAILURELENS_ARTIFACT_ROOT: /var/lib/failurelens/artifacts
+    depends_on:
+      api:
+        condition: service_healthy
+      provider-proxy:
+        condition: service_healthy
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    cpus: 0.5
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=32m"]
+    volumes:
+      - failurelens-artifacts:/var/lib/failurelens/artifacts:ro
+    networks: [failurelens, provider-egress]
+  provider-proxy:
+    profiles: [provider]
+    build:
+      context: .
+      dockerfile: integrations/provider/Dockerfile
+    environment:
+      FAILURELENS_PROVIDER_PROXY_HOST: ${FAILURELENS_PROVIDER_PROXY_HOST:?Set the exact approved endpoint DNS hostname}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8080), timeout=2).close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 64m
+    cpus: 0.5
+    networks: [provider-egress, provider-outbound]
+
+networks:
+  provider-egress:
+    driver: bridge
+    internal: true
+  provider-outbound:
+    driver: bridge

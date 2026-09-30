@@ -5,9 +5,10 @@ import json
 import math
 import statistics
 from collections import Counter
+from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from fnmatch import fnmatchcase
-from typing import Any, Iterable
+from typing import Any, TypedDict
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -26,9 +27,9 @@ from .schemas import (
     PerformanceBaselineMemberRead,
     PerformanceBaselineRead,
     PerformanceComparisonRead,
+    PerformanceObservationRead,
     PerformancePolicyCreate,
     PerformancePolicyRead,
-    PerformanceObservationRead,
 )
 
 PERFORMANCE_ENGINE_VERSION = "performance-engine-v1"
@@ -108,14 +109,20 @@ def canonicalize_value(value: float, unit: str) -> tuple[float, str]:
     if not math.isfinite(value):
         raise ValueError("performance values must be finite")
     normalized = unit.strip() or "unknown"
-    canonical = "ms" if normalized in {"ns", "us", "µs", "ms", "s"} else (
-        "B" if normalized in {"B", "KB", "MB", "GB", "KiB", "MiB", "GiB"} else (
-            "ratio" if normalized in {"ratio", "percent"} else normalized
+    canonical = (
+        "ms"
+        if normalized in {"ns", "us", "µs", "ms", "s"}
+        else (
+            "B"
+            if normalized in {"B", "KB", "MB", "GB", "KiB", "MiB", "GiB"}
+            else ("ratio" if normalized in {"ratio", "percent"} else normalized)
         )
     )
     factor = _EXPLICIT_UNIT_CONVERSIONS.get((normalized, canonical))
     if factor is None:
-        raise ValueError(f"unsupported performance unit conversion: {normalized} -> {canonical}")
+        raise ValueError(
+            f"unsupported performance unit conversion: {normalized} -> {canonical}"
+        )
     return value * factor, canonical
 
 
@@ -127,13 +134,23 @@ def infer_metric_direction(
     contains: str | None = None,
 ) -> str:
     lowered = metric_name.casefold()
-    if metric_scope == "test_duration" or contains == "time" or "duration" in lowered or "latency" in lowered:
+    if (
+        metric_scope == "test_duration"
+        or contains == "time"
+        or "duration" in lowered
+        or "latency" in lowered
+    ):
         return "lower_is_better"
     if any(token in lowered for token in ("error", "fail", "dropped", "timeout")):
         return "lower_is_better"
-    if any(token in lowered for token in ("throughput", "requests_per_second", "iterations_per_second")):
+    if any(
+        token in lowered
+        for token in ("throughput", "requests_per_second", "iterations_per_second")
+    ):
         return "higher_is_better"
-    if statistic in {"rate", "throughput"} and any(token in lowered for token in ("http_reqs", "iterations", "requests")):
+    if statistic in {"rate", "throughput"} and any(
+        token in lowered for token in ("http_reqs", "iterations", "requests")
+    ):
         return "higher_is_better"
     return "neutral"
 
@@ -156,7 +173,8 @@ def build_observation_dimensions(
         "run_scope": run.run_scope,
         "producer": producer,
         "producer_version": producer_version,
-        "load_profile": metadata.get("load_profile") or metadata.get("workload_profile"),
+        "load_profile": metadata.get("load_profile")
+        or metadata.get("workload_profile"),
         "region": metadata.get("region"),
         "executor": metadata.get("executor") or metadata.get("runner"),
         "framework": run.framework,
@@ -195,7 +213,9 @@ def register_performance_observation(
 ) -> PerformanceObservation:
     if sample_count is not None and sample_count < 0:
         raise ValueError("performance sample count cannot be negative")
-    canonical_value, canonical_unit = canonicalize_value(float(original_value), original_unit)
+    canonical_value, canonical_unit = canonicalize_value(
+        float(original_value), original_unit
+    )
     normalized_dimensions = normalize_dimensions(dimensions)
     resolved_direction = direction or infer_metric_direction(
         metric_name,
@@ -221,8 +241,12 @@ def register_performance_observation(
         )
     )
     if existing is not None:
-        if not math.isclose(existing.canonical_value, canonical_value, rel_tol=0, abs_tol=1e-12):
-            raise ValueError("performance observation identity already exists with a different value")
+        if not math.isclose(
+            existing.canonical_value, canonical_value, rel_tol=0, abs_tol=1e-12
+        ):
+            raise ValueError(
+                "performance observation identity already exists with a different value"
+            )
         return existing
     row = PerformanceObservation(
         project_id=project_id,
@@ -249,7 +273,9 @@ def register_performance_observation(
         threshold_details=threshold_details,
         source_digest=source_digest,
         source_locator=source_locator,
-        observed_at=_utc(observed_at or run.ended_at or run.started_at or run.created_at),
+        observed_at=_utc(
+            observed_at or run.ended_at or run.started_at or run.created_at
+        ),
     )
     session.add(row)
     session.flush()
@@ -282,8 +308,12 @@ def create_performance_policy(
             "required_dimensions": existing.required_dimensions,
             "direction_overrides": existing.direction_overrides,
         }
-        if _canonical_digest(existing_payload) != _canonical_digest(_policy_payload(request)):
-            raise ValueError("performance policy version already exists with different immutable content")
+        if _canonical_digest(existing_payload) != _canonical_digest(
+            _policy_payload(request)
+        ):
+            raise ValueError(
+                "performance policy version already exists with different immutable content"
+            )
         return existing
     row = PerformancePolicy(
         project_id=project.id,
@@ -314,7 +344,9 @@ def create_performance_policy(
     return row
 
 
-def ensure_default_performance_policy(session: Session, project: Project) -> PerformancePolicy:
+def ensure_default_performance_policy(
+    session: Session, project: Project
+) -> PerformancePolicy:
     existing = session.scalar(
         select(PerformancePolicy)
         .where(PerformancePolicy.project_id == project.id)
@@ -371,7 +403,10 @@ def _candidate_reasons(
         reasons.append("not_prior_to_current_run")
     if candidate_run.completeness != "complete":
         reasons.append("baseline_run_incomplete")
-    if policy.require_trusted and _comparison_trust(candidate_run) not in TRUSTED_COMPARISON_SOURCES:
+    if (
+        policy.require_trusted
+        and _comparison_trust(candidate_run) not in TRUSTED_COMPARISON_SOURCES
+    ):
         reasons.append("baseline_run_untrusted")
     age = cutoff - _utc(candidate.observed_at)
     if age > timedelta(days=policy.max_baseline_age_days):
@@ -443,7 +478,10 @@ def build_performance_baseline(
     current_blockers: list[str] = []
     if current_run.completeness != "complete":
         current_blockers.append("current_run_incomplete")
-    if policy.require_trusted and _comparison_trust(current_run) not in TRUSTED_COMPARISON_SOURCES:
+    if (
+        policy.require_trusted
+        and _comparison_trust(current_run) not in TRUSTED_COMPARISON_SOURCES
+    ):
         current_blockers.append("current_run_untrusted")
     if not current.evidence_id:
         current_blockers.append("current_evidence_missing")
@@ -459,7 +497,9 @@ def build_performance_baseline(
                 PerformanceObservation.observed_at < cutoff,
             )
             .options(selectinload(PerformanceObservation.run))
-            .order_by(PerformanceObservation.observed_at.desc(), PerformanceObservation.id)
+            .order_by(
+                PerformanceObservation.observed_at.desc(), PerformanceObservation.id
+            )
             .limit(MAX_BASELINE_CANDIDATES)
         ).all()
     )
@@ -476,7 +516,7 @@ def build_performance_baseline(
         if candidate.run_id in seen_runs:
             reasons.append("duplicate_metric_in_run")
         if reasons or current_blockers:
-            all_reasons = sorted(set([*reasons, *current_blockers]))
+            all_reasons = sorted({*reasons, *current_blockers})
             reason_counts.update(all_reasons)
             if len(rejected) < MAX_REJECTED_CANDIDATES_RECORDED:
                 rejected.append(
@@ -527,7 +567,8 @@ def build_performance_baseline(
         "minimum_baseline_runs": policy.min_baseline_runs,
         "current_blockers": current_blockers,
         "rejected_reason_counts": dict(sorted(reason_counts.items())),
-        "rejected_candidates_truncated": len(rejected) < len(candidates) - len(accepted),
+        "rejected_candidates_truncated": len(rejected)
+        < len(candidates) - len(accepted),
         "prior_only_cutoff": cutoff.isoformat(),
         "unit_conversion": "explicit_lossless_only",
     }
@@ -608,11 +649,20 @@ def build_performance_baseline(
     return snapshot
 
 
-def _policy_direction(policy: PerformancePolicy, observation: PerformanceObservation) -> str:
+def _policy_direction(
+    policy: PerformancePolicy, observation: PerformanceObservation
+) -> str:
     for pattern, direction in sorted(policy.direction_overrides.items()):
         if fnmatchcase(observation.metric_name, pattern):
             return direction
     return observation.direction
+
+
+class PerformanceChange(TypedDict):
+    status: str
+    absolute_change: float
+    relative_change: float | None
+    allowed_absolute_change: float
 
 
 def classify_performance_change(
@@ -622,17 +672,21 @@ def classify_performance_change(
     direction: str,
     absolute_tolerance: float,
     relative_tolerance: float,
-) -> dict[str, float | str | None]:
+) -> PerformanceChange:
     delta = current_value - baseline_value
     relative = delta / abs(baseline_value) if baseline_value != 0 else None
     allowed = max(absolute_tolerance, abs(baseline_value) * relative_tolerance)
     if direction == "lower_is_better":
-        status = "REGRESSION" if delta > allowed else (
-            "IMPROVEMENT" if delta < -allowed else "WITHIN_TOLERANCE"
+        status = (
+            "REGRESSION"
+            if delta > allowed
+            else ("IMPROVEMENT" if delta < -allowed else "WITHIN_TOLERANCE")
         )
     elif direction == "higher_is_better":
-        status = "REGRESSION" if delta < -allowed else (
-            "IMPROVEMENT" if delta > allowed else "WITHIN_TOLERANCE"
+        status = (
+            "REGRESSION"
+            if delta < -allowed
+            else ("IMPROVEMENT" if delta > allowed else "WITHIN_TOLERANCE")
         )
     else:
         status = "INCONCLUSIVE"
@@ -671,7 +725,9 @@ def create_performance_comparison(
     commit: bool = True,
 ) -> PerformanceComparison:
     if current.project_id != policy.project_id:
-        raise ValueError("performance observation and policy belong to different projects")
+        raise ValueError(
+            "performance observation and policy belong to different projects"
+        )
     baseline = build_performance_baseline(session, current, policy, commit=False)
     direction = _policy_direction(policy, current)
     status = baseline.status
@@ -695,7 +751,11 @@ def create_performance_comparison(
             else None
         )
         allowed_absolute_change = float(classified["allowed_absolute_change"])
-        if baseline.baseline_mad and baseline.baseline_mad > 0 and baseline.run_count >= 3:
+        if (
+            baseline.baseline_mad
+            and baseline.baseline_mad > 0
+            and baseline.run_count >= 3
+        ):
             effect_size = absolute_change / (1.4826 * baseline.baseline_mad)
 
     confounders: list[str] = []
@@ -708,9 +768,13 @@ def create_performance_comparison(
     if baseline.baseline_value == 0:
         confounders.append("relative_change_unavailable_for_zero_baseline")
     if current.threshold_status == "failed" and status != "REGRESSION":
-        confounders.append("producer_threshold_failed_without_compatible_regression_attribution")
+        confounders.append(
+            "producer_threshold_failed_without_compatible_regression_attribution"
+        )
     if current.threshold_status == "passed" and status == "REGRESSION":
-        confounders.append("producer_threshold_passed_but_baseline_policy_detected_regression")
+        confounders.append(
+            "producer_threshold_passed_but_baseline_policy_detected_regression"
+        )
     confounders.append("no_statistical_significance_claim_from_single_current_summary")
 
     uncertainty = {
@@ -829,23 +893,29 @@ def create_run_performance_comparisons(
     if requested:
         query = query.where(PerformanceObservation.id.in_(requested))
     observations = list(
-        session.scalars(query.order_by(PerformanceObservation.metric_name, PerformanceObservation.statistic)).all()
+        session.scalars(
+            query.order_by(
+                PerformanceObservation.metric_name, PerformanceObservation.statistic
+            )
+        ).all()
     )
     if requested and {item.id for item in observations} != set(requested):
-        raise ValueError("one or more performance observations do not belong to this run")
+        raise ValueError(
+            "one or more performance observations do not belong to this run"
+        )
     if not observations:
         raise ValueError("run has no normalized performance observations")
     rows: list[PerformanceComparison] = []
     for observation in observations:
-        rows.append(create_performance_comparison(session, observation, policy, commit=False))
+        rows.append(
+            create_performance_comparison(session, observation, policy, commit=False)
+        )
     try:
         session.commit()
     except IntegrityError:
         session.rollback()
         raise
-    return [
-        get_performance_comparison(session, row.id) or row for row in rows
-    ]
+    return [get_performance_comparison(session, row.id) or row for row in rows]
 
 
 def list_run_performance_observations(
@@ -892,18 +962,20 @@ def list_run_performance_comparisons(
 
 
 def performance_policy_to_schema(row: PerformancePolicy) -> PerformancePolicyRead:
-    return PerformancePolicyRead(
-        id=row.id,
-        project_id=row.project_id,
-        version=row.version,
-        relative_tolerance=row.relative_tolerance,
-        absolute_tolerance=row.absolute_tolerance,
-        min_baseline_runs=row.min_baseline_runs,
-        max_baseline_age_days=row.max_baseline_age_days,
-        require_trusted=row.require_trusted,
-        required_dimensions=row.required_dimensions,
-        direction_overrides=row.direction_overrides,
-        created_at=row.created_at,
+    return PerformancePolicyRead.model_validate(
+        {
+            "id": row.id,
+            "project_id": row.project_id,
+            "version": row.version,
+            "relative_tolerance": row.relative_tolerance,
+            "absolute_tolerance": row.absolute_tolerance,
+            "min_baseline_runs": row.min_baseline_runs,
+            "max_baseline_age_days": row.max_baseline_age_days,
+            "require_trusted": row.require_trusted,
+            "required_dimensions": row.required_dimensions,
+            "direction_overrides": row.direction_overrides,
+            "created_at": row.created_at,
+        }
     )
 
 
@@ -1036,11 +1108,16 @@ def evaluate_performance_fixture_case(case: dict[str, Any]) -> dict[str, Any]:
 
     current = dict(case["current"])
     policy = dict(case["policy"])
-    required_dimensions = list(policy.get("required_dimensions", DEFAULT_REQUIRED_DIMENSIONS))
+    required_dimensions = list(
+        policy.get("required_dimensions", DEFAULT_REQUIRED_DIMENSIONS)
+    )
     current_blockers: list[str] = []
     if current.get("completeness") != "complete":
         current_blockers.append("current_run_incomplete")
-    if policy.get("require_trusted", True) and current.get("trust") not in TRUSTED_COMPARISON_SOURCES:
+    if (
+        policy.get("require_trusted", True)
+        and current.get("trust") not in TRUSTED_COMPARISON_SOURCES
+    ):
         current_blockers.append("current_run_untrusted")
     if not current.get("evidence_id"):
         current_blockers.append("current_evidence_missing")
@@ -1079,11 +1156,16 @@ def evaluate_performance_fixture_case(case: dict[str, Any]) -> dict[str, Any]:
             reasons.append("dimension_mismatch:workload")
         if candidate.get("completeness") != "complete":
             reasons.append("baseline_run_incomplete")
-        if policy.get("require_trusted", True) and candidate.get("trust") not in TRUSTED_COMPARISON_SOURCES:
+        if (
+            policy.get("require_trusted", True)
+            and candidate.get("trust") not in TRUSTED_COMPARISON_SOURCES
+        ):
             reasons.append("baseline_run_untrusted")
         if not candidate.get("prior", True):
             reasons.append("not_prior_to_current_run")
-        if float(candidate.get("age_days", 0)) > float(policy.get("max_baseline_age_days", 30)):
+        if float(candidate.get("age_days", 0)) > float(
+            policy.get("max_baseline_age_days", 30)
+        ):
             reasons.append("baseline_too_old")
         current_dimensions = dict(current.get("dimensions", {}))
         candidate_dimensions = dict(candidate.get("dimensions", {}))
@@ -1105,7 +1187,7 @@ def evaluate_performance_fixture_case(case: dict[str, Any]) -> dict[str, Any]:
             reasons.append("duplicate_metric_in_run")
         if not candidate.get("evidence_id"):
             reasons.append("baseline_evidence_missing")
-        all_reasons = sorted(set([*reasons, *current_blockers]))
+        all_reasons = sorted({*reasons, *current_blockers})
         if all_reasons:
             rejected.append({"run_id": run_id, "reasons": all_reasons})
         else:
@@ -1124,11 +1206,7 @@ def evaluate_performance_fixture_case(case: dict[str, Any]) -> dict[str, Any]:
         float(current["value"]), str(current["unit"])
     )
     baseline_value: float | None = None
-    classified: dict[str, Any] = {
-        "absolute_change": None,
-        "relative_change": None,
-        "allowed_absolute_change": float(policy.get("absolute_tolerance", 0)),
-    }
+    classified: PerformanceChange | None = None
     if current_blockers:
         status = "INCOMPATIBLE_BASELINE"
     elif len(accepted) >= minimum:
@@ -1142,7 +1220,11 @@ def evaluate_performance_fixture_case(case: dict[str, Any]) -> dict[str, Any]:
         )
         status = str(classified["status"])
     else:
-        status = "INCOMPATIBLE_BASELINE" if case.get("baselines") and not accepted else "BASELINE_UNAVAILABLE"
+        status = (
+            "INCOMPATIBLE_BASELINE"
+            if case.get("baselines") and not accepted
+            else "BASELINE_UNAVAILABLE"
+        )
     return {
         "case_id": case["case_id"],
         "status": status,
@@ -1150,9 +1232,13 @@ def evaluate_performance_fixture_case(case: dict[str, Any]) -> dict[str, Any]:
         "rejected": rejected,
         "baseline_value": baseline_value,
         "canonical_unit": current_unit,
-        "absolute_change": classified["absolute_change"],
-        "relative_change": classified["relative_change"],
-        "allowed_absolute_change": classified["allowed_absolute_change"],
+        "absolute_change": classified["absolute_change"] if classified else None,
+        "relative_change": classified["relative_change"] if classified else None,
+        "allowed_absolute_change": (
+            classified["allowed_absolute_change"]
+            if classified
+            else float(policy.get("absolute_tolerance", 0))
+        ),
         "aggregation": "median_of_run_level_observations",
         "significance_claimed": False,
         "current_evidence_id": current.get("evidence_id"),

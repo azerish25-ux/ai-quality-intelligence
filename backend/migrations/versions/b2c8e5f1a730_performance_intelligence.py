@@ -80,13 +80,23 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["run_id"], ["runs.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["run_input_id"], ["run_inputs.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["execution_id"], ["test_executions.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(
+            ["run_input_id"], ["run_inputs.id"], ondelete="SET NULL"
+        ),
+        sa.ForeignKeyConstraint(
+            ["execution_id"], ["test_executions.id"], ondelete="SET NULL"
+        ),
         sa.ForeignKeyConstraint(["evidence_id"], ["evidence.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("run_id", "metric_key", name="uq_performance_run_metric"),
     )
-    for column in ("project_id", "run_id", "run_input_id", "execution_id", "evidence_id"):
+    for column in (
+        "project_id",
+        "run_id",
+        "run_input_id",
+        "execution_id",
+        "evidence_id",
+    ):
         op.create_index(
             f"ix_performance_observations_{column}",
             "performance_observations",
@@ -131,15 +141,24 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["current_run_id"], ["runs.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(
-            ["current_observation_id"], ["performance_observations.id"], ondelete="CASCADE"
+            ["current_observation_id"],
+            ["performance_observations.id"],
+            ondelete="CASCADE",
         ),
-        sa.ForeignKeyConstraint(["policy_id"], ["performance_policies.id"], ondelete="RESTRICT"),
+        sa.ForeignKeyConstraint(
+            ["policy_id"], ["performance_policies.id"], ondelete="RESTRICT"
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
             "project_id", "input_digest", name="uq_performance_baseline_input"
         ),
     )
-    for column in ("project_id", "current_run_id", "current_observation_id", "policy_id"):
+    for column in (
+        "project_id",
+        "current_run_id",
+        "current_observation_id",
+        "policy_id",
+    ):
         op.create_index(
             f"ix_performance_baseline_snapshots_{column}",
             "performance_baseline_snapshots",
@@ -220,13 +239,21 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["current_run_id"], ["runs.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(
-            ["current_observation_id"], ["performance_observations.id"], ondelete="CASCADE"
+            ["current_observation_id"],
+            ["performance_observations.id"],
+            ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
-            ["baseline_snapshot_id"], ["performance_baseline_snapshots.id"], ondelete="RESTRICT"
+            ["baseline_snapshot_id"],
+            ["performance_baseline_snapshots.id"],
+            ondelete="RESTRICT",
         ),
-        sa.ForeignKeyConstraint(["policy_id"], ["performance_policies.id"], ondelete="RESTRICT"),
-        sa.ForeignKeyConstraint(["current_evidence_id"], ["evidence.id"], ondelete="RESTRICT"),
+        sa.ForeignKeyConstraint(
+            ["policy_id"], ["performance_policies.id"], ondelete="RESTRICT"
+        ),
+        sa.ForeignKeyConstraint(
+            ["current_evidence_id"], ["evidence.id"], ondelete="RESTRICT"
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("baseline_snapshot_id"),
         sa.UniqueConstraint(
@@ -262,8 +289,12 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("ix_performance_comparisons_status", table_name="performance_comparisons")
-    op.drop_index("ix_performance_comparisons_run_created", table_name="performance_comparisons")
+    op.drop_index(
+        "ix_performance_comparisons_status", table_name="performance_comparisons"
+    )
+    op.drop_index(
+        "ix_performance_comparisons_run_created", table_name="performance_comparisons"
+    )
     for column in (
         "current_evidence_id",
         "policy_id",
@@ -277,29 +308,56 @@ def downgrade() -> None:
         )
     op.drop_table("performance_comparisons")
 
-    op.drop_index("ix_performance_baseline_members_order", table_name="performance_baseline_members")
+    op.drop_index(
+        "ix_performance_baseline_members_order",
+        table_name="performance_baseline_members",
+    )
     for column in ("run_id", "observation_id", "snapshot_id"):
         op.drop_index(
-            f"ix_performance_baseline_members_{column}", table_name="performance_baseline_members"
+            f"ix_performance_baseline_members_{column}",
+            table_name="performance_baseline_members",
         )
     op.drop_table("performance_baseline_members")
 
-    op.drop_index("ix_performance_baselines_run_created", table_name="performance_baseline_snapshots")
-    for column in ("policy_id", "current_observation_id", "current_run_id", "project_id"):
+    op.drop_index(
+        "ix_performance_baselines_run_created",
+        table_name="performance_baseline_snapshots",
+    )
+    for column in (
+        "policy_id",
+        "current_observation_id",
+        "current_run_id",
+        "project_id",
+    ):
         op.drop_index(
             f"ix_performance_baseline_snapshots_{column}",
             table_name="performance_baseline_snapshots",
         )
     op.drop_table("performance_baseline_snapshots")
 
-    op.drop_index("ix_performance_observations_cohort", table_name="performance_observations")
-    op.drop_index("ix_performance_observations_lookup", table_name="performance_observations")
-    for column in ("evidence_id", "execution_id", "run_input_id", "run_id", "project_id"):
+    op.drop_index(
+        "ix_performance_observations_cohort", table_name="performance_observations"
+    )
+    op.drop_index(
+        "ix_performance_observations_lookup", table_name="performance_observations"
+    )
+    for column in (
+        "evidence_id",
+        "execution_id",
+        "run_input_id",
+        "run_id",
+        "project_id",
+    ):
         op.drop_index(
-            f"ix_performance_observations_{column}", table_name="performance_observations"
+            f"ix_performance_observations_{column}",
+            table_name="performance_observations",
         )
     op.drop_table("performance_observations")
 
-    op.drop_index("ix_performance_policies_project_created", table_name="performance_policies")
-    op.drop_index("ix_performance_policies_project_id", table_name="performance_policies")
+    op.drop_index(
+        "ix_performance_policies_project_created", table_name="performance_policies"
+    )
+    op.drop_index(
+        "ix_performance_policies_project_id", table_name="performance_policies"
+    )
     op.drop_table("performance_policies")

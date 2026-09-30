@@ -325,6 +325,87 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  provider-browser-e2e:
+    name: provider-browser-e2e (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [provider-chromium-desktop, provider-chromium-narrow]
+    services:
+      postgres:
+        image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+        env:
+          POSTGRES_DB: failurelens_provider_browser
+          POSTGRES_USER: failurelens
+          POSTGRES_PASSWORD: failurelens
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U failurelens -d failurelens_provider_browser"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      FAILURELENS_DATABASE_URL: postgresql+psycopg://failurelens:failurelens@127.0.0.1:5432/failurelens_provider_browser
+      FAILURELENS_ARTIFACT_ROOT: /tmp/failurelens-provider-browser-artifacts
+      FAILURELENS_PROVIDER_FIXTURES: /tmp/failurelens-provider-fixtures.json
+      FAILURELENS_DEMO_MODE: "false"
+      FAILURELENS_SESSION_COOKIE_SECURE: "true"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      - name: Install application and Chromium
+        run: |
+          python -m pip install './backend[dev]'
+          cd frontend
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Migrate the empty provider fixture database
+        working-directory: backend
+        run: alembic upgrade head
+      - name: Start authenticated API, injected provider worker and dashboard
+        run: |
+          set -euo pipefail
+          # Generates private synthetic identities and injects MockTransport only
+          # into its trusted worker. Production authentication remains enabled.
+          nohup python integrations/provider/browser_fixture.py --confirm-disposable-database --output "$FAILURELENS_PROVIDER_FIXTURES" > /tmp/failurelens-provider-api.log 2>&1 &
+          cd frontend
+          nohup npm run dev -- --host 127.0.0.1 --port 5173 > /tmp/failurelens-provider-vite.log 2>&1 &
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8000/health/ready >/dev/null && curl --fail --silent http://127.0.0.1:5173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/failurelens-provider-api.log /tmp/failurelens-provider-vite.log
+          exit 1
+      - name: Verify authenticated provider workflow
+        working-directory: frontend
+        env:
+          PLAYWRIGHT_PROJECT: ${{ matrix.project }}
+        run: npm run test:e2e -- --config=playwright.provider.config.ts --project="$PLAYWRIGHT_PROJECT"
+      - name: Upload safe provider browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: failurelens-provider-browser-${{ matrix.project }}
+          # The private fixture metadata and all request traces are excluded.
+          path: |
+            /tmp/failurelens-provider-api.log
+            /tmp/failurelens-provider-vite.log
+            frontend/test-results
+          if-no-files-found: warn
+          retention-days: 7
+
   docker-config:
     name: Docker config
     runs-on: ubuntu-latest

@@ -1,0 +1,43 @@
+{
+  "entries": [
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "The history-reader model is created in the disposable test session; explicit viewer, outsider, and ingestion-token principals exercise access checks without credential validation or publisher transport.",
+      "file": "backend/tests/test_github_publication_api.py",
+      "file_sha256": "b41ea6c50666636c176786601c2d5e9e5c4bdda243b0c7769aab0d1e930c51da",
+      "occurrences": [
+        {
+          "context_sha256": "295f3ddce34d1d074af93fb2f02697a08a77a3e1af48440e77890be5d5e21998",
+          "line": 104
+        }
+      ],
+      "reason": "Synthetic unused password-hash placeholder in an isolated receipt-history authorization fixture. The test supplies principals through a dependency override and never uses the placeholder for password authentication.",
+      "review_id": "m8-publication-0005",
+      "review_reference": "docs/quality-security.md#m8-review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "061c18d5058eaddc2b06f314a12b372bd49f26f960a472d174b7130fff6d7692"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "The parameterized evidence-item schema/scope test inserts the placeholder into an observation, stubs fetch with the generated fixture response, and requires the evidence loader to reject it as invalid.",
+      "file": "frontend/src/github-report.test.ts",
+      "file_sha256": "8b00e0ae5663423a51e03c0f2f8829c7117eebae74cddaa9d51e15619d5a4e05",
+      "occurrences": [
+        {
+          "context_sha256": "ae7f5602e427e830a79f6f6c9fdffc82841c56bcd037f22ab4553da97c1418c1",
+          "line": 96
+        }
+      ],
+      "reason": "Synthetic placeholder in a forbidden evidence observation field used to test schema rejection. It is inert fixture data, not an account or provider credential.",
+      "review_id": "m8-publication-0006",
+      "review_reference": "docs/quality-security.md#m8-review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "715dc8493c36579a5b116995100f635e3572fdf8703e708ef1a08d943b36774e"
+    }
+  ],
+  "schema_version": 1
+}

@@ -17,17 +17,17 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium-desktop',
-      testIgnore: '**/narrow-layout.spec.ts',
+      testIgnore: ['**/narrow-layout.spec.ts', '**/provider*.spec.ts'],
       use: { ...devices['Desktop Chrome'] }
     },
     {
       name: 'firefox-desktop',
-      testIgnore: '**/narrow-layout.spec.ts',
+      testIgnore: ['**/narrow-layout.spec.ts', '**/provider*.spec.ts'],
       use: { ...devices['Desktop Firefox'] }
     },
     {
       name: 'webkit-desktop',
-      testIgnore: '**/narrow-layout.spec.ts',
+      testIgnore: ['**/narrow-layout.spec.ts', '**/provider*.spec.ts'],
       use: { ...devices['Desktop Safari'] }
     },
     {

@@ -10,7 +10,11 @@ def test_nuisance_values_normalize_without_erasing_status() -> None:
 
 
 def test_fingerprint_is_deterministic() -> None:
-    a, features_a = make_fingerprint("boom at file.py:12", "RuntimeError", {"http_status": 500})
-    b, features_b = make_fingerprint("boom at file.py:99", "RuntimeError", {"http_status": 500})
+    a, features_a = make_fingerprint(
+        "boom at file.py:12", "RuntimeError", {"http_status": 500}
+    )
+    b, features_b = make_fingerprint(
+        "boom at file.py:99", "RuntimeError", {"http_status": 500}
+    )
     assert a == b
     assert features_a == features_b

@@ -10,15 +10,17 @@ ROOT = Path(__file__).resolve().parent
 BACKEND_SRC = ROOT.parent / "backend" / "src"
 sys.path.insert(0, str(BACKEND_SRC))
 
-from failurelens.impact import (  # noqa: E402
+from failurelens.impact import (
     IMPACT_ENGINE_VERSION,
     IMPACT_POLICY_VERSION,
     select_impacted_tests,
 )
-from failurelens.models import ImpactMappingEdge, ImpactTestDefinition  # noqa: E402
+from failurelens.models import ImpactMappingEdge, ImpactTestDefinition
 
 
-def _models(manifest: dict[str, Any]) -> tuple[list[ImpactTestDefinition], list[ImpactMappingEdge]]:
+def _models(
+    manifest: dict[str, Any],
+) -> tuple[list[ImpactTestDefinition], list[ImpactMappingEdge]]:
     tests = [
         ImpactTestDefinition(
             id=f"test-{item['test_key']}",
@@ -111,7 +113,9 @@ def evaluate_impact(
             focused_selected_total += len(selected)
         missing = sorted(revealing - selected)
         if missing:
-            missed_examples.append({"case_id": item["case_id"], "missing_tests": missing})
+            missed_examples.append(
+                {"case_id": item["case_id"], "missing_tests": missing}
+            )
 
         predictions.append(
             {
@@ -184,9 +188,7 @@ def main() -> None:
     parser.add_argument(
         "--manifest", type=Path, default=ROOT / "corpus" / "impact-manifest.json"
     )
-    parser.add_argument(
-        "--output", type=Path, default=ROOT / "reports" / "latest"
-    )
+    parser.add_argument("--output", type=Path, default=ROOT / "reports" / "latest")
     args = parser.parse_args()
     cases = [
         json.loads(line)
@@ -220,8 +222,12 @@ def main() -> None:
         f"- {'PASS' if passed else 'FAIL'} — `{name}`"
         for name, passed in metrics["acceptance"].items()
     )
-    report.extend(["", "## Limitations"] + [f"- {item}" for item in metrics["limitations"]])
-    (args.output / "impact-report.md").write_text("\n".join(report) + "\n", encoding="utf-8")
+    report.extend(
+        ["", "## Limitations"] + [f"- {item}" for item in metrics["limitations"]]
+    )
+    (args.output / "impact-report.md").write_text(
+        "\n".join(report) + "\n", encoding="utf-8"
+    )
     print(json.dumps(metrics, indent=2))
     if not all(metrics["acceptance"].values()):
         raise SystemExit(1)

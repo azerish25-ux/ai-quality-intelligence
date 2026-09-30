@@ -1,14 +1,15 @@
 """Opt-in, subprocess-only pytest instrumentation. Never imported by runtime code."""
+
 from __future__ import annotations
 
-from dataclasses import replace
-from functools import wraps
 import importlib
 import json
 import os
-from pathlib import Path
 import socket
 import sys
+from dataclasses import replace
+from functools import wraps
+from pathlib import Path
 
 import pytest
 
@@ -59,14 +60,20 @@ def _install(case):
         STATE["mutation_calls"] += 1
         if case.id == "authorization":
             from failurelens.models import ProjectRole
+
             return ProjectRole.administrator
         if case.id == "redaction":
             return original(*args, **kwargs)
         if case.id == "missing-citation":
             values, accepted_ids = args
-            if isinstance(values, list) and values and accepted_ids and not set(values) & accepted_ids:
+            if (
+                isinstance(values, list)
+                and values
+                and accepted_ids
+                and not set(values) & accepted_ids
+            ):
                 STATE["effect_calls"] += 1
-                return tuple(sorted(accepted_ids)[:len(values)])
+                return tuple(sorted(accepted_ids)[: len(values)])
             return original(*args, **kwargs)
         if case.id == "retry-as-run":
             result = original(*args, **kwargs)
@@ -77,10 +84,13 @@ def _install(case):
             return result
         if case.id == "timeout-to-flake":
             from failurelens.models import Category
+
             result = original(*args, **kwargs)
             if "timeout" in str(kwargs.get("exception_type", "")).casefold():
                 STATE["effect_calls"] += 1
-                return replace(result, category=Category.known_flake, abstention_reason=None)
+                return replace(
+                    result, category=Category.known_flake, abstention_reason=None
+                )
             return result
         if case.id == "missing-shard":
             expected_count, received_count, completeness = original(*args, **kwargs)
@@ -99,7 +109,9 @@ def _install(case):
         patterns = module._PATTERNS
         reduced = tuple(pair for pair in patterns if pair[0] != "authorization")
         if len(reduced) != len(patterns) - 1:
-            raise RuntimeError("authorization redaction mutation no longer matches source")
+            raise RuntimeError(
+                "authorization redaction mutation no longer matches source"
+            )
         module._PATTERNS = reduced
     if owner is module:
         _replace_aliases(original, altered)
@@ -110,18 +122,33 @@ def _install(case):
 
 def pytest_configure(config):
     if os.environ.get("FAILURELENS_SYNTHETIC_MUTATIONS") != "1":
-        raise pytest.UsageError("synthetic mutation plugin requires explicit runner opt-in")
+        raise pytest.UsageError(
+            "synthetic mutation plugin requires explicit runner opt-in"
+        )
     case_id = config.getoption("safeguard_case")
     destination = config.getoption("safeguard_result")
-    if not case_id or not destination or not config.getoption("safeguard_mode") or not config.getoption("safeguard_nonce"):
+    if (
+        not case_id
+        or not destination
+        or not config.getoption("safeguard_mode")
+        or not config.getoption("safeguard_nonce")
+    ):
         raise pytest.UsageError("all safeguard runner arguments are required")
     result_path = Path(destination).resolve()
     if result_path.is_relative_to(ROOT) or result_path.exists():
         raise pytest.UsageError("child results must be fresh and outside the checkout")
-    STATE.update(case_id=case_id, mode=config.getoption("safeguard_mode"),
-                 nonce=config.getoption("safeguard_nonce"), result_path=str(result_path),
-                 collected=[], collection_errors=0, phases=[], mutation_applied=False,
-                 mutation_calls=0, effect_calls=0)
+    STATE.update(
+        case_id=case_id,
+        mode=config.getoption("safeguard_mode"),
+        nonce=config.getoption("safeguard_nonce"),
+        result_path=str(result_path),
+        collected=[],
+        collection_errors=0,
+        phases=[],
+        mutation_applied=False,
+        mutation_calls=0,
+        effect_calls=0,
+    )
     socket.create_connection = _deny_network
     socket.socket.connect = _deny_network
     socket.socket.connect_ex = _deny_network
@@ -147,7 +174,8 @@ def pytest_runtest_makereport(item, call):
         last = call.excinfo.traceback[-1]
         source = Path(str(last.path)).resolve()
         phase["assertion_in_test"] = (
-            call.excinfo.type is AssertionError and source == Path(str(item.path)).resolve()
+            call.excinfo.type is AssertionError
+            and source == Path(str(item.path)).resolve()
         )
         if source.is_relative_to(ROOT):
             phase["failure_source"] = str(source.relative_to(ROOT))

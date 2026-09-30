@@ -1,21 +1,21 @@
 from pathlib import Path
 
-from sqlalchemy import select
-
 from failurelens.analysis import DeterministicDecision
 from failurelens.config import get_settings
 from failurelens.evidence_validation import (
     validate_decision,
     validate_evidence_records,
 )
-from failurelens.models import Category, Evidence, Failure, Outcome
-from failurelens.schemas import IngestionRequest, TestObservation as Observation
+from failurelens.models import Category, Failure, Outcome
+from failurelens.schemas import IngestionRequest
+from failurelens.schemas import TestObservation as Observation
 from failurelens.service import (
     analyze_and_persist,
     create_project,
     ingest_normalized,
     select_failure_evidence,
 )
+from sqlalchemy import select
 
 
 def _failure(
@@ -68,9 +68,9 @@ def test_safe_derivative_redacts_secrets_and_records_source_map(session) -> None
     derivative = evidence.derivative
     assert derivative is not None
 
-    content = (
-        Path(get_settings().artifact_root) / derivative.storage_path
-    ).read_text(encoding="utf-8")
+    content = (Path(get_settings().artifact_root) / derivative.storage_path).read_text(
+        encoding="utf-8"
+    )
 
     assert secret not in content
     assert email not in content
@@ -107,7 +107,9 @@ def test_out_of_bounds_locator_forces_safe_abstention(session) -> None:
     assert "evidence_validation_failed" in second.policy_flags
 
 
-def test_cross_project_evidence_is_rejected_even_when_derivative_is_valid(session) -> None:
+def test_cross_project_evidence_is_rejected_even_when_derivative_is_valid(
+    session,
+) -> None:
     first = _failure(
         session,
         slug="scope-a",
@@ -126,7 +128,7 @@ def test_cross_project_evidence_is_rejected_even_when_derivative_is_valid(sessio
 
     result = validate_evidence_records(second, foreign_evidence)
 
-    assert result.accepted_ids == tuple()
+    assert result.accepted_ids == ()
     assert result.rejected_ids == (foreign_evidence[0].id,)
     assert result.checks[0].authorized is False
     assert "evidence_outside_failure_scope" in result.checks[0].reasons
@@ -150,8 +152,8 @@ def test_forged_evidence_reference_is_withheld(session) -> None:
         explanation="validator regression",
         summary="Product defect",
         supporting_ids=("forged-evidence-id",),
-        contradictory_ids=tuple(),
-        missing=tuple(),
+        contradictory_ids=(),
+        missing=(),
         claims=(
             {
                 "id": "claim-forged",
@@ -166,10 +168,10 @@ def test_forged_evidence_reference_is_withheld(session) -> None:
                 "validation_status": "pending",
             },
         ),
-        hypotheses=tuple(),
-        next_steps=tuple(),
+        hypotheses=(),
+        next_steps=(),
         abstention_reason=None,
-        policy_flags=tuple(),
+        policy_flags=(),
         signal_counts={"product_defect": 9},
     )
 
@@ -186,7 +188,7 @@ def test_forged_evidence_reference_is_withheld(session) -> None:
     )
 
     assert validated.category is Category.insufficient_evidence
-    assert validated.claims == tuple()
+    assert validated.claims == ()
     claim = validated.validation_results["claims"][0]
     assert claim["reference_valid"] is False
     assert "unresolved_or_unauthorized_evidence_reference" in claim["reasons"]

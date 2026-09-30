@@ -508,21 +508,24 @@ class InfrastructureCorrelationCreate(BaseModel):
     timezone: str | None = Field(default=None, max_length=80)
     worker_count: int | None = Field(default=None, ge=1, le=100_000)
     shard_count: int | None = Field(default=None, ge=1, le=100_000)
-    event_kind: Literal[
-        "runner_terminated",
-        "runner_unavailable",
-        "service_outage",
-        "database_connection_exhaustion",
-        "dns_failure",
-        "tls_failure",
-        "network_degradation",
-        "storage_exhaustion",
-        "resource_contention",
-        "deployment_event",
-        "dependency_outage",
-        "rate_limit_event",
-        "unknown_infrastructure_event",
-    ] | None = None
+    event_kind: (
+        Literal[
+            "runner_terminated",
+            "runner_unavailable",
+            "service_outage",
+            "database_connection_exhaustion",
+            "dns_failure",
+            "tls_failure",
+            "network_degradation",
+            "storage_exhaustion",
+            "resource_contention",
+            "deployment_event",
+            "dependency_outage",
+            "rate_limit_event",
+            "unknown_infrastructure_event",
+        ]
+        | None
+    ) = None
     window_seconds: int = Field(default=900, ge=0, le=86_400)
     minimum_support: int = Field(default=3, ge=1, le=10_000)
 
@@ -621,7 +624,9 @@ class ImpactMappingSnapshotCreate(BaseModel):
     coverage_complete: bool = False
     source_metadata: dict[str, Any] = Field(default_factory=dict)
     tests: list[ImpactTestCreate] = Field(min_length=1, max_length=20_000)
-    edges: list[ImpactMappingEdgeCreate] = Field(default_factory=list, max_length=200_000)
+    edges: list[ImpactMappingEdgeCreate] = Field(
+        default_factory=list, max_length=200_000
+    )
 
 
 class ImpactMappingSnapshotRead(BaseModel):
@@ -736,9 +741,9 @@ class PerformancePolicyCreate(BaseModel):
         min_length=1,
         max_length=40,
     )
-    direction_overrides: dict[str, Literal["lower_is_better", "higher_is_better", "neutral"]] = Field(
-        default_factory=dict
-    )
+    direction_overrides: dict[
+        str, Literal["lower_is_better", "higher_is_better", "neutral"]
+    ] = Field(default_factory=dict)
 
     @field_validator("required_dimensions")
     @classmethod
@@ -747,7 +752,9 @@ class PerformancePolicyCreate(BaseModel):
         if not normalized:
             raise ValueError("at least one compatibility dimension is required")
         if any(len(item) > 80 for item in normalized):
-            raise ValueError("compatibility dimension names must be at most 80 characters")
+            raise ValueError(
+                "compatibility dimension names must be at most 80 characters"
+            )
         return normalized
 
 
@@ -915,13 +922,18 @@ class ReviewCreate(BaseModel):
     expected_version: int = Field(ge=0)
     supporting_evidence_ids: list[str] = Field(default_factory=list, max_length=500)
     contradictory_evidence_ids: list[str] = Field(default_factory=list, max_length=500)
-    hypothesis_decisions: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
+    hypothesis_decisions: list[dict[str, Any]] = Field(
+        default_factory=list, max_length=200
+    )
     investigation_outcome: str | None = Field(default=None, max_length=10_000)
-    release_advice: Literal[
-        "HOLD_FOR_REVIEW",
-        "INVESTIGATE",
-        "NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE",
-    ] | None = None
+    release_advice: (
+        Literal[
+            "HOLD_FOR_REVIEW",
+            "INVESTIGATE",
+            "NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE",
+        ]
+        | None
+    ) = None
 
 
 class ReviewEventRead(BaseModel):

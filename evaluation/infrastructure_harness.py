@@ -14,20 +14,20 @@ ROOT = Path(__file__).resolve().parent
 BACKEND_SRC = ROOT.parent / "backend" / "src"
 sys.path.insert(0, str(BACKEND_SRC))
 
-from failurelens.db import Base, create_database_engine  # noqa: E402
-from failurelens.infrastructure import (  # noqa: E402
+from failurelens.db import Base, create_database_engine
+from failurelens.infrastructure import (
     INFRASTRUCTURE_ENGINE_VERSION,
     INFRASTRUCTURE_POLICY_VERSION,
     build_infrastructure_correlation,
     create_infrastructure_event,
 )
-from failurelens.models import Failure, Outcome, TestExecution  # noqa: E402
-from failurelens.schemas import (  # noqa: E402
+from failurelens.models import Failure, Outcome, TestExecution
+from failurelens.schemas import (
     InfrastructureEventCreate,
     IngestionRequest,
     TestObservation,
 )
-from failurelens.service import (  # noqa: E402
+from failurelens.service import (
     analyze_and_persist,
     create_project,
     ingest_normalized,
@@ -62,7 +62,9 @@ def _ingest_run(
                 attempt=attempt,
                 outcome=outcome,
                 message=(
-                    definition.get("message", "gateway timed out while waiting for checkout")
+                    definition.get(
+                        "message", "gateway timed out while waiting for checkout"
+                    )
                     if outcome is Outcome.failed
                     else None
                 ),
@@ -108,7 +110,9 @@ def _create_event(
     other_project: Any,
     definition: dict[str, Any],
 ) -> Any:
-    project = other_project if definition.get("project") == "other" else selected_project
+    project = (
+        other_project if definition.get("project") == "other" else selected_project
+    )
     day = int(definition["day"])
     recorded_day = int(definition.get("recorded_day", day))
     return create_infrastructure_event(
@@ -183,7 +187,9 @@ def _evaluate_case(case: dict[str, Any]) -> dict[str, Any]:
             execution = session.scalar(
                 select(TestExecution).where(TestExecution.run_id == current.id)
             )
-            failure = session.scalar(select(Failure).where(Failure.run_id == current.id))
+            failure = session.scalar(
+                select(Failure).where(Failure.run_id == current.id)
+            )
             assert execution is not None and failure is not None
 
             category_before = analyze_and_persist(session, failure).category.value
@@ -209,7 +215,9 @@ def _evaluate_case(case: dict[str, Any]) -> dict[str, Any]:
             }
             first = build_infrastructure_correlation(session, **kwargs)
             second = build_infrastructure_correlation(session, **kwargs)
-            persisted = build_infrastructure_correlation(session, **{**kwargs, "persist": True})
+            persisted = build_infrastructure_correlation(
+                session, **{**kwargs, "persist": True}
+            )
             category_after = analyze_and_persist(session, failure).category.value
 
             stable_fields = (
@@ -226,7 +234,9 @@ def _evaluate_case(case: dict[str, Any]) -> dict[str, Any]:
                 "safety",
                 "members",
             )
-            deterministic = all(first[field] == second[field] for field in stable_fields)
+            deterministic = all(
+                first[field] == second[field] for field in stable_fields
+            )
             accepted_events = first["accepted_events"]
             trusted_accepted = all(
                 event["trusted_for_correlation"] for event in accepted_events
@@ -275,19 +285,27 @@ def _evaluate_case(case: dict[str, Any]) -> dict[str, Any]:
         engine.dispose()
 
 
-def evaluate(cases: list[dict[str, Any]], manifest: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def evaluate(
+    cases: list[dict[str, Any]], manifest: dict[str, Any]
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     predictions = [_evaluate_case(case) for case in cases]
     case_count = len(predictions)
     future_cases = [item for item in predictions if "future-event" in item["tags"]]
-    cross_project_cases = [item for item in predictions if "cross-project" in item["tags"]]
-    product_cases = [item for item in predictions if "dangerous-downgrade" in item["tags"]]
+    cross_project_cases = [
+        item for item in predictions if "cross-project" in item["tags"]
+    ]
+    product_cases = [
+        item for item in predictions if "dangerous-downgrade" in item["tags"]
+    ]
     status_correct = sum(item["status_correct"] for item in predictions)
     compatibility_correct = sum(
         item["accepted_event_count_correct"] and item["exposed_run_count_correct"]
         for item in predictions
     )
     deterministic = sum(item["deterministic"] for item in predictions)
-    provenance_valid = sum(item["accepted_event_provenance_valid"] for item in predictions)
+    provenance_valid = sum(
+        item["accepted_event_provenance_valid"] for item in predictions
+    )
     future_leakage = sum(item["accepted_event_count"] > 0 for item in future_cases)
     cross_project_leakage = sum(
         item["accepted_event_count"] > 0 for item in cross_project_cases
@@ -309,8 +327,12 @@ def evaluate(cases: list[dict[str, Any]], manifest: dict[str, Any]) -> tuple[lis
         "zero_cross_project_leakage": cross_project_leakage == 0,
         "zero_dangerous_product_defect_downgrades": not dangerous_downgrades,
         "zero_unsupported_causality_claims": not unsupported_causality,
-        "all_snapshots_persisted": all(item["snapshot_persisted"] for item in predictions),
-        "all_snapshot_digests_reused": all(item["snapshot_reused"] for item in predictions),
+        "all_snapshots_persisted": all(
+            item["snapshot_persisted"] for item in predictions
+        ),
+        "all_snapshot_digests_reused": all(
+            item["snapshot_reused"] for item in predictions
+        ),
     }
     metrics = {
         "schema_version": "infrastructure-evaluation-result-v1",
@@ -387,7 +409,9 @@ def main() -> None:
         "--corpus", type=Path, default=ROOT / "corpus" / "infrastructure-cases.jsonl"
     )
     parser.add_argument(
-        "--manifest", type=Path, default=ROOT / "corpus" / "infrastructure-manifest.json"
+        "--manifest",
+        type=Path,
+        default=ROOT / "corpus" / "infrastructure-manifest.json",
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()

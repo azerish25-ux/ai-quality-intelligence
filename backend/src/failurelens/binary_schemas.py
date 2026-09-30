@@ -1,4 +1,5 @@
 """Public contracts for safe binary inspection. Storage paths never cross this boundary."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -67,7 +68,9 @@ class BinaryEvidenceRead(BaseModel):
     warnings: list[str]
     decisions: list[BinaryDecisionRead]
     decisions_total: int
-    original_policy: Literal["not_retained; reviewer_resupplies_digest_bound_original"] = "not_retained; reviewer_resupplies_digest_bound_original"
+    original_policy: Literal[
+        "not_retained; reviewer_resupplies_digest_bound_original"
+    ] = "not_retained; reviewer_resupplies_digest_bound_original"
 
 
 class BinaryEvidencePage(BaseModel):

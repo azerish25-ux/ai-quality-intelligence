@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-from .telemetry import instrument
-
 import hashlib
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal, TypedDict
 
 from .analysis import DeterministicDecision, EvidenceView, rule_signal_counts
 from .config import Settings, get_settings
-from .models import Category, Evidence, Failure
-from .transaction_evidence import inspect_multiplicity
 from .contract_evidence import CLAIM_TEXT, CONTRACT_CATEGORY, inspect_contract
 from .domain_evidence import inspect_domain
-from .storage import StorageError, read_stored_bytes
+from .models import Category, Evidence, Failure, Run, RunInput, TestExecution
 from .redaction import REDACTION_VERSION, valid_project_provenance
+from .storage import StorageError, read_stored_bytes
+from .telemetry import instrument
+from .transaction_evidence import inspect_multiplicity
 
 VALIDATION_VERSION = "evidence-validation-v4"
 _ALLOWED_DERIVATIVE_MEDIA_TYPES = {
@@ -174,6 +174,111 @@ def validate_evidence_records(
     *,
     settings: Settings | None = None,
 ) -> EvidenceValidationSet:
+    return _validate_evidence_records(
+        evidence_rows,
+        authorize=lambda evidence: _scope_is_authorized(failure, evidence),
+        scope_error="evidence_outside_failure_scope",
+        settings=settings,
+    )
+
+
+def _scoped_evidence_is_authorized(
+    run: Run,
+    evidence: Evidence,
+    execution: TestExecution | None,
+    run_input: RunInput | None,
+) -> bool:
+    if (
+        run.evidence_expired_at is not None
+        or evidence.project_id != run.project_id
+        or evidence.run_id != run.id
+    ):
+        return False
+    if execution is not None and (
+        execution.run_id != run.id
+        or execution.run is None
+        or execution.run.project_id != run.project_id
+    ):
+        return False
+    if run_input is not None and (
+        run_input.project_id != run.project_id or run_input.run_id != run.id
+    ):
+        return False
+    linked_input = evidence.run_input
+    if evidence.run_input_id is not None and (
+        linked_input is None
+        or linked_input.project_id != run.project_id
+        or linked_input.run_id != run.id
+    ):
+        return False
+    execution_input = (
+        execution.details.get("input_id")
+        if execution is not None and isinstance(execution.details, dict)
+        else None
+    )
+    if (
+        run_input is not None
+        and execution_input
+        and execution_input != run_input.input_id
+    ):
+        return False
+    if evidence.execution_id is not None:
+        if (
+            execution is None
+            or evidence.execution_id != execution.id
+            or evidence.provenance_kind != "current_execution"
+        ):
+            return False
+        # Legacy executions can lack a manifest input binding. When present,
+        # it must match the actual evidence input rather than only its test ID.
+        return not execution_input or bool(
+            linked_input is not None and linked_input.input_id == execution_input
+        )
+    if evidence.provenance_kind == "shared_run_diagnostic":
+        return True
+    if evidence.provenance_kind == "input_diagnostic":
+        expected_input = (
+            run_input.input_id if run_input is not None else execution_input
+        )
+        return bool(
+            expected_input
+            and linked_input is not None
+            and linked_input.input_id == expected_input
+            and (run_input is None or linked_input.id == run_input.id)
+        )
+    return False
+
+
+def validate_scoped_evidence_records(
+    run: Run,
+    evidence_rows: list[Evidence],
+    *,
+    execution: TestExecution | None = None,
+    run_input: RunInput | None = None,
+    settings: Settings | None = None,
+) -> EvidenceValidationSet:
+    """Validate real execution/run scope without fabricating a failure record.
+
+    The caller must authorize the project. Immutable-byte, locator, quotation,
+    observation and approval checks are shared with failure publication.
+    """
+    return _validate_evidence_records(
+        evidence_rows,
+        authorize=lambda evidence: _scoped_evidence_is_authorized(
+            run, evidence, execution, run_input
+        ),
+        scope_error="evidence_outside_requested_scope",
+        settings=settings,
+    )
+
+
+def _validate_evidence_records(
+    evidence_rows: list[Evidence],
+    *,
+    authorize: Callable[[Evidence], bool],
+    scope_error: str,
+    settings: Settings | None,
+) -> EvidenceValidationSet:
     settings = settings or get_settings()
     checks: list[EvidenceIntegrity] = []
 
@@ -182,6 +287,7 @@ def validate_evidence_records(
         derivative = evidence.derivative
         reference_valid = bool(
             derivative is not None
+            and evidence.artifact is not None
             and derivative.project_id == evidence.project_id
             and derivative.run_id == evidence.run_id
             and derivative.artifact_id == evidence.artifact_id
@@ -190,9 +296,9 @@ def validate_evidence_records(
         if not reference_valid:
             reasons.append("invalid_derivative_reference")
 
-        authorized = _scope_is_authorized(failure, evidence)
+        authorized = authorize(evidence)
         if not authorized:
-            reasons.append("evidence_outside_failure_scope")
+            reasons.append(scope_error)
 
         actual_digest: str | None = None
         derivative_payload: dict[str, Any] | None = None
@@ -255,7 +361,7 @@ def validate_evidence_records(
                     and locator["derivative"].get("kind") == "json-pointer"
                     and derivative_payload is not None
                 )
-                if locator_valid:
+                if locator_valid and derivative_payload is not None:
                     pointed = _json_pointer(
                         derivative_payload,
                         str(locator["derivative"].get("pointer", "")),
@@ -291,9 +397,12 @@ def validate_evidence_records(
             if derivative.redaction_version == REDACTION_VERSION:
                 # Verification needs immutable bytes and public provenance only.
                 # Key retirement must not revoke a valid historical citation.
-                recorded = derivative_payload.get("redaction") if derivative_payload else None
-                provenance_valid = (valid_project_provenance(recorded, evidence.project_id)
-                                    and recorded == derivative.metadata_json.get("redaction"))
+                recorded = (
+                    derivative_payload.get("redaction") if derivative_payload else None
+                )
+                provenance_valid = valid_project_provenance(
+                    recorded, evidence.project_id
+                ) and recorded == derivative.metadata_json.get("redaction")
                 if not provenance_valid:
                     policy_safe = False
                     reasons.append("redaction_provenance_mismatch")
@@ -335,16 +444,40 @@ def validated_evidence_views(
     ]
 
 
-def _validated_reference_ids(
-    values: Any, accepted_ids: set[str]
-) -> tuple[str, ...]:
+def _validated_reference_ids(values: object, accepted_ids: set[str]) -> tuple[str, ...]:
     if not isinstance(values, list):
-        return tuple()
+        return ()
     return tuple(
-        value
-        for value in values
-        if isinstance(value, str) and value in accepted_ids
+        value for value in values if isinstance(value, str) and value in accepted_ids
     )
+
+
+class ClassificationSignalPredicate(TypedDict):
+    kind: Literal["classification_signal"]
+    category: Category
+    minimum_score: int
+
+
+def _classification_signal_predicate(
+    value: object,
+) -> ClassificationSignalPredicate | None:
+    if not isinstance(value, dict) or value.get("kind") != "classification_signal":
+        return None
+    category: object = value.get("category")
+    minimum_score: object = value.get("minimum_score")
+    if not isinstance(category, str) or type(minimum_score) is not int:
+        return None
+    if minimum_score < 0:
+        return None
+    try:
+        validated_category = Category(category)
+    except ValueError:
+        return None
+    return {
+        "kind": "classification_signal",
+        "category": validated_category,
+        "minimum_score": minimum_score,
+    }
 
 
 def _claim_validation(
@@ -381,13 +514,8 @@ def _claim_validation(
         )
 
     predicate = claim.get("predicate")
-    typed_predicate_valid = bool(
-        isinstance(predicate, dict)
-        and predicate.get("kind") == "classification_signal"
-        and predicate.get("category") in {item.value for item in Category}
-        and isinstance(predicate.get("minimum_score"), int)
-        and predicate["minimum_score"] >= 0
-    )
+    classification_predicate = _classification_signal_predicate(predicate)
+    typed_predicate_valid = classification_predicate is not None
 
     valid_rows = [
         item
@@ -421,8 +549,8 @@ def _claim_validation(
     semantic_support = False
     irrelevant_reference_ids: list[str] = []
     aggregate_score = 0
-    if typed_predicate_valid:
-        category = Category(str(predicate["category"]))
+    if classification_predicate is not None:
+        category = classification_predicate["category"]
         reference_scores = {
             evidence_id: scores.get(category, 0)
             for evidence_id, scores in per_reference_scores.items()
@@ -435,50 +563,110 @@ def _claim_validation(
         aggregate_score = max(reference_scores.values(), default=0)
         semantic_support = bool(
             category == decision.category
-            and aggregate_score >= int(predicate["minimum_score"])
+            and aggregate_score >= classification_predicate["minimum_score"]
             and not irrelevant_reference_ids
         )
 
-    if isinstance(predicate, dict) and predicate.get("kind") == "committed_effect_multiplicity":
-        typed_predicate_valid = (set(predicate) == {"kind", "count"}
-                                 and type(predicate.get("count")) is int and 2 <= predicate["count"] <= 8)
-        findings = {item.id: inspect_multiplicity(item.observation.get("transaction_observation"))
-                    for item in valid_rows if item.kind == "transaction_observation"}
-        irrelevant_reference_ids = [identifier for identifier in validated_ids
-                                    if identifier not in findings or findings[identifier].status != "duplicate"
-                                    or findings[identifier].count != predicate.get("count")]
-        semantic_support = bool(typed_predicate_valid and decision.category == Category.product_defect
-                                and validated_ids and not irrelevant_reference_ids
-                                and claim.get("text") == (
-                                    f"Reported request and database measurements reconcile {predicate.get('count')} committed effects "
-                                    "for one retried logical request; this supports a product-defect investigation "
-                                    "without establishing the responsible component."
-                                ))
+    if (
+        isinstance(predicate, dict)
+        and predicate.get("kind") == "committed_effect_multiplicity"
+    ):
+        typed_predicate_valid = (
+            set(predicate) == {"kind", "count"}
+            and type(predicate.get("count")) is int
+            and 2 <= predicate["count"] <= 8
+        )
+        multiplicity_findings = {
+            item.id: inspect_multiplicity(
+                item.observation.get("transaction_observation")
+            )
+            for item in valid_rows
+            if item.kind == "transaction_observation"
+        }
+        irrelevant_reference_ids = [
+            identifier
+            for identifier in validated_ids
+            if identifier not in multiplicity_findings
+            or multiplicity_findings[identifier].status != "duplicate"
+            or multiplicity_findings[identifier].count != predicate.get("count")
+        ]
+        semantic_support = bool(
+            typed_predicate_valid
+            and decision.category == Category.product_defect
+            and validated_ids
+            and not irrelevant_reference_ids
+            and claim.get("text")
+            == (
+                f"Reported request and database measurements reconcile {predicate.get('count')} committed effects "
+                "for one retried logical request; this supports a product-defect investigation "
+                "without establishing the responsible component."
+            )
+        )
 
     if isinstance(predicate, dict) and predicate.get("kind") == "contract_violation":
         kind = predicate.get("contract")
-        typed_predicate_valid = set(predicate) == {"kind", "contract"} and isinstance(kind, str) and kind in CLAIM_TEXT
-        findings = {item.id: inspect_contract(item.observation.get("contract_observation"))
-                    for item in valid_rows if item.kind == "contract_observation"}
-        irrelevant_reference_ids = [identifier for identifier in validated_ids
-                                    if identifier not in findings or findings[identifier].status != "violated"
-                                    or findings[identifier].contract != kind]
-        semantic_support = bool(typed_predicate_valid and decision.category.value == CONTRACT_CATEGORY.get(kind)
-                                and validated_ids and not irrelevant_reference_ids
-                                and claim.get("kind") == "inference"
-                                and claim.get("text") == CLAIM_TEXT.get(kind))
+        typed_predicate_valid = (
+            set(predicate) == {"kind", "contract"}
+            and isinstance(kind, str)
+            and kind in CLAIM_TEXT
+        )
+        contract_findings = {
+            item.id: inspect_contract(item.observation.get("contract_observation"))
+            for item in valid_rows
+            if item.kind == "contract_observation"
+        }
+        irrelevant_reference_ids = [
+            identifier
+            for identifier in validated_ids
+            if identifier not in contract_findings
+            or contract_findings[identifier].status != "violated"
+            or contract_findings[identifier].contract != kind
+        ]
+        semantic_support = bool(
+            typed_predicate_valid
+            and isinstance(kind, str)
+            and decision.category.value == CONTRACT_CATEGORY.get(kind)
+            and validated_ids
+            and not irrelevant_reference_ids
+            and claim.get("kind") == "inference"
+            and claim.get("text") == CLAIM_TEXT.get(kind)
+        )
 
-    if isinstance(predicate, dict) and predicate.get("kind") == "reported_domain_invariant":
-        findings = {item.id: inspect_domain(item.observation.get("domain_observation"))
-                    for item in valid_rows if item.kind == "domain_observation"}
-        typed_predicate_valid = bool(findings and all(
-            f.status == "violation" and f.predicate == predicate
-            and all(type(predicate[key]) is type(value) for key, value in f.predicate.items())
-            for f in findings.values()))
-        irrelevant_reference_ids = [identifier for identifier in validated_ids if identifier not in findings]
-        semantic_support = bool(typed_predicate_valid and validated_ids and not irrelevant_reference_ids
-                                and decision.category == Category.product_defect and claim.get("kind") == "inference"
-                                and all(claim.get("text") == f.claim for f in findings.values()))
+    if (
+        isinstance(predicate, dict)
+        and predicate.get("kind") == "reported_domain_invariant"
+    ):
+        domain_findings = {
+            item.id: inspect_domain(item.observation.get("domain_observation"))
+            for item in valid_rows
+            if item.kind == "domain_observation"
+        }
+        typed_predicate_valid = bool(
+            domain_findings
+            and all(
+                f.status == "violation"
+                and f.predicate is not None
+                and f.predicate == predicate
+                and all(
+                    type(predicate.get(key)) is type(value)
+                    for key, value in f.predicate.items()
+                )
+                for f in domain_findings.values()
+            )
+        )
+        irrelevant_reference_ids = [
+            identifier
+            for identifier in validated_ids
+            if identifier not in domain_findings
+        ]
+        semantic_support = bool(
+            typed_predicate_valid
+            and validated_ids
+            and not irrelevant_reference_ids
+            and decision.category == Category.product_defect
+            and claim.get("kind") == "inference"
+            and all(claim.get("text") == f.claim for f in domain_findings.values())
+        )
 
     text = str(claim.get("text", ""))
     policy_safe = bool(
@@ -616,6 +804,7 @@ def validate_decision(
     if must_degrade:
         flags.update({"evidence_validation_failed", "safe_abstention"})
 
+    abstention_reason: str | None
     if must_degrade:
         category = Category.insufficient_evidence
         score = None
@@ -639,16 +828,20 @@ def validate_decision(
         abstention_reason = decision.abstention_reason
 
     validation_status = (
-        "degraded"
-        if must_degrade or evidence_failed or claim_failed
-        else "passed"
+        "degraded" if must_degrade or evidence_failed or claim_failed else "passed"
     )
     diagnostic_findings = []
     for row in evidence_rows:
         if row.id in accepted_ids and row.kind == "contract_observation":
             finding = inspect_contract(row.observation.get("contract_observation"))
-            diagnostic_findings.append({"evidence_id": row.id, "contract": finding.contract,
-                                        "status": finding.status, "reason": finding.reason})
+            diagnostic_findings.append(
+                {
+                    "evidence_id": row.id,
+                    "contract": finding.contract,
+                    "status": finding.status,
+                    "reason": finding.reason,
+                }
+            )
     gap = None
     if category is Category.insufficient_evidence:
         statuses = {f["status"] for f in diagnostic_findings}
@@ -656,7 +849,11 @@ def validate_decision(
             gap = "publication_rejection"
         elif no_valid_evidence or "incomplete" in statuses or "invalid" in statuses:
             gap = "missing_or_invalid_observations"
-        elif "conflicting" in statuses or set(flags) & {"multiple_supported_diagnostic_categories", "dangerous_downgrade_blocked", "contract_measurements_incomplete_or_conflicting"}:
+        elif "conflicting" in statuses or set(flags) & {
+            "multiple_supported_diagnostic_categories",
+            "dangerous_downgrade_blocked",
+            "contract_measurements_incomplete_or_conflicting",
+        }:
             gap = "contradictory_observations"
         else:
             gap = "unresolved_evidence_or_capability"

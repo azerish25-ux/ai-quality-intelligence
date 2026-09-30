@@ -55,7 +55,10 @@ def advisory_status(
 
 
 def render_markdown(
-    run: Run, analyses: Sequence[Analysis | UnvalidatedAnalysis]
+    run: Run,
+    analyses: Sequence[Analysis | UnvalidatedAnalysis],
+    *,
+    status_override: str | None = None,
 ) -> str:
     publication_categories = [_publication_category(item) for item in analyses]
     counts = Counter(publication_categories)
@@ -105,7 +108,9 @@ def render_markdown(
         [
             "",
             "### Advisory status",
-            advisory_status(run, analyses),
+            "HOLD_FOR_REVIEW"
+            if status_override == "HOLD_FOR_REVIEW"
+            else advisory_status(run, analyses),
             "",
             (
                 "This report is advisory. It does not approve a release, suppress "

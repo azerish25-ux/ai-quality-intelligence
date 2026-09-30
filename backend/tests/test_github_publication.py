@@ -28,6 +28,14 @@ class GitHub:
             return httpx.Response(
                 self.status, json={"message": "secret response should not leak"}
             )
+        if request.url.path == "/graphql":
+            return httpx.Response(
+                200, json={"data": {"viewer": {"login": "github-actions[bot]"}}}
+            )
+        if request.url.path.startswith("/users/"):
+            return httpx.Response(
+                200, json={"login": "github-actions[bot]", "type": "Bot", "id": 42}
+            )
         if "/pulls/" in request.url.path:
             return httpx.Response(
                 200,
@@ -50,7 +58,7 @@ class GitHub:
             item = {
                 "id": 123,
                 "body": data["body"],
-                "user": {"login": "github-actions[bot]", "type": "Bot"},
+                "user": {"login": "github-actions[bot]", "type": "Bot", "id": 42},
             }
             self.comments.append(item)
         else:
@@ -130,9 +138,9 @@ def test_head_change_after_write_replaced_with_safe_stale_advisory(api):
 @pytest.mark.parametrize(
     "user",
     [
-        {"login": "attacker", "type": "User"},
-        {"login": "github-actions[bot]", "type": "User"},
-        {"login": "other[bot]", "type": "Bot"},
+        {"login": "attacker", "type": "User", "id": 8},
+        {"login": "github-actions[bot]", "type": "User", "id": 8},
+        {"login": "other[bot]", "type": "Bot", "id": 8},
     ],
 )
 def test_spoofed_marker_is_not_updated(api, user):
@@ -163,14 +171,32 @@ def test_paginated_comment_lookup(api):
     publish(publisher)
     existing = server.comments.copy()
     server.pages = lambda page: (
-        [{"id": n, "body": "unrelated"} for n in range(100)] if page == 1 else existing
+        [
+            {
+                "id": n + 1,
+                "body": "unrelated",
+                "user": {"login": "person", "type": "User", "id": 9},
+            }
+            for n in range(100)
+        ]
+        if page == 1
+        else existing
     )
     assert publish(publisher).status == "unchanged"
 
 
 def test_pagination_limit_fails_without_writes(api):
     server, publisher = api
-    server.pages = lambda _: [{"body": "unrelated"}] * 100
+    server.pages = lambda _: (
+        [
+            {
+                "id": 1,
+                "body": "unrelated",
+                "user": {"login": "person", "type": "User", "id": 9},
+            }
+        ]
+        * 100
+    )
     with pytest.raises(PublicationError, match="pagination"):
         publish(publisher)
     assert not server.writes
@@ -235,7 +261,7 @@ def test_lost_write_ack_is_reconciled_without_duplicate(api):
 
     def handler(request):
         response = server.handle(request)
-        if request.method == "POST":
+        if request.method == "POST" and "/issues/" in request.url.path:
             raise httpx.ReadTimeout("simulated lost acknowledgement", request=request)
         return response
 
@@ -263,7 +289,7 @@ def test_actual_receipt_must_match_configured_bot(api):
 
     def handler(request):
         result = server.handle(request)
-        if request.method == "POST":
+        if request.method == "POST" and "/issues/" in request.url.path:
             payload = result.json()
             payload["user"] = {"login": "human-user", "type": "User"}
             return httpx.Response(200, json=payload)
@@ -339,6 +365,6 @@ def test_repository_dot_names_are_not_misidentified_as_traversal():
     try:
         with pytest.raises(PublicationError, match="HTTP 403"):
             publish(publisher, repository="valid-owner/.github")
-        assert seen == ["https://api.github.com/repos/valid-owner/.github/pulls/7"]
+        assert seen == ["https://api.github.com/graphql"]
     finally:
         publisher.close()

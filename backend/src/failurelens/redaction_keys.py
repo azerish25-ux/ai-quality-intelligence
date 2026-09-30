@@ -1,17 +1,18 @@
 """Private operational key storage. This module never stores evidence or logs keys."""
+
 from __future__ import annotations
 
 import base64
 import binascii
 import fcntl
-from dataclasses import dataclass, field
 import json
 import os
-from pathlib import Path
 import re
 import secrets
 import stat
 import time
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -67,14 +68,20 @@ def _decode_key(value: object) -> bytes:
 
 def _check_private(info: os.stat_result, *, directory: bool = False) -> None:
     kind_ok = stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)
-    if (not kind_ok or info.st_uid != os.geteuid() or info.st_mode & 0o077
-            or (not directory and info.st_nlink != 1)):
+    if (
+        not kind_ok
+        or info.st_uid != os.geteuid()
+        or info.st_mode & 0o077
+        or (not directory and info.st_nlink != 1)
+    ):
         raise RedactionKeyError("redaction_key_permissions_unsafe")
 
 
 def _read(directory: int, name: str) -> bytes | None:
     try:
-        descriptor = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+        descriptor = os.open(
+            name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory
+        )
     except FileNotFoundError:
         return None
     try:
@@ -93,16 +100,25 @@ def _read(directory: int, name: str) -> bytes | None:
 def _publish(directory: int, name: str, content: bytes) -> None:
     """Publish complete, fsynced bytes atomically, without replacing a winner."""
     temporary = ".pending-" + secrets.token_hex(16)
-    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
-                         0o600, dir_fd=directory)
+    descriptor = os.open(
+        temporary,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+        0o600,
+        dir_fd=directory,
+    )
     try:
         with os.fdopen(descriptor, "wb") as handle:
             handle.write(content)
             handle.flush()
             os.fsync(handle.fileno())
         try:
-            os.link(temporary, name, src_dir_fd=directory, dst_dir_fd=directory,
-                    follow_symlinks=False)
+            os.link(
+                temporary,
+                name,
+                src_dir_fd=directory,
+                dst_dir_fd=directory,
+                follow_symlinks=False,
+            )
         except FileExistsError:
             pass
     finally:
@@ -138,8 +154,11 @@ def _local_key(root: Path, *, allow_create: bool) -> KeyMaterial:
                 os.mkdir(PRIVATE_DIRECTORY, 0o700, dir_fd=root_fd)
             except FileExistsError:
                 pass
-        directory = os.open(PRIVATE_DIRECTORY, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
-                            dir_fd=root_fd)
+        directory = os.open(
+            PRIVATE_DIRECTORY,
+            os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+            dir_fd=root_fd,
+        )
     finally:
         os.close(root_fd)
     try:
@@ -156,16 +175,23 @@ def _local_key(root: Path, *, allow_create: bool) -> KeyMaterial:
                 "key_ref": "local-v1-" + secrets.token_hex(12),
                 "key": base64.b64encode(secrets.token_bytes(32)).decode("ascii"),
             }
-            _publish(directory, KEY_FILE, json.dumps(material, separators=(",", ":")).encode())
+            _publish(
+                directory,
+                KEY_FILE,
+                json.dumps(material, separators=(",", ":")).encode(),
+            )
             value = _read(directory, KEY_FILE)
         try:
             record = json.loads(value or b"", object_pairs_hook=_unique_object)
         except (ValueError, UnicodeError):
             raise RedactionKeyError("redaction_key_invalid") from None
-        if (not isinstance(record, dict) or set(record) != {"version", "key_ref", "key"}
-                or record["version"] != "installation-key-v1"
-                or not valid_key_reference(record["key_ref"])
-                or not record["key_ref"].startswith("local-v1-")):
+        if (
+            not isinstance(record, dict)
+            or set(record) != {"version", "key_ref", "key"}
+            or record["version"] != "installation-key-v1"
+            or not valid_key_reference(record["key_ref"])
+            or not record["key_ref"].startswith("local-v1-")
+        ):
             raise RedactionKeyError("redaction_key_invalid")
         key = KeyMaterial(record["key_ref"], "local", _decode_key(record["key"]))
         expected_marker = (key.reference + "\n").encode("ascii")
@@ -179,8 +205,12 @@ def _local_key(root: Path, *, allow_create: bool) -> KeyMaterial:
         os.close(directory)
 
 
-def load_key(settings: Settings, *, expected_reference: str | None = None,
-             allow_local_create: bool = False) -> KeyMaterial:
+def load_key(
+    settings: Settings,
+    *,
+    expected_reference: str | None = None,
+    allow_local_create: bool = False,
+) -> KeyMaterial:
     """Resolve a server-selected key. Missing pinned keys never select another key."""
     try:
         configured = settings.redaction_keyring
@@ -196,8 +226,15 @@ def load_key(settings: Settings, *, expected_reference: str | None = None,
                 ring = json.loads(raw, object_pairs_hook=_unique_object)
             except (ValueError, UnicodeError):
                 raise RedactionKeyError("redaction_keyring_invalid") from None
-            if (not isinstance(ring, dict) or not ring or len(ring) > 64
-                    or any(not valid_key_reference(k) or k.startswith("local-v1-") for k in ring)):
+            if (
+                not isinstance(ring, dict)
+                or not ring
+                or len(ring) > 64
+                or any(
+                    not valid_key_reference(k) or k.startswith("local-v1-")
+                    for k in ring
+                )
+            ):
                 raise RedactionKeyError("redaction_keyring_invalid")
             if active is None or not valid_key_reference(active) or active not in ring:
                 raise RedactionKeyError("redaction_active_key_missing")
@@ -209,7 +246,10 @@ def load_key(settings: Settings, *, expected_reference: str | None = None,
             raise RedactionKeyError("redaction_keyring_missing")
         elif reference is not None and not reference.startswith("local-v1-"):
             raise RedactionKeyError("redaction_key_missing")
-        key = _local_key(settings.artifact_root, allow_create=allow_local_create and reference is None)
+        key = _local_key(
+            settings.artifact_root,
+            allow_create=allow_local_create and reference is None,
+        )
         if reference is not None and key.reference != reference:
             raise RedactionKeyError("redaction_key_reference_mismatch")
         return key

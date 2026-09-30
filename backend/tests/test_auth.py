@@ -3,10 +3,6 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
-from pydantic import ValidationError
-from sqlalchemy import select
-
-from failurelens.analysis import analyze_failure
 from failurelens.auth import (
     create_user,
     hash_password,
@@ -15,7 +11,6 @@ from failurelens.auth import (
 )
 from failurelens.config import Settings
 from failurelens.models import (
-    Analysis,
     AuditEvent,
     Failure,
     IngestionToken,
@@ -26,6 +21,7 @@ from failurelens.models import (
 )
 from failurelens.schemas import IngestionRequest
 from failurelens.service import analyze_and_persist, create_project, ingest_normalized
+from sqlalchemy import select
 
 
 def _user(
@@ -56,7 +52,9 @@ def _membership(session, project_id: str, user_id: str, role: ProjectRole):
     return row
 
 
-def _login(client, username: str, password: str = "correct-horse-battery-staple") -> str:
+def _login(
+    client, username: str, password: str = "correct-horse-battery-staple"
+) -> str:
     response = client.post(
         "/api/v1/auth/login",
         json={"username": username, "password": password},
@@ -99,7 +97,9 @@ def test_password_hash_is_salted_and_verifiable() -> None:
     assert first != second
     assert verify_password("correct-horse-battery-staple", first) is True
     assert verify_password("wrong-password", first) is False
-    assert verify_password("correct-horse-battery-staple", "not-a-password-hash") is False
+    assert (
+        verify_password("correct-horse-battery-staple", "not-a-password-hash") is False
+    )
 
 
 def test_production_security_configuration_refuses_unsafe_defaults(tmp_path) -> None:
@@ -135,7 +135,9 @@ def test_production_security_configuration_refuses_unsafe_defaults(tmp_path) -> 
 
 
 def test_login_me_logout_and_invalid_credentials_are_audited(client, session) -> None:
-    user = _user(session, username="reviewer@example.test", display_name="Verified Reviewer")
+    user = _user(
+        session, username="reviewer@example.test", display_name="Verified Reviewer"
+    )
     project = create_project(session, "auth-login", "Auth Login")
     _membership(session, project.id, user.id, ProjectRole.reviewer)
 
@@ -170,7 +172,9 @@ def test_login_me_logout_and_invalid_credentials_are_audited(client, session) ->
 
 
 def test_viewer_is_project_scoped_and_cannot_mutate_reviews(client, session) -> None:
-    viewer = _user(session, username="viewer@example.test", display_name="Project A Viewer")
+    viewer = _user(
+        session, username="viewer@example.test", display_name="Project A Viewer"
+    )
     project_a = create_project(session, "project-a", "Project A")
     project_b = create_project(session, "project-b", "Project B")
     _membership(session, project_a.id, viewer.id, ProjectRole.viewer)
@@ -181,8 +185,14 @@ def test_viewer_is_project_scoped_and_cannot_mutate_reviews(client, session) -> 
     projects = client.get("/api/v1/projects", headers=_headers(token))
     assert projects.status_code == 200
     assert [item["id"] for item in projects.json()] == [project_a.id]
-    assert client.get(f"/api/v1/runs/{run_a.id}", headers=_headers(token)).status_code == 200
-    assert client.get(f"/api/v1/runs/{run_b.id}", headers=_headers(token)).status_code == 404
+    assert (
+        client.get(f"/api/v1/runs/{run_a.id}", headers=_headers(token)).status_code
+        == 200
+    )
+    assert (
+        client.get(f"/api/v1/runs/{run_b.id}", headers=_headers(token)).status_code
+        == 404
+    )
 
     review = client.post(
         f"/api/v1/analyses/{analysis_a.id}/reviews",
@@ -256,9 +266,15 @@ def test_reviewer_identity_is_server_derived_and_audited(client, session) -> Non
     assert audit.project_id == project.id
 
 
-def test_project_admin_manages_members_and_single_use_token_secret(client, session) -> None:
-    admin = _user(session, username="admin@example.test", display_name="Project Administrator")
-    viewer = _user(session, username="new-viewer@example.test", display_name="New Viewer")
+def test_project_admin_manages_members_and_single_use_token_secret(
+    client, session
+) -> None:
+    admin = _user(
+        session, username="admin@example.test", display_name="Project Administrator"
+    )
+    viewer = _user(
+        session, username="new-viewer@example.test", display_name="New Viewer"
+    )
     project = create_project(session, "admin-project", "Admin Project")
     _membership(session, project.id, admin.id, ProjectRole.administrator)
     token = _login(client, admin.username)
@@ -290,8 +306,12 @@ def test_project_admin_manages_members_and_single_use_token_secret(client, sessi
     assert raw_token not in persisted.token_hash
 
 
-def test_ingestion_token_is_project_bound_non_reading_and_revocable(client, session) -> None:
-    admin = _user(session, username="token-admin@example.test", display_name="Token Admin")
+def test_ingestion_token_is_project_bound_non_reading_and_revocable(
+    client, session
+) -> None:
+    admin = _user(
+        session, username="token-admin@example.test", display_name="Token Admin"
+    )
     project_a = create_project(session, "token-a", "Token A")
     project_b = create_project(session, "token-b", "Token B")
     _membership(session, project_a.id, admin.id, ProjectRole.administrator)

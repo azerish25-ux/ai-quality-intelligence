@@ -1,0 +1,1332 @@
+{
+  "entries": [
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-linux-s390x-gnu/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "6c883f21ec69fd7146771a8d429cac372fb778d15593a2f3286834086d69f7a7",
+          "line": 213
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0806",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "a988751ea280d5ea3698074e6c48143cc26ad4c1174be4cde6355fa5868a18b9"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "npm package lightningcss-win32-x64-msvc: integrity field; validated SHA-512 encoding.",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "610842e14963d1aa308e57055a314c76c1a9812c388708d2e618b1c1cd1f4062",
+          "line": 861
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0848",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "af707966d0dc08cd7fe5792686a6520cd819bf45cf6cb6a35792d79f5fe68c1a"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/lightningcss-win32-arm64-msvc/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "63b9c27ab4c6ac83bd091d9be8e4e650ea93f1f5efc6e01153abbb1e7589d80c",
+          "line": 840
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0847",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "af729c5ebfdd99013f16a5e6513392d820bd37b520b9cf77f071a6868c33c62d"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/lightningcss-darwin-x64/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "26f7e196eb94f9e1c898b4f63412a6f63cdcee766e8dee4be48654aec30bae7c",
+          "line": 693
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0840",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "b064c1e116ee8638676a39555c175033487e08ea156ee6663588c467016a2319"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-darwin-x64/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "7a9858c7bcb7e425ce6916adf74e09c3cafe67fa280e2cb1eb0ad79f36f349b2",
+          "line": 111
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0800",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "b4a33dda91ef86e0ad6b1adbd1a2b368200e96082d6f5922edae2e75a820c682"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/why-is-node-running/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "7e2b21dc76fd82904e6457bddb9d0b150bfbb18426e25ea001237673d37f7fc7",
+          "line": 1328
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0873",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "b78e01966e79a3891a3afd52671a65e333d23167bffc12b2d7d0d95a99ed5dfa"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@vitest/runner/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "a3d7c9ba53002c0392a1665a7394e41072cfabc289963f30d5063632c732b5a4",
+          "line": 462
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0823",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "b8a25c0b5897cba1292bad5eb1d472bcc908c69f596b20ce89d728139a6d0eef"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-win32-arm64-msvc/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "a89941f446c90f1acd6daab9810ea5ba390b92e5da60587f9c762647e726ec9e",
+          "line": 281
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0810",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "bc8c4415bb679d002d5424dde8cd7d7e7d3482624060a86cfbdd79c306796008"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@vitest/utils/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "641432c5ad8f4f658871976ce586138a43f3ddb9dee3a058c969d1d887ec9f2d",
+          "line": 502
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0826",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "be9e2c6b98d274a07abcfd8d355934c47dfc1e8a6238fc5a2686173238553e2d"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/scheduler/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "d61b989dc95fd187564ad912a300f3113e94c5aec992b78fb208e7f18630c446",
+          "line": 1065
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0861",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "bf5c91d7ed8b64c8187cd60e16d14e64c613c8c385be6904c73caa59a097c742"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@standard-schema/spec/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "9ff8bfc0ecc7cb5b874c8298e08f6b71b526723255578c9f707cf7a0dffd606b",
+          "line": 322
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0813",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "c4649c37137fffbf65766acd065a891d7d3abbcac5a183726251cc28d20d94be"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@types/deep-eql/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "f06ee5108dbdc7233f3336b6a999e7b8da9752cc893e81f837d73cbe802ee339",
+          "line": 340
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0815",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "c9e69c715d81a8787735e691cf4ef3c602aad4bfb5e545ccc1efab0cb8b48942"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-linux-arm-gnueabihf/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "e9a5a5c45a805fdf1b62bfaafc50e3588724eb135b595878323c25df65ca6bc4",
+          "line": 145
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0802",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "cb3bcbf53dae985af3e648d6a985dc11d3e5f1308ae7ed290db82de2214a7c56"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@vitest/mocker/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "2422753d490c7a76dba985697730ccca993fc9d7389e169cd535dc614bda229f",
+          "line": 422
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0821",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d7492e95e9545e4377ad1e9b9869702dc46ebd254851d7761c0b1d394d876605"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/lightningcss-android-arm64/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "bc73d442467eef401e2254a955757916a2cb07268cb1b6ed4fe24f115a829156",
+          "line": 651
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0838",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d9f5e97873626b8ed5dbdb76701a5c4da2b61f48d012cc0f72d0bac0ee980dfb"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/playwright-core/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "a965b560206fb2307920b9ebef7603cfe629dddc939ebae23f8b6ba90edf6c3d",
+          "line": 968
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0856",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "dd2974cb89d82fc149d85dedc2facd8250c55bbabaad390cf16f3594ec9c0e7f"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/playwright/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "510035dfc170ceae5a7ee9ced36957bc0ade680f08a6e4ac463e7c98022ff471",
+          "line": 952
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0855",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "ddae3546df729ebb5b130867909e70f9ffe0978f2e0b419fe38cec353554df10"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/pathe/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "4b3ebaf5f46c5d466431737ab765d9e6b6c3bcb14049570af4a03dd8c93c6608",
+          "line": 925
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0852",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "e14cc3dee1f66311fdc82e3137f3ec81dfe6be73f82ce4020ee06d7184bfcfa1"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-linux-x64-gnu/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "df07e0d141da041b3d352e75789900ad0702109cfc6a2d2262b2c602993c4f32",
+          "line": 230
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0807",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "e64dc26b76c8ed151e68d85354d58184c09a7f62412374cf4960f01a43f54726"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/postcss/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "a8c1ea3f58c9ae95f8c224b8ce8b01e0f20d10213ca1771e7fd9728db725d6e1",
+          "line": 981
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0857",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "e948fe1c8b2b4794fc36d32f86c2499be1329114daec009fd99159027ba96248"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-openharmony-arm64/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "17b9613ee54bad7d5624c9365d71b141b9454295f67f1e79f8d5747938853ecf",
+          "line": 264
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0809",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "ebfa581b9ee449369d035c051ff6ba28defff519819357b75529e31fc0700abb"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/react/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "e6eb087fe4ea065ab389491194784bfb149f8c663b3eab5be45d2fd553ab7205",
+          "line": 1010
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0858",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "edd2f08e6a9d85e81febf0204bee4fb20ae059c6a66c6b07ba02864ffea0c5e2"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/tinyrainbow/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "e38b01867cc5458a56b4641cb9a07f4fd5266e294a72e5a690af76ca904c0c72",
+          "line": 1136
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0869",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "f0f04e42805f2618da9cc198dcd6aabf5f4a47eaef11b5cf0c32b77c2b9e75a2"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/lightningcss-freebsd-x64/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "e933d16361ee8b6bd0d97b2edde68d24723a915d62f36e2e29a4c8f413294373",
+          "line": 714
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0841",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "f1e83f06c19a0ca8b78d424c29f3bd849f24a0a9890c83b81e6988b5e04a8ef7"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/lightningcss-linux-arm64-musl/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "526ca538b3ea35e792f660fb5901570775d660751d3680d98135fc79ac813458",
+          "line": 777
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0844",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "f2797c54bb3afca2e83bcaf50506b8d439ebe86567e6aff79c28d3749ccd8eee"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/tinyglobby/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "c7fc235a7ecbcca2ab687ccf4e5dff1e47ae2ab0f8c96521887b3f9d7751f9ee",
+          "line": 1119
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0868",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "f401136838833252be491d19d123d64ae91f42138917e87bb1cd7329428f60fb"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@types/react-dom/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "2188b211525e8723f2a69566e242dc0a8c1cd602a932480acc2bc146319ffdf8",
+          "line": 364
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0818",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "f54860dc30b9879d312985bbb83cb808686135402bd1c1e13636440ebcd69801"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@playwright/test/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "753e0919aa0e73f01f433ad9c83552eb68c686bf3de1fa8c09ed6fa877e39eb9",
+          "line": 44
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0796",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "f5eb9db769357cd32b686e2253a0d5373e6827b96e432aba1651a6ae8cca6e14"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/detect-libc/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "f156e482550fc59a39d920e2caa5e5d9098698415511a20d8cb08fc279199d56",
+          "line": 551
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0831",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "f6bc73d0750539c307aef0ff3c1c57759919c876e2b8f366d53c84e4cae51150"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-linux-arm64-musl/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "1a1e77ab114a6eb5b78b5b6bba4298a1c3946dec1f724e43e8be24cd6e266da0",
+          "line": 179
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0804",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "f903cd9c5594da4f3c4728b4266eeb4c7fe23971cd70307205bf06c83988fa6b"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "frontend test-only literal and assertion",
+      "file": "frontend/src/operations.test.ts",
+      "file_sha256": "72c8f1470cce5346ec69c61f95f6f0b706a3de7fa585d8df08d6261bc4f20279",
+      "occurrences": [
+        {
+          "context_sha256": "a6836257184881e67504ea262d88577664f92baa6dca04611ffbeaa077c84d51",
+          "line": 29
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0874",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "0e0d85f9070348da0554398279a5b656292982f0a39e6bfd2d5c7c9ee41b4925"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "frontend test-only literal and assertion",
+      "file": "frontend/src/operations.test.ts",
+      "file_sha256": "72c8f1470cce5346ec69c61f95f6f0b706a3de7fa585d8df08d6261bc4f20279",
+      "occurrences": [
+        {
+          "context_sha256": "14bd6fa7bf2059d68db4d73a62e0f96c8e62b880263a2232f4ec3c49c676b7f0",
+          "line": 37
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0875",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "c1c2891d51abe0b75cab240a93ccdb9526c72100ae2f5e9531bdd5c2b83f7f74"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "pinned Git reference or COMMAND_BLOB constant",
+      "file": "integrations/ledgerguard/rollback.py",
+      "file_sha256": "55fe279b9ff269496dc2c1f30cad5f3899544f464731c8f586eb6318aa83d7f9",
+      "occurrences": [
+        {
+          "context_sha256": "97239ca9d9bf4f2d3878e17d86f441c8aa9cd299efb0ebe4f443bd3796ab823c",
+          "line": 54
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0876",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "19cecd7a902ee52c1f1fde9da946db361d70a98ab0b1d53561f00e7945e895db"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/files/backend/src/main/java/lab/ledgerguard/core/SecretBox.java",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "acd9f9d1fa4ae0c6a68f0f8f32e418a4846ad497f108c9f3e22870380a33dfb9",
+          "line": 11
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0885",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "0031b0caa7cb4d47f285e565d32a4329c2ccd5dba00a6daff5527882fc0d11ec"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/revision",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "859d8acc3efd07a03ee5f0fb4221684c9a7a9f65151a06d90801b8a726509112",
+          "line": 21
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0891",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3489d7a15a6e55d6cb411770ca117168693075bb6b1f1e6ff50a1db455794635"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/files/backend/src/main/java/lab/ledgerguard/core/SqlRetry.java",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "e52ac8d59e90dc3113441d80689d1c4623204c025538ac5251ee269a120f4c17",
+          "line": 12
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0886",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "53edad3f37f764e81182f90e55a5c32242d86ccc8c706c9d3a0e5c850bfb6582"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/files/backend/src/main/java/lab/ledgerguard/core/WebhookSignature.java",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "f3ee241b0499bc2b3510d9280620c5b6711c41141b5f5f1a4fc88444ee72b826",
+          "line": 16
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0890",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "5c851f41cbf94ddda7b638157d8089876035681de60891aae6f510b1ce7dd3b3"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/files/backend/src/main/java/lab/ledgerguard/core/Idempotency.java",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "fa3c4634cd9ed774e023c0ebc1545ccf9b1a457b3dfd3a83e5797656d93be46d",
+          "line": 5
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0879",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "67dc7a47ffa5ebdafdd3453e9efd7daaa554b05244a898ea635a6de82fc4ad8b"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/files/backend/src/main/java/lab/ledgerguard/core/WalletBalance.java",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "42f6f9958a1561cdd3e9c6dccc81904b202bd1bc22f50d795c33f6994671fb3d",
+          "line": 13
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0887",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "695b36c3dcfa3ac0a3a3ab160b69530a3a6cf7316abe53644986a3234ade23e5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/files/backend/src/main/java/lab/ledgerguard/core/CurrencyUnit.java",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "28556712752f3d7f3d30acb9274f6eb03bd4f54a083aa7b5a6b78c0b68129488",
+          "line": 3
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0877",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "6b6bc3237e1e52a084cb73442200cb42fee15d6aee7d6db3ec192db68342cbad"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/files/backend/src/main/java/lab/ledgerguard/core/Journal.java",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "a16cff2b5a4b6a68404ce77be4271752c0da4713576ae51c38874c1bc0acf9bd",
+          "line": 6
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0880",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "7b955d4e2443597d0ed21d5f3eda701758dfc012d7ad61050a9a3f247d427704"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/files/backend/src/main/java/lab/ledgerguard/core/Projection.java",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "fbf2f30440f19a8742900217ded883ce6d16e23c152d68da889d77ce7eef2586",
+          "line": 9
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0883",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "7d114fa3b3e3fdd19af8e588da559b055777d9be99f4ceb6a3f95e5d7a7fa469"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/files/backend/src/main/java/lab/ledgerguard/core/Money.java",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "ae25c1a755f17d8456aa270f6855276d1b0ae587f1694fe738bcc4b5be8c6ffe",
+          "line": 7
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0881",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "8d0eb9934de395ac8756979d8b8c2bebde3a862fd9967f44de1f82a8fb331cec"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/files/backend/src/main/java/lab/ledgerguard/core/PaymentRules.java",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "b086669461402aff96f17bc317183c9eb3d8bc4bc158995ff7bafc4cac08d8e5",
+          "line": 8
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0882",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "aac580431339defbc5812a01af46cc97d1b951730f5dadddc7d3383ec691ef88"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/files/backend/src/main/java/lab/ledgerguard/core/DomainFailure.java",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "329fc31e1ce503582a8c304cb3738a07faa7f1db9fb466fd5f377d5faf3b1cd8",
+          "line": 4
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0878",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "c4383d63b4a10b2e64b0d4b01d2ae82adc908676c7907c8797b2f28637a2f9e5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/files/backend/src/main/java/lab/ledgerguard/core/WebhookDestination.java",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "fe7a1fd50c2485db14742ee6a9849f28437c1e63177b641e99b5e6210597525b",
+          "line": 14
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0888",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "c5d4ad24070c2d3509cfae673eaf4a233df0deb580a0f369c5c9a99e5701f144"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/files/backend/src/main/java/lab/ledgerguard/core/WebhookPolicy.java",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "62c5c547cd65334e9e10cc2e026c9a67c5d9c748b8b136fcca3b93be5f5c3706",
+          "line": 15
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0889",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "e81441100f4be49f0a17b945e73d2ea96170831048900b43a8b7950407f23798"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/files/backend/src/main/java/lab/ledgerguard/core/SchedulePolicy.java",
+      "file": "integrations/ledgerguard/source.json",
+      "file_sha256": "eb64ae14a91a8c2a90848cbeb827b41469af4c89017f383ba2fa97d415e1e0b6",
+      "occurrences": [
+        {
+          "context_sha256": "ba081d1c46350dd032dd4a659540e359bc54ab6cdffa0ef738c21a3f2eddc923",
+          "line": 10
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0884",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "ffa1551bfe945179dc2da5d74f46043fae0fc92e22394925c0f2101762089741"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "README.md: production-security guidance; docs/security.md; compose.yaml: no database host-port publication; internal runtime network; loopback application ingress",
+      "file": "scripts/compose_recovery_smoke.sh",
+      "file_sha256": "2f44e9d31814223b74bea821d89a0a732f1efe8c88a5c11802872e7dd4af0ba3",
+      "occurrences": [
+        {
+          "context_sha256": "abbdb752548453d3af8d398d239adff0961029dd733aa0660b39170e14b6fa0b",
+          "line": 72
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0892",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "nonsecret_configuration_literal",
+      "detector": "Secret Keyword",
+      "evidence": "SECRET_REVIEW_FILE configuration literal",
+      "file": "scripts/quality_checks.py",
+      "file_sha256": "3245bf01e4abce7393f85ed7c8b310d62b38d18e44202d9b1f2f33a5f2e5d940",
+      "occurrences": [
+        {
+          "context_sha256": "6e50678a872b8279d9b59fa6f4074ab4bd41d497c15bc2b85e7497ea331caa21",
+          "line": 50
+        }
+      ],
+      "reason": "Exact repository path selecting this review policy, not authentication material.",
+      "review_id": "quality-regression-0001",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent source review",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "283fe068374d1c6353a6b54221a28c94f5408cc17f0f37c3fb32996c29916123"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "The migration filename/docstring and revision declaration identify this exact schema revision.",
+      "file": "backend/migrations/versions/e6c8a2f4b130_provider_application_workflow.py",
+      "file_sha256": "2244a5a1e4b8498e3b69f88d2869b69864be25e2986a442be68ba7671510af79",
+      "occurrences": [
+        {
+          "context_sha256": "277368591a97fab98bc75e59f63bc108ded68c6ff4f6a56e856b83b1d4492ee6",
+          "line": 10
+        }
+      ],
+      "reason": "Alembic revision identifier, not authentication material.",
+      "review_id": "m7-provider-0001",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "9ef75683eb3ceb09f0e09c6094639921e9b8d5566593930c06b7d3a88c0d7eeb"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "The down_revision field references the existing durable model ledger migration.",
+      "file": "backend/migrations/versions/e6c8a2f4b130_provider_application_workflow.py",
+      "file_sha256": "2244a5a1e4b8498e3b69f88d2869b69864be25e2986a442be68ba7671510af79",
+      "occurrences": [
+        {
+          "context_sha256": "46d11b7cc1965f9b1848e9228643e93be63578163aca726f512f29d8ea85efa8",
+          "line": 11
+        }
+      ],
+      "reason": "Alembic predecessor revision identifier, not authentication material.",
+      "review_id": "m7-provider-0002",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "055ebbe25a6686ab47a30af831175504a644d9bba3756b11da18cf9cf4109c2c"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "The parameterized invalid configuration test requires rejection before any HTTP client is constructed.",
+      "file": "backend/tests/test_provider_config.py",
+      "file_sha256": "7dc34f2194779aca56e3a24e4a3a88013f99d391341d62b44ba1b95b2494618f",
+      "occurrences": [
+        {
+          "context_sha256": "0213ac1f5922a148a8c49b662a6c9b21fb3f98b5e357e8b2c2cd7b865fcf91f9",
+          "line": 486
+        }
+      ],
+      "reason": "Synthetic reserved-example URL userinfo used to verify rejection of invalid provider configuration.",
+      "review_id": "m7-provider-0003",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "The credential-echo regression uses the isolated workflow database, constructor-injected MockTransport and TestClient to verify no credential is published to a viewer.",
+      "file": "backend/tests/test_provider_credential_echo.py",
+      "file_sha256": "25eff25fc9846ae7e5ac122fb8c1ffc1e34b70ea64e13dc1b5a9b595bb194066",
+      "occurrences": [
+        {
+          "context_sha256": "568dec9d656525b74290b62b47807f53f30fbfc955916d7d45ac639ef690f7f5",
+          "line": 113
+        }
+      ],
+      "reason": "Public synthetic viewer password for a temporary test database; it authenticates only the test account.",
+      "review_id": "m7-provider-0004",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2d9340d23d2a93cdfd2630ba3c4ec5b252c087b6fdb5eb12bfbc79542ad59cc4"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "The test binds a temporary SQLite database and injected fixture worker; socket connection and DNS calls are explicitly forbidden.",
+      "file": "backend/tests/test_provider_deployment_fixture.py",
+      "file_sha256": "10000de42d12a5bdd9f4862205d473991058b564abf1b23d94770dd5b6573737",
+      "occurrences": [
+        {
+          "context_sha256": "9ffebb6a9bc599e835b4739fccd3525b6a499b42a2c31fde60b97b40e2315fd8",
+          "line": 29
+        }
+      ],
+      "reason": "Public synthetic bootstrap password for an isolated disposable deployment fixture, not a private production credential.",
+      "review_id": "m7-provider-0005",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "fc9ae0f548bcfb162f79d4fa40faa04fb1420a75e7dff6e6fc74d77ee04b942d"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "The workflow fixture uses an isolated test database/session factory and local TestClient with constructor-injected provider transports.",
+      "file": "backend/tests/test_provider_workflow.py",
+      "file_sha256": "1a7f08fa63aef6e970fdd6e9df49f01dbfe2a07c74587d42e5841d54d6d574d9",
+      "occurrences": [
+        {
+          "context_sha256": "f579ce117bd1fdfd2392c02d9cf3c5b75d48842d2fb5135136fa7e43e6d43ebc",
+          "line": 52
+        },
+        {
+          "context_sha256": "130bccf5f52539cf254964f979692bb59bcf50b60d0a5e5271bd62b56fa5c80a",
+          "line": 69
+        }
+      ],
+      "reason": "Public synthetic administrator password for fixture account creation and matching bootstrap settings; it authenticates only the test account.",
+      "review_id": "m7-provider-0006",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3494a80356d698327b853e38f3e0edc9dfeed4181c788c88eb64790d139e3d51"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "The malformed-configuration test uses a reserved example hostname, requests only local API preview and asserts the canary is absent from the response and captured logs.",
+      "file": "backend/tests/test_provider_workflow.py",
+      "file_sha256": "1a7f08fa63aef6e970fdd6e9df49f01dbfe2a07c74587d42e5841d54d6d574d9",
+      "occurrences": [
+        {
+          "context_sha256": "4f424abeb91bc77eb45df80bc2c84b734ad18cb07068d63d3204f80c43af617a",
+          "line": 639
+        }
+      ],
+      "reason": "Synthetic endpoint userinfo canary used to verify invalid-configuration rejection and log/response non-disclosure.",
+      "review_id": "m7-provider-0007",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "8d4cac27134cca5303d7fc892854ba28c87893a5ffa99fddff2e9bda0265e9c5"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "The malformed-configuration test uses a reserved example hostname, requests only local API preview and asserts the canary is absent from the response and captured logs.",
+      "file": "backend/tests/test_provider_workflow.py",
+      "file_sha256": "1a7f08fa63aef6e970fdd6e9df49f01dbfe2a07c74587d42e5841d54d6d574d9",
+      "occurrences": [
+        {
+          "context_sha256": "a9a3ae3a97eb8ab480dc8a4171a3e285f96a762eada1c6ffab582eba2eb4f40a",
+          "line": 645
+        }
+      ],
+      "reason": "Synthetic proxy userinfo canary used to verify invalid-configuration rejection and log/response non-disclosure.",
+      "review_id": "m7-provider-0008",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "93d0f4549be18671f1b6cf3e03af872088d3ef2aae5ad69e46246a6cb5403afc"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "The migration preservation regression upgrades and downgrades a temporary SQLite database to the declared durable-ledger predecessor revision.",
+      "file": "backend/tests/test_provider_workflow.py",
+      "file_sha256": "1a7f08fa63aef6e970fdd6e9df49f01dbfe2a07c74587d42e5841d54d6d574d9",
+      "occurrences": [
+        {
+          "context_sha256": "877a77d7a8cec2b1d8f8eb784cccfb4af8ad2ce9224a2ee726f5a47857b964c2",
+          "line": 903
+        },
+        {
+          "context_sha256": "36fc7474cc6615c2eb8dd17905afef536e44ec13d002987c7eb2d5a56202e13b",
+          "line": 918
+        }
+      ],
+      "reason": "Existing Alembic revision identifier used as the upgrade/downgrade target, not authentication material.",
+      "review_id": "m7-provider-0009",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "055ebbe25a6686ab47a30af831175504a644d9bba3756b11da18cf9cf4109c2c"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "The fixture seed requires the reserved invalid provider endpoint and an empty named fixture project, then creates the synthetic account used by local fixture verification.",
+      "file": "integrations/provider/fixture_check.py",
+      "file_sha256": "f7e03d3dca9ed4b53709b3430994165b0c8c5487ce7d87754cd2e29660f1a0d8",
+      "occurrences": [
+        {
+          "context_sha256": "9f27ce49ea285f68ac6a0d8c075815a0054cd7936dcf8c4126e6abe0a49ef0e4",
+          "line": 29
+        }
+      ],
+      "reason": "Public synthetic administrator password for an explicit disposable provider fixture; it authenticates that fixture account only.",
+      "review_id": "m7-provider-0010",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "c3971b7b50fd3975c952f8a84f5bfdbf2277cf8eadbcb8c543196f09cd514f39"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "The script requires --confirm-disposable-stack, generates a unique Compose project, sets the matching database password and URL, asserts the effective container URL, and removes fixture volumes during cleanup. The deployment overlay itself requires operator-owned settings without a fallback.",
+      "file": "scripts/compose_provider_smoke.sh",
+      "file_sha256": "0c67790d7319a0ff964e1ff38e69c5260a8ba211bac4c58750947c09b8f27b73",
+      "occurrences": [
+        {
+          "context_sha256": "c01a76615c804be020c594915c85c2ce7f8bc514f1b2cccfdbc8070affbdb282",
+          "line": 21
+        },
+        {
+          "context_sha256": "a1114c9675db7a3258c9feffe371c970b437d20c3a62d1562cfabce25de8e78b",
+          "line": 92
+        }
+      ],
+      "reason": "Published synthetic PostgreSQL password that really authenticates the repository-owned disposable Docker fixture database. It is not a production secret and must remain confined to this explicit disposable fixture.",
+      "review_id": "m7-provider-0011",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "aa8651595e0ab084e276cc5c932d4deec56eb11b873b270cd1dd8d36c5ebf752"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Base64 High Entropy String",
+      "evidence": "The confirmed disposable script writes the assignment into its private API-only fixture environment file, uses the reserved invalid provider endpoint and removes the private fixture directory during cleanup.",
+      "file": "scripts/compose_provider_smoke.sh",
+      "file_sha256": "0c67790d7319a0ff964e1ff38e69c5260a8ba211bac4c58750947c09b8f27b73",
+      "occurrences": [
+        {
+          "context_sha256": "50e5f0e0afd3bac6ae19180db43675518d4362ad871284b4a9b4032df1a1ba7a",
+          "line": 24
+        }
+      ],
+      "reason": "Public synthetic bootstrap-password environment assignment for an explicitly disposable fixture; it authenticates only the synthetic bootstrap account.",
+      "review_id": "m7-provider-0012",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "f71f0443c872fc46a1e247342c51ab9fd7b144e0e2a6707e201f8dd9bed75157"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Base64 High Entropy String",
+      "evidence": "The confirmed disposable script writes a private worker-only fixture file; fixture_worker asserts this canary and the reserved invalid endpoint before running the injected response transport.",
+      "file": "scripts/compose_provider_smoke.sh",
+      "file_sha256": "0c67790d7319a0ff964e1ff38e69c5260a8ba211bac4c58750947c09b8f27b73",
+      "occurrences": [
+        {
+          "context_sha256": "ed27c4655e84f6e823f1e57f761692ff7eb8e7a7508f182543f4c12a4f7d3a28",
+          "line": 26
+        }
+      ],
+      "reason": "Synthetic provider-token environment assignment for constructor-injected MockTransport; it is not an actual provider credential.",
+      "review_id": "m7-provider-0013",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "e0b92d9d481fdfb31452f605180cb535b864d3537b0e4be8560efd12ff915ec7"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Base64 High Entropy String",
+      "evidence": "The script checks the actual disposable PostgreSQL container environment against its fixture password and retains only source-free topology results; the production overlay requires an operator-selected password.",
+      "file": "scripts/compose_provider_smoke.sh",
+      "file_sha256": "0c67790d7319a0ff964e1ff38e69c5260a8ba211bac4c58750947c09b8f27b73",
+      "occurrences": [
+        {
+          "context_sha256": "e6da2562315a2dcc6b3b7617459066f7650d821b6274b97606336edafd714d3d",
+          "line": 94
+        }
+      ],
+      "reason": "Published synthetic PostgreSQL password environment assignment that represents the authenticating disposable Docker database credential. It must not be used as a production secret.",
+      "review_id": "m7-provider-0014",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "fd5c0a659085bcd336755c9df146f765d067922d58e7d09ed9f0bc6403e14701"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "The isolated preview-boundary regression embeds this canary after a token marker, asserts it is absent from the approved preview and prepared request, and uses constructor-injected MockTransport.",
+      "file": "backend/tests/test_provider_output_bounds.py",
+      "file_sha256": "0be3b5e5b8976e2bb35e52d28d7e398dbe2a3c638c91ee2e65762302ebbaf219",
+      "occurrences": [
+        {
+          "context_sha256": "b3901fa47204d56a965a098df531c12e56bd8c98f601896ae25f5025f4974892",
+          "line": 78
+        }
+      ],
+      "reason": "Synthetic redaction canary in fabricated failure evidence, not an authenticating credential.",
+      "review_id": "m7-provider-0015",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "70b46cf88d5f79c0d40c79d3f1fb46564475689473b9327829169b8d634e7c00"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "The literal is assigned only to the migration revision field; the migration defines durable publication target and receipt tables and their constraints.",
+      "file": "backend/migrations/versions/f8d0c2e4a610_github_publication_receipts.py",
+      "file_sha256": "91c2ad856722bae0b24e9eff569da68e7d70ff8a240480452a81a055a9b00d3a",
+      "occurrences": [
+        {
+          "context_sha256": "1d46ef8367d52af1c38ffe775799441f00c73543c93c1b7bd0215655430a06b1",
+          "line": 6
+        }
+      ],
+      "reason": "Public Alembic revision identifier for the GitHub publication receipt migration. It identifies a migration graph node and provides no authentication or signing capability.",
+      "review_id": "m8-publication-0001",
+      "review_reference": "docs/quality-security.md#m8-review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "78c686732ba9aa82b0b72d1decacae3e3a47ce94bdf4b26f6d3d0e91dd4c699f"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "The literal is assigned to down_revision and refers to the existing predecessor migration in the repository migration graph.",
+      "file": "backend/migrations/versions/f8d0c2e4a610_github_publication_receipts.py",
+      "file_sha256": "91c2ad856722bae0b24e9eff569da68e7d70ff8a240480452a81a055a9b00d3a",
+      "occurrences": [
+        {
+          "context_sha256": "91a9ebabe293613bce6813daf7ac2505e36f0e266380319187707e56f71d2637",
+          "line": 7
+        }
+      ],
+      "reason": "Public Alembic parent revision identifier linking the GitHub publication receipt migration to the preceding provider and telemetry migration. It is not a credential.",
+      "review_id": "m8-publication-0002",
+      "review_reference": "docs/quality-security.md#m8-review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "9ef75683eb3ceb09f0e09c6094639921e9b8d5566593930c06b7d3a88c0d7eeb"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "The damaged-export test replaces the Action CLI with a fixture function, writes the malformed payload, requires empty report/evidence output paths, and asserts that the canary never appears in status or step-summary text.",
+      "file": "backend/tests/test_github_action_config.py",
+      "file_sha256": "43df34db4bfd6a713fb6d06d83cada78489fc177a93c3b08d045fc1a883bb3d1",
+      "occurrences": [
+        {
+          "context_sha256": "461bf51d165861ac643ff81feb29ead1f2c68701d2fc30b4f9098d18c464803c",
+          "line": 324
+        }
+      ],
+      "reason": "Deliberate synthetic non-echo canary inside a malformed evidence-export JSON test payload. It does not authenticate any external service or runtime account.",
+      "review_id": "m8-publication-0003",
+      "review_reference": "docs/quality-security.md#m8-review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "8369bf71eb8702b603d27d0fb3a8bcbffa0d1c2ca47774ef87022726c44ce2e9"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "The test creates the outsider account in the disposable in-memory SQLite session, logs in through the test client, then requires a not-found response for evidence in a project without membership. The fixture creates and destroys the schema and overrides the API database dependency.",
+      "file": "backend/tests/test_github_evidence.py",
+      "file_sha256": "a6ceafd5e95375b12753a58369a9d3c0b9253becc656b9b83f287ed2078a1891",
+      "occurrences": [
+        {
+          "context_sha256": "c615b7217a23bbb611b10c7c5a1d780ee0aab82ca2c89e67a7b5aee8f859483f",
+          "line": 258
+        },
+        {
+          "context_sha256": "0da72b4b586db4017e935249b39d090db122ec3049649137fa683a1d66a5e415",
+          "line": 264
+        }
+      ],
+      "reason": "Synthetic password for an outsider account created and logged into solely by the isolated evidence-export authorization fixture. It really authenticates that temporary fixture account and is not a private or production password.",
+      "review_id": "m8-publication-0004",
+      "review_reference": "docs/quality-security.md#m8-review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "ae5506d7bc9c3dc9eeca738bd922b29d146291ddb13e2edcf6dd555494f78d61"
+    }
+  ],
+  "schema_version": 1
+}

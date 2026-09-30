@@ -5,7 +5,22 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum, Float, ForeignKey, ForeignKeyConstraint, Index, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -78,9 +93,15 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(512))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_system_admin: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    lifecycle_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    last_login_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    lifecycle_version: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0"
+    )
 
     memberships: Mapped[list[ProjectMembership]] = relationship(
         back_populates="user",
@@ -100,19 +121,27 @@ class ProjectMembership(Base):
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
-    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
     role: Mapped[ProjectRole] = mapped_column(Enum(ProjectRole))
     granted_by_user_id: Mapped[str | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
     )
 
     project: Mapped[Project] = relationship(back_populates="memberships")
-    user: Mapped[User] = relationship(back_populates="memberships", foreign_keys=[user_id])
+    user: Mapped[User] = relationship(
+        back_populates="memberships", foreign_keys=[user_id]
+    )
     granted_by: Mapped[User | None] = relationship(foreign_keys=[granted_by_user_id])
 
 
@@ -124,13 +153,21 @@ class AuthSession(Base):
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
     token_prefix: Mapped[str] = mapped_column(String(24), index=True)
     token_hash: Mapped[str] = mapped_column(String(64))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     user: Mapped[User] = relationship(back_populates="sessions")
 
@@ -143,7 +180,9 @@ class IngestionToken(Base):
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
     name: Mapped[str] = mapped_column(String(240))
     token_prefix: Mapped[str] = mapped_column(String(24), index=True)
     token_hash: Mapped[str] = mapped_column(String(64))
@@ -151,10 +190,18 @@ class IngestionToken(Base):
     created_by_user_id: Mapped[str | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     project: Mapped[Project] = relationship(back_populates="ingestion_tokens")
     created_by: Mapped[User | None] = relationship(foreign_keys=[created_by_user_id])
@@ -184,7 +231,9 @@ class AuditEvent(Base):
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     correlation_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
     details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     project: Mapped[Project | None] = relationship(back_populates="audit_events")
     actor_user: Mapped[User | None] = relationship(foreign_keys=[actor_user_id])
@@ -192,52 +241,84 @@ class AuditEvent(Base):
 
 class AccountRecovery(Base):
     """Only a one-time token digest is retained; never a temporary password."""
+
     __tablename__ = "account_recoveries"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
-    issued_by_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    issued_by_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    consumed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
 
 class RetentionPolicy(Base):
     __tablename__ = "retention_policies"
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True
+    )
     version: Mapped[int] = mapped_column(Integer, default=1)
     source_days: Mapped[int] = mapped_column(Integer, default=7)
     evidence_days: Mapped[int] = mapped_column(Integer, default=90)
     audit_days: Mapped[int] = mapped_column(Integer, default=365)
     export_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     export_max_rows: Mapped[int] = mapped_column(Integer, default=10000)
-    last_scanned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_scanned_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
 
 class RetentionTombstone(Base):
     __tablename__ = "retention_tombstones"
-    __table_args__ = (UniqueConstraint("project_id", "resource_type", "resource_id", name="uq_retention_tombstone"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id", "resource_type", "resource_id", name="uq_retention_tombstone"
+        ),
+    )
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
     resource_type: Mapped[str] = mapped_column(String(80))
     resource_id: Mapped[str] = mapped_column(String(240))
     policy_version: Mapped[int] = mapped_column(Integer)
     reason: Mapped[str] = mapped_column(String(120), default="retention_expired")
-    expired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expired_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
 
 class StorageDeletion(Base):
     """Transactional deletion outbox. Tombstone first, unlink after commit."""
+
     __tablename__ = "storage_deletions"
-    __table_args__ = (UniqueConstraint("project_id", "storage_path", name="uq_storage_deletion_path"),)
+    __table_args__ = (
+        UniqueConstraint("project_id", "storage_path", name="uq_storage_deletion_path"),
+    )
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
     storage_path: Mapped[str] = mapped_column(String(2048))
     state: Mapped[str] = mapped_column(String(40), default="pending")
     error_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class Project(Base):
@@ -246,7 +327,9 @@ class Project(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     slug: Mapped[str] = mapped_column(String(120), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(240))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     memberships: Mapped[list[ProjectMembership]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
@@ -258,8 +341,12 @@ class Project(Base):
         back_populates="project", cascade="all, delete-orphan"
     )
 
-    runs: Mapped[list[Run]] = relationship(back_populates="project", cascade="all, delete-orphan")
-    ingestions: Mapped[list[Ingestion]] = relationship(back_populates="project", cascade="all, delete-orphan")
+    runs: Mapped[list[Run]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+    ingestions: Mapped[list[Ingestion]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
     clusters: Mapped[list[FailureCluster]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
@@ -284,21 +371,29 @@ class Project(Base):
     infrastructure_events: Mapped[list[InfrastructureEvent]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
-    infrastructure_correlation_snapshots: Mapped[list[InfrastructureCorrelationSnapshot]] = relationship(
-        back_populates="project", cascade="all, delete-orphan"
-    )
+    infrastructure_correlation_snapshots: Mapped[
+        list[InfrastructureCorrelationSnapshot]
+    ] = relationship(back_populates="project", cascade="all, delete-orphan")
 
 
 class Run(Base):
     __tablename__ = "runs"
     __table_args__ = (
-        UniqueConstraint("project_id", "external_id", "attempt", "manifest_digest", name="uq_run_identity"),
+        UniqueConstraint(
+            "project_id",
+            "external_id",
+            "attempt",
+            "manifest_digest",
+            name="uq_run_identity",
+        ),
         Index("ix_runs_project_started", "project_id", "started_at"),
         Index("ix_runs_project_history", "project_id", "created_at", "run_scope"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
     external_id: Mapped[str] = mapped_column(String(240))
     attempt: Mapped[int] = mapped_column(Integer, default=1)
     repository: Mapped[str | None] = mapped_column(String(240), nullable=True)
@@ -316,21 +411,37 @@ class Run(Base):
     expected_inputs: Mapped[int | None] = mapped_column(Integer, nullable=True)
     received_inputs: Mapped[int] = mapped_column(Integer, default=0)
     manifest_digest: Mapped[str] = mapped_column(String(64))
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    ended_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
     source_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    source_expired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    evidence_expired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    source_expired_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    evidence_expired_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     retention_policy_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     project: Mapped[Project] = relationship(back_populates="runs")
-    executions: Mapped[list[TestExecution]] = relationship(back_populates="run", cascade="all, delete-orphan")
-    artifacts: Mapped[list[Artifact]] = relationship(back_populates="run", cascade="all, delete-orphan")
+    executions: Mapped[list[TestExecution]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
+    )
+    artifacts: Mapped[list[Artifact]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
+    )
     derivatives: Mapped[list[ArtifactDerivative]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
     )
-    failures: Mapped[list[Failure]] = relationship(back_populates="run", cascade="all, delete-orphan")
+    failures: Mapped[list[Failure]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
+    )
     ingestion: Mapped[Ingestion | None] = relationship(
         back_populates="run",
         uselist=False,
@@ -351,12 +462,12 @@ class Run(Base):
     performance_comparisons: Mapped[list[PerformanceComparison]] = relationship(
         back_populates="current_run", cascade="all, delete-orphan"
     )
-    infrastructure_correlation_snapshots: Mapped[list[InfrastructureCorrelationSnapshot]] = relationship(
-        back_populates="selected_run", cascade="all, delete-orphan"
-    )
-    infrastructure_correlation_members: Mapped[list[InfrastructureCorrelationMember]] = relationship(
-        back_populates="run", cascade="all, delete-orphan"
-    )
+    infrastructure_correlation_snapshots: Mapped[
+        list[InfrastructureCorrelationSnapshot]
+    ] = relationship(back_populates="selected_run", cascade="all, delete-orphan")
+    infrastructure_correlation_members: Mapped[
+        list[InfrastructureCorrelationMember]
+    ] = relationship(back_populates="run", cascade="all, delete-orphan")
 
 
 class Job(Base):
@@ -364,18 +475,28 @@ class Job(Base):
     __table_args__ = (Index("ix_jobs_claim", "state", "available_at"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
     kind: Mapped[str] = mapped_column(String(80))
     payload: Mapped[dict[str, Any]] = mapped_column(JSON)
     state: Mapped[JobState] = mapped_column(Enum(JobState), default=JobState.queued)
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     max_attempts: Mapped[int] = mapped_column(Integer, default=3)
-    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    available_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
     lease_owner: Mapped[str | None] = mapped_column(String(240), nullable=True)
-    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
 
     ingestion: Mapped[Ingestion | None] = relationship(
         back_populates="job",
@@ -399,7 +520,9 @@ class Ingestion(Base):
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
     external_id: Mapped[str] = mapped_column(String(240))
     attempt: Mapped[int] = mapped_column(Integer, default=1)
     repository: Mapped[str | None] = mapped_column(String(240), nullable=True)
@@ -409,14 +532,20 @@ class Ingestion(Base):
     source_format: Mapped[str] = mapped_column(String(80), default="auto")
     source_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     original_name: Mapped[str] = mapped_column(String(1024))
-    media_type: Mapped[str] = mapped_column(String(160), default="application/octet-stream")
+    media_type: Mapped[str] = mapped_column(
+        String(160), default="application/octet-stream"
+    )
     source_digest: Mapped[str] = mapped_column(String(64))
     source_size_bytes: Mapped[int] = mapped_column(Integer)
-    source_expired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source_expired_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     storage_path: Mapped[str] = mapped_column(String(2048))
     expected_inputs: Mapped[int | None] = mapped_column(Integer, nullable=True)
     received_inputs: Mapped[int] = mapped_column(Integer, default=0)
-    state: Mapped[IngestionState] = mapped_column(Enum(IngestionState), default=IngestionState.queued)
+    state: Mapped[IngestionState] = mapped_column(
+        Enum(IngestionState), default=IngestionState.queued
+    )
     run_id: Mapped[str | None] = mapped_column(
         ForeignKey("runs.id", ondelete="SET NULL"),
         unique=True,
@@ -428,15 +557,25 @@ class Ingestion(Base):
         nullable=True,
     )
     parser_version: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    policy_version: Mapped[str] = mapped_column(String(80), default="artifact-policy-v1")
+    policy_version: Mapped[str] = mapped_column(
+        String(80), default="artifact-policy-v1"
+    )
     diagnostics: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     error_code: Mapped[str | None] = mapped_column(String(120), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
 
     project: Mapped[Project] = relationship(back_populates="ingestions")
     run: Mapped[Run | None] = relationship(
@@ -476,7 +615,9 @@ class RunInput(Base):
     parser_version: Mapped[str | None] = mapped_column(String(80), nullable=True)
     warnings: Mapped[list[str]] = mapped_column(JSON, default=list)
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     run: Mapped[Run] = relationship(back_populates="inputs")
     evidence: Mapped[list[Evidence]] = relationship(back_populates="run_input")
@@ -496,7 +637,9 @@ class TestExecution(Base):
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), index=True
+    )
     test_identity: Mapped[str] = mapped_column(String(512))
     suite: Mapped[str | None] = mapped_column(String(512), nullable=True)
     source_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
@@ -509,24 +652,30 @@ class TestExecution(Base):
     details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
     run: Mapped[Run] = relationship(back_populates="executions")
-    failure: Mapped[Failure | None] = relationship(back_populates="execution", uselist=False)
+    failure: Mapped[Failure | None] = relationship(
+        back_populates="execution", uselist=False
+    )
     evidence: Mapped[list[Evidence]] = relationship(back_populates="execution")
     performance_observations: Mapped[list[PerformanceObservation]] = relationship(
         back_populates="execution"
     )
-    infrastructure_correlation_snapshots: Mapped[list[InfrastructureCorrelationSnapshot]] = relationship(
-        back_populates="selected_execution", cascade="all, delete-orphan"
-    )
+    infrastructure_correlation_snapshots: Mapped[
+        list[InfrastructureCorrelationSnapshot]
+    ] = relationship(back_populates="selected_execution", cascade="all, delete-orphan")
 
 
 class Artifact(Base):
     __tablename__ = "artifacts"
     __table_args__ = (
-        UniqueConstraint("run_id", "digest", "kind", name="uq_artifact_run_digest_kind"),
+        UniqueConstraint(
+            "run_id", "digest", "kind", name="uq_artifact_run_digest_kind"
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), index=True
+    )
     kind: Mapped[str] = mapped_column(String(80))
     original_name: Mapped[str] = mapped_column(String(1024))
     digest: Mapped[str] = mapped_column(String(64))
@@ -535,9 +684,7 @@ class Artifact(Base):
         String(160), default="application/octet-stream"
     )
     size_bytes: Mapped[int] = mapped_column(Integer)
-    redaction_version: Mapped[str] = mapped_column(
-        String(40), default="redaction-v1"
-    )
+    redaction_version: Mapped[str] = mapped_column(String(40), default="redaction-v1")
     restricted: Mapped[bool] = mapped_column(Boolean, default=False)
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
@@ -639,9 +786,7 @@ class Evidence(Base):
     extractor_version: Mapped[str] = mapped_column(
         String(80), default="observation-extractor-v1"
     )
-    redaction_version: Mapped[str] = mapped_column(
-        String(40), default="redaction-v1"
-    )
+    redaction_version: Mapped[str] = mapped_column(String(40), default="redaction-v1")
     warnings: Mapped[list[str]] = mapped_column(JSON, default=list)
 
     artifact: Mapped[Artifact] = relationship(back_populates="evidence")
@@ -660,21 +805,33 @@ class Evidence(Base):
 
 class Failure(Base):
     __tablename__ = "failures"
-    __table_args__ = (Index("ix_failure_fingerprint", "project_id", "strict_fingerprint"),)
+    __table_args__ = (
+        Index("ix_failure_fingerprint", "project_id", "strict_fingerprint"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
-    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
-    execution_id: Mapped[str] = mapped_column(ForeignKey("test_executions.id", ondelete="CASCADE"), unique=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), index=True
+    )
+    execution_id: Mapped[str] = mapped_column(
+        ForeignKey("test_executions.id", ondelete="CASCADE"), unique=True
+    )
     message: Mapped[str] = mapped_column(Text)
     exception_type: Mapped[str | None] = mapped_column(String(240), nullable=True)
     strict_fingerprint: Mapped[str] = mapped_column(String(64))
     loose_features: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     run: Mapped[Run] = relationship(back_populates="failures")
     execution: Mapped[TestExecution] = relationship(back_populates="failure")
-    analyses: Mapped[list[Analysis]] = relationship(back_populates="failure", cascade="all, delete-orphan")
+    analyses: Mapped[list[Analysis]] = relationship(
+        back_populates="failure", cascade="all, delete-orphan"
+    )
     cluster_memberships: Mapped[list[ClusterMembership]] = relationship(
         back_populates="failure", cascade="all, delete-orphan"
     )
@@ -706,7 +863,9 @@ class FailureCluster(Base):
         nullable=True,
         index=True,
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
     )
@@ -752,7 +911,9 @@ class ClusterRevision(Base):
     member_count: Mapped[int] = mapped_column(Integer)
     score_summary: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     uncertainty_flags: Mapped[list[str]] = mapped_column(JSON, default=list)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     cluster: Mapped[FailureCluster] = relationship(back_populates="revisions")
     representative_failure: Mapped[Failure | None] = relationship(
@@ -766,7 +927,9 @@ class ClusterRevision(Base):
 class ClusterMembership(Base):
     __tablename__ = "cluster_memberships"
     __table_args__ = (
-        UniqueConstraint("revision_id", "failure_id", name="uq_cluster_revision_failure"),
+        UniqueConstraint(
+            "revision_id", "failure_id", name="uq_cluster_revision_failure"
+        ),
         Index("ix_cluster_memberships_cluster_revision", "cluster_id", "revision_id"),
         Index("ix_cluster_memberships_failure_revision", "failure_id", "revision_id"),
     )
@@ -788,7 +951,9 @@ class ClusterMembership(Base):
     conflicting_signals: Mapped[list[str]] = mapped_column(JSON, default=list)
     candidate_reasons: Mapped[list[str]] = mapped_column(JSON, default=list)
     assignment_kind: Mapped[str] = mapped_column(String(40), default="automatic")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     cluster: Mapped[FailureCluster] = relationship(back_populates="memberships")
     revision: Mapped[ClusterRevision] = relationship(back_populates="memberships")
@@ -806,7 +971,9 @@ class ClusterMembershipDecision(Base):
         ForeignKey("failure_clusters.id", ondelete="CASCADE"), index=True
     )
     target_cluster_id: Mapped[str | None] = mapped_column(
-        ForeignKey("failure_clusters.id", ondelete="SET NULL"), nullable=True, index=True
+        ForeignKey("failure_clusters.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
     actor: Mapped[str] = mapped_column(String(240))
     actor_kind: Mapped[str] = mapped_column(String(40), default="legacy")
@@ -818,7 +985,9 @@ class ClusterMembershipDecision(Base):
     failure_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
     revision_before: Mapped[int] = mapped_column(Integer)
     revision_after: Mapped[int] = mapped_column(Integer)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     cluster: Mapped[FailureCluster] = relationship(
         back_populates="decisions", foreign_keys=[cluster_id]
@@ -842,9 +1011,13 @@ class Analysis(Base):
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    failure_id: Mapped[str] = mapped_column(ForeignKey("failures.id", ondelete="CASCADE"), index=True)
+    failure_id: Mapped[str] = mapped_column(
+        ForeignKey("failures.id", ondelete="CASCADE"), index=True
+    )
     revision: Mapped[int] = mapped_column(Integer, default=1)
-    analysis_version: Mapped[str] = mapped_column(String(40), default="deterministic-v1")
+    analysis_version: Mapped[str] = mapped_column(
+        String(40), default="deterministic-v1"
+    )
     input_digest: Mapped[str | None] = mapped_column(String(64), nullable=True)
     category: Mapped[Category] = mapped_column(Enum(Category))
     severity: Mapped[str] = mapped_column(String(32), default="medium")
@@ -862,23 +1035,27 @@ class Analysis(Base):
     abstention_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     policy_flags: Mapped[list[str]] = mapped_column(JSON, default=list)
     provenance: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    validation_version: Mapped[str | None] = mapped_column(
-        String(80), nullable=True
-    )
+    validation_version: Mapped[str | None] = mapped_column(String(80), nullable=True)
     validation_results: Mapped[dict[str, Any] | None] = mapped_column(
         JSON, nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     failure: Mapped[Failure] = relationship(back_populates="analyses")
-    reviews: Mapped[list[ReviewEvent]] = relationship(back_populates="analysis", cascade="all, delete-orphan")
+    reviews: Mapped[list[ReviewEvent]] = relationship(
+        back_populates="analysis", cascade="all, delete-orphan"
+    )
 
 
 class ReviewEvent(Base):
     __tablename__ = "review_events"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    analysis_id: Mapped[str] = mapped_column(ForeignKey("analyses.id", ondelete="CASCADE"), index=True)
+    analysis_id: Mapped[str] = mapped_column(
+        ForeignKey("analyses.id", ondelete="CASCADE"), index=True
+    )
     actor: Mapped[str] = mapped_column(String(240))
     actor_kind: Mapped[str] = mapped_column(String(40), default="legacy")
     actor_user_id: Mapped[str | None] = mapped_column(
@@ -889,11 +1066,15 @@ class ReviewEvent(Base):
     reason: Mapped[str] = mapped_column(Text)
     supporting_evidence_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
     contradictory_evidence_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
-    hypothesis_decisions: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    hypothesis_decisions: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSON, default=list
+    )
     investigation_outcome: Mapped[str | None] = mapped_column(Text, nullable=True)
     release_advice: Mapped[str | None] = mapped_column(String(80), nullable=True)
     version: Mapped[int] = mapped_column(Integer)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     analysis: Mapped[Analysis] = relationship(back_populates="reviews")
     actor_user: Mapped[User | None] = relationship(foreign_keys=[actor_user_id])
@@ -924,7 +1105,9 @@ class ImpactMappingSnapshot(Base):
     trusted: Mapped[bool] = mapped_column(Boolean, default=False)
     coverage_complete: Mapped[bool] = mapped_column(Boolean, default=False)
     source_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     project: Mapped[Project] = relationship(back_populates="impact_mapping_snapshots")
     tests: Mapped[list[ImpactTestDefinition]] = relationship(
@@ -941,9 +1124,7 @@ class ImpactMappingSnapshot(Base):
 class ImpactTestDefinition(Base):
     __tablename__ = "impact_test_definitions"
     __table_args__ = (
-        UniqueConstraint(
-            "snapshot_id", "test_key", name="uq_impact_test_snapshot_key"
-        ),
+        UniqueConstraint("snapshot_id", "test_key", name="uq_impact_test_snapshot_key"),
         Index("ix_impact_tests_snapshot_identity", "snapshot_id", "test_identity"),
     )
 
@@ -959,7 +1140,9 @@ class ImpactTestDefinition(Base):
     tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     estimated_duration_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     snapshot: Mapped[ImpactMappingSnapshot] = relationship(back_populates="tests")
 
@@ -988,7 +1171,9 @@ class ImpactMappingEdge(Base):
     mapping_source: Mapped[str] = mapped_column(String(120))
     mapping_version: Mapped[str] = mapped_column(String(80))
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     snapshot: Mapped[ImpactMappingSnapshot] = relationship(back_populates="edges")
 
@@ -1035,7 +1220,9 @@ class ImpactRecommendation(Base):
     changed_files: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     safety_reasons: Mapped[list[str]] = mapped_column(JSON, default=list)
     metrics: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
     )
@@ -1089,7 +1276,9 @@ class ImpactRecommendationItem(Base):
     reasons: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     mapping_edge_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
     exclusion_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     recommendation: Mapped[ImpactRecommendation] = relationship(back_populates="items")
 
@@ -1118,7 +1307,9 @@ class ImpactOverride(Base):
     reason: Mapped[str] = mapped_column(Text)
     revision_before: Mapped[int] = mapped_column(Integer)
     revision_after: Mapped[int] = mapped_column(Integer)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     recommendation: Mapped[ImpactRecommendation] = relationship(
         back_populates="overrides"
@@ -1129,9 +1320,7 @@ class ImpactOverride(Base):
 class PerformancePolicy(Base):
     __tablename__ = "performance_policies"
     __table_args__ = (
-        UniqueConstraint(
-            "project_id", "version", name="uq_performance_policy_version"
-        ),
+        UniqueConstraint("project_id", "version", name="uq_performance_policy_version"),
         Index("ix_performance_policies_project_created", "project_id", "created_at"),
     )
 
@@ -1147,7 +1336,9 @@ class PerformancePolicy(Base):
     require_trusted: Mapped[bool] = mapped_column(Boolean, default=True)
     required_dimensions: Mapped[list[str]] = mapped_column(JSON, default=list)
     direction_overrides: Mapped[dict[str, str]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     project: Mapped[Project] = relationship(back_populates="performance_policies")
     baselines: Mapped[list[PerformanceBaselineSnapshot]] = relationship(
@@ -1213,7 +1404,9 @@ class PerformanceObservation(Base):
     source_digest: Mapped[str] = mapped_column(String(64))
     source_locator: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     project: Mapped[Project] = relationship(back_populates="performance_observations")
     run: Mapped[Run] = relationship(back_populates="performance_observations")
@@ -1264,7 +1457,9 @@ class PerformanceBaselineSnapshot(Base):
     cutoff_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     cohort_dimensions: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     compatibility: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    rejected_candidates: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    rejected_candidates: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSON, default=list
+    )
     run_count: Mapped[int] = mapped_column(Integer, default=0)
     sample_count: Mapped[int] = mapped_column(Integer, default=0)
     baseline_value: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -1275,7 +1470,9 @@ class PerformanceBaselineSnapshot(Base):
     aggregation: Mapped[str] = mapped_column(
         String(80), default="median_of_run_level_observations"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     project: Mapped[Project] = relationship(back_populates="performance_baselines")
     current_run: Mapped[Run] = relationship(back_populates="performance_baselines")
@@ -1312,9 +1509,13 @@ class PerformanceBaselineMember(Base):
         ForeignKey("runs.id", ondelete="RESTRICT"), index=True
     )
     position: Mapped[int] = mapped_column(Integer)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
-    snapshot: Mapped[PerformanceBaselineSnapshot] = relationship(back_populates="members")
+    snapshot: Mapped[PerformanceBaselineSnapshot] = relationship(
+        back_populates="members"
+    )
     observation: Mapped[PerformanceObservation] = relationship(
         back_populates="baseline_memberships"
     )
@@ -1372,7 +1573,9 @@ class PerformanceComparison(Base):
     baseline_evidence_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
     next_measurement: Mapped[str] = mapped_column(Text)
     summary: Mapped[str] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     project: Mapped[Project] = relationship(back_populates="performance_comparisons")
     current_run: Mapped[Run] = relationship(back_populates="performance_comparisons")
@@ -1448,7 +1651,9 @@ class InfrastructureEvent(Base):
         ForeignKey("evidence.id", ondelete="SET NULL"), nullable=True, index=True
     )
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     project: Mapped[Project] = relationship(back_populates="infrastructure_events")
     evidence: Mapped[Evidence | None] = relationship(
@@ -1507,7 +1712,9 @@ class InfrastructureCorrelationSnapshot(Base):
     associations: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     confounders: Mapped[list[str]] = mapped_column(JSON, default=list)
     safety: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     project: Mapped[Project] = relationship(
         back_populates="infrastructure_correlation_snapshots"
@@ -1550,25 +1757,38 @@ class InfrastructureCorrelationMember(Base):
     event_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
     event_kinds: Mapped[list[str]] = mapped_column(JSON, default=list)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     snapshot: Mapped[InfrastructureCorrelationSnapshot] = relationship(
         back_populates="members"
     )
-    run: Mapped[Run] = relationship(
-        back_populates="infrastructure_correlation_members"
-    )
+    run: Mapped[Run] = relationship(back_populates="infrastructure_correlation_members")
 
 
 class BinaryEvidence(Base):
     """An input-bound binary evidence workflow; the source itself stays restricted."""
+
     __tablename__ = "binary_evidence"
-    input_id: Mapped[str] = mapped_column(ForeignKey("run_inputs.id", ondelete="CASCADE"), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
-    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
-    artifact_id: Mapped[str] = mapped_column(ForeignKey("artifacts.id", ondelete="CASCADE"))
-    execution_id: Mapped[str | None] = mapped_column(ForeignKey("test_executions.id", ondelete="SET NULL"), nullable=True)
-    current_derivative_id: Mapped[str | None] = mapped_column(ForeignKey("artifact_derivatives.id", ondelete="SET NULL"), nullable=True)
+    input_id: Mapped[str] = mapped_column(
+        ForeignKey("run_inputs.id", ondelete="CASCADE"), primary_key=True
+    )
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), index=True
+    )
+    artifact_id: Mapped[str] = mapped_column(
+        ForeignKey("artifacts.id", ondelete="CASCADE")
+    )
+    execution_id: Mapped[str | None] = mapped_column(
+        ForeignKey("test_executions.id", ondelete="SET NULL"), nullable=True
+    )
+    current_derivative_id: Mapped[str | None] = mapped_column(
+        ForeignKey("artifact_derivatives.id", ondelete="SET NULL"), nullable=True
+    )
     version: Mapped[int] = mapped_column(Integer, default=0)
     state: Mapped[str] = mapped_column(String(40), default="restricted")
     correlation: Mapped[str] = mapped_column(String(80), default="unassociated")
@@ -1576,53 +1796,108 @@ class BinaryEvidence(Base):
 
 class BinaryEvidenceDecision(Base):
     __tablename__ = "binary_evidence_decisions"
-    __table_args__ = (UniqueConstraint("input_id", "version", name="uq_binary_decision_version"),)
+    __table_args__ = (
+        UniqueConstraint("input_id", "version", name="uq_binary_decision_version"),
+    )
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    input_id: Mapped[str] = mapped_column(ForeignKey("binary_evidence.input_id", ondelete="CASCADE"), index=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
-    derivative_id: Mapped[str | None] = mapped_column(ForeignKey("artifact_derivatives.id", ondelete="SET NULL"), nullable=True)
+    input_id: Mapped[str] = mapped_column(
+        ForeignKey("binary_evidence.input_id", ondelete="CASCADE"), index=True
+    )
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    derivative_id: Mapped[str | None] = mapped_column(
+        ForeignKey("artifact_derivatives.id", ondelete="SET NULL"), nullable=True
+    )
     version: Mapped[int] = mapped_column(Integer)
     decision: Mapped[str] = mapped_column(String(40))
     actor_id: Mapped[str] = mapped_column(String(240))
     actor_display: Mapped[str] = mapped_column(String(240))
     reason: Mapped[str] = mapped_column(Text)
     masks: Mapped[list[dict[str, int]]] = mapped_column(JSON, default=list)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
 
 class ModelRunBudget(Base):
     """Monotonic reservation accounting, shared by every provider for a run."""
+
     __tablename__ = "model_run_budgets"
     __table_args__ = (
         UniqueConstraint("run_id", "project_id", name="uq_model_budget_scope"),
-        CheckConstraint("max_requests > 0 AND max_reserved_tokens > 0 AND requests >= 0 AND reserved_tokens >= 0", name="ck_model_budget_nonnegative"),
+        CheckConstraint(
+            "max_requests > 0 AND max_reserved_tokens > 0 AND requests >= 0 AND reserved_tokens >= 0",
+            name="ck_model_budget_nonnegative",
+        ),
     )
-    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), primary_key=True
+    )
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
     max_requests: Mapped[int] = mapped_column(Integer)
     max_reserved_tokens: Mapped[int] = mapped_column(Integer)
     requests: Mapped[int] = mapped_column(Integer, default=0)
     reserved_tokens: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
 
 class ModelInvocation(Base):
     """Immutable scoped identity; only validated proposal text may be retained."""
+
     __tablename__ = "model_invocations"
     __table_args__ = (
-        UniqueConstraint("project_id", "idempotency_digest", name="uq_model_invocation_idempotency"),
-        ForeignKeyConstraint(["run_id", "project_id"], ["model_run_budgets.run_id", "model_run_budgets.project_id"], ondelete="CASCADE"),
-        Index("ix_model_invocations_recovery", "project_id", "run_id", "status", "lease_expires_at"),
+        UniqueConstraint(
+            "project_id", "idempotency_digest", name="uq_model_invocation_idempotency"
+        ),
+        ForeignKeyConstraint(
+            ["run_id", "project_id"],
+            ["model_run_budgets.run_id", "model_run_budgets.project_id"],
+            ondelete="CASCADE",
+        ),
+        Index(
+            "ix_model_invocations_recovery",
+            "project_id",
+            "run_id",
+            "status",
+            "lease_expires_at",
+        ),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
-    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
-    analysis_id: Mapped[str] = mapped_column(ForeignKey("analyses.id", ondelete="CASCADE"), index=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), index=True
+    )
+    analysis_id: Mapped[str] = mapped_column(
+        ForeignKey("analyses.id", ondelete="CASCADE"), index=True
+    )
     analysis_revision: Mapped[int] = mapped_column(Integer)
     analysis_digest: Mapped[str] = mapped_column(String(64))
     evidence_digest: Mapped[str] = mapped_column(String(64))
     request_digest: Mapped[str] = mapped_column(String(64))
     provider_digest: Mapped[str] = mapped_column(String(64))
+    provider_identity_digest: Mapped[str | None] = mapped_column(
+        String(64), nullable=True
+    )
+    preview_digest: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    job_id: Mapped[str | None] = mapped_column(
+        ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True, unique=True
+    )
+    requester_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    requester_session_id: Mapped[str | None] = mapped_column(
+        ForeignKey("auth_sessions.id", ondelete="SET NULL"), nullable=True
+    )
+    cancel_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     idempotency_digest: Mapped[str] = mapped_column(String(64))
     deterministic_category: Mapped[str] = mapped_column(String(40))
     prompt_version: Mapped[str] = mapped_column(String(80))
@@ -1631,21 +1906,41 @@ class ModelInvocation(Base):
     proposal_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     owner_token: Mapped[str | None] = mapped_column(String(36), nullable=True)
     lease_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class ModelAttempt(Base):
     """Committed before transport. Unfinished attempts retain all reservations."""
+
     __tablename__ = "model_attempts"
     __table_args__ = (
         UniqueConstraint("invocation_id", "number", name="uq_model_attempt_number"),
-        CheckConstraint("number > 0 AND reserved_tokens > 0 AND accounted_tokens >= reserved_tokens", name="ck_model_attempt_reservation"),
-        CheckConstraint("(prompt_tokens IS NULL AND completion_tokens IS NULL) OR (prompt_tokens IS NOT NULL AND completion_tokens IS NOT NULL AND prompt_tokens >= 0 AND completion_tokens >= 0)", name="ck_model_attempt_usage"),
+        CheckConstraint(
+            "number > 0 AND reserved_tokens > 0 AND accounted_tokens >= reserved_tokens",
+            name="ck_model_attempt_reservation",
+        ),
+        CheckConstraint(
+            "(prompt_tokens IS NULL AND completion_tokens IS NULL) OR (prompt_tokens IS NOT NULL AND completion_tokens IS NOT NULL AND prompt_tokens >= 0 AND completion_tokens >= 0)",
+            name="ck_model_attempt_usage",
+        ),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    invocation_id: Mapped[str] = mapped_column(ForeignKey("model_invocations.id", ondelete="CASCADE"), index=True)
+    invocation_id: Mapped[str] = mapped_column(
+        ForeignKey("model_invocations.id", ondelete="CASCADE"), index=True
+    )
     owner_token: Mapped[str] = mapped_column(String(36))
+    admission_id: Mapped[str | None] = mapped_column(
+        ForeignKey("model_provider_admissions.id", ondelete="RESTRICT"), nullable=True
+    )
+    circuit_accounted: Mapped[bool] = mapped_column(Boolean, default=False)
+    transport_terminated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     number: Mapped[int] = mapped_column(Integer)
     reserved_tokens: Mapped[int] = mapped_column(Integer)
     accounted_tokens: Mapped[int] = mapped_column(Integer)
@@ -1662,5 +1957,206 @@ class ModelAttempt(Base):
     pricing_source: Mapped[str | None] = mapped_column(String(240), nullable=True)
     pricing_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
     currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class ModelProviderAdmission(Base):
+    """Service-wide permits outlive process leases and configuration rotation."""
+
+    __tablename__ = "model_provider_admissions"
+    __table_args__ = (
+        CheckConstraint(
+            "active_permits >= 0 AND failures >= 0", name="ck_provider_admission_counts"
+        ),
+    )
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    active_permits: Mapped[int] = mapped_column(Integer, default=0)
+    failures: Mapped[int] = mapped_column(Integer, default=0)
+    next_allowed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    open_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    worker_seen_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    worker_configuration_digest: Mapped[str | None] = mapped_column(
+        String(64), nullable=True
+    )
+
+
+class GitHubPublicationTarget(Base):
+    __tablename__ = "github_publication_targets"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id",
+            "repository",
+            "pull_number",
+            name="uq_github_publication_target",
+        ),
+        CheckConstraint("pull_number > 0", name="ck_github_target_pull_positive"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    repository: Mapped[str] = mapped_column(String(240))
+    pull_number: Mapped[int] = mapped_column(BigInteger)
+    active_publication_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+
+class GitHubPublication(Base):
+    __tablename__ = "github_publications"
+    __table_args__ = (
+        Index(
+            "ix_github_publications_project_created", "project_id", "created_at", "id"
+        ),
+        Index("ix_github_publications_run_created", "run_id", "created_at", "id"),
+        CheckConstraint(
+            "report_schema_version = 'github-report-v2'",
+            name="ck_github_publication_report_schema",
+        ),
+        CheckConstraint(
+            "analysis_count >= 0 AND omitted_analysis_revisions >= 0 "
+            "AND analysis_count >= omitted_analysis_revisions "
+            "AND analysis_count - omitted_analysis_revisions <= 50",
+            name="ck_github_publication_analysis_counts",
+        ),
+        CheckConstraint(
+            "status IN ('prepared','active','reconciling','created','updated','unchanged','stale','failed','uncertain')",
+            name="ck_github_publication_status",
+        ),
+        CheckConstraint(
+            "actor_kind = 'publisher_process'", name="ck_github_publication_actor_kind"
+        ),
+        CheckConstraint(
+            "actor_verification IN ('not_verified','verified')",
+            name="ck_github_publication_actor_verification",
+        ),
+        CheckConstraint(
+            "source_verification IN ('not_supplied','unverified')",
+            name="ck_github_publication_source_verification",
+        ),
+        CheckConstraint(
+            "(source_run_id IS NULL AND source_run_attempt IS NULL) OR (source_run_id IS NOT NULL AND source_run_attempt IS NOT NULL AND source_run_attempt BETWEEN 1 AND 1000000)",
+            name="ck_github_publication_source_pair",
+        ),
+        CheckConstraint(
+            "(source_verification = 'not_supplied' AND source_run_id IS NULL AND source_run_attempt IS NULL) OR (source_verification = 'unverified' AND source_run_id IS NOT NULL AND source_run_attempt IS NOT NULL)",
+            name="ck_github_publication_source_verification_pair",
+        ),
+        CheckConstraint(
+            "actor_verification != 'verified' OR (bot_user_id IS NOT NULL AND bot_user_id > 0 AND actor_verified_at IS NOT NULL)",
+            name="ck_github_publication_verified_actor",
+        ),
+        CheckConstraint(
+            "comment_id IS NULL OR comment_id > 0",
+            name="ck_github_publication_comment_positive",
+        ),
+        CheckConstraint(
+            "bot_user_id IS NULL OR bot_user_id > 0",
+            name="ck_github_publication_bot_positive",
+        ),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    target_id: Mapped[str] = mapped_column(
+        ForeignKey("github_publication_targets.id", ondelete="CASCADE"), index=True
+    )
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("runs.id", ondelete="CASCADE"), index=True
+    )
+    actor_kind: Mapped[str] = mapped_column(String(32), default="publisher_process")
+    publisher_id: Mapped[str] = mapped_column(String(36))
+    tested_head: Mapped[str] = mapped_column(String(40))
+    current_head: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    report_digest: Mapped[str] = mapped_column(String(64))
+    report_schema_version: Mapped[str] = mapped_column(String(40))
+    analysis_manifest_digest: Mapped[str] = mapped_column(String(64))
+    analysis_count: Mapped[int] = mapped_column(Integer)
+    analysis_revisions: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
+    omitted_analysis_revisions: Mapped[int] = mapped_column(Integer)
+    bot_login: Mapped[str] = mapped_column(String(120))
+    bot_user_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    actor_verification: Mapped[str] = mapped_column(String(32), default="not_verified")
+    actor_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    comment_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    source_run_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    source_run_attempt: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_verification: Mapped[str] = mapped_column(String(32), default="not_supplied")
+    status: Mapped[str] = mapped_column(String(32), default="prepared")
+    error_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    reconciled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class GitHubPublicationWrite(Base):
+    __tablename__ = "github_publication_writes"
+    __table_args__ = (
+        UniqueConstraint(
+            "publication_id", "sequence", name="uq_github_publication_write_sequence"
+        ),
+        CheckConstraint(
+            "sequence BETWEEN 1 AND 2", name="ck_github_publication_write_sequence"
+        ),
+        CheckConstraint(
+            "purpose IN ('report','stale')", name="ck_github_publication_write_purpose"
+        ),
+        CheckConstraint(
+            "method IN ('POST','PATCH')", name="ck_github_publication_write_method"
+        ),
+        CheckConstraint(
+            "state IN ('dispatching','observed','uncertain')",
+            name="ck_github_publication_write_state",
+        ),
+        CheckConstraint(
+            "comment_id IS NULL OR comment_id > 0",
+            name="ck_github_publication_write_comment_positive",
+        ),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    publication_id: Mapped[str] = mapped_column(
+        ForeignKey("github_publications.id", ondelete="CASCADE"), index=True
+    )
+    sequence: Mapped[int] = mapped_column(Integer)
+    method: Mapped[str] = mapped_column(String(5))
+    purpose: Mapped[str] = mapped_column(String(16))
+    tested_head: Mapped[str] = mapped_column(String(40))
+    comment_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    body_digest: Mapped[str] = mapped_column(String(64))
+    revalidated_report_digest: Mapped[str] = mapped_column(String(64))
+    current_head: Mapped[str] = mapped_column(String(40))
+    state: Mapped[str] = mapped_column(String(32), default="dispatching")
+    error_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )

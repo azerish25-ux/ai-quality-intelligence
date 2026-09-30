@@ -2,17 +2,29 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
-
 from failurelens.history import build_test_history, history_context_for_failure
-from failurelens.models import Failure, Outcome, ReviewEvent, TestExecution as ExecutionModel
-from failurelens.schemas import IngestionRequest, ReviewCreate, TestObservation as ObservationModel
+from failurelens.models import (
+    Failure,
+    Outcome,
+    ReviewEvent,
+)
+from failurelens.models import (
+    TestExecution as ExecutionModel,
+)
+from failurelens.schemas import (
+    IngestionRequest,
+    ReviewCreate,
+)
+from failurelens.schemas import (
+    TestObservation as ObservationModel,
+)
 from failurelens.service import (
     add_review,
     analyze_and_persist,
     create_project,
     ingest_normalized,
 )
+from sqlalchemy import select
 
 BASE = datetime(2026, 1, 1, tzinfo=UTC)
 TEST_ID = "checkout::reviewed-timing"
@@ -92,14 +104,34 @@ def _execution_for_run(session, run_id: str) -> ExecutionModel:
     return execution
 
 
-def test_history_context_is_prior_only_traceable_and_enables_reviewed_flake(session) -> None:
+def test_history_context_is_prior_only_traceable_and_enables_reviewed_flake(
+    session,
+) -> None:
     project = create_project(session, "history-core", "History Core")
     prior_runs = [
-        _ingest(session, project, external_id="prior-0", day=0, outcomes=[Outcome.failed, Outcome.passed]),
-        _ingest(session, project, external_id="prior-1", day=1, outcomes=[Outcome.passed]),
-        _ingest(session, project, external_id="prior-2", day=2, outcomes=[Outcome.failed]),
-        _ingest(session, project, external_id="prior-3", day=3, outcomes=[Outcome.passed]),
-        _ingest(session, project, external_id="prior-4", day=4, outcomes=[Outcome.failed, Outcome.passed]),
+        _ingest(
+            session,
+            project,
+            external_id="prior-0",
+            day=0,
+            outcomes=[Outcome.failed, Outcome.passed],
+        ),
+        _ingest(
+            session, project, external_id="prior-1", day=1, outcomes=[Outcome.passed]
+        ),
+        _ingest(
+            session, project, external_id="prior-2", day=2, outcomes=[Outcome.failed]
+        ),
+        _ingest(
+            session, project, external_id="prior-3", day=3, outcomes=[Outcome.passed]
+        ),
+        _ingest(
+            session,
+            project,
+            external_id="prior-4",
+            day=4,
+            outcomes=[Outcome.failed, Outcome.passed],
+        ),
     ]
 
     reviewed_failure = _failure_for_run(session, prior_runs[0].id)
@@ -159,7 +191,9 @@ def test_history_context_is_prior_only_traceable_and_enables_reviewed_flake(sess
     analysis = analyze_and_persist(session, current_failure)
     assert analysis.category.value == "known_flake"
     assert analysis.provenance["history_policy_version"] == "history-v1"
-    assert analysis.provenance["history_input_digest"] == context["history_input_digest"]
+    assert (
+        analysis.provenance["history_input_digest"] == context["history_input_digest"]
+    )
     assert analysis.provenance["history_cutoff"] == context["history_cutoff"]
 
 
@@ -265,9 +299,10 @@ def test_selection_scope_and_cohort_breakdowns_are_explicit(session) -> None:
     )
     assert all_history["sample_sizes"]["independent_observations"] == 3
     assert all_history["safety"]["selection_bias_present"] is True
-    assert "impact_selected_history_has_selection_bias" in all_history["safety"][
-        "insufficient_data_reasons"
-    ]
+    assert (
+        "impact_selected_history_has_selection_bias"
+        in all_history["safety"]["insufficient_data_reasons"]
+    )
     assert "run_scope_unknown" in all_history["safety"]["insufficient_data_reasons"]
     assert {row["value"] for row in all_history["breakdowns"]["browser"]} == {
         "chromium",
@@ -394,7 +429,10 @@ def test_repeated_failures_without_any_pass_cannot_be_reassuring(session) -> Non
     assert context["observed_passes"] == 0
     assert context["history_eligible_for_reassurance"] is False
     assert "no_prior_pass_observation" in context["insufficient_data_reasons"]
-    assert analyze_and_persist(session, current_failure).category.value == "insufficient_evidence"
+    assert (
+        analyze_and_persist(session, current_failure).category.value
+        == "insufficient_evidence"
+    )
 
 
 def test_history_change_creates_new_analysis_revision(session) -> None:
@@ -421,12 +459,15 @@ def test_history_change_creates_new_analysis_revision(session) -> None:
 
     assert second.id != first.id
     assert second.revision == first.revision + 1
-    assert second.provenance["history_input_digest"] != first.provenance[
-        "history_input_digest"
-    ]
+    assert (
+        second.provenance["history_input_digest"]
+        != first.provenance["history_input_digest"]
+    )
 
 
-def test_history_api_is_prior_only_paginated_and_timezone_validated(client, session) -> None:
+def test_history_api_is_prior_only_paginated_and_timezone_validated(
+    client, session
+) -> None:
     project = create_project(session, "history-api", "History API")
     _ingest(
         session,
@@ -539,11 +580,29 @@ def test_future_review_is_excluded_by_cutoff(session) -> None:
 def test_known_flake_review_must_come_from_the_same_safe_cohort(session) -> None:
     project = create_project(session, "history-review-cohort", "History Review Cohort")
     full_suite_runs = [
-        _ingest(session, project, external_id="full-0", day=0, outcomes=[Outcome.failed, Outcome.passed]),
-        _ingest(session, project, external_id="full-1", day=1, outcomes=[Outcome.passed]),
-        _ingest(session, project, external_id="full-2", day=2, outcomes=[Outcome.failed]),
-        _ingest(session, project, external_id="full-3", day=3, outcomes=[Outcome.passed]),
-        _ingest(session, project, external_id="full-4", day=4, outcomes=[Outcome.failed, Outcome.passed]),
+        _ingest(
+            session,
+            project,
+            external_id="full-0",
+            day=0,
+            outcomes=[Outcome.failed, Outcome.passed],
+        ),
+        _ingest(
+            session, project, external_id="full-1", day=1, outcomes=[Outcome.passed]
+        ),
+        _ingest(
+            session, project, external_id="full-2", day=2, outcomes=[Outcome.failed]
+        ),
+        _ingest(
+            session, project, external_id="full-3", day=3, outcomes=[Outcome.passed]
+        ),
+        _ingest(
+            session,
+            project,
+            external_id="full-4",
+            day=4,
+            outcomes=[Outcome.failed, Outcome.passed],
+        ),
     ]
     assert len(full_suite_runs) == 5
 
@@ -585,10 +644,13 @@ def test_known_flake_review_must_come_from_the_same_safe_cohort(session) -> None
     assert context["observed_passes"] == 4
     assert context["observed_failures"] == 1
     assert context["reviewed_known_flake"] is False
-    assert "no_prior_reviewed_known_flake_decision" in context[
-        "insufficient_data_reasons"
-    ]
-    assert analyze_and_persist(session, current_failure).category.value == "insufficient_evidence"
+    assert (
+        "no_prior_reviewed_known_flake_decision" in context["insufficient_data_reasons"]
+    )
+    assert (
+        analyze_and_persist(session, current_failure).category.value
+        == "insufficient_evidence"
+    )
 
     exploratory = build_test_history(
         session,
@@ -646,8 +708,12 @@ def test_repository_and_framework_are_part_of_history_identity(session) -> None:
     assert report["observations"][0]["run_id"] == matching.id
 
 
-def test_analyzer_matches_unknown_environment_instead_of_all_environments(session) -> None:
-    project = create_project(session, "history-unknown-env", "History Unknown Environment")
+def test_analyzer_matches_unknown_environment_instead_of_all_environments(
+    session,
+) -> None:
+    project = create_project(
+        session, "history-unknown-env", "History Unknown Environment"
+    )
     unknown_environment = _ingest(
         session,
         project,
@@ -713,7 +779,9 @@ def test_ingestion_rejects_unknown_timezone(client, session) -> None:
 
 
 def test_latest_review_revision_supersedes_older_known_flake_decision(session) -> None:
-    project = create_project(session, "history-review-revision", "History Review Revision")
+    project = create_project(
+        session, "history-review-revision", "History Review Revision"
+    )
     prior = _ingest(
         session,
         project,
@@ -774,14 +842,18 @@ def test_latest_review_revision_supersedes_older_known_flake_decision(session) -
 
     assert report["review"]["reviewed_known_flake"] is False
     assert report["review"]["events"] == []
-    assert "no_prior_reviewed_known_flake_decision" in report["safety"][
-        "insufficient_data_reasons"
-    ]
+    assert (
+        "no_prior_reviewed_known_flake_decision"
+        in report["safety"]["insufficient_data_reasons"]
+    )
 
 
-
-def test_multiple_browser_observations_in_one_run_do_not_meet_independent_run_gate(session) -> None:
-    project = create_project(session, "history-independent-runs", "History Independent Runs")
+def test_multiple_browser_observations_in_one_run_do_not_meet_independent_run_gate(
+    session,
+) -> None:
+    project = create_project(
+        session, "history-independent-runs", "History Independent Runs"
+    )
     matrix = ingest_normalized(
         session,
         project,
@@ -841,12 +913,15 @@ def test_multiple_browser_observations_in_one_run_do_not_meet_independent_run_ga
     assert report["rates"]["final_failure_rate"]["numerator"] == 1
     assert report["rates"]["final_failure_rate"]["denominator"] == 1
     assert report["safety"]["history_eligible_for_reassurance"] is False
-    assert "fewer_than_five_prior_independent_runs" in report["safety"][
-        "insufficient_data_reasons"
-    ]
+    assert (
+        "fewer_than_five_prior_independent_runs"
+        in report["safety"]["insufficient_data_reasons"]
+    )
 
 
-def test_backfilled_run_created_after_cutoff_is_not_used_as_prior_history(session) -> None:
+def test_backfilled_run_created_after_cutoff_is_not_used_as_prior_history(
+    session,
+) -> None:
     project = create_project(session, "history-backfill", "History Backfill")
     backfilled = _ingest(
         session,
@@ -881,7 +956,9 @@ def test_backfilled_run_created_after_cutoff_is_not_used_as_prior_history(sessio
     assert report["observations"] == []
 
 
-def test_comparable_run_scan_is_bounded_and_blocks_reassurance(session, monkeypatch) -> None:
+def test_comparable_run_scan_is_bounded_and_blocks_reassurance(
+    session, monkeypatch
+) -> None:
     monkeypatch.setattr("failurelens.history.MAX_HISTORY_RUNS", 2)
     project = create_project(session, "history-run-bound", "History Run Bound")
     for day in range(3):
@@ -913,9 +990,7 @@ def test_comparable_run_scan_is_bounded_and_blocks_reassurance(session, monkeypa
     assert report["sample_sizes"]["comparable_project_runs"] == 2
     assert report["safety"]["truncated"] is True
     assert report["safety"]["history_eligible_for_reassurance"] is False
-    assert "history_run_limit_reached" in report["safety"][
-        "insufficient_data_reasons"
-    ]
+    assert "history_run_limit_reached" in report["safety"]["insufficient_data_reasons"]
 
 
 def test_review_scan_is_bounded_and_blocks_reassurance(session, monkeypatch) -> None:
@@ -935,7 +1010,7 @@ def test_review_scan_is_bounded_and_blocks_reassurance(session, monkeypatch) -> 
             session,
             analysis,
             ReviewCreate(
-                    decision="category_correction",
+                decision="category_correction",
                 proposed_category="known_flake",
                 reason="Bounded history review fixture.",
                 expected_version=0,
@@ -965,9 +1040,9 @@ def test_review_scan_is_bounded_and_blocks_reassurance(session, monkeypatch) -> 
     assert len(report["review"]["events"]) == 1
     assert report["safety"]["truncated"] is True
     assert report["safety"]["history_eligible_for_reassurance"] is False
-    assert "history_review_limit_reached" in report["safety"][
-        "insufficient_data_reasons"
-    ]
+    assert (
+        "history_review_limit_reached" in report["safety"]["insufficient_data_reasons"]
+    )
 
 
 def test_analyzer_requires_same_branch_history(session) -> None:

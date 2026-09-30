@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
-
 from failurelens.infrastructure import (
     build_infrastructure_correlation,
     create_infrastructure_event,
@@ -13,14 +11,19 @@ from failurelens.models import (
     Failure,
     InfrastructureEvent,
     Outcome,
+)
+from failurelens.models import (
     TestExecution as ExecutionModel,
 )
 from failurelens.schemas import (
     InfrastructureEventCreate,
     IngestionRequest,
+)
+from failurelens.schemas import (
     TestObservation as ObservationInput,
 )
 from failurelens.service import analyze_and_persist, create_project, ingest_normalized
+from sqlalchemy import select
 
 BASE = datetime(2026, 2, 1, tzinfo=UTC)
 TEST_ID = "checkout::infrastructure-sensitive"
@@ -64,7 +67,9 @@ def _ingest(
                     browser="chromium",
                     outcome=outcome,
                     message=message if outcome is Outcome.failed else None,
-                    exception_type="GatewayTimeout" if outcome is Outcome.failed else None,
+                    exception_type="GatewayTimeout"
+                    if outcome is Outcome.failed
+                    else None,
                 )
             ],
         ),
@@ -116,7 +121,10 @@ def _event(
             status="resolved",
             started_at=BASE + timedelta(days=day, minutes=2),
             ended_at=BASE + timedelta(days=day, minutes=8),
-            recorded_at=BASE + timedelta(days=recorded_day if recorded_day is not None else day, minutes=9),
+            recorded_at=BASE
+            + timedelta(
+                days=recorded_day if recorded_day is not None else day, minutes=9
+            ),
             workflow_name="ci",
             runner_identity="runner-1",
             runner_group="hosted",
@@ -183,7 +191,10 @@ def test_trusted_events_create_traceable_available_snapshot(session) -> None:
     assert result["rates"]["unexposed_failure_rate"]["value"] == 0.0
     assert result["rates"]["absolute_failure_rate_difference"] == 1.0
     assert result["safety"]["association_only"] is True
-    assert result["safety"]["can_independently_authorize_infrastructure_classification"] is False
+    assert (
+        result["safety"]["can_independently_authorize_infrastructure_classification"]
+        is False
+    )
     assert set(result["accepted_event_ids"]) == {
         event.id for event in session.scalars(select(InfrastructureEvent)).all()
     }
@@ -284,7 +295,10 @@ def test_cross_context_and_future_events_are_excluded(session) -> None:
     assert result["status"] == "INCOMPATIBLE_CONTEXT"
     assert result["sample_sizes"]["candidate_events"] == 1
     assert result["rejected_events"][0]["reasons"] == ["repository_mismatch"]
-    assert all(event["producer_event_id"] != "future-record" for event in result["accepted_events"])
+    assert all(
+        event["producer_event_id"] != "future-record"
+        for event in result["accepted_events"]
+    )
 
 
 def test_correlation_never_downgrades_product_defect(session) -> None:
@@ -321,12 +335,19 @@ def test_correlation_never_downgrades_product_defect(session) -> None:
     )
     after = analyze_and_persist(session, failure)
 
-    assert prior.id in {member["run_id"] for member in result["members"] if member["exposed"]}
+    assert prior.id in {
+        member["run_id"] for member in result["members"] if member["exposed"]
+    }
     assert after.category.value == "product_defect"
-    assert result["safety"]["can_independently_authorize_infrastructure_classification"] is False
+    assert (
+        result["safety"]["can_independently_authorize_infrastructure_classification"]
+        is False
+    )
 
 
-def test_event_identity_is_idempotent_but_conflicting_content_is_rejected(session) -> None:
+def test_event_identity_is_idempotent_but_conflicting_content_is_rejected(
+    session,
+) -> None:
     project = create_project(session, "infra-idempotent", "Infrastructure Idempotent")
     first = _event(session, project, event_id="same", day=0)
     repeated = _event(session, project, event_id="same", day=0)
@@ -347,7 +368,9 @@ def test_event_identity_is_idempotent_but_conflicting_content_is_rejected(sessio
 
 
 def test_event_timestamps_cannot_leak_future_state(session) -> None:
-    project = create_project(session, "infra-time-validity", "Infrastructure Time Validity")
+    project = create_project(
+        session, "infra-time-validity", "Infrastructure Time Validity"
+    )
     request = InfrastructureEventCreate(
         repository="owner/repo",
         environment="ci-linux",
@@ -370,7 +393,9 @@ def test_event_timestamps_cannot_leak_future_state(session) -> None:
         raise AssertionError("future event state was accepted before it was recorded")
 
 
-def test_infrastructure_api_and_history_surface_real_correlation(client, session) -> None:
+def test_infrastructure_api_and_history_surface_real_correlation(
+    client, session
+) -> None:
     project = create_project(session, "infra-api", "Infrastructure API")
     _ingest(session, project, external_id="prior-failed", day=0, outcome=Outcome.failed)
     _ingest(session, project, external_id="prior-passed", day=1, outcome=Outcome.passed)

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
-from contextvars import ContextVar
-from dataclasses import dataclass, field
 import hashlib
 import hmac
 import json
 import re
-from typing import Iterable, Iterator
+from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass, field
 
 from .redaction_keys import KeyMaterial, RedactionKeyError, valid_key_reference
 
@@ -27,23 +27,36 @@ class RedactionContext:
 
     @classmethod
     def from_key(cls, project_id: str, key: KeyMaterial) -> RedactionContext:
-        if (not project_id or not valid_key_reference(key.reference)
-                or key.source not in {"local", "operator"} or not 32 <= len(key.material) <= 256):
+        if (
+            not project_id
+            or not valid_key_reference(key.reference)
+            or key.source not in {"local", "operator"}
+            or not 32 <= len(key.material) <= 256
+        ):
             raise RedactionKeyError("redaction_context_invalid")
-        domain = json.dumps(["failurelens-project-redaction-key-v3", key.reference, project_id],
-                            separators=(",", ":")).encode()
+        domain = json.dumps(
+            ["failurelens-project-redaction-key-v3", key.reference, project_id],
+            separators=(",", ":"),
+        ).encode()
         derived = hmac.digest(key.material, domain, "sha256")
         return cls(project_id, key.reference, key.source, derived)
 
     def provenance(self) -> dict:
-        return {"version": REDACTION_VERSION, "algorithm": ALGORITHM,
-                "correlation_scope": "project", "project_id": self.project_id,
-                "key_ref": self.key_reference, "key_source": self.key_source,
-                "preexisting_markers": self.preexisting_markers,
-                "legacy_unscoped_markers": self.legacy_unscoped_markers}
+        return {
+            "version": REDACTION_VERSION,
+            "algorithm": ALGORITHM,
+            "correlation_scope": "project",
+            "project_id": self.project_id,
+            "key_ref": self.key_reference,
+            "key_source": self.key_source,
+            "preexisting_markers": self.preexisting_markers,
+            "legacy_unscoped_markers": self.legacy_unscoped_markers,
+        }
 
 
-_CONTEXT: ContextVar[RedactionContext | None] = ContextVar("project_redaction", default=None)
+_CONTEXT: ContextVar[RedactionContext | None] = ContextVar(
+    "project_redaction", default=None
+)
 
 
 @contextmanager
@@ -64,24 +77,45 @@ def redaction_provenance(project_id: str | None = None) -> dict:
     if context is None:
         if project_id is not None:
             raise RedactionKeyError("redaction_project_context_missing")
-        return {"version": REDACTION_VERSION, "algorithm": "suppression",
-                "correlation_scope": "none", "project_id": None, "key_ref": None,
-                "key_source": None, "preexisting_markers": False,
-                "legacy_unscoped_markers": False}
+        return {
+            "version": REDACTION_VERSION,
+            "algorithm": "suppression",
+            "correlation_scope": "none",
+            "project_id": None,
+            "key_ref": None,
+            "key_source": None,
+            "preexisting_markers": False,
+            "legacy_unscoped_markers": False,
+        }
     if project_id is not None and context.project_id != project_id:
         raise RedactionKeyError("redaction_project_context_mismatch")
     return context.provenance()
 
 
 def valid_project_provenance(value: object, project_id: str) -> bool:
-    public_fields = {"version", "algorithm", "correlation_scope", "project_id", "key_ref", "key_source",
-                     "preexisting_markers", "legacy_unscoped_markers", "classes"}
-    return (isinstance(value, dict) and set(value) <= public_fields and value.get("version") == REDACTION_VERSION
-            and value.get("algorithm") == ALGORITHM and value.get("correlation_scope") == "project"
-            and value.get("project_id") == project_id and valid_key_reference(value.get("key_ref"))
-            and value.get("key_source") in {"local", "operator"}
-            and type(value.get("preexisting_markers")) is bool
-            and type(value.get("legacy_unscoped_markers")) is bool)
+    public_fields = {
+        "version",
+        "algorithm",
+        "correlation_scope",
+        "project_id",
+        "key_ref",
+        "key_source",
+        "preexisting_markers",
+        "legacy_unscoped_markers",
+        "classes",
+    }
+    return (
+        isinstance(value, dict)
+        and set(value) <= public_fields
+        and value.get("version") == REDACTION_VERSION
+        and value.get("algorithm") == ALGORITHM
+        and value.get("correlation_scope") == "project"
+        and value.get("project_id") == project_id
+        and valid_key_reference(value.get("key_ref"))
+        and value.get("key_source") in {"local", "operator"}
+        and type(value.get("preexisting_markers")) is bool
+        and type(value.get("legacy_unscoped_markers")) is bool
+    )
 
 
 @dataclass(frozen=True)
@@ -92,29 +126,65 @@ class RedactionResult:
 
 
 _PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("private_key", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----.*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----", re.I | re.S)),
-    ("authorization", re.compile(r"(?i)\b(authorization\s*:\s*)(?:bearer|basic)\s+[^\s,;]+")),
+    (
+        "private_key",
+        re.compile(
+            r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----.*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----",
+            re.IGNORECASE | re.DOTALL,
+        ),
+    ),
+    (
+        "authorization",
+        re.compile(r"(?i)\b(authorization\s*:\s*)(?:bearer|basic)\s+[^\s,;]+"),
+    ),
     ("cookie", re.compile(r"(?im)^((?:set-)?cookie\s*:\s*)[^\r\n]+")),
-    ("api_key", re.compile(r"(?i)\b((?:api[_-]?key|access[_-]?token|token|secret|password)\s*[=:]\s*)[\"']?[^\s,;\"']+")),
-    ("session", re.compile(r"(?i)\b((?:session(?:[_-]?id)?|sid)\s*[=:]\s*)[\"']?[^\s,;\"']+")),
-    ("transaction_id", re.compile(r"(?i)\b((?:transaction[_-]?id|tx[_-]?id)\s*[=:]\s*)[\"']?[^\s,;\"']+")),
-    ("email", re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.I)),
+    (
+        "api_key",
+        re.compile(
+            r"(?i)\b((?:api[_-]?key|access[_-]?token|token|secret|password)\s*[=:]\s*)[\"']?[^\s,;\"']+"
+        ),
+    ),
+    (
+        "session",
+        re.compile(r"(?i)\b((?:session(?:[_-]?id)?|sid)\s*[=:]\s*)[\"']?[^\s,;\"']+"),
+    ),
+    (
+        "transaction_id",
+        re.compile(
+            r"(?i)\b((?:transaction[_-]?id|tx[_-]?id)\s*[=:]\s*)[\"']?[^\s,;\"']+"
+        ),
+    ),
+    ("email", re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)),
     # Numeric fragments inside identifiers/digests are not phone tokens.
-    ("phone", re.compile(r"(?<![\w])(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}(?![\w])")),
+    (
+        "phone",
+        re.compile(
+            r"(?<![\w])(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}(?![\w])"
+        ),
+    ),
 )
 _MARKER = re.compile(
     r"\[REDACTED:(?P<kind>private_key|authorization|cookie|api_key|email|phone|session|transaction_id|malformed_marker)"
     r"(?::[0-9a-f]{10}|:hmac-v3:[0-9a-f]{32}|:unscoped|:incomplete)?\]"
 )
-_MARKER_START = re.compile(r"\[REDACTED:", re.I)
+_MARKER_START = re.compile(r"\[REDACTED:", re.IGNORECASE)
 _CORRELATION_CLASSES = frozenset({"email", "phone", "session", "transaction_id"})
-_ANALYTIC_FIELD = re.compile(r"^(?:(?:expected|actual|asserted|observed|before|after)_)?(?:amount(?:_minor)?|balance(?:_minor)?|status(?:_code)?|response_status|posted_minor)$", re.I)
+_ANALYTIC_FIELD = re.compile(
+    r"^(?:(?:expected|actual|asserted|observed|before|after)_)?(?:amount(?:_minor)?|balance(?:_minor)?|status(?:_code)?|response_status|posted_minor)$",
+    re.IGNORECASE,
+)
 _NUMERIC = re.compile(r"^[+-]?\d+(?:\.\d+)?$")
-_ANALYTIC_PREFIX = re.compile(r"(?i)(?<![\w])((?:(?:expected|actual|asserted|observed|before|after)_)?(?:amount(?:_minor)?|balance(?:_minor)?|status(?:_code)?|response_status|posted_minor))\s*[=:]\s*[\"']?[+-]?$" )
+_ANALYTIC_PREFIX = re.compile(
+    r"(?i)(?<![\w])((?:(?:expected|actual|asserted|observed|before|after)_)?(?:amount(?:_minor)?|balance(?:_minor)?|status(?:_code)?|response_status|posted_minor))\s*[=:]\s*[\"']?[+-]?$"
+)
 
 
 def analytic_scalar(name: str, value: object) -> bool:
-    return bool(_ANALYTIC_FIELD.fullmatch(name) and isinstance(value, str) and _NUMERIC.fullmatch(value))
+    return bool(
+        _ANALYTIC_FIELD.fullmatch(name)
+        and isinstance(value, str)
+        and _NUMERIC.fullmatch(value)
+    )
 
 
 def _marker_candidates(text: str) -> Iterator[tuple[int, int]]:
@@ -137,12 +207,17 @@ def _known_marker(value: str) -> re.Match[str] | None:
     if match is None:
         return None
     kind = match.group("kind")
-    tail = value[len("[REDACTED:") + len(kind):-1]
-    if re.fullmatch(r":[0-9a-f]{10}", tail) and kind in {"transaction_id", "malformed_marker"}:
+    tail = value[len("[REDACTED:") + len(kind) : -1]
+    if re.fullmatch(r":[0-9a-f]{10}", tail) and kind in {
+        "transaction_id",
+        "malformed_marker",
+    }:
         return None
     if tail == ":incomplete" and kind != "private_key":
         return None
-    if (tail == ":unscoped" or tail.startswith(":hmac-v3:")) and kind not in _CORRELATION_CLASSES:
+    if (
+        tail == ":unscoped" or tail.startswith(":hmac-v3:")
+    ) and kind not in _CORRELATION_CLASSES:
         return None
     return match
 
@@ -164,8 +239,11 @@ def _replacement(kind: str, value: str) -> str:
         # No project/key means no correlation promise and no guessable digest.
         token = f"[REDACTED:{kind}:unscoped]"
     else:
-        domain = json.dumps(["failurelens-pseudonym-v3", kind, value],
-                            ensure_ascii=True, separators=(",", ":")).encode("utf-8")
+        domain = json.dumps(
+            ["failurelens-pseudonym-v3", kind, value],
+            ensure_ascii=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
         digest = hmac.new(context._project_key, domain, hashlib.sha256).hexdigest()[:32]
         token = f"[REDACTED:{kind}:hmac-v3:{digest}]"
     if context is not None and len(context._issued) < 20_000:
@@ -174,13 +252,33 @@ def _replacement(kind: str, value: str) -> str:
 
 
 _SENSITIVE_FIELD_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("authorization", re.compile(r"^(?:authorization|authorization_header|auth_header)$", re.I)),
-    ("cookie", re.compile(r"^(?:(?:set_)?cookie|cookies)$", re.I)),
-    ("api_key", re.compile(r"^(?:.*_)?(?:api_key|apikey|access_token|refresh_token|auth_token|token|secret|client_secret|password|passwd)$", re.I)),
-    ("email", re.compile(r"^(?:.*_)?(?:email|email_address|e_mail)$", re.I)),
-    ("phone", re.compile(r"^(?:.*_)?(?:phone|phone_number|mobile|telephone)$", re.I)),
-    ("session", re.compile(r"^(?:.*_)?(?:session|session_id|sessionid|sid)$", re.I)),
-    ("transaction_id", re.compile(r"^(?:transaction_id|transactionid|tx_id|txid)$", re.I)),
+    (
+        "authorization",
+        re.compile(
+            r"^(?:authorization|authorization_header|auth_header)$", re.IGNORECASE
+        ),
+    ),
+    ("cookie", re.compile(r"^(?:(?:set_)?cookie|cookies)$", re.IGNORECASE)),
+    (
+        "api_key",
+        re.compile(
+            r"^(?:.*_)?(?:api_key|apikey|access_token|refresh_token|auth_token|token|secret|client_secret|password|passwd)$",
+            re.IGNORECASE,
+        ),
+    ),
+    ("email", re.compile(r"^(?:.*_)?(?:email|email_address|e_mail)$", re.IGNORECASE)),
+    (
+        "phone",
+        re.compile(r"^(?:.*_)?(?:phone|phone_number|mobile|telephone)$", re.IGNORECASE),
+    ),
+    (
+        "session",
+        re.compile(r"^(?:.*_)?(?:session|session_id|sessionid|sid)$", re.IGNORECASE),
+    ),
+    (
+        "transaction_id",
+        re.compile(r"^(?:transaction_id|transactionid|tx_id|txid)$", re.IGNORECASE),
+    ),
 )
 
 
@@ -212,18 +310,24 @@ def redact_text(text: str) -> RedactionResult:
     def redact_segment(segment: str) -> str:
         nonlocal replacements
         for kind, pattern in _PATTERNS:
-            def repl(match: re.Match[str]) -> str:
+
+            def repl(
+                match: re.Match[str], kind: str = kind, segment: str = segment
+            ) -> str:
                 nonlocal replacements
                 # Named analytical numbers are evidence, not phone numbers.
-                if kind == "phone" and _ANALYTIC_PREFIX.search(segment[:match.start()]):
+                if kind == "phone" and _ANALYTIC_PREFIX.search(
+                    segment[: match.start()]
+                ):
                     return match.group(0)
                 replacements += 1
                 classes.append(kind)
                 if match.lastindex:
                     prefix = match.group(1)
-                    secret = match.group(0)[len(prefix):].lstrip("\"'")
+                    secret = match.group(0)[len(prefix) :].lstrip("\"'")
                     return prefix + _replacement(kind, secret)
                 return _replacement(kind, match.group(0))
+
             segment = pattern.sub(repl, segment)
         return segment
 

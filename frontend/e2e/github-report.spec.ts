@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 test('renders an authorized advisory preview as inert text and downloads the actual report', async ({ page, request }, info) => {
   const seeded = await request.post('http://127.0.0.1:8000/api/v1/demo/seed');
@@ -6,7 +7,11 @@ test('renders an authorized advisory preview as inert text and downloads the act
   const { project_id, run_id } = await seeded.json();
   const response = await request.get(`http://127.0.0.1:8000/api/v1/runs/${run_id}/github-report-preview`);
   expect(response.ok()).toBeTruthy();
-  const expected = await response.json();
+  const expectedRaw = await response.text();
+  const expected = JSON.parse(expectedRaw);
+  const evidenceResponse = await request.get(`http://127.0.0.1:8000/api/v1/runs/${run_id}/github-evidence-export?report_digest=${expected.report_digest}`);
+  expect(evidenceResponse.ok()).toBeTruthy();
+  const expectedEvidenceRaw = await evidenceResponse.text();
   await page.goto(`/?project=${project_id}&run=${run_id}#github-report`);
   await expect(page).toHaveTitle('Loose Thread · Evidence-grounded triage');
   const panel = page.locator('#github-report');
@@ -19,6 +24,20 @@ test('renders an authorized advisory preview as inert text and downloads the act
   await panel.getByRole('button', { name: 'Download Markdown report' }).click();
   const download = await downloadEvent;
   expect(download.suggestedFilename()).toBe('loose-thread-report.md');
+  expect(await readFile((await download.path())!, 'utf8')).toBe(expected.markdown);
+  await expect(panel.getByLabel('Evidence export scope')).toContainText('Reported reference subset');
+  await expect(panel.getByLabel('Evidence export scope')).toContainText('Not published');
+  for (const item of [
+    { name: 'Download JSON report', filename: 'loose-thread-report.json', raw: expectedRaw },
+    { name: 'Download approved evidence JSON', filename: 'evidence.json', raw: expectedEvidenceRaw },
+    { name: 'Download approved evidence JSON', filename: 'evidence.json', raw: expectedEvidenceRaw }
+  ]) {
+    const downloaded = page.waitForEvent('download');
+    await panel.getByRole('button', { name: item.name, exact: true }).click();
+    const file = await downloaded;
+    expect(file.suggestedFilename()).toBe(item.filename);
+    expect(await readFile((await file.path())!, 'utf8')).toBe(item.raw);
+  }
   await panel.getByRole('button', { name: 'Refresh report' }).click();
   await expect(preview).toHaveText(expected.markdown);
   await panel.screenshot({ path: info.outputPath('github-report-preview.png') });

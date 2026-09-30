@@ -54,7 +54,10 @@ def _event(event_id: str, day: int, **overrides: Any) -> dict[str, Any]:
 
 
 def _balanced_runs() -> list[dict[str, Any]]:
-    return [*[_run(day, "failed") for day in range(3)], *[_run(day, "passed") for day in range(3, 6)]]
+    return [
+        *[_run(day, "failed") for day in range(3)],
+        *[_run(day, "passed") for day in range(3, 6)],
+    ]
 
 
 def _balanced_events() -> list[dict[str, Any]]:
@@ -208,7 +211,10 @@ def build_cases() -> list[dict[str, Any]]:
             "infra-011-retries-not-independent",
             "AVAILABLE",
             runs=[
-                *[_run(day, "failed", outcomes=["failed", "passed"]) for day in range(3)],
+                *[
+                    _run(day, "failed", outcomes=["failed", "passed"])
+                    for day in range(3)
+                ],
                 *[_run(day, "passed") for day in range(3, 6)],
             ],
             events=events,

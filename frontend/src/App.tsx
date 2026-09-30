@@ -35,6 +35,7 @@ import { AccountPanel, RecoveryForm, RetentionPanel } from './Operations';
 import { BinaryEvidencePanel } from './BinaryEvidence';
 import { EvaluationPanel } from './EvaluationPanel';
 import { GitHubReportPanel } from './GitHubReport';
+import { OptionalProviderPanel, ProviderSettings } from './OptionalProvider';
 
 const categoryLabel: Record<string, string> = {
   product_defect: 'Probable product defect',
@@ -2011,6 +2012,13 @@ function App() {
 
                     <DiagnosticState validation={selectedFailure.latest_analysis.validation_results} />
 
+                    <OptionalProviderPanel
+                      key={`${principal.kind}:${principal.user_id ?? ''}:${projectId}:${runId}:${selectedFailure.latest_analysis.analysis_id}`}
+                      scope={{ projectId, runId, analysisId: selectedFailure.latest_analysis.analysis_id }}
+                      principal={principal}
+                      analysis={selectedFailure.latest_analysis}
+                    />
+
                     <section className="review-panel" aria-label="Human analysis review">
                       <div className="panel-heading compact-title-row"><div><p className="eyebrow">HUMAN DECISION</p><h3>Review history</h3></div><span className="count">{analysisReviews.length}</span></div>
                       {analysisReviews.length === 0 ? <div className="empty">No human decision has been recorded for this analysis.</div> : (
@@ -2258,6 +2266,7 @@ function App() {
               </section>
 
               {projectId && <RetentionPanel key={projectId} projectId={projectId} onChanged={governanceChanged} />}
+              {projectId && <ProviderSettings key={`provider:${principal.kind}:${principal.user_id ?? ''}:${projectId}`} projectId={projectId} />}
 
               <section className="settings-block system-status-block" aria-labelledby="system-status-heading">
                 <div><h3 id="system-status-heading">System status and policy versions</h3><p>Health checks are read-only and expose no credentials. Unknown states remain explicit instead of being shown as healthy.</p></div>
@@ -2311,7 +2320,7 @@ function App() {
           </section>
         )}
 
-        <GitHubReportPanel runId={runId} />
+        <GitHubReportPanel projectId={projectId} runId={runId} />
         <EvaluationPanel metrics={evaluation} />
         {campaignEvaluation && <EvaluationPanel metrics={campaignEvaluation} id="campaign-evaluation" title="Frozen five-category evaluation" />}
         {benchmarkEvaluation && <EvaluationPanel metrics={benchmarkEvaluation} id="benchmark-evaluation" title="Frozen authored benchmark" />}

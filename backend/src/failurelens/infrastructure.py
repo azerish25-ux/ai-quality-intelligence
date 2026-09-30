@@ -5,7 +5,7 @@ import json
 import math
 from collections import Counter, defaultdict
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, TypedDict
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -76,7 +76,11 @@ def _outcome_counts(values: list[str]) -> dict[str, int]:
 
 def _aggregate_outcome(values: list[str]) -> str:
     if len(values) == 1:
-        return values[0] if values[0] in {"passed", "failed", "skipped", "cancelled", "unknown"} else Outcome.unknown.value
+        return (
+            values[0]
+            if values[0] in {"passed", "failed", "skipped", "cancelled", "unknown"}
+            else Outcome.unknown.value
+        )
     observed = set(values)
     for outcome in (
         Outcome.failed,
@@ -107,7 +111,24 @@ def _wilson_interval(numerator: int, denominator: int) -> list[float] | None:
     ]
 
 
-def _rate(numerator: int, denominator: int, *, minimum_support: int) -> dict[str, Any]:
+class CorrelationRate(TypedDict):
+    numerator: int
+    denominator: int
+    value: float | None
+    interval_95: list[float] | None
+    status: str
+    minimum_support: int
+    definition: str
+
+
+class CorrelationRates(TypedDict):
+    exposed_failure_rate: CorrelationRate
+    unexposed_failure_rate: CorrelationRate
+    absolute_failure_rate_difference: float | None
+    relative_risk: float | None
+
+
+def _rate(numerator: int, denominator: int, *, minimum_support: int) -> CorrelationRate:
     return {
         "numerator": numerator,
         "denominator": denominator,
@@ -129,7 +150,9 @@ def _rate(numerator: int, denominator: int, *, minimum_support: int) -> dict[str
     }
 
 
-def _event_payload(project_id: str, request: InfrastructureEventCreate) -> dict[str, Any]:
+def _event_payload(
+    project_id: str, request: InfrastructureEventCreate
+) -> dict[str, Any]:
     return {
         "project_id": project_id,
         "repository": request.repository,
@@ -171,7 +194,9 @@ def create_infrastructure_event(
     if recorded_at < started_at:
         raise ValueError("recorded_at must not be earlier than started_at")
     if ended_at is not None and recorded_at < ended_at:
-        raise ValueError("recorded_at must not be earlier than ended_at for a resolved event")
+        raise ValueError(
+            "recorded_at must not be earlier than ended_at for a resolved event"
+        )
     if request.evidence_id:
         evidence = session.get(Evidence, request.evidence_id)
         if evidence is None or evidence.project_id != project.id:
@@ -273,8 +298,8 @@ def list_infrastructure_events(
         query = query.where(InfrastructureEvent.started_at < _as_utc(before))
     if after:
         query = query.where(
-            InfrastructureEvent.started_at >= _as_utc(after)
-            - timedelta(seconds=DEFAULT_WINDOW_SECONDS)
+            InfrastructureEvent.started_at
+            >= _as_utc(after) - timedelta(seconds=DEFAULT_WINDOW_SECONDS)
         )
     return list(
         session.scalars(
@@ -296,7 +321,7 @@ def _collapse_history_observations(
 
     collapsed: list[dict[str, Any]] = []
     for run_id, rows in grouped.items():
-        ordered = sorted(rows, key=lambda item: (item.get("browser") or ""))
+        ordered = sorted(rows, key=lambda item: item.get("browser") or "")
         representative = ordered[0]
         collapsed.append(
             {
@@ -373,8 +398,7 @@ def _association_row(
         exposed_counts[Outcome.passed.value] + exposed_counts[Outcome.failed.value]
     )
     unexposed_denominator = (
-        unexposed_counts[Outcome.passed.value]
-        + unexposed_counts[Outcome.failed.value]
+        unexposed_counts[Outcome.passed.value] + unexposed_counts[Outcome.failed.value]
     )
     exposed_rate = _rate(
         exposed_counts[Outcome.failed.value],
@@ -414,9 +438,7 @@ def _association_row(
         "unexposed_failure_rate": unexposed_rate,
         "absolute_failure_rate_difference": absolute_difference,
         "relative_risk": relative_risk,
-        "confounded_run_count": sum(
-            len(item["event_kinds"]) > 1 for item in exposed
-        ),
+        "confounded_run_count": sum(len(item["event_kinds"]) > 1 for item in exposed),
         "interpretation": (
             "Exploratory association only. Temporal overlap and rate differences do not "
             "establish that the infrastructure event caused a test outcome."
@@ -466,25 +488,42 @@ def build_infrastructure_correlation(
         logical = request_history.get("logical_test", {})
         window = request_history.get("window", {})
         filters = request_history.get("filters", {})
-        expected_logical = {"project_id": selected_run.project_id,
-            "repository": selected_run.repository, "framework": selected_run.framework,
-            "test_identity": selected_execution.test_identity, "suite": selected_execution.suite,
-            "source_path": selected_execution.source_path, "parameterization": selected_execution.parameterization}
-        expected_filters = {"browser": browser if match_browser else None, "browser_match": match_browser,
-            "branch": branch if match_branch else None, "branch_match": match_branch,
-            "environment": environment if match_environment else None, "environment_match": match_environment,
-            "run_scope": run_scope, "worker_count": worker_count if match_worker_count else None,
-            "worker_count_match": match_worker_count, "shard_count": shard_count if match_shard_count else None,
-            "shard_count_match": match_shard_count}
+        expected_logical = {
+            "project_id": selected_run.project_id,
+            "repository": selected_run.repository,
+            "framework": selected_run.framework,
+            "test_identity": selected_execution.test_identity,
+            "suite": selected_execution.suite,
+            "source_path": selected_execution.source_path,
+            "parameterization": selected_execution.parameterization,
+        }
+        expected_filters = {
+            "browser": browser if match_browser else None,
+            "browser_match": match_browser,
+            "branch": branch if match_branch else None,
+            "branch_match": match_branch,
+            "environment": environment if match_environment else None,
+            "environment_match": match_environment,
+            "run_scope": run_scope,
+            "worker_count": worker_count if match_worker_count else None,
+            "worker_count_match": match_worker_count,
+            "shard_count": shard_count if match_shard_count else None,
+            "shard_count_match": match_shard_count,
+        }
         pagination = request_history.get("pagination", {})
         observations = request_history.get("observations", [])
-        if (any(logical.get(k) != v for k, v in expected_logical.items()) or
-                any(filters.get(k) != v for k, v in expected_filters.items()) or
-                window.get("before") != cutoff_utc.isoformat() or
-                window.get("after") != (after_utc.isoformat() if after_utc else None) or
-                window.get("timezone") != timezone_name or window.get("excluded_run_id") != exclude_run_id or
-                pagination.get("offset") != 0 or pagination.get("limit", 0) < MAX_CORRELATION_RUNS or
-                len(observations) != min(pagination.get("total", -1), MAX_CORRELATION_RUNS)):
+        if (
+            any(logical.get(k) != v for k, v in expected_logical.items())
+            or any(filters.get(k) != v for k, v in expected_filters.items())
+            or window.get("before") != cutoff_utc.isoformat()
+            or window.get("after") != (after_utc.isoformat() if after_utc else None)
+            or window.get("timezone") != timezone_name
+            or window.get("excluded_run_id") != exclude_run_id
+            or pagination.get("offset") != 0
+            or pagination.get("limit", 0) < MAX_CORRELATION_RUNS
+            or len(observations)
+            != min(pagination.get("total", -1), MAX_CORRELATION_RUNS)
+        ):
             raise ValueError("request history scope or completeness mismatch")
         history = request_history
     else:
@@ -536,13 +575,31 @@ def build_infrastructure_correlation(
     truncated = len(raw_events) > MAX_CORRELATION_EVENTS
     events = raw_events[:MAX_CORRELATION_EVENTS]
     # Event-free histories need only existence checks, not every run's metadata.
-    runs = {
-        run.id: run
-        for run in session.scalars(select(Run).where(Run.id.in_(run_ids), Run.project_id == selected_run.project_id)).all()
-    } if run_ids and events else {}
-    present_run_ids = set(runs) if events else set(
-        session.scalars(select(Run.id).where(Run.id.in_(run_ids), Run.project_id == selected_run.project_id)).all()
-    ) if run_ids else set()
+    runs = (
+        {
+            run.id: run
+            for run in session.scalars(
+                select(Run).where(
+                    Run.id.in_(run_ids), Run.project_id == selected_run.project_id
+                )
+            ).all()
+        }
+        if run_ids and events
+        else {}
+    )
+    present_run_ids = (
+        set(runs)
+        if events
+        else set(
+            session.scalars(
+                select(Run.id).where(
+                    Run.id.in_(run_ids), Run.project_id == selected_run.project_id
+                )
+            ).all()
+        )
+        if run_ids
+        else set()
+    )
 
     accepted_event_ids: set[str] = set()
     rejection_reasons: dict[str, set[str]] = defaultdict(set)
@@ -555,6 +612,8 @@ def build_infrastructure_correlation(
             continue
         matched: list[InfrastructureEvent] = []
         for event in events:
+            if run is None:
+                continue
             if event.source_trust not in TRUSTED_SOURCE_TRUST:
                 rejection_reasons[event.id].add("untrusted_event_source")
                 continue
@@ -562,9 +621,7 @@ def build_infrastructure_correlation(
             if context_rejection is not None:
                 rejection_reasons[event.id].add(context_rejection)
                 continue
-            if not _temporally_overlaps(
-                event, run, window_seconds=window_seconds
-            ):
+            if not _temporally_overlaps(event, run, window_seconds=window_seconds):
                 rejection_reasons[event.id].add("outside_run_window")
                 continue
             matched.append(event)
@@ -603,10 +660,11 @@ def build_infrastructure_correlation(
         exposed_counts[Outcome.passed.value] + exposed_counts[Outcome.failed.value]
     )
     unexposed_denominator = (
-        unexposed_counts[Outcome.passed.value]
-        + unexposed_counts[Outcome.failed.value]
+        unexposed_counts[Outcome.passed.value] + unexposed_counts[Outcome.failed.value]
     )
-    rates = {
+    rates: CorrelationRates = {
+        "absolute_failure_rate_difference": None,
+        "relative_risk": None,
         "exposed_failure_rate": _rate(
             exposed_counts[Outcome.failed.value],
             exposed_denominator,
@@ -620,11 +678,7 @@ def build_infrastructure_correlation(
     }
 
     kinds = sorted(
-        {
-            kind
-            for item in correlated_members
-            for kind in item["event_kinds"]
-        }
+        {kind for item in correlated_members for kind in item["event_kinds"]}
     )
     associations = [
         _association_row(
@@ -664,8 +718,7 @@ def build_infrastructure_correlation(
         else:
             status = "NO_MATCHING_EVENTS"
     elif (
-        exposed_denominator < minimum_support
-        or unexposed_denominator < minimum_support
+        exposed_denominator < minimum_support or unexposed_denominator < minimum_support
     ):
         status = "INSUFFICIENT_DATA"
     elif confounded_run_ids and event_kind is None:
@@ -702,9 +755,7 @@ def build_infrastructure_correlation(
             "source_digest": event.source_digest,
             "source_trust": event.source_trust,
             "started_at": _as_utc(event.started_at).isoformat(),
-            "ended_at": _as_utc(event.ended_at).isoformat()
-            if event.ended_at
-            else None,
+            "ended_at": _as_utc(event.ended_at).isoformat() if event.ended_at else None,
             "recorded_at": _as_utc(event.recorded_at).isoformat(),
         }
         for event in events
@@ -885,14 +936,18 @@ def get_infrastructure_correlation(
 def infrastructure_correlation_to_schema(
     session: Session, snapshot: InfrastructureCorrelationSnapshot
 ) -> dict[str, Any]:
-    events = {
-        event.id: event
-        for event in session.scalars(
-            select(InfrastructureEvent).where(
-                InfrastructureEvent.id.in_(snapshot.accepted_event_ids)
-            )
-        ).all()
-    } if snapshot.accepted_event_ids else {}
+    events = (
+        {
+            event.id: event
+            for event in session.scalars(
+                select(InfrastructureEvent).where(
+                    InfrastructureEvent.id.in_(snapshot.accepted_event_ids)
+                )
+            ).all()
+        }
+        if snapshot.accepted_event_ids
+        else {}
+    )
     members = sorted(
         snapshot.members,
         key=lambda item: (_as_utc(item.observed_at), item.run_id),

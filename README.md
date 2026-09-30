@@ -53,6 +53,13 @@ New workflows include an [authorized read-only GitHub report preview](docs/githu
 [100-run synthetic history](docs/synthetic-history.md). See the concrete
 [known-failure catalog](docs/limitations.md) and [contributor guide](CONTRIBUTING.md).
 
+The optional provider workflow now includes scoped evidence previews, explicit
+administrator approval, durable job status/cancellation and a separate isolated
+worker deployment. It is disabled by default and rejects demo deployments. Local
+synthetic contract tests pass; PostgreSQL, browser and Docker acceptance for this
+new implementation is still pending. No real model or paid-provider quality result
+is claimed. [Configuration, trust boundaries and verification limits](docs/optional-provider.md).
+
 Actual API-backed report captures at earlier verified source `3a9a89a`, using synthetic demo data:
 
 ![Desktop advisory report with exact provenance and Markdown download](docs/assets/report-desktop-3a9a89a.png)
@@ -106,7 +113,14 @@ Change-impact recommendations use trusted mappings, mandatory critical tests, ex
 
 The API-backed dashboard includes run/upload status, cited evidence, clusters, history, impact overrides, performance, infrastructure context, review queues, audit filtering/export, roles, tokens, retention and account/session management. Investigation URLs preserve selected runs and filters. Desktop and narrow layouts have keyboard/focus and real browser coverage.
 
-The reusable composite Action uses the same ingestion and report path. **Complete idempotent live PR publication and stale-head reconciliation are not yet delivered.** The analyzer never deletes tests, merges PRs, approves releases or executes quarantine decisions.
+The reusable composite Action uses the same ingestion and report path, with bounded
+sanitized evidence exports that can survive its temporary database. Rich reports
+include stored skip, impact, cluster, performance and conservative baseline details.
+The separate publisher now records durable intents/receipts, verifies bot identity
+before writing, and fences uncertain or stale outcomes. These additions have local
+contract tests; new hosted verification and authorized live PR publication remain
+unverified. The analyzer never deletes tests, merges PRs, approves releases or
+executes quarantine decisions. [Integration and current limits](docs/github-publication.md).
 
 ## Evaluation truthfulness
 

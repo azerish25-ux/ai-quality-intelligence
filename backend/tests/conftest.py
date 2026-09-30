@@ -7,12 +7,11 @@ os.environ.setdefault("FAILURELENS_ARTIFACT_ROOT", "/tmp/failurelens-test-artifa
 os.environ.setdefault("FAILURELENS_DEMO_MODE", "true")
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session, sessionmaker
-
 from failurelens.api import app
 from failurelens.config import get_settings
 from failurelens.db import Base, create_database_engine, get_session
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session, sessionmaker
 
 
 @pytest.fixture

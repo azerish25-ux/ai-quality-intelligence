@@ -5,8 +5,9 @@ import json
 import math
 import re
 from collections import defaultdict, deque
+from collections.abc import Iterable
 from pathlib import PurePosixPath
-from typing import Any, Iterable
+from typing import Any
 
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
@@ -98,6 +99,10 @@ _KIND_LABELS = {
 }
 
 
+class ImpactInputError(ValueError):
+    """Repository paths or changed-file artifact metadata failed validation."""
+
+
 def _canonical_digest(value: Any) -> str:
     encoded = json.dumps(
         value,
@@ -112,20 +117,20 @@ def normalize_repo_path(value: str) -> str:
     """Return one stable repository-relative POSIX path or reject ambiguity."""
 
     if not isinstance(value, str):
-        raise ValueError("repository path must be a string")
+        raise ImpactInputError("repository path must be a string")
     candidate = value.strip()
     if not candidate or len(candidate) > 1024:
-        raise ValueError("repository path is empty or too long")
+        raise ImpactInputError("repository path is empty or too long")
     if "\x00" in candidate or "\\" in candidate:
-        raise ValueError(f"unsafe repository path: {value}")
+        raise ImpactInputError(f"unsafe repository path: {value}")
     if candidate.startswith("/") or re.match(r"^[A-Za-z]:", candidate):
-        raise ValueError(f"repository path must be relative: {value}")
+        raise ImpactInputError(f"repository path must be relative: {value}")
     path = PurePosixPath(candidate)
     if any(part in {"", ".", ".."} for part in path.parts):
-        raise ValueError(f"unsafe repository path: {value}")
+        raise ImpactInputError(f"unsafe repository path: {value}")
     normalized = path.as_posix()
     if normalized.startswith("../"):
-        raise ValueError(f"unsafe repository path: {value}")
+        raise ImpactInputError(f"unsafe repository path: {value}")
     return normalized
 
 
@@ -178,12 +183,16 @@ def create_mapping_snapshot(
         if item.test_key in test_keys:
             raise ValueError(f"duplicate impact test key: {item.test_key}")
         test_keys.add(item.test_key)
-        source_path = normalize_repo_path(item.source_path) if item.source_path else None
+        source_path = (
+            normalize_repo_path(item.source_path) if item.source_path else None
+        )
         normalized_tests.append(
             {
                 **item.model_dump(mode="json"),
                 "source_path": source_path,
-                "tags": sorted({tag.strip().casefold() for tag in item.tags if tag.strip()}),
+                "tags": sorted(
+                    {tag.strip().casefold() for tag in item.tags if tag.strip()}
+                ),
             }
         )
 
@@ -269,32 +278,32 @@ def create_mapping_snapshot(
     )
     session.add(snapshot)
     session.flush()
-    for item in normalized_tests:
+    for normalized_test in normalized_tests:
         session.add(
             ImpactTestDefinition(
                 snapshot_id=snapshot.id,
-                test_key=item["test_key"],
-                test_identity=item["test_identity"],
-                source_path=item["source_path"],
-                criticality=item["criticality"],
-                mandatory=item["mandatory"],
-                tags=item["tags"],
-                estimated_duration_ms=item["estimated_duration_ms"],
-                metadata_json=item["metadata"],
+                test_key=normalized_test["test_key"],
+                test_identity=normalized_test["test_identity"],
+                source_path=normalized_test["source_path"],
+                criticality=normalized_test["criticality"],
+                mandatory=normalized_test["mandatory"],
+                tags=normalized_test["tags"],
+                estimated_duration_ms=normalized_test["estimated_duration_ms"],
+                metadata_json=normalized_test["metadata"],
             )
         )
-    for edge in normalized_edges:
+    for normalized_edge in normalized_edges:
         session.add(
             ImpactMappingEdge(
                 snapshot_id=snapshot.id,
-                source_path=edge["source_path"],
-                target_type=edge["target_type"],
-                target_value=edge["target_value"],
-                kind=edge["kind"],
-                confidence=edge["confidence"],
-                mapping_source=edge["mapping_source"],
-                mapping_version=edge["mapping_version"],
-                metadata_json=edge["metadata"],
+                source_path=normalized_edge["source_path"],
+                target_type=normalized_edge["target_type"],
+                target_value=normalized_edge["target_value"],
+                kind=normalized_edge["kind"],
+                confidence=normalized_edge["confidence"],
+                mapping_source=normalized_edge["mapping_source"],
+                mapping_version=normalized_edge["mapping_version"],
+                metadata_json=normalized_edge["metadata"],
             )
         )
     try:
@@ -312,14 +321,19 @@ def create_mapping_snapshot(
         if existing is not None and existing.source_digest == source_digest:
             return existing
         raise
-    return session.scalar(
-        select(ImpactMappingSnapshot)
-        .where(ImpactMappingSnapshot.id == snapshot.id)
-        .options(*_snapshot_options())
-    ) or snapshot
+    return (
+        session.scalar(
+            select(ImpactMappingSnapshot)
+            .where(ImpactMappingSnapshot.id == snapshot.id)
+            .options(*_snapshot_options())
+        )
+        or snapshot
+    )
 
 
-def mapping_snapshot_to_schema(snapshot: ImpactMappingSnapshot) -> ImpactMappingSnapshotRead:
+def mapping_snapshot_to_schema(
+    snapshot: ImpactMappingSnapshot,
+) -> ImpactMappingSnapshotRead:
     return ImpactMappingSnapshotRead(
         id=snapshot.id,
         project_id=snapshot.project_id,
@@ -342,13 +356,15 @@ def _normalized_changed_files(changed_input: RunInput) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
     for index, raw in enumerate(raw_files):
         if not isinstance(raw, dict):
-            raise ValueError(f"changed-file metadata entry {index} is not an object")
+            raise ImpactInputError(
+                f"changed-file metadata entry {index} is not an object"
+            )
         status = str(raw.get("status") or "modified").casefold()
         if status not in {"added", "modified", "deleted", "renamed", "copied"}:
-            raise ValueError(f"unsupported changed-file status: {status}")
+            raise ImpactInputError(f"unsupported changed-file status: {status}")
         path_value = raw.get("path") or raw.get("new_path")
         if not isinstance(path_value, str):
-            raise ValueError(f"changed-file metadata entry {index} has no path")
+            raise ImpactInputError(f"changed-file metadata entry {index} has no path")
         old_value = raw.get("old_path")
         normalized.append(
             {
@@ -463,9 +479,7 @@ def _selection_engine(
                         target = tests_by_key.get(edge.target_value)
                         if target is None:
                             continue
-                        effective_confidence = round(
-                            edge.confidence * (0.85**depth), 6
-                        )
+                        effective_confidence = round(edge.confidence * (0.85**depth), 6)
                         contributions[target.test_key].append(
                             {
                                 "code": f"mapping:{edge.kind}",
@@ -485,9 +499,7 @@ def _selection_engine(
                         mapped_change_indexes.add(change_index)
                     elif edge.target_type == "file" and depth < MAX_DEPENDENCY_DEPTH:
                         target_path = edge.target_value
-                        queue.append(
-                            (target_path, depth + 1, [*chain, target_path])
-                        )
+                        queue.append((target_path, depth + 1, [*chain, target_path]))
 
     safety_reasons = set(preexisting_safety_reasons)
     safety_reasons.update(critical_reasons)
@@ -532,7 +544,9 @@ def _selection_engine(
             ),
         )
         confidences = [float(reason.get("confidence") or 0) for reason in reasons]
-        combined = 1.0 - math.prod(1.0 - min(max(value, 0.0), 1.0) for value in confidences)
+        combined = 1.0 - math.prod(
+            1.0 - min(max(value, 0.0), 1.0) for value in confidences
+        )
         combined = round(combined, 6)
         base_selected = full_suite_required or mandatory or bool(reasons)
         if full_suite_required and not reasons:
@@ -583,9 +597,7 @@ def _selection_engine(
     for item in decisions:
         item["rank"] = ranks.get(item["test"].test_key)
 
-    full_duration = sum(
-        test.estimated_duration_ms or 0.0 for test in tests
-    )
+    full_duration = sum(test.estimated_duration_ms or 0.0 for test in tests)
     selected_duration = sum(
         item["test"].estimated_duration_ms or 0.0
         for item in decisions
@@ -599,7 +611,9 @@ def _selection_engine(
         "mandatory_test_count": sum(1 for test in tests if _is_mandatory_test(test)),
         "base_selected_test_count": len(selected),
         "base_excluded_test_count": len(tests) - len(selected),
-        "base_selected_fraction": round(len(selected) / len(tests), 6) if tests else None,
+        "base_selected_fraction": round(len(selected) / len(tests), 6)
+        if tests
+        else None,
         "estimated_full_duration_ms": round(full_duration, 3),
         "estimated_selected_duration_ms": round(selected_duration, 3),
         "estimated_duration_reduction_ms": round(
@@ -672,7 +686,9 @@ def _resolve_changed_input(
     if not candidates:
         raise ValueError("selected run has no changed-files input")
     if len(candidates) > 1:
-        raise ValueError("selected run has multiple changed-files inputs; choose one explicitly")
+        raise ValueError(
+            "selected run has multiple changed-files inputs; choose one explicitly"
+        )
     return candidates[0]
 
 
@@ -719,7 +735,7 @@ def create_impact_recommendation(
         mapping_reasons.append("mapping_snapshot_untrusted")
     if not snapshot.coverage_complete:
         mapping_reasons.append("mapping_coverage_incomplete")
-    preexisting_reasons = sorted(set([*comparison_reasons, *mapping_reasons]))
+    preexisting_reasons = sorted({*comparison_reasons, *mapping_reasons})
     result = select_impacted_tests(
         tests=list(snapshot.tests),
         edges=list(snapshot.edges),
@@ -905,14 +921,20 @@ def apply_impact_override(
             f"{request.expected_revision}, current {recommendation.current_revision}"
         )
     item = next(
-        (candidate for candidate in recommendation.items if candidate.test_key == request.test_key),
+        (
+            candidate
+            for candidate in recommendation.items
+            if candidate.test_key == request.test_key
+        ),
         None,
     )
     if item is None:
         raise ValueError("test key is not part of this impact recommendation")
     if request.action == "exclude":
         if recommendation.full_suite_required:
-            raise ValueError("tests cannot be excluded while full-suite execution is required")
+            raise ValueError(
+                "tests cannot be excluded while full-suite execution is required"
+            )
         if item.mandatory or item.criticality == "critical":
             raise ValueError("mandatory critical tests cannot be excluded")
 
@@ -924,15 +946,16 @@ def apply_impact_override(
 
     revision_before = recommendation.current_revision
     revision_after = revision_before + 1
-    result = session.execute(
+    updated_id = session.scalar(
         update(ImpactRecommendation)
         .where(
             ImpactRecommendation.id == recommendation.id,
             ImpactRecommendation.current_revision == revision_before,
         )
         .values(current_revision=revision_after, updated_at=utcnow())
+        .returning(ImpactRecommendation.id)
     )
-    if result.rowcount != 1:
+    if updated_id is None:
         session.rollback()
         raise ValueError("impact recommendation revision conflict")
     effective_principal = principal or Principal(

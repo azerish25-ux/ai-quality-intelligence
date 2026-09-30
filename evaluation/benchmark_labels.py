@@ -1,6 +1,9 @@
 """Evaluation-only ground truth schema. Never import this from runtime replay."""
+
 from __future__ import annotations
+
 from typing import Annotated, Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -15,7 +18,13 @@ class BenchmarkCaseLabel(BaseModel):
     incident_id: Annotated[str, Field(min_length=1, max_length=200)]
     artifacts: Annotated[list[str], Field(min_length=1, max_length=8)]
     history_manifest: str | None
-    expected_category: Literal["product_defect", "test_defect", "infrastructure_failure", "known_flake", "insufficient_evidence"]
+    expected_category: Literal[
+        "product_defect",
+        "test_defect",
+        "infrastructure_failure",
+        "known_flake",
+        "insufficient_evidence",
+    ]
     root_cause: str | None
     required_evidence: Annotated[list[str], Field(min_length=1, max_length=20)]
     forbidden_claims: Annotated[list[str], Field(max_length=40)]

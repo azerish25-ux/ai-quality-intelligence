@@ -45,6 +45,10 @@ def _env(tmp_path):
         "FAILURELENS_RUN_SCOPE": "unknown",
         "FAILURELENS_EXPECTED_INPUTS": "2",
         "FAILURELENS_SHARD_COUNT": "2",
+        "FAILURELENS_CONFIG_PATH": "",
+        "FAILURELENS_CONFIG_SHA256": "",
+        "FAILURELENS_ANALYSIS_MODE": "",
+        "FAILURELENS_PUBLICATION_MODE": "",
         "RUNNER_TEMP": str(tmp_path),
         "GITHUB_OUTPUT": str(tmp_path / "outputs"),
         "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"),
@@ -128,7 +132,8 @@ def test_real_action_cli_emits_safe_digest_bound_reports_and_missing_shards(
 ):
     env = _env(tmp_path)
     env["FAILURELENS_EXTERNAL_ID"] = (
-        "untrusted\noutput=forged @everyone token=action-canary-123456"
+        "untrusted\noutput=forged @everyone token=action-canary-123456 "
+        "; touch command-executed; $(touch substitution-executed)"
     )
     for index in range(present):
         (tmp_path / f"{index}.xml").write_text(
@@ -140,11 +145,14 @@ def test_real_action_cli_emits_safe_digest_bound_reports_and_missing_shards(
     result = subprocess.run(
         [sys.executable, str(ACTION / "run.py")],
         env=env,
+        cwd=tmp_path,
         capture_output=True,
         timeout=60,
         check=False,
     )
     assert result.returncode == 0, result.stderr.decode()
+    assert not (tmp_path / "command-executed").exists()
+    assert not (tmp_path / "substitution-executed").exists()
     outputs = _outputs(env)
     assert outputs["status"] == "reported"
     assert "output" not in outputs
@@ -160,6 +168,26 @@ def test_real_action_cli_emits_safe_digest_bound_reports_and_missing_shards(
     assert snapshot["markdown"] == Path(env["GITHUB_STEP_SUMMARY"]).read_text()
     assert snapshot["report_digest"] == outputs["report-digest"]
     status = json.loads(Path(outputs["status-path"]).read_text())
+    evidence_path = Path(outputs["evidence-path"])
+    evidence = json.loads(evidence_path.read_bytes())
+    runner.validate_evidence(
+        evidence_path,
+        {
+            "schema_version": "github-evidence-export-receipt-v1",
+            "run_id": outputs["run-id"],
+            "report_digest": outputs["report-digest"],
+            "evidence_digest": evidence["evidence_digest"],
+            "bytes": evidence_path.stat().st_size,
+        },
+        snapshot,
+        500_000,
+    )
+    assert evidence["project_id"] == snapshot["project_id"]
+    assert evidence["run_id"] == outputs["run-id"]
+    assert evidence["evidence_digest"] == snapshot["evidence_export"]["digest"]
+    assert evidence["counts"]["exported"] == present
+    assert len(evidence_path.read_bytes()) <= 500_000
+    assert Path(outputs["report-json-path"]).stat().st_size <= 100_000
     assert status["report_digest"] == outputs["report-digest"]
     assert status["ingestion_state"] == outputs["ingestion-state"]
     for content in [
@@ -167,6 +195,7 @@ def test_real_action_cli_emits_safe_digest_bound_reports_and_missing_shards(
         result.stderr.decode(),
         json.dumps(snapshot),
         json.dumps(status),
+        json.dumps(evidence),
     ]:
         assert "action-canary-123456" not in content
         assert "@everyone" not in content
@@ -174,6 +203,7 @@ def test_real_action_cli_emits_safe_digest_bound_reports_and_missing_shards(
         Path(outputs["status-path"]),
         Path(outputs["report-path"]),
         Path(outputs["report-json-path"]),
+        Path(outputs["evidence-path"]),
     }
 
 
@@ -248,6 +278,11 @@ def test_workflow_has_only_read_permissions_and_declares_both_missing_shards():
     assert 'expected-inputs: "2"' in text and 'shard-count: "2"' in text
     assert 'test "$COMPLETENESS" = complete' in text
     assert "run-scope: unknown" in text
+    assert "analysis-mode: deterministic" in text
+    assert "publication-mode: summary" in text
+    assert "${{ steps.triage.outputs.evidence-path }}" in text
+    assert "config-path:" not in text
+    assert 'python -m pytest "backend/tests/test_${SHARD}.py"' in text
 
 
 def test_action_install_is_locked_and_does_not_modify_checkout():

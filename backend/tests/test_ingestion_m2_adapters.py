@@ -3,15 +3,19 @@ from __future__ import annotations
 import io
 import json
 import stat
-import struct
 import zipfile
 
 import pytest
-from PIL import Image
-
-import failurelens.ingestion as ingestion
+from failurelens import ingestion
 from failurelens.config import Settings, get_settings
-from failurelens.ingestion import IngestionError, parse_artifact, parse_junit_xml, parse_playwright_json, parse_pytest_json
+from failurelens.ingestion import (
+    IngestionError,
+    parse_artifact,
+    parse_junit_xml,
+    parse_playwright_json,
+    parse_pytest_json,
+)
+from PIL import Image
 
 
 def _bundle(manifest: dict, files: dict[str, bytes | str]) -> bytes:
@@ -26,7 +30,11 @@ def _bundle(manifest: dict, files: dict[str, bytes | str]) -> bytes:
 def _trace_zip(payload: bytes = b'{"type":"before"}\n') -> bytes:
     target = io.BytesIO()
     with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr("trace.trace", b'{"type":"context-options","version":9,"playwrightVersion":"1.63.0"}\n' + payload)
+        archive.writestr(
+            "trace.trace",
+            b'{"type":"context-options","version":9,"playwrightVersion":"1.63.0"}\n'
+            + payload,
+        )
     return target.getvalue()
 
 
@@ -38,7 +46,7 @@ def _jpeg(width: int, height: int) -> bytes:
 
 def test_junit_preserves_properties_skips_and_captured_output() -> None:
     parsed = parse_junit_xml(
-        b'''<testsuite name="api"><properties><property name="browser" value="firefox"/></properties><testcase classname="Status" name="offline" time="0.25" file="tests/status.py" line="9"><skipped message="maintenance"/><system-out>email=alice@example.com</system-out><system-err>warning</system-err></testcase></testsuite>'''
+        b"""<testsuite name="api"><properties><property name="browser" value="firefox"/></properties><testcase classname="Status" name="offline" time="0.25" file="tests/status.py" line="9"><skipped message="maintenance"/><system-out>email=alice@example.com</system-out><system-err>warning</system-err></testcase></testsuite>"""
     )
     item = parsed[0]
     assert item.outcome == "skipped"
@@ -82,11 +90,20 @@ def test_playwright_preserves_attachment_stream_and_interrupted_result() -> None
                                                 "status": "interrupted",
                                                 "retry": -1,
                                                 "duration": "7",
-                                                "errors": [{"name": "RunnerError", "stack": "token=secret"}],
+                                                "errors": [
+                                                    {
+                                                        "name": "RunnerError",
+                                                        "stack": "token=secret",
+                                                    }
+                                                ],
                                                 "stdout": [{"text": "hello"}, "world"],
                                                 "stderr": [{"buffer": "bad"}],
                                                 "attachments": [
-                                                    {"name": "trace", "contentType": "application/zip", "path": "trace.zip"},
+                                                    {
+                                                        "name": "trace",
+                                                        "contentType": "application/zip",
+                                                        "path": "trace.zip",
+                                                    },
                                                     "ignored",
                                                 ],
                                             }
@@ -184,7 +201,9 @@ def test_console_text_rejects_non_utf8() -> None:
 def test_console_jsonl_redacts_sensitive_fields_and_counts_errors() -> None:
     payload = "\n".join(
         [
-            json.dumps({"level": "info", "message": "ok", "authorization": "Bearer secret"}),
+            json.dumps(
+                {"level": "info", "message": "ok", "authorization": "Bearer secret"}
+            ),
             json.dumps({"severity": "critical", "message": "email=alice@example.com"}),
         ]
     )
@@ -209,7 +228,10 @@ def test_har_failure_sanitizes_query_and_network_error() -> None:
             "entries": [
                 {
                     "time": 12.5,
-                    "request": {"method": "POST", "url": "https://example.test/pay?token=secret&x=1"},
+                    "request": {
+                        "method": "POST",
+                        "url": "https://example.test/pay?token=secret&x=1",
+                    },
                     "response": {"status": 503},
                     "timings": {"wait": 10},
                 },
@@ -239,7 +261,9 @@ def test_har_rejects_invalid_shape(report: dict) -> None:
 def test_network_jsonl_records_failure_dimensions() -> None:
     payload = "\n".join(
         [
-            json.dumps({"method": "GET", "url": "https://a.test/x?q=secret", "status": 200}),
+            json.dumps(
+                {"method": "GET", "url": "https://a.test/x?q=secret", "status": 200}
+            ),
             json.dumps(
                 {
                     "method": "PATCH",
@@ -293,7 +317,9 @@ def test_rest_assured_adapters_preserve_producer_and_safe_exchange_preview() -> 
             "ignored",
         ]
     }
-    parsed = parse_artifact(json.dumps(evidence).encode(), "rest-evidence.json", get_settings())
+    parsed = parse_artifact(
+        json.dumps(evidence).encode(), "rest-evidence.json", get_settings()
+    )
     preview = parsed.inputs[0].metadata["safe_preview"]
     assert parsed.inputs[0].metadata["exchange_count"] == 1
     assert "Bearer secret" not in preview
@@ -326,7 +352,9 @@ def test_github_metadata_and_changed_files_preserve_trust_and_completeness() -> 
         "author_display": "alice@example.com",
         "trust": "authenticated_lookup",
     }
-    parsed_metadata = parse_artifact(json.dumps(metadata).encode(), "github.json", get_settings())
+    parsed_metadata = parse_artifact(
+        json.dumps(metadata).encode(), "github.json", get_settings()
+    )
     stored = parsed_metadata.inputs[0].metadata
     assert stored["trust"] == "authenticated_lookup"
     assert stored["author_display"] != "alice@example.com"
@@ -348,7 +376,9 @@ def test_github_metadata_and_changed_files_preserve_trust_and_completeness() -> 
             },
         ],
     }
-    parsed_changes = parse_artifact(json.dumps(changes).encode(), "changes.json", get_settings())
+    parsed_changes = parse_artifact(
+        json.dumps(changes).encode(), "changes.json", get_settings()
+    )
     change_input = parsed_changes.inputs[0]
     assert change_input.metadata["file_count"] == 2
     assert change_input.metadata["declared_trust"] == "authenticated_lookup"
@@ -400,23 +430,37 @@ def test_screenshot_jpeg_metadata_and_bounds() -> None:
 
     for malformed in [b"\x89PNG\r\n\x1a\n", b"\xff\xd8\xff\xd9", b"not-image"]:
         with pytest.raises(IngestionError):
-            parse_artifact(malformed, "shot.jpg", get_settings(), source_format="screenshot")
+            parse_artifact(
+                malformed, "shot.jpg", get_settings(), source_format="screenshot"
+            )
 
 
 def test_trace_validation_rejects_malformed_missing_and_binary_streams() -> None:
     with pytest.raises(IngestionError) as malformed:
-        parse_artifact(b"not-zip", "trace.zip", get_settings(), source_format="playwright-trace")
+        parse_artifact(
+            b"not-zip", "trace.zip", get_settings(), source_format="playwright-trace"
+        )
     assert malformed.value.code == "malformed_report"
 
     no_trace = io.BytesIO()
     with zipfile.ZipFile(no_trace, "w") as archive:
         archive.writestr("other.txt", "x")
     with pytest.raises(IngestionError) as missing:
-        parse_artifact(no_trace.getvalue(), "trace.zip", get_settings(), source_format="playwright-trace")
+        parse_artifact(
+            no_trace.getvalue(),
+            "trace.zip",
+            get_settings(),
+            source_format="playwright-trace",
+        )
     assert missing.value.code == "unsupported_format"
 
     with pytest.raises(IngestionError) as encoding:
-        parse_artifact(_trace_zip(b"\xff"), "trace.zip", get_settings(), source_format="playwright-trace")
+        parse_artifact(
+            _trace_zip(b"\xff"),
+            "trace.zip",
+            get_settings(),
+            source_format="playwright-trace",
+        )
     assert encoding.value.code == "malformed_encoding"
 
 
@@ -480,24 +524,51 @@ def test_manifest_v2_validates_contract_and_degrades_bad_inputs() -> None:
                 {"id": "same", "path": "b.log"},
             ],
         },
-        {"schema_version": "2.0", "inputs": [{"id": "x", "required": "yes", "path": "a.log"}]},
+        {
+            "schema_version": "2.0",
+            "inputs": [{"id": "x", "required": "yes", "path": "a.log"}],
+        },
         {"schema_version": "2.0", "inputs": [{"id": "x"}]},
-        {"schema_version": "2.0", "inputs": [{"id": "x", "path": "a.log", "metadata": []}]},
+        {
+            "schema_version": "2.0",
+            "inputs": [{"id": "x", "path": "a.log", "metadata": []}],
+        },
     ]
     for manifest in invalid_manifests:
         with pytest.raises(IngestionError):
-            parse_artifact(_bundle(manifest, {"a.log": "ok", "b.log": "ok"}), "bundle.zip", get_settings())
+            parse_artifact(
+                _bundle(manifest, {"a.log": "ok", "b.log": "ok"}),
+                "bundle.zip",
+                get_settings(),
+            )
 
     manifest = {
         "schema_version": "2.0",
         "inputs": [
-            {"id": "good", "kind": "console-text", "path": "good.log", "required": True},
-            {"id": "unsupported", "kind": "made-up", "path": "unknown.bin", "required": True},
-            {"id": "optional-bad", "kind": "console-jsonl", "path": "bad.jsonl", "required": False},
+            {
+                "id": "good",
+                "kind": "console-text",
+                "path": "good.log",
+                "required": True,
+            },
+            {
+                "id": "unsupported",
+                "kind": "made-up",
+                "path": "unknown.bin",
+                "required": True,
+            },
+            {
+                "id": "optional-bad",
+                "kind": "console-jsonl",
+                "path": "bad.jsonl",
+                "required": False,
+            },
         ],
     }
     parsed = parse_artifact(
-        _bundle(manifest, {"good.log": "ok", "unknown.bin": b"x", "bad.jsonl": "not-json"}),
+        _bundle(
+            manifest, {"good.log": "ok", "unknown.bin": b"x", "bad.jsonl": "not-json"}
+        ),
         "bundle.zip",
         get_settings(),
     )
@@ -520,7 +591,9 @@ def test_bundle_manifest_versions_and_paths_are_validated() -> None:
     assert unsupported.value.code == "unsupported_schema"
 
     with pytest.raises(IngestionError):
-        parse_artifact(_bundle({"schema_version": "1.0"}, {}), "bundle.zip", get_settings())
+        parse_artifact(
+            _bundle({"schema_version": "1.0"}, {}), "bundle.zip", get_settings()
+        )
 
     with pytest.raises(IngestionError):
         parse_artifact(
@@ -540,7 +613,9 @@ def test_explicit_adapter_alias_media_detection_and_unknown_json() -> None:
     )
     assert parsed.source_format == "junit-xml"
 
-    parsed_text = parse_artifact(b"hello", "unknown.data", get_settings(), media_type="text/plain")
+    parsed_text = parse_artifact(
+        b"hello", "unknown.data", get_settings(), media_type="text/plain"
+    )
     assert parsed_text.source_format == "console-text"
 
     with pytest.raises(IngestionError) as unknown_kind:
@@ -552,7 +627,9 @@ def test_explicit_adapter_alias_media_detection_and_unknown_json() -> None:
     assert malformed_json.value.code == "malformed_report"
 
     with pytest.raises(IngestionError) as unknown_json:
-        parse_artifact(json.dumps({"unrecognized": True}).encode(), "result.json", get_settings())
+        parse_artifact(
+            json.dumps({"unrecognized": True}).encode(), "result.json", get_settings()
+        )
     assert unknown_json.value.code == "unsupported_format"
 
 
@@ -622,8 +699,14 @@ def test_adapter_limits_are_explicit(monkeypatch: pytest.MonkeyPatch) -> None:
             {
                 "log": {
                     "entries": [
-                        {"request": {"url": "https://a.test"}, "response": {"status": 200}},
-                        {"request": {"url": "https://b.test"}, "response": {"status": 500}},
+                        {
+                            "request": {"url": "https://a.test"},
+                            "response": {"status": 200},
+                        },
+                        {
+                            "request": {"url": "https://b.test"},
+                            "response": {"status": 500},
+                        },
                     ]
                 }
             }
@@ -654,7 +737,9 @@ def test_manifest_rejects_duplicate_paths_and_oversized_metadata() -> None:
         ],
     }
     with pytest.raises(IngestionError) as duplicate_error:
-        parse_artifact(_bundle(duplicate, {"same.log": "ok"}), "bundle.zip", get_settings())
+        parse_artifact(
+            _bundle(duplicate, {"same.log": "ok"}), "bundle.zip", get_settings()
+        )
     assert duplicate_error.value.code == "malformed_report"
 
     oversized = {
@@ -674,7 +759,9 @@ def test_manifest_rejects_duplicate_paths_and_oversized_metadata() -> None:
 def test_metadata_sha_fields_are_validated() -> None:
     with pytest.raises(IngestionError) as github_error:
         parse_artifact(
-            json.dumps({"repository": "o/r", "commit_sha": "abcdef0", "base_sha": "bad"}).encode(),
+            json.dumps(
+                {"repository": "o/r", "commit_sha": "abcdef0", "base_sha": "bad"}
+            ).encode(),
             "github.json",
             get_settings(),
         )

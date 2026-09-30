@@ -234,9 +234,7 @@ def downgrade() -> None:
     )
     op.drop_table("cluster_revisions")
 
-    op.drop_index(
-        "ix_failure_clusters_project_status", table_name="failure_clusters"
-    )
+    op.drop_index("ix_failure_clusters_project_status", table_name="failure_clusters")
     op.drop_index(
         op.f("ix_failure_clusters_superseded_by_cluster_id"),
         table_name="failure_clusters",
@@ -245,7 +243,5 @@ def downgrade() -> None:
         op.f("ix_failure_clusters_representative_failure_id"),
         table_name="failure_clusters",
     )
-    op.drop_index(
-        op.f("ix_failure_clusters_project_id"), table_name="failure_clusters"
-    )
+    op.drop_index(op.f("ix_failure_clusters_project_id"), table_name="failure_clusters")
     op.drop_table("failure_clusters")

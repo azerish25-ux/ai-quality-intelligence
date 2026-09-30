@@ -1,8 +1,8 @@
-from sqlalchemy import func, select
-
 from failurelens.models import Analysis, Failure, Outcome
-from failurelens.schemas import IngestionRequest, TestObservation as Observation
+from failurelens.schemas import IngestionRequest
+from failurelens.schemas import TestObservation as Observation
 from failurelens.service import analyze_and_persist, create_project, ingest_normalized
+from sqlalchemy import func, select
 
 
 def request() -> IngestionRequest:
@@ -12,8 +12,16 @@ def request() -> IngestionRequest:
         commit_sha="abcdef0",
         expected_inputs=1,
         observations=[
-            Observation(test_identity="ledger::balanced", parameterization="CAD", outcome=Outcome.failed, message="ledger unbalanced after duplicate committed", details={"data_integrity_violation": True}),
-            Observation(test_identity="health::ok", outcome=Outcome.passed, duration_ms=12),
+            Observation(
+                test_identity="ledger::balanced",
+                parameterization="CAD",
+                outcome=Outcome.failed,
+                message="ledger unbalanced after duplicate committed",
+                details={"data_integrity_violation": True},
+            ),
+            Observation(
+                test_identity="health::ok", outcome=Outcome.passed, duration_ms=12
+            ),
         ],
     )
 
@@ -23,7 +31,9 @@ def test_ingestion_is_idempotent_and_analysis_is_persisted(session) -> None:
     first = ingest_normalized(session, project, request())
     second = ingest_normalized(session, project, request())
     assert first.id == second.id
-    failures = list(session.scalars(select(Failure).where(Failure.run_id == first.id)).all())
+    failures = list(
+        session.scalars(select(Failure).where(Failure.run_id == first.id)).all()
+    )
     assert len(failures) == 1
     assert failures[0].execution.parameterization == "CAD"
     analysis = analyze_and_persist(session, failures[0])
@@ -35,7 +45,9 @@ def test_ingestion_is_idempotent_and_analysis_is_persisted(session) -> None:
 
 def test_incomplete_run_is_explicit(session) -> None:
     project = create_project(session, "partial-project", "Partial")
-    payload = request().model_copy(update={"external_id": "run-2", "expected_inputs": 2})
+    payload = request().model_copy(
+        update={"external_id": "run-2", "expected_inputs": 2}
+    )
     run = ingest_normalized(session, project, payload)
     assert run.completeness == "partial"
     assert run.status.value == "partial"
@@ -67,9 +79,7 @@ def test_failure_evidence_is_execution_scoped_and_claims_are_validated(session) 
     run = ingest_normalized(session, project, payload)
     failures = list(
         session.scalars(
-            select(Failure)
-            .where(Failure.run_id == run.id)
-            .order_by(Failure.message)
+            select(Failure).where(Failure.run_id == run.id).order_by(Failure.message)
         ).all()
     )
     assert len(failures) == 2
@@ -181,8 +191,8 @@ def test_valid_but_irrelevant_citation_is_withheld(session) -> None:
         explanation="synthetic decision for validator regression",
         summary="Unsupported product classification",
         supporting_ids=validation.accepted_ids,
-        contradictory_ids=tuple(),
-        missing=tuple(),
+        contradictory_ids=(),
+        missing=(),
         claims=(
             {
                 "id": "claim-irrelevant",
@@ -197,10 +207,10 @@ def test_valid_but_irrelevant_citation_is_withheld(session) -> None:
                 "validation_status": "pending",
             },
         ),
-        hypotheses=tuple(),
-        next_steps=tuple(),
+        hypotheses=(),
+        next_steps=(),
         abstention_reason=None,
-        policy_flags=tuple(),
+        policy_flags=(),
         signal_counts={"product_defect": 4},
     )
     result = validate_decision(
@@ -215,7 +225,7 @@ def test_valid_but_irrelevant_citation_is_withheld(session) -> None:
         },
     )
     assert result.category is Category.insufficient_evidence
-    assert result.claims == tuple()
+    assert result.claims == ()
     assert result.validation_results["claims"][0]["semantic_support"] is False
     assert result.validation_results["claims"][0]["irrelevant_evidence_ids"] == list(
         validation.accepted_ids

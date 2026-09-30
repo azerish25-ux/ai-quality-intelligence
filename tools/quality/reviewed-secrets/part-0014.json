@@ -1,0 +1,1373 @@
+{
+  "entries": [
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/snapshot/zip_sha256",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "3c5c3cc63145dfb33e15d1abd1829a705d42405650190cc685ff478c95dabeed",
+          "line": 80
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0789",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "b05bd90f17db3bd4f8d645ba53ae2505d94f34fef17106f15f7cf0d16e286259"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/corpus/labels.json",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "c340e20758e02f0fdf9be2dc0d9f8e18ab68b824cb90480b9b6394b435fdfc0e",
+          "line": 19
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0761",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "bedc63dbbbe8ee90c4e5a770a26d340a79b8ab6613910027bc45f82dfe35b5a5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/replay/safe-evidence/c-2b40642a03f40b353cc3/3f3c82ca-705c-44d2-93ba-663a16a2e2f4.json",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "b389e720f324c1fa0689c3a463fc496fe3409e1ad27bef460300d5de58d25076",
+          "line": 34
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0775",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "bf5e9e9dd0a538bdc9baae0341718a44e6f4faead842754b7c6b2ca93a2a765c"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/corpus/inputs/c-81febbad89f84dd32346/observation.zip",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "22fb5f5fd7c26292ccfd2b45e192eb9b7d07842f83443da0673e91fb2d4d6976",
+          "line": 9
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0751",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "c0f7a02e1bfcffc05ab2271cf6898f3835fd718b0cd4263b70e3222c75a5969a"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/original_artifact/sha256",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "ee709cabf89ae0cdb521d2d6ad22e6c526a7fb3ab0e4958c89e0b831e6d2638d",
+          "line": 59
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0787",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "c3f5269751667db9a2723ae3b75d8aafb3da887e78bcd299f237ed45677179ab"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/corpus/response-semantics.json",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "cf8f08cc9af482e67ce442eb8e741500e754f8f34a75b1b51654d12acf7ed2d6",
+          "line": 21
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0763",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "c8ba821ff3bb7a9219cfa693403ac8bebb4f4e05e544463a9327bd6d9fc85db8"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/replay/reports/c-c642647baca5a1aa4751.md",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "9f914d3cc857e51a222319d8cd3a7c66ed909fd5a2f887f2997059452036a513",
+          "line": 28
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0770",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "c8caeeae5f780e41892794af9f6b2c622793b222179fe57f1e3fbb17a9bc5646"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/corpus/inputs/c-9c125e4dbd695caf77dd/observation.zip",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "d01c699e47cb17967b35110a4fa777e84d1c34c0f02b32d122fd803c026fcad6",
+          "line": 10
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0752",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "c9ead8de7b108ffba9ee4277eae63dabad9284c0cdb35220f160d7e6bc2d9449"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/corpus/inputs/c-fc524e93a75f926b6d10/control.zip",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "b21482fc4585452fdaf6bc14b1338a12380fb0124a38cc207c2083bc2a0d985d",
+          "line": 16
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0758",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "da733c6b5c25202d16d05a02286e47aa210fc7d7eb056eb87439300be061cded"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/corpus/inputs/c-c642647baca5a1aa4751/observation.zip",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "1fcf78da9cb29fd7966b22ff88e9ce4c92cbefaf2af07918eeffad16c7d62b3e",
+          "line": 13
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0755",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "db555627b6ae2fe0861e55035498d753f51fabd9dbb06210d2d8baf827f9e972"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/report/diagnostic-gaps.json",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "c92ea270ff4fd124ac325525b5efaf146af2dcd430783fadf6ed2ddcfae74410",
+          "line": 47
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0782",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "db85429b1d875211f9e8b1d77c55da46a4f1bd5b6ea3a8464f75d8b15530ea4e"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/report/report.md",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "b5d0ce99b7bfcc5f35328861d27cf4b675f6e9201c30a58070dd8a059c4787ff",
+          "line": 50
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0785",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "dc40ce8581e7a53a6a4cbbd9d40316be71f1544e19c121fa54a7c92dbef62595"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/corpus/execution-provenance.json",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "0ba3ce5dd2627a07e402ce9e64b9874f88ba79f72b1d4a409cd1a97647e9478d",
+          "line": 3
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0745",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "dcd11ec09830ae9a193be5f11613102f566196b87fb459bbb35d5d71bf1299ba"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/corpus/inputs/manifest.json",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "33f8969891c5ca0b07519a4f966d0279aa619643e329e8fa1f7cce510926db7d",
+          "line": 18
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0760",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "de0cf167cd710a594409ae2310a04cbb3d6545b356f4e4b4488731e61d6820b8"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/corpus/inputs/c-a52d94df043b71f97a22/observation.zip",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "0d63cedd8c445727b4ee89945d476c5a22afe9c66d21d214196401b0ed9edaca",
+          "line": 12
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0754",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "e42ebd9a6c5a26fde48f29e56392bd2aa7761fd009c4fad71aedc2af3101446f"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/corpus/inputs/c-a52d94df043b71f97a22/control.zip",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "212993c013ae1957bfc34b30b5f2503fda3aba5c18317b44a41d2b86d3fedf01",
+          "line": 11
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0753",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "eb8d17ff0750190c4082f9130404102874c977571f815acd8c2c8b46c7863fca"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/corpus/inputs/c-fc524e93a75f926b6d10/observation.zip",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "d91a8ad0309b326de60e21a890b6843d33a6c2fc79aa3c241b02da203296a313",
+          "line": 17
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0759",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "ed0306bf81a9c1b0c36ddd1db036cc1bc2e5070a44e8533220c47da8d0d4f4ce"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/corpus/policy.json",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "10d73b49521dd6a1b763411ec63a68dba6912c87638f677e5938da760525ea54",
+          "line": 20
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0762",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "f172174fea28d30b804a3894f5b448c7fc2bd0d39b6c1648300c81f941373919"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/tested_source_tree",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "903bc68e70d6852f72b662d8969e2efdacd2d4d4e94bc1804e4b9d8ee4288358",
+          "line": 83
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0791",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "f60ce10b8da0e8735d3883f9d22db9d19d4faec839a8c58f6900e26626fac136"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/report/predictions.jsonl",
+      "file": "evaluation/reports/transaction-finality-postgresql-v1/retention.json",
+      "file_sha256": "f4bd9665e105996f860ce353afc0085b3c5bd8e53c7c28f3410542c4d93f277f",
+      "occurrences": [
+        {
+          "context_sha256": "1143fc724789e2115c209571d14adddd331fde0c8c3ba795b59f64c71ff9eb2b",
+          "line": 49
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0784",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "f704cc33bfd9f30dd179a78f64e1eb2152dd79ff5bfab6838e532356d636f3f7"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "frontend test-only literal and assertion",
+      "file": "frontend/e2e/operations.spec.ts",
+      "file_sha256": "97e03c32b6bd2c006b375fdb9e25de311f4aa49dcdd44ce85564e4e56bae195e",
+      "occurrences": [
+        {
+          "context_sha256": "db3eb7261ebd2925b0ba6f18743a3cd85d99e488603e25a1fce3285ca44e8a27",
+          "line": 5
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0792",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "7b5c2a891b4d625aac5d43163af653711b1866bfd069c08cc43492736c4091aa"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "frontend test-only literal and assertion",
+      "file": "frontend/e2e/operations.spec.ts",
+      "file_sha256": "97e03c32b6bd2c006b375fdb9e25de311f4aa49dcdd44ce85564e4e56bae195e",
+      "occurrences": [
+        {
+          "context_sha256": "aef6921723cb9e05c1fa0ae8e1382faa5a400c9202c7df9e24a73f9acd7ccbbd",
+          "line": 6
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0793",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "ca517ced9986f7b0679bfeec80f290e51a89627d9e0d839233fbc52ac72de743"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/picocolors/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "f1e51d60fd6e304fd0607017f06c4e1dea34fc127c8661d2e8f5add622604377",
+          "line": 932
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0853",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "033a84eab06fde2817daab69ff225bf16cd604105434e74887876fabcacf5ea0"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-android-arm64/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "d534403cbb4131136ee8cce377b09921d96e2274591f6d164e35d6a5ed1815f6",
+          "line": 77
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0798",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "096daf479e0f738efaeba261a906659dd2f7c66b28c7ffcbc1e071ec8b42227a"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-darwin-arm64/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "52c14845b814351d04db897769c49e4f75bb6ca0c8de99090b2e5c5a59fac969",
+          "line": 94
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0799",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "0da96b1bac1ce979eaab7494d3c5cfd27020e3c45a415e5a211162aefa0a9481"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/expect-type/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "7d16656941a0db1923d98fd40b46054921d5f3ab561220d05609066f3ce840e8",
+          "line": 578
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0834",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "0f7bbcbf2d3998b27cb56836d258f292be7abe3a654014280a265c2f9288a7fd"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/siginfo/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "4ec3b486e03cfcd7d63b1e6d3cd88c7548f174ff812c05869451707d516c396e",
+          "line": 1071
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0862",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "0fc3c572f44d334a5181cc026367a1c331e88b04c5853dcb64db8e39983ad227"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/lightningcss-linux-arm64-gnu/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "88a2ebf3642fb43419de24950f19a61a11a5a173533b2f0397b6bfda50a91aff",
+          "line": 756
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0843",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "0fe5c7ce23afdf59bad86af90827111b0a1bdc14de04262dbf7f2c5745006d75"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@vitest/pretty-format/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "53f0af9be5fca4bdd92900a1624745b5fa34b07bc438281e32a1873616db772d",
+          "line": 449
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0822",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "11cd525d364fc07a4acb61f128fbb4922892b8422259012a0d5f0e70e9a865ae"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-linux-x64-musl/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "dfb88b6a76696622a36036aaa32dc466dbaef46fe9c305ca06cb37b29ec09be7",
+          "line": 247
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0808",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "137c4c905f2bb4b53dd3b1e2bf73db642ce279320c08f0b2bc506786038ee4c7"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/react-dom/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "dc288b491a7220fa0ff17575456f1cb4bb54fe6b3351f74c9fb3df3849482705",
+          "line": 1019
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0859",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "1446b27bae77e4d411756d7a91ae1ac7ace75c0e60423e42e9bf13cd73c10796"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-linux-arm64-gnu/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "bb5d564d0bacfd20bbc674df2285081086447df75b7ffdf8a53db18de06d32e7",
+          "line": 162
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0803",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "15a84912ccbc992d14f515fbfd94175be011f1b881628f66ba75c308ac8f9e45"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/convert-source-map/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "da78a08b2092a3cb127cfcacc632618a099b7ee9a4ed2ccc9eabc40acb1f41b9",
+          "line": 537
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0829",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "19b0a0410947241f61919944c039be656fdad474e1f40e852df1d5479b403f8f"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@vitest/spy/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "089dcb623850d292734877f2e5ecc9421ed13d8436689cc6adcc4e9610dd8271",
+          "line": 492
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0825",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "22ce2b87e017de51661b85e5cf7721df158c8fe99ab74501ccc56991d935a26f"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/pluginutils/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "80f55456b8af797b46a9554c0358a19b6286afedebb4d64f96d8c10e119b15d5",
+          "line": 315
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0812",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "24a0372da89da885799bd82672bf78a0fe2fd1ef2bf2ca943c5b533d7ecf6fd8"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/std-env/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "ecd1801d267c7b6f7421ff8f07a01b7c3c89161547be61aed3190a3819bd9e9b",
+          "line": 1095
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0865",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "258cdbfde69bc5bbcb56c6d8d13ce70fbc154e2b4144da29543a31a92b3db317"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/source-map-js/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "46073557f7a3deef5bb9af3e54a07a1a522f2db93da619e737193e753f57d7b0",
+          "line": 1078
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0863",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2cc612942deac0342b68d40c6ed6a8f7b43751757b527879b17bc4139a367b61"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/picomatch/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "43c3640710d84d25cc47cf020f1a21968a684eb0188677a1d2f48c4ea00f9676",
+          "line": 939
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0854",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "306f9bc988eafbf430b78fc337b011bcb681c2fb0efede0daf2c72ed725962c5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/stackback/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "ad2ac7ea2ed26e5398c984867b20039434c7dc5bda90e70a3328e5a6d4a8de22",
+          "line": 1088
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0864",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "32f99a3cace2bf6e9d464f42e23d573f639b7008e8781eb2de53c65213d930e4"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/lightningcss/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "6fb10e46b080ecfb1c1a1f3a37e57cbcd8604f7d7f539b04ec334b24c0aeb9d7",
+          "line": 621
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0837",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "33d23240d860732a9e244a6e8ff1559fb92aece00b310e998e3ee94882bb503e"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/csstype/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "70108505f91db2c2dfcbb74748d1f00cf9b410d9790057bbfd296a7393627f41",
+          "line": 544
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0830",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3fd4f89178e00f1c8615d783cbbeb25be322e6f7e564a2d98403c0902c4438de"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-android-arm-eabi/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "8024c116fd13aeda0ca3acaf0c72c14417f8a25abda612355c6d9b8e9de31999",
+          "line": 60
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0797",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "413c32594ea7a1bf083a376b6930ff6a61804f3035752cfae2e2da16e3adf11e"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@types/estree/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "f89c3cca356e9ba968a217d15f6dc89420cf38f487ab91dfd9e68d9492904cd1",
+          "line": 347
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0816",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "41b757b4aa4e99cd968a147f2175a76d9bb6ef569a7442b840ad0563885650c2"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@jridgewell/sourcemap-codec/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "1d55ad93f1231bb685311b029faeb95bc1935f8c7029e0b395c923016b6a1953",
+          "line": 27
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0794",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "483d9126da146444c6d5bfbe9e7da4a895bc96d2a40fb42a7b168e43675e233c"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/lightningcss-darwin-arm64/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "28c3f48dc1c4b8ee264579ccb266468c7a50a91c95c18390ec80b857165c311a",
+          "line": 672
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0839",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "489549c27fc3d248c550fc197ae1d2d876fc67a92d64d2ad863b35e37c6bc7de"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/chai/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "ddad26dc892b98526ab6f0202c7d2beb7f9a8eb43a6f6fd93f49eac5a02ac66f",
+          "line": 527
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0828",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "4ccd0156bc8ab86c6c650b99d541b19d95ec7708cd0949296fe2852a7a37fa2b"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@vitejs/plugin-react/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "e0110d8229862c114e13a0ae91697955a77bd4196a1b2b12e0a854724b3d430f",
+          "line": 374
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0819",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "4de12227a9834f62173af22cbb669bf6a68364b8b6457e9da46918fae7bc6396"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/fsevents/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "b6097eabb2b4bc24a7bbd9342026fa9db1cae4df739dda1a2bb4d2b80f9bfadc",
+          "line": 606
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0836",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "50dd678a85d7e516b8b3108693ea348b6d27b15e97d0f13e9e0f35fce5b9475f"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-win32-x64-msvc/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "b01e2e0d974ab418b9684d2ac819770bb2dcdf77f43c0ec27a1371ac1addb1ff",
+          "line": 298
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0811",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "544efc93ad476c1b3d586a1cbb8a0d09bc33c86cb932421182a4c5aa99c380f0"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@vitest/expect/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "21b3f323b5d645c64b0f6e7eae688289fc4a5f8b9ab516b503bb48a969b9cfd9",
+          "line": 404
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0820",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "56859f7280930c826360e9b47542e0f38710996792836d08a00064041ba766f0"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/lightningcss-linux-x64-gnu/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "4a26f8c044da1d11c4464bdedb9f6f588994a67ddd1f917b4c47dc3ab81ca530",
+          "line": 798
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0845",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "579b39ce6c124486d3fa9ab13d3639e98c868049da6fcf31236fb4f622cc2118"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@oxc-project/types/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "14ec3feecb49c1d25cb1972466406c98808b4ad6d9f88a49d62bd8f12a1d34b9",
+          "line": 34
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0795",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "5c8432d6dd24f8c42a9051030d6ab025da1047e07dffccbe6f5329bd98aef119"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/fdir/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "508e4f96dc231ebf7a1c26e1e8573ee9f07df8c4771b54beec43f5411280e82f",
+          "line": 588
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0835",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "5d4003ad96d040603634163e74d6a178112973f91efe28bb4bc26289579f39a4"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/vitest/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "1b0cbfd36d60ec702b8bdabdadc806d0a0a70e9c55fff21420b62ff089db1c6b",
+          "line": 1238
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0872",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "637b7e075cd104e2847959c8f40e27d53b51edd512cf3cc754993f6248cf85f5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@vitest/snapshot/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "744fa715871d896b3832cb693e7a10940adc23a7b2fb065500acd0eeb5e61f0a",
+          "line": 476
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0824",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "6721b3aad326f012b79a1dfb068c0d3569710427ffe3bfbad99dbd8cdeea13e8"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/tinybench/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "bbe91394b9291377d875bec40bd69c5b42eb2204361eeb8193dc0702419b0c43",
+          "line": 1102
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0866",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "6a4c39e26ed1a5d90ca8944caeca59e29ca12ca76135bdec1d5be6ff2490351e"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/es-module-lexer/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "3f27b27789119d3eb40493ccee537cf19fb3376526f835781c66691c97531053",
+          "line": 561
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0832",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "6f5ec2732416f2c881d0f3a1596c8c42f60ac1ef8577efe149e93beba16ccabe"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/lightningcss-linux-x64-musl/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "e4cf57ddcf579765890f2e4c005882715020757a9709971277034537f590412a",
+          "line": 819
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0846",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "73f0d759afe43d9bfb90dbb488e78e98c86ac53893dc29a56d7a1567321ab8e3"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/typescript/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "381bc7de394a6c560bce36f29e03aa209140f26f81d46a387a510ff07e0dc9a0",
+          "line": 1146
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0870",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "79bf46fcdd3146ff8e3ba693aed2cdb3b989b53e4f239f505504d18cc3a25c3f"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-freebsd-x64/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "51d26174a641ba73c8b1cfdd4ba9480365f035a44a84204b116eec19520947a1",
+          "line": 128
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0801",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "79f5a7573cf8265b55fdd3c76f7f1ef9399f6f573dcdfb457dabb6890782f32a"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@types/react/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "e794ded7ec1389b1199a0973bf8ee1a20c3111d1eb8bd0ada43144a1b0ce9cde",
+          "line": 354
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0817",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "841102f5db106809e4154950ac9d1bf6180707dac67dbcaf4d5407687a0fe104"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/vite/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "52c7ffc67279adf31b668b475f67ed1b3140aefeab1dc556a1735ac18f798cbf",
+          "line": 1160
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0871",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "8b4ca0f4f67171aa08b844222cd3db85f10e184edf596e12ff293d84e68384b7"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/rolldown/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "175102c5b84f8d23e4d12ec33a80321b630ce7f920d776813e5f1ae3d41d2f9c",
+          "line": 1031
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0860",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "8f6126f32f18ce22cee0a91af8a4180994b8123614a4b789de1e5b7fcf1f74ea"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/magic-string/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "1a9a49fd73311999cb4a92eedc61fd753ea56d87eb24a9f05f5bca27972160aa",
+          "line": 882
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0849",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "904f436386d9a35f0aac5b4e0990b03a37c880f232287f4fd7c72e9d8e824657"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/estree-walker/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "bdcee0b5ee27305e2ef91866a73333951b892841dcbef8f2c8a9d248a55f00d5",
+          "line": 568
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0833",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "94024f312292265fcc3e1999d78e4b5e22e6f3a94c5cdbdd64abf907121f9905"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/assertion-error/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "6dfa3ac9d567b49a91a5bcb7dcf2a722b2250565da9197903b0a9c7e2b8851d2",
+          "line": 517
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0827",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "94d8b2c926d5070d386717de3fcbcabcef9c0374c2cd693aa35f1f72cc688fea"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/lightningcss-linux-arm-gnueabihf/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "38cf7b5815a0c17683d89d75897bcded394c4be61943fcb8baf83b78661e9ea6",
+          "line": 735
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0842",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "96bc935cc51eefe3ddf53f466a83fb332a6a331c8c1064510c1ae86fefc70e51"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@rolldown/binding-linux-ppc64-gnu/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "d4efd54b6cb3510520bb4faaa8d77c99cc8af4697c4ae0a2ed94765362087ea0",
+          "line": 196
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0805",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "98ed10b0ffdcec1890d7c651380596ec23e84fa050c0c2b3b3c2678a083f3f16"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/@types/chai/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "401259bd02bd08a866382f3541931b741d2c18dd37013255926a034a02e9c17d",
+          "line": 329
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0814",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "9c9ff1258f61b460b29d298c56f64d905a110b1c1dc652bf32b0a54cec9832a9"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/tinyexec/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "190dbed7ea7eac42652ed235f9783bbe842b5ab37cc762fe86246f81e3fd3da5",
+          "line": 1109
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0867",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "9d10a9b9aab253894da319b745906ebafa5e399a06a10f92204955653d6f29f9"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/obug/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "daf66ef687b92af1f88fc92190bd14de33ae885373a7b1079681de9429cc15bc",
+          "line": 911
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0851",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "a6604b953e7aa6690f0c9d9c6fc2c7e4bd64fd3f3cbbaa877c3ce8d75349383e"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Base64 High Entropy String",
+      "evidence": "/packages/node_modules/nanoid/integrity",
+      "file": "frontend/package-lock.json",
+      "file_sha256": "c0739f7cc4435def14cc34ebbf78593d6ec57e18b625281256f1df9566ebe331",
+      "occurrences": [
+        {
+          "context_sha256": "858c75186787660ba8abfb1bd9713e3d4f2a7a8c61539a2e9c29ab1d129d0bd6",
+          "line": 892
+        }
+      ],
+      "reason": "Exact package integrity field; SHA-512 prefix and strict base64 decoding produce 64 digest bytes.",
+      "review_id": "candidate-0850",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "a81b52ff148da21d755a378c39969bbc6d9d14a95eb4ce6f662ff94e88cac278"
+    }
+  ],
+  "schema_version": 1
+}

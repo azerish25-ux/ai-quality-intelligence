@@ -7,8 +7,8 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from sqlalchemy import func, or_, select
@@ -30,21 +30,13 @@ from .auth import (
     verify_password,
     visible_project_ids,
 )
-from .config import get_settings
 from .clustering import review_cluster
+from .config import get_settings
 from .db import get_session, initialize_database
 from .demo import seed_demo
 from .evidence_validation import persisted_analysis_is_publication_validated
+from .governance import review_queue_page
 from .history import build_test_history
-from .infrastructure import (
-    MAX_CORRELATION_RUNS,
-    build_infrastructure_correlation,
-    create_infrastructure_event,
-    get_infrastructure_correlation,
-    infrastructure_correlation_to_schema,
-    infrastructure_event_to_schema,
-    list_infrastructure_events,
-)
 from .impact import (
     apply_impact_override,
     create_impact_recommendation,
@@ -55,6 +47,46 @@ from .impact import (
     list_project_recommendations,
     mapping_snapshot_to_schema,
 )
+from .infrastructure import (
+    MAX_CORRELATION_RUNS,
+    build_infrastructure_correlation,
+    create_infrastructure_event,
+    get_infrastructure_correlation,
+    infrastructure_correlation_to_schema,
+    infrastructure_event_to_schema,
+    list_infrastructure_events,
+)
+from .models import (
+    Analysis,
+    AuditEvent,
+    AuthSession,
+    Category,
+    ClusterMembership,
+    ClusterMembershipDecision,
+    ClusterRevision,
+    Evidence,
+    Failure,
+    FailureCluster,
+    ImpactRecommendation,
+    InfrastructureCorrelationSnapshot,
+    InfrastructureEvent,
+    Ingestion,
+    IngestionState,
+    IngestionToken,
+    PerformanceComparison,
+    PerformanceObservation,
+    PerformancePolicy,
+    Project,
+    ProjectMembership,
+    ProjectRole,
+    ReviewEvent,
+    Run,
+    RunInput,
+    TestExecution,
+    User,
+    utcnow,
+)
+from .operations_api import router as operations_router
 from .performance import (
     build_performance_baseline,
     create_performance_policy,
@@ -70,36 +102,8 @@ from .performance import (
     performance_observation_to_schema,
     performance_policy_to_schema,
 )
-from .models import (
-    Analysis,
-    AuditEvent,
-    AuthSession,
-    Category,
-    ClusterMembership,
-    ClusterMembershipDecision,
-    ClusterRevision,
-    Evidence,
-    Failure,
-    FailureCluster,
-    Ingestion,
-    IngestionState,
-    IngestionToken,
-    ImpactRecommendation,
-    InfrastructureCorrelationSnapshot,
-    InfrastructureEvent,
-    PerformanceComparison,
-    PerformanceObservation,
-    PerformancePolicy,
-    Project,
-    ProjectMembership,
-    ProjectRole,
-    ReviewEvent,
-    Run,
-    RunInput,
-    TestExecution,
-    User,
-    utcnow,
-)
+from .provider_api import router as provider_router
+from .retention import lock_project
 from .schemas import (
     AnalysisResult,
     ArtifactDerivativeSummary,
@@ -112,11 +116,6 @@ from .schemas import (
     ClusterRevisionRead,
     ClusterSummary,
     EvidenceRead,
-    IngestionRead,
-    IngestionRequest,
-    IngestionTokenCreate,
-    IngestionTokenCreated,
-    IngestionTokenRead,
     ImpactMappingSnapshotCreate,
     ImpactMappingSnapshotRead,
     ImpactOverrideCreate,
@@ -126,6 +125,13 @@ from .schemas import (
     InfrastructureCorrelationRead,
     InfrastructureEventCreate,
     InfrastructureEventRead,
+    IngestionRead,
+    IngestionRequest,
+    IngestionTokenCreate,
+    IngestionTokenCreated,
+    IngestionTokenRead,
+    LoginRequest,
+    LoginResponse,
     PerformanceBaselineCreate,
     PerformanceBaselineRead,
     PerformanceComparisonCreate,
@@ -139,15 +145,13 @@ from .schemas import (
     ProjectMembershipRead,
     ProjectMembershipUpdate,
     ProjectRead,
-    LoginRequest,
-    LoginResponse,
     ReviewCreate,
     ReviewEventRead,
     ReviewQueueItem,
+    RunDetailRead,
     RunInputRead,
     RunMetadata,
     RunRead,
-    RunDetailRead,
     TestHistoryRead,
     UserCreate,
     UserRead,
@@ -163,10 +167,14 @@ from .service import (
     retry_ingestion,
 )
 from .storage import StorageError, store_stream
-from .operations_api import router as operations_router
-from .retention import lock_project
-from .telemetry import configure_telemetry, shutdown_telemetry, metrics_snapshot, observe_http_status, stage, SpanKind
-from .governance import review_queue_page
+from .telemetry import (
+    SpanKind,
+    configure_telemetry,
+    metrics_snapshot,
+    observe_http_status,
+    shutdown_telemetry,
+    stage,
+)
 
 
 @asynccontextmanager
@@ -201,21 +209,34 @@ app.add_middleware(
 )
 
 app.include_router(operations_router)
+app.include_router(provider_router)
 
 
 @app.exception_handler(RequestValidationError)
 async def safe_request_validation(_: Request, exc: RequestValidationError):
     # Pydantic's input field can otherwise echo a password or recovery token.
-    return JSONResponse(status_code=422, content={"detail": [
-        {"type": error["type"], "loc": list(error["loc"]), "msg": error["msg"]}
-        for error in exc.errors()
-    ]})
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": [
+                {"type": error["type"], "loc": list(error["loc"]), "msg": error["msg"]}
+                for error in exc.errors()
+            ]
+        },
+    )
 
 
 @app.middleware("http")
 async def private_api_responses(request: Request, call_next):
-    with stage("http", parent=request.headers.get("traceparent"), kind=SpanKind.SERVER) as span:
-        method = request.method if request.method in {"GET", "POST", "PATCH", "DELETE", "PUT", "HEAD", "OPTIONS"} else "OTHER"
+    with stage(
+        "http", parent=request.headers.get("traceparent"), kind=SpanKind.SERVER
+    ) as span:
+        method = (
+            request.method
+            if request.method
+            in {"GET", "POST", "PATCH", "DELETE", "PUT", "HEAD", "OPTIONS"}
+            else "OTHER"
+        )
         span.set_attribute("http.request.method", method)
         status_code = None
         try:
@@ -314,7 +335,7 @@ def _review_event_schema(row: ReviewEvent) -> ReviewEventRead:
 def _principal_schema(session: Session, principal: Principal) -> PrincipalRead:
     settings = get_settings()
     if principal.kind == "demo":
-        memberships = [
+        demo_memberships = [
             AuthMembershipRead(
                 project_id=project.id,
                 project_slug=project.slug,
@@ -330,7 +351,7 @@ def _principal_schema(session: Session, principal: Principal) -> PrincipalRead:
             display_name=principal.display_name,
             system_admin=True,
             demo_mode=True,
-            memberships=memberships,
+            memberships=demo_memberships,
         )
     if principal.kind == "ingestion_token":
         return PrincipalRead(
@@ -379,7 +400,9 @@ def _cluster_summary(cluster: FailureCluster) -> ClusterSummary:
         current_revision=cluster.current_revision,
         representative_failure_id=cluster.representative_failure_id,
         representative_test_identity=(
-            representative.execution.test_identity if representative is not None else None
+            representative.execution.test_identity
+            if representative is not None
+            else None
         ),
         member_count=cluster.member_count,
         uncertainty=cluster.uncertainty,
@@ -398,9 +421,7 @@ def _cluster_revision_read(
             select(ClusterMembership)
             .where(ClusterMembership.revision_id == revision.id)
             .options(
-                selectinload(ClusterMembership.failure).selectinload(
-                    Failure.execution
-                )
+                selectinload(ClusterMembership.failure).selectinload(Failure.execution)
             )
             .order_by(
                 ClusterMembership.role.desc(),
@@ -494,7 +515,7 @@ def live() -> dict[str, str]:
 
 
 @app.get("/health/ready")
-def ready(session: Session = Depends(get_session)) -> dict[str, str]:
+def ready(session: Annotated[Session, Depends(get_session)]) -> dict[str, str]:
     session.execute(select(1))
     return {"status": "ready"}
 
@@ -503,21 +524,29 @@ def ready(session: Session = Depends(get_session)) -> dict[str, str]:
 def auth_login(
     request: LoginRequest,
     response: Response,
-    session: Session = Depends(get_session),
+    session: Annotated[Session, Depends(get_session)],
 ) -> LoginResponse:
     settings = get_settings()
     try:
         username = normalize_username(request.username)
     except ValueError:
         username = request.username.strip().casefold()
-    user = session.scalar(select(User).where(User.username == username).with_for_update()
-                          .execution_options(populate_existing=True))
-    if user is None or not user.is_active or not verify_password(
-        request.password, user.password_hash
+    user = session.scalar(
+        select(User)
+        .where(User.username == username)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if (
+        user is None
+        or not user.is_active
+        or not verify_password(request.password, user.password_hash)
     ):
         record_audit_event(
             session,
-            Principal(kind="user", actor_id=None, display_name=username or "unknown login"),
+            Principal(
+                kind="user", actor_id=None, display_name=username or "unknown login"
+            ),
             action="auth.login_denied",
             resource_type="authentication",
             outcome="denied",
@@ -566,8 +595,8 @@ def auth_login(
 @app.post("/api/v1/auth/logout", status_code=204)
 def auth_logout(
     response: Response,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> Response:
     require_user(principal)
     if principal.session_id:
@@ -589,8 +618,8 @@ def auth_logout(
 
 @app.get("/api/v1/auth/me", response_model=PrincipalRead)
 def auth_me(
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> PrincipalRead:
     require_user(principal)
     return _principal_schema(session, principal)
@@ -598,8 +627,8 @@ def auth_me(
 
 @app.get("/api/v1/users", response_model=list[UserRead])
 def users_list(
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[User]:
     require_system_administrator(principal)
     return list(session.scalars(select(User).order_by(User.username)).all())
@@ -608,8 +637,8 @@ def users_list(
 @app.post("/api/v1/users", response_model=UserRead, status_code=201)
 def users_create(
     request: UserCreate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> User:
     require_system_administrator(principal)
     try:
@@ -637,8 +666,8 @@ def users_create(
 
 @app.get("/api/v1/overview")
 def overview(
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> dict:
     project_ids = visible_project_ids(session, principal)
 
@@ -651,9 +680,13 @@ def overview(
     analysis_query = (
         select(Analysis)
         .join(Failure, Failure.id == Analysis.failure_id)
-        .options(load_only(
-            Analysis.category, Analysis.validation_version, Analysis.validation_results
-        ))
+        .options(
+            load_only(
+                Analysis.category,
+                Analysis.validation_version,
+                Analysis.validation_results,
+            )
+        )
     )
     if project_ids is None:
         analyses = list(session.scalars(analysis_query).all())
@@ -708,7 +741,9 @@ def overview(
             key: int(value or 0)
             for key, value in session.execute(
                 select(*(query.label(key) for key, query in count_queries.items()))
-            ).one()._mapping.items()
+            )
+            .one()
+            ._mapping.items()
         }
     else:
         counts = dict.fromkeys(count_queries, 0)
@@ -726,8 +761,8 @@ def overview(
 
 @app.post("/api/v1/demo/seed")
 def demo_seed(
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> dict:
     settings = get_settings()
     if not settings.demo_mode:
@@ -748,7 +783,7 @@ def demo_seed(
 
 @app.get("/api/v1/evaluations/latest")
 def evaluation_latest(
-    principal: Principal = Depends(current_principal),
+    principal: Annotated[Principal, Depends(current_principal)],
 ) -> dict:
     require_user(principal)
     path = get_settings().evaluation_metrics_path
@@ -758,22 +793,33 @@ def evaluation_latest(
             "message": "No executed evaluation metrics are available in this runtime.",
         }
     try:
-        return {"status": "available", "metrics": json.loads(path.read_text(encoding="utf-8"))}
+        return {
+            "status": "available",
+            "metrics": json.loads(path.read_text(encoding="utf-8")),
+        }
     except (OSError, json.JSONDecodeError) as exc:
         raise HTTPException(503, f"evaluation metrics unavailable: {exc}") from exc
 
 
 @app.get("/api/v1/evaluations/fullstack")
-def evaluation_fullstack(principal: Principal = Depends(current_principal)) -> dict:
+def evaluation_fullstack(
+    principal: Annotated[Principal, Depends(current_principal)],
+) -> dict:
     require_user(principal)
     path = get_settings().fullstack_evaluation_metrics_path
     if not path.exists():
-        return {"status": "not_loaded", "message": "Full-stack development evaluation is not mounted."}
+        return {
+            "status": "not_loaded",
+            "message": "Full-stack development evaluation is not mounted.",
+        }
     try:
         if path.stat().st_size > 2 * 1024 * 1024:
             raise ValueError("evaluation report exceeds limit")
         metrics = json.loads(path.read_text(encoding="utf-8"))
-        if not isinstance(metrics, dict) or metrics.get("evaluation_scope") != "http_postgresql_fault_proxy":
+        if (
+            not isinstance(metrics, dict)
+            or metrics.get("evaluation_scope") != "http_postgresql_fault_proxy"
+        ):
             raise ValueError("evaluation scope differs")
         return {"status": "available", "metrics": metrics}
     except (OSError, ValueError) as exc:
@@ -781,11 +827,16 @@ def evaluation_fullstack(principal: Principal = Depends(current_principal)) -> d
 
 
 @app.get("/api/v1/evaluations/campaign")
-def evaluation_campaign(principal: Principal = Depends(current_principal)) -> dict:
+def evaluation_campaign(
+    principal: Annotated[Principal, Depends(current_principal)],
+) -> dict:
     require_user(principal)
     path = get_settings().campaign_evaluation_metrics_path
     if not path.exists():
-        return {"status": "not_loaded", "message": "Frozen five-category evaluation is not mounted."}
+        return {
+            "status": "not_loaded",
+            "message": "Frozen five-category evaluation is not mounted.",
+        }
     try:
         if path.is_symlink() or not path.is_file():
             raise ValueError("report is not a regular file")
@@ -794,9 +845,11 @@ def evaluation_campaign(principal: Principal = Depends(current_principal)) -> di
         if len(data) > 2 * 1024 * 1024:
             raise ValueError("report exceeds limit")
         metrics = json.loads(data)
-        if (not isinstance(metrics, dict)
-                or metrics.get("evaluation_scope") != "frozen_mixed_source_campaign"
-                or metrics.get("split") != "test"):
+        if (
+            not isinstance(metrics, dict)
+            or metrics.get("evaluation_scope") != "frozen_mixed_source_campaign"
+            or metrics.get("split") != "test"
+        ):
             raise ValueError("report scope differs")
         return {"status": "available", "metrics": metrics}
     except (OSError, ValueError) as exc:
@@ -804,24 +857,37 @@ def evaluation_campaign(principal: Principal = Depends(current_principal)) -> di
 
 
 @app.get("/api/v1/evaluations/benchmark")
-def evaluation_benchmark(principal: Principal = Depends(current_principal)) -> dict:
+def evaluation_benchmark(
+    principal: Annotated[Principal, Depends(current_principal)],
+) -> dict:
     require_user(principal)
     path = get_settings().benchmark_evaluation_metrics_path
     if not path.exists() and not path.is_symlink():
-        return {"status": "not_loaded", "message": "The frozen five-category benchmark is not mounted."}
+        return {
+            "status": "not_loaded",
+            "message": "The frozen five-category benchmark is not mounted.",
+        }
     try:
-        if path.is_symlink() or not path.is_file() or path.stat().st_size > 2 * 1024 * 1024:
+        if (
+            path.is_symlink()
+            or not path.is_file()
+            or path.stat().st_size > 2 * 1024 * 1024
+        ):
             raise ValueError("Invalid evaluation report file")
         with path.open("rb") as stream:
             data = stream.read(2 * 1024 * 1024 + 1)
         if len(data) > 2 * 1024 * 1024:
             raise ValueError("Evaluation report exceeds its bound")
+
         def reject_nonfinite(value: str):
             raise ValueError("Non-finite evaluation measurement")
+
         metrics = json.loads(data, parse_constant=reject_nonfinite)
-        if (not isinstance(metrics, dict)
-                or metrics.get("evaluation_scope") != "frozen_five_category_benchmark"
-                or metrics.get("split") != "test"):
+        if (
+            not isinstance(metrics, dict)
+            or metrics.get("evaluation_scope") != "frozen_five_category_benchmark"
+            or metrics.get("split") != "test"
+        ):
             raise ValueError("Evaluation scope differs")
         return {"status": "available", "metrics": metrics}
     except (OSError, ValueError) as exc:
@@ -831,8 +897,8 @@ def evaluation_benchmark(principal: Principal = Depends(current_principal)) -> d
 @app.post("/api/v1/projects", response_model=ProjectRead, status_code=201)
 def projects_create(
     request: ProjectCreate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> Project:
     require_system_administrator(principal)
     try:
@@ -865,8 +931,8 @@ def projects_create(
 
 @app.get("/api/v1/projects", response_model=list[ProjectRead])
 def projects_list(
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[Project]:
     ids = visible_project_ids(session, principal)
     query = select(Project).order_by(Project.created_at)
@@ -883,8 +949,8 @@ def projects_list(
 )
 def project_members_list(
     project_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[ProjectMembershipRead]:
     _require_project(session, principal, project_id, ProjectRole.administrator)
     rows = list(
@@ -906,13 +972,17 @@ def project_members_list(
 def project_members_create(
     project_id: str,
     request: ProjectMembershipCreate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> ProjectMembershipRead:
     _require_project(session, principal, project_id, ProjectRole.administrator)
     username = normalize_username(request.username)
-    user = session.scalar(select(User).where(User.username == username).with_for_update()
-                          .execution_options(populate_existing=True))
+    user = session.scalar(
+        select(User)
+        .where(User.username == username)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
     if user is None:
         raise HTTPException(404, "user not found")
     if not user.is_active:
@@ -943,13 +1013,13 @@ def project_members_create(
         details={"user_id": user.id, "role": request.role.value},
     )
     session.commit()
-    row = session.scalar(
+    refreshed_membership = session.scalar(
         select(ProjectMembership)
         .where(ProjectMembership.id == row.id)
         .options(selectinload(ProjectMembership.user))
     )
-    assert row is not None
-    return _membership_schema(row)
+    assert refreshed_membership is not None
+    return _membership_schema(refreshed_membership)
 
 
 @app.patch(
@@ -960,8 +1030,8 @@ def project_members_update(
     project_id: str,
     membership_id: str,
     request: ProjectMembershipUpdate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> ProjectMembershipRead:
     _require_project(session, principal, project_id, ProjectRole.administrator)
     row = session.scalar(
@@ -974,7 +1044,10 @@ def project_members_update(
     )
     if row is None:
         raise HTTPException(404, "membership not found")
-    if row.role == ProjectRole.administrator and request.role != ProjectRole.administrator:
+    if (
+        row.role == ProjectRole.administrator
+        and request.role != ProjectRole.administrator
+    ):
         admin_count = int(
             session.scalar(
                 select(func.count(ProjectMembership.id)).where(
@@ -995,7 +1068,11 @@ def project_members_update(
         resource_type="project_membership",
         resource_id=row.id,
         project_id=project_id,
-        details={"from": previous.value, "to": request.role.value, "user_id": row.user_id},
+        details={
+            "from": previous.value,
+            "to": request.role.value,
+            "user_id": row.user_id,
+        },
     )
     session.commit()
     session.refresh(row)
@@ -1009,8 +1086,8 @@ def project_members_update(
 def project_members_delete(
     project_id: str,
     membership_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> Response:
     _require_project(session, principal, project_id, ProjectRole.administrator)
     row = session.get(ProjectMembership, membership_id)
@@ -1049,8 +1126,8 @@ def project_members_delete(
 )
 def ingestion_tokens_list(
     project_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[IngestionTokenRead]:
     _require_project(session, principal, project_id, ProjectRole.administrator)
     rows = list(
@@ -1071,8 +1148,8 @@ def ingestion_tokens_list(
 def ingestion_tokens_create(
     project_id: str,
     request: IngestionTokenCreate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> IngestionTokenCreated:
     _require_project(session, principal, project_id, ProjectRole.administrator)
     expires_at = as_utc(request.expires_at) if request.expires_at is not None else None
@@ -1102,7 +1179,9 @@ def ingestion_tokens_create(
     )
     session.commit()
     session.refresh(row)
-    return IngestionTokenCreated(**_ingestion_token_schema(row).model_dump(), token=raw_token)
+    return IngestionTokenCreated(
+        **_ingestion_token_schema(row).model_dump(), token=raw_token
+    )
 
 
 @app.post(
@@ -1112,8 +1191,8 @@ def ingestion_tokens_create(
 def ingestion_tokens_revoke(
     project_id: str,
     token_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> IngestionTokenRead:
     _require_project(session, principal, project_id, ProjectRole.administrator)
     row = session.get(IngestionToken, token_id)
@@ -1141,11 +1220,12 @@ def ingestion_tokens_revoke(
 )
 def audit_events_list(
     project_id: str,
-    action: str | None = Query(default=None, max_length=120),
+    action: Annotated[str | None, Query(max_length=120)] = None,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[AuditEvent]:
     _require_project(session, principal, project_id, ProjectRole.reviewer)
     query = select(AuditEvent).where(AuditEvent.project_id == project_id)
@@ -1165,28 +1245,28 @@ def audit_events_list(
 async def ingestions_create(
     project_id: str,
     request: Request,
-    external_id: str | None = Query(default=None, min_length=1, max_length=240),
-    attempt: int = Query(default=1, ge=1),
-    filename: str | None = Query(default=None, min_length=1, max_length=1024),
-    repository: str | None = Query(default=None, max_length=240),
-    commit_sha: str | None = Query(default=None, pattern=r"^[0-9a-fA-F]{7,64}$"),
-    base_sha: str | None = Query(default=None, pattern=r"^[0-9a-fA-F]{7,64}$"),
-    branch: str | None = Query(default=None, max_length=240),
-    run_scope: str = Query(
-        default="unknown", pattern=r"^(full_suite|impact_selected|unknown)$"
-    ),
-    comparison_trust: str = Query(
-        default="self_reported",
-        pattern=r"^(self_reported|authenticated_lookup|trusted_workflow)$",
-    ),
-    environment: str | None = Query(default=None, max_length=160),
-    timezone: str | None = Query(default=None, max_length=80),
-    worker_count: int | None = Query(default=None, ge=1, le=100_000),
-    shard_count: int | None = Query(default=None, ge=1, le=100_000),
-    expected_inputs: int | None = Query(default=None, ge=0),
-    source_format: str = Query(default="auto", min_length=1, max_length=80),
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    external_id: Annotated[str | None, Query(min_length=1, max_length=240)] = None,
+    attempt: Annotated[int, Query(ge=1)] = 1,
+    filename: Annotated[str | None, Query(min_length=1, max_length=1024)] = None,
+    repository: Annotated[str | None, Query(max_length=240)] = None,
+    commit_sha: Annotated[str | None, Query(pattern="^[0-9a-fA-F]{7,64}$")] = None,
+    base_sha: Annotated[str | None, Query(pattern="^[0-9a-fA-F]{7,64}$")] = None,
+    branch: Annotated[str | None, Query(max_length=240)] = None,
+    run_scope: Annotated[
+        str, Query(pattern="^(full_suite|impact_selected|unknown)$")
+    ] = "unknown",
+    comparison_trust: Annotated[
+        str, Query(pattern="^(self_reported|authenticated_lookup|trusted_workflow)$")
+    ] = "self_reported",
+    environment: Annotated[str | None, Query(max_length=160)] = None,
+    timezone: Annotated[str | None, Query(max_length=80)] = None,
+    worker_count: Annotated[int | None, Query(ge=1, le=100000)] = None,
+    shard_count: Annotated[int | None, Query(ge=1, le=100000)] = None,
+    expected_inputs: Annotated[int | None, Query(ge=0)] = None,
+    source_format: Annotated[str, Query(min_length=1, max_length=80)] = "auto",
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> RunRead | IngestionRead:
     project = _require_project(
         session,
@@ -1196,7 +1276,9 @@ async def ingestions_create(
         ingestion_scope="ingestion:create",
     )
 
-    content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    content_type = (
+        request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    )
     if content_type == "application/json" and filename is None:
         try:
             payload = await request.json()
@@ -1222,29 +1304,35 @@ async def ingestions_create(
             "raw artifact ingestion requires external_id and filename query parameters",
         )
     try:
-        metadata = RunMetadata(
-            external_id=external_id,
-            attempt=attempt,
-            repository=repository,
-            commit_sha=commit_sha,
-            base_sha=base_sha,
-            branch=branch,
-            framework=source_format,
-            run_scope=run_scope,
-            comparison_trust=comparison_trust,
-            environment=environment,
-            timezone=timezone,
-            worker_count=worker_count,
-            shard_count=shard_count,
-            expected_inputs=expected_inputs,
-            source_metadata={"transport": "raw-http"},
+        metadata = RunMetadata.model_validate(
+            {
+                "external_id": external_id,
+                "attempt": attempt,
+                "repository": repository,
+                "commit_sha": commit_sha,
+                "base_sha": base_sha,
+                "branch": branch,
+                "framework": source_format,
+                "run_scope": run_scope,
+                "comparison_trust": comparison_trust,
+                "environment": environment,
+                "timezone": timezone,
+                "worker_count": worker_count,
+                "shard_count": shard_count,
+                "expected_inputs": expected_inputs,
+                "source_metadata": {"transport": "raw-http"},
+            }
         )
     except ValidationError as exc:
         raise HTTPException(422, detail=exc.errors()) from exc
 
     settings = get_settings()
     declared_length = request.headers.get("content-length")
-    max_bytes = settings.max_bundle_bytes if filename.lower().endswith(".zip") else settings.max_file_bytes
+    max_bytes = (
+        settings.max_bundle_bytes
+        if filename.lower().endswith(".zip")
+        else settings.max_file_bytes
+    )
     if declared_length:
         try:
             if int(declared_length) > max_bytes:
@@ -1264,7 +1352,9 @@ async def ingestions_create(
         )
     except StorageError as exc:
         http_status = 413 if exc.code == "limit_exceeded" else 400
-        raise HTTPException(http_status, detail={"code": exc.code, "message": str(exc)}) from exc
+        raise HTTPException(
+            http_status, detail={"code": exc.code, "message": str(exc)}
+        ) from exc
     try:
         ingestion = enqueue_artifact_ingestion(
             session,
@@ -1296,8 +1386,9 @@ async def ingestions_create(
 def ingestions_list(
     project_id: str,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[Ingestion]:
     _require_project(session, principal, project_id)
     return list(
@@ -1313,8 +1404,8 @@ def ingestions_list(
 @app.get("/api/v1/ingestions/{ingestion_id}", response_model=IngestionRead)
 def ingestions_get(
     ingestion_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> Ingestion:
     ingestion = session.get(Ingestion, ingestion_id)
     if not ingestion:
@@ -1329,8 +1420,8 @@ def ingestions_get(
 )
 def ingestions_cancel(
     ingestion_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> Ingestion:
     ingestion = session.get(Ingestion, ingestion_id)
     if not ingestion:
@@ -1357,8 +1448,8 @@ def ingestions_cancel(
 )
 def ingestions_retry(
     ingestion_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> Ingestion:
     ingestion = session.get(Ingestion, ingestion_id)
     if not ingestion:
@@ -1386,8 +1477,9 @@ def ingestions_retry(
 def runs_list(
     project_id: str,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[Run]:
     _require_project(session, principal, project_id)
     return list(
@@ -1403,8 +1495,8 @@ def runs_list(
 @app.get("/api/v1/runs/{run_id}", response_model=RunDetailRead)
 def runs_get(
     run_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> dict:
     run = session.get(Run, run_id)
     if not run:
@@ -1430,8 +1522,8 @@ def runs_get(
 @app.get("/api/v1/runs/{run_id}/inputs", response_model=list[RunInputRead])
 def run_inputs_list(
     run_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[RunInput]:
     run = session.get(Run, run_id)
     if not run:
@@ -1454,8 +1546,8 @@ def run_inputs_list(
 def impact_mappings_create(
     project_id: str,
     request: ImpactMappingSnapshotCreate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> ImpactMappingSnapshotRead:
     project = _require_project(
         session, principal, project_id, ProjectRole.administrator
@@ -1475,8 +1567,9 @@ def impact_mappings_list(
     project_id: str,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[ImpactMappingSnapshotRead]:
     _require_project(session, principal, project_id)
     return [
@@ -1495,8 +1588,8 @@ def impact_mappings_list(
 def impact_recommendations_create(
     project_id: str,
     request: ImpactRecommendationCreate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> ImpactRecommendationRead:
     project = _require_project(session, principal, project_id, ProjectRole.reviewer)
     try:
@@ -1514,8 +1607,9 @@ def impact_recommendations_list(
     project_id: str,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[ImpactRecommendationRead]:
     _require_project(session, principal, project_id)
     return [
@@ -1532,8 +1626,8 @@ def impact_recommendations_list(
 )
 def impact_recommendations_get(
     recommendation_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> ImpactRecommendationRead:
     recommendation = get_impact_recommendation(session, recommendation_id)
     if recommendation is None:
@@ -1550,8 +1644,8 @@ def impact_recommendations_get(
 def impact_overrides_create(
     recommendation_id: str,
     request: ImpactOverrideCreate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> ImpactRecommendationRead:
     recommendation = get_impact_recommendation(session, recommendation_id)
     if recommendation is None:
@@ -1571,7 +1665,9 @@ def impact_overrides_create(
             "cannot be excluded while",
             "would not change",
         )
-        status_code = 409 if any(marker in detail for marker in conflict_markers) else 422
+        status_code = (
+            409 if any(marker in detail for marker in conflict_markers) else 422
+        )
         raise HTTPException(status_code, detail) from exc
     return impact_recommendation_to_schema(refreshed)
 
@@ -1584,8 +1680,8 @@ def impact_overrides_create(
 def performance_policies_create(
     project_id: str,
     request: PerformancePolicyCreate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> PerformancePolicyRead:
     project = _require_project(
         session, principal, project_id, ProjectRole.administrator
@@ -1605,8 +1701,9 @@ def performance_policies_list(
     project_id: str,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[PerformancePolicyRead]:
     _require_project(session, principal, project_id)
     return [
@@ -1625,8 +1722,9 @@ def performance_observations_list(
     run_id: str,
     limit: Annotated[int, Query(ge=1, le=5000)] = 1000,
     offset: Annotated[int, Query(ge=0)] = 0,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[PerformanceObservationRead]:
     run = session.get(Run, run_id)
     if run is None:
@@ -1648,8 +1746,8 @@ def performance_observations_list(
 def performance_baselines_create(
     project_id: str,
     request: PerformanceBaselineCreate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> PerformanceBaselineRead:
     project = _require_project(session, principal, project_id, ProjectRole.reviewer)
     observation = session.get(PerformanceObservation, request.current_observation_id)
@@ -1674,8 +1772,8 @@ def performance_baselines_create(
 )
 def performance_baselines_get(
     baseline_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> PerformanceBaselineRead:
     baseline = get_performance_baseline(session, baseline_id)
     if baseline is None:
@@ -1692,8 +1790,8 @@ def performance_baselines_get(
 def performance_comparisons_create(
     run_id: str,
     request: PerformanceComparisonCreate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[PerformanceComparisonRead]:
     run = session.get(Run, run_id)
     if run is None:
@@ -1728,8 +1826,9 @@ def performance_comparisons_list(
     run_id: str,
     limit: Annotated[int, Query(ge=1, le=5000)] = 1000,
     offset: Annotated[int, Query(ge=0)] = 0,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[PerformanceComparisonRead]:
     run = session.get(Run, run_id)
     if run is None:
@@ -1749,8 +1848,8 @@ def performance_comparisons_list(
 )
 def performance_comparisons_get(
     comparison_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> PerformanceComparisonRead:
     row = get_performance_comparison(session, comparison_id)
     if row is None:
@@ -1767,8 +1866,8 @@ def performance_comparisons_get(
 def infrastructure_events_create(
     project_id: str,
     request: InfrastructureEventCreate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> InfrastructureEventRead:
     project = _require_project(
         session,
@@ -1782,9 +1881,7 @@ def infrastructure_events_create(
         detail = str(exc)
         status_code = 409 if "already exists" in detail else 422
         raise HTTPException(status_code, detail) from exc
-    return InfrastructureEventRead.model_validate(
-        infrastructure_event_to_schema(event)
-    )
+    return InfrastructureEventRead.model_validate(infrastructure_event_to_schema(event))
 
 
 @app.get(
@@ -1793,13 +1890,14 @@ def infrastructure_events_create(
 )
 def infrastructure_events_list(
     project_id: str,
-    event_kind: str | None = Query(default=None, max_length=80),
+    event_kind: Annotated[str | None, Query(max_length=80)] = None,
     before: datetime | None = None,
     after: datetime | None = None,
     limit: Annotated[int, Query(ge=1, le=1000)] = 200,
     offset: Annotated[int, Query(ge=0)] = 0,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[InfrastructureEventRead]:
     _require_project(session, principal, project_id)
     try:
@@ -1826,8 +1924,8 @@ def infrastructure_events_list(
 )
 def infrastructure_events_get(
     event_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> InfrastructureEventRead:
     event = session.get(InfrastructureEvent, event_id)
     if event is None:
@@ -1844,8 +1942,8 @@ def infrastructure_events_get(
 def infrastructure_correlations_create(
     execution_id: str,
     request: InfrastructureCorrelationCreate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> InfrastructureCorrelationRead:
     execution = session.scalar(
         select(TestExecution)
@@ -1860,9 +1958,13 @@ def infrastructure_correlations_create(
     require_project_role(
         session, principal, execution.run.project_id, ProjectRole.reviewer
     )
-    reference_cutoff = _utc_datetime(execution.run.started_at or execution.run.created_at)
+    reference_cutoff = _utc_datetime(
+        execution.run.started_at or execution.run.created_at
+    )
     requested_cutoff = (
-        _utc_datetime(request.before) if request.before is not None else reference_cutoff
+        _utc_datetime(request.before)
+        if request.before is not None
+        else reference_cutoff
     )
     effective_cutoff = min(reference_cutoff, requested_cutoff)
     if request.after is not None and _utc_datetime(request.after) >= effective_cutoff:
@@ -1908,8 +2010,8 @@ def infrastructure_correlations_create(
 )
 def infrastructure_correlations_get(
     snapshot_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> InfrastructureCorrelationRead:
     snapshot = get_infrastructure_correlation(session, snapshot_id)
     if snapshot is None:
@@ -1929,8 +2031,9 @@ def clusters_list(
     include_superseded: bool = False,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[ClusterSummary]:
     _require_project(session, principal, project_id)
     query = (
@@ -1963,8 +2066,9 @@ def run_clusters_list(
     run_id: str,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[ClusterSummary]:
     run = session.get(Run, run_id)
     if run is None:
@@ -2008,8 +2112,8 @@ def run_clusters_list(
 @app.get("/api/v1/clusters/{cluster_id}", response_model=ClusterDetail)
 def clusters_get(
     cluster_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> ClusterDetail:
     cluster = session.scalar(
         select(FailureCluster)
@@ -2034,8 +2138,9 @@ def cluster_revisions_list(
     cluster_id: str,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[ClusterRevisionRead]:
     cluster = session.get(FailureCluster, cluster_id)
     if cluster is None:
@@ -2061,8 +2166,8 @@ def cluster_revisions_list(
 def cluster_reviews_create(
     cluster_id: str,
     request: ClusterReviewCreate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> ClusterDetail:
     cluster = session.get(FailureCluster, cluster_id)
     if cluster is None:
@@ -2107,19 +2212,20 @@ def test_history_get(
     execution_id: str,
     after: datetime | None = None,
     before: datetime | None = None,
-    browser: str | None = Query(default=None, max_length=80),
-    branch: str | None = Query(default=None, max_length=240),
-    environment: str | None = Query(default=None, max_length=160),
-    run_scope: str | None = Query(
-        default=None, pattern=r"^(full_suite|impact_selected|unknown)$"
-    ),
-    timezone_name: str | None = Query(default=None, alias="timezone", max_length=80),
-    worker_count: int | None = Query(default=None, ge=1, le=100_000),
-    shard_count: int | None = Query(default=None, ge=1, le=100_000),
+    browser: Annotated[str | None, Query(max_length=80)] = None,
+    branch: Annotated[str | None, Query(max_length=240)] = None,
+    environment: Annotated[str | None, Query(max_length=160)] = None,
+    run_scope: Annotated[
+        str | None, Query(pattern="^(full_suite|impact_selected|unknown)$")
+    ] = None,
+    timezone_name: Annotated[str | None, Query(alias="timezone", max_length=80)] = None,
+    worker_count: Annotated[int | None, Query(ge=1, le=100000)] = None,
+    shard_count: Annotated[int | None, Query(ge=1, le=100000)] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> TestHistoryRead:
     execution = session.scalar(
         select(TestExecution)
@@ -2133,7 +2239,9 @@ def test_history_get(
         raise HTTPException(404, "test execution not found")
     require_project_role(session, principal, execution.run.project_id)
 
-    reference_cutoff = _utc_datetime(execution.run.started_at or execution.run.created_at)
+    reference_cutoff = _utc_datetime(
+        execution.run.started_at or execution.run.created_at
+    )
     requested_cutoff = _utc_datetime(before) if before is not None else reference_cutoff
     effective_cutoff = min(reference_cutoff, requested_cutoff)
     if after is not None and _utc_datetime(after) >= effective_cutoff:
@@ -2200,17 +2308,21 @@ def test_history_get(
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     # Pagination changes only the returned rows, never any statistical denominator.
-    report["observations"] = report["observations"][offset:offset + limit]
-    report["pagination"] = {**report["pagination"], "offset": offset, "limit": limit,
-                            "returned": len(report["observations"])}
+    report["observations"] = report["observations"][offset : offset + limit]
+    report["pagination"] = {
+        **report["pagination"],
+        "offset": offset,
+        "limit": limit,
+        "returned": len(report["observations"]),
+    }
     return TestHistoryRead.model_validate(report)
 
 
 @app.get("/api/v1/runs/{run_id}/failures")
 def failures_list(
     run_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[dict]:
     run = session.get(Run, run_id)
     if run is None:
@@ -2232,7 +2344,9 @@ def failures_list(
                 "test_identity": failure.execution.test_identity,
                 "message": failure.message,
                 "fingerprint": failure.strict_fingerprint,
-                "latest_analysis": analysis_to_schema(latest).model_dump(mode="json") if latest else None,
+                "latest_analysis": analysis_to_schema(latest).model_dump(mode="json")
+                if latest
+                else None,
             }
         )
     return result
@@ -2245,8 +2359,8 @@ def failures_list(
 )
 def analyses_create(
     failure_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> AnalysisResult:
     failure = session.scalar(
         select(Failure)
@@ -2262,8 +2376,8 @@ def analyses_create(
 @app.get("/api/v1/analyses/{analysis_id}", response_model=AnalysisResult)
 def analyses_get(
     analysis_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> AnalysisResult:
     row = session.scalar(
         select(Analysis)
@@ -2285,12 +2399,18 @@ def review_queue_list(
     pending_only: bool = True,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    *,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[ReviewQueueItem]:
     _require_project(session, principal, project_id, ProjectRole.reviewer)
-    return review_queue_page(session, project_id, status="pending" if pending_only else "all",
-                             limit=limit, offset=offset).items
+    return review_queue_page(
+        session,
+        project_id,
+        status="pending" if pending_only else "all",
+        limit=limit,
+        offset=offset,
+    ).items
 
 
 @app.get(
@@ -2299,8 +2419,8 @@ def review_queue_list(
 )
 def reviews_list(
     analysis_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> list[ReviewEventRead]:
     analysis = session.scalar(
         select(Analysis)
@@ -2328,8 +2448,8 @@ def reviews_list(
 def reviews_create(
     analysis_id: str,
     request: ReviewCreate,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> ReviewEventRead:
     row = session.scalar(
         select(Analysis)
@@ -2338,7 +2458,9 @@ def reviews_create(
     )
     if not row:
         raise HTTPException(404, "analysis not found")
-    require_project_role(session, principal, row.failure.project_id, ProjectRole.reviewer)
+    require_project_role(
+        session, principal, row.failure.project_id, ProjectRole.reviewer
+    )
     try:
         event = add_review(session, row, request, principal=principal)
     except ValueError as exc:
@@ -2351,8 +2473,8 @@ def reviews_create(
 @app.get("/api/v1/evidence/{evidence_id}", response_model=EvidenceRead)
 def evidence_get(
     evidence_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> EvidenceRead:
     evidence = session.scalar(
         select(Evidence)
@@ -2364,8 +2486,16 @@ def evidence_get(
     require_project_role(session, principal, evidence.project_id)
     derivative = evidence.derivative
     run = session.get(Run, evidence.run_id)
-    if (run and run.evidence_expired_at is not None) or (derivative and derivative.retention_state == "expired"):
-        raise HTTPException(410, detail={"code": "evidence_expired", "message": "Evidence expired under project retention policy."})
+    if (run and run.evidence_expired_at is not None) or (
+        derivative and derivative.retention_state == "expired"
+    ):
+        raise HTTPException(
+            410,
+            detail={
+                "code": "evidence_expired",
+                "message": "Evidence expired under project retention policy.",
+            },
+        )
     if (
         derivative is None
         or not derivative.approved
@@ -2411,33 +2541,91 @@ def evidence_get(
 
 # Keep binary handling separate from test-outcome analysis and never expose source storage.
 from .binary_api import router as binary_router
+from .github_api import router as github_publication_router
+
 app.include_router(binary_router)
+app.include_router(github_publication_router)
 
 
-@app.get("/api/v1/runs/{run_id}/github-report-preview")
+@app.get("/api/v1/runs/{run_id}/github-report-preview", response_model=dict)
 def github_report_preview(
     run_id: str,
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
-) -> dict:
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
+) -> Response:
+    from .github_evidence import canonical_export_bytes
     from .github_snapshot import report_snapshot
+
     run = session.get(Run, run_id)
     if not run:
         raise HTTPException(404, "run not found")
     require_project_role(session, principal, run.project_id)
-    return report_snapshot(session, run)
+    return Response(
+        canonical_export_bytes(report_snapshot(session, run)),
+        media_type="application/json",
+    )
+
+
+@app.get("/api/v1/runs/{run_id}/github-evidence-export", response_model=dict)
+def github_evidence_export(
+    run_id: str,
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
+    report_digest: Annotated[str | None, Query(pattern=r"^[0-9a-f]{64}$")] = None,
+) -> Response:
+    from .github_evidence import canonical_export_bytes, evidence_for_report
+    from .github_snapshot import report_snapshot
+
+    run = session.get(Run, run_id)
+    if not run:
+        raise HTTPException(404, "run not found")
+    require_project_role(session, principal, run.project_id)
+    try:
+        snapshot = report_snapshot(session, run)
+        if report_digest is not None and snapshot["report_digest"] != report_digest:
+            raise HTTPException(
+                409, "report changed; refresh before exporting evidence"
+            )
+        document = evidence_for_report(session, run, snapshot)
+        return Response(
+            canonical_export_bytes(document),
+            media_type="application/json",
+            headers={"Content-Disposition": 'attachment; filename="evidence.json"'},
+        )
+    except ValueError:
+        raise HTTPException(
+            409, "report evidence changed; refresh the current report"
+        ) from None
 
 
 @app.get("/api/v1/operations/telemetry")
 def operational_telemetry(
-    principal: Principal = Depends(current_principal),
-    session: Session = Depends(get_session),
+    principal: Annotated[Principal, Depends(current_principal)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> dict:
     require_system_administrator(principal)
     from .models import Job, JobState
+
     counts = {state.value: 0 for state in JobState}
-    counts.update({state.value: int(count) for state, count in session.execute(
-        select(Job.state, func.count(Job.id)).group_by(Job.state))})
-    oldest = session.scalar(select(func.min(Job.created_at)).where(Job.state == JobState.queued))
-    return {**metrics_snapshot(), "queue": {"states": counts,
-        "oldest_queued_age_seconds": max(0.0, (datetime.now(UTC) - as_utc(oldest)).total_seconds()) if oldest else None}}
+    counts.update(
+        {
+            state.value: int(count)
+            for state, count in session.execute(
+                select(Job.state, func.count(Job.id)).group_by(Job.state)
+            )
+        }
+    )
+    oldest = session.scalar(
+        select(func.min(Job.created_at)).where(Job.state == JobState.queued)
+    )
+    return {
+        **metrics_snapshot(),
+        "queue": {
+            "states": counts,
+            "oldest_queued_age_seconds": max(
+                0.0, (datetime.now(UTC) - as_utc(oldest)).total_seconds()
+            )
+            if oldest
+            else None,
+        },
+    }

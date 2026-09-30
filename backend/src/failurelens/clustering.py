@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from .telemetry import instrument
-
 import hashlib
 import json
 import math
 import re
 from collections import defaultdict
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from itertools import combinations
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session, selectinload
@@ -23,6 +22,7 @@ from .models import (
     Failure,
     FailureCluster,
 )
+from .telemetry import instrument
 
 FEATURE_VERSION = f"cluster-features-v1:{NORMALIZATION_VERSION}"
 ALGORITHM_VERSION = "explainable-complete-link-v1"
@@ -34,7 +34,7 @@ _TOKEN = re.compile(r"[a-z0-9_./:-]{3,}")
 _UUID_SEGMENT = re.compile(
     r"(?i)(?<![0-9a-f])[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}(?![0-9a-f])"
 )
-_ROUTE_ID = re.compile(r"(?<=/)(?:\d{2,}|[0-9a-f]{16,})(?=/|$)", re.I)
+_ROUTE_ID = re.compile(r"(?<=/)(?:\d{2,}|[0-9a-f]{16,})(?=/|$)", re.IGNORECASE)
 _STACK_PATH = re.compile(r"([A-Za-z0-9_./\\-]+\.[A-Za-z0-9_]+)(?::\d+)?")
 
 _STOPWORDS = {
@@ -233,9 +233,7 @@ def feature_from_observation(
     loose = loose_features if isinstance(loose_features, dict) else {}
     normalized = _text(loose.get("message")) or normalize_message(message)
     exception_type = (
-        _text(exception_type)
-        or _text(loose.get("exception_type"))
-        or "unknown"
+        _text(exception_type) or _text(loose.get("exception_type")) or "unknown"
     ).casefold()
     route = _canonical_route(details.get("route") or loose.get("route"))
     method = _text(details.get("method") or details.get("http_method"))
@@ -299,9 +297,7 @@ def feature_from_failure(failure: Failure) -> FailureFeature:
         exception_type=failure.exception_type,
         details=execution.details if isinstance(execution.details, dict) else {},
         loose_features=(
-            failure.loose_features
-            if isinstance(failure.loose_features, dict)
-            else {}
+            failure.loose_features if isinstance(failure.loose_features, dict) else {}
         ),
         source_path=execution.source_path,
         browser=execution.browser,
@@ -386,12 +382,17 @@ def score_features(
     if message_similarity:
         components["message_tokens"] = round(0.28 * message_similarity, 6)
         if message_similarity >= 0.6:
-            matches.append(f"normalized message tokens overlap ({message_similarity:.2f})")
+            matches.append(
+                f"normalized message tokens overlap ({message_similarity:.2f})"
+            )
 
     if left.exception_type == right.exception_type and left.exception_type != "unknown":
         components["exception_type"] = 0.10
         matches.append("exception type matches")
-    elif left.exception_family == right.exception_family and left.exception_family != "unknown":
+    elif (
+        left.exception_family == right.exception_family
+        and left.exception_family != "unknown"
+    ):
         components["exception_family"] = 0.05
         matches.append("exception family matches")
     elif left.exception_type != "unknown" and right.exception_type != "unknown":
@@ -419,11 +420,9 @@ def score_features(
             components["http_status"] = 0.08
             matches.append(f"HTTP status {left.http_status} matches")
         elif (
-            left.http_status in _AUTH_STATUSES
-            and right.http_status in _SERVER_STATUSES
+            left.http_status in _AUTH_STATUSES and right.http_status in _SERVER_STATUSES
         ) or (
-            right.http_status in _AUTH_STATUSES
-            and left.http_status in _SERVER_STATUSES
+            right.http_status in _AUTH_STATUSES and left.http_status in _SERVER_STATUSES
         ):
             components["http_status_conflict"] = -0.28
             conflicts.append(
@@ -459,13 +458,9 @@ def score_features(
         else:
             left_operator, left_negated = left.assertion_signature
             right_operator, right_negated = right.assertion_signature
-            contradictory = (
-                left_negated != right_negated
-                or (
-                    left_operator != right_operator
-                    and {left_operator, right_operator}
-                    & {">", "<", ">=", "<=", "==", "!="}
-                )
+            contradictory = left_negated != right_negated or (
+                left_operator != right_operator
+                and {left_operator, right_operator} & {">", "<", ">=", "<=", "==", "!="}
             )
             if contradictory:
                 components["assertion_direction_conflict"] = -0.28
@@ -489,7 +484,9 @@ def score_features(
             components["source_path_conflict"] = -0.04
             conflicts.append("same test identity reports different source paths")
 
-    identity_similarity = _jaccard(_tokens(left.test_identity), _tokens(right.test_identity))
+    identity_similarity = _jaccard(
+        _tokens(left.test_identity), _tokens(right.test_identity)
+    )
     if identity_similarity:
         components["test_identity"] = round(0.04 * identity_similarity, 6)
 
@@ -562,7 +559,9 @@ def _proposal_from_group(
             score = score_features(
                 representative,
                 feature,
-                candidate_reasons=candidate_map.get(key, ("human review override",) if forced else ()),
+                candidate_reasons=candidate_map.get(
+                    key, ("human review override",) if forced else ()
+                ),
             )
             score_cache[key] = score
         members.append(ProposedMember(feature, score, "member"))
@@ -604,9 +603,8 @@ def propose_clusters_from_features(
 ) -> tuple[ProposedCluster, ...]:
     ordered = sorted(features, key=lambda item: item.stable_order)
     if not ordered:
-        return tuple()
+        return ()
     candidate_map = generate_candidate_pairs(ordered)
-    by_id = {feature.failure_id: feature for feature in ordered}
     score_cache: dict[tuple[str, str], PairScore] = {}
 
     def get_score(left: FailureFeature, right: FailureFeature) -> PairScore | None:
@@ -668,10 +666,14 @@ def propose_clusters_from_features(
 
 
 def propose_clusters(failures: Sequence[Failure]) -> tuple[ProposedCluster, ...]:
-    return propose_clusters_from_features([feature_from_failure(item) for item in failures])
+    return propose_clusters_from_features(
+        [feature_from_failure(item) for item in failures]
+    )
 
 
-def _current_revision(session: Session, cluster: FailureCluster) -> ClusterRevision | None:
+def _current_revision(
+    session: Session, cluster: FailureCluster
+) -> ClusterRevision | None:
     return session.scalar(
         select(ClusterRevision).where(
             ClusterRevision.cluster_id == cluster.id,
@@ -718,7 +720,7 @@ def _write_revision(
     assignment_kind: str,
 ) -> ClusterRevision:
     revision_number = cluster.current_revision + 1 if cluster.current_revision else 1
-    members = proposal.members if proposal is not None else tuple()
+    members = proposal.members if proposal is not None else ()
     representative_id = proposal.representative.failure_id if proposal else None
     flags = proposal.uncertainty_flags if proposal else ("superseded",)
     summary = proposal.score_summary if proposal else {"member_scores": 0}
@@ -780,7 +782,7 @@ def _create_cluster(
     ):
         collision_index += 1
         key = hashlib.sha256(
-            f"{base_key}|{salt}|{collision_index}".encode("utf-8")
+            f"{base_key}|{salt}|{collision_index}".encode()
         ).hexdigest()
     cluster = FailureCluster(
         project_id=project_id,
@@ -896,10 +898,10 @@ def cluster_project_failures(
     resulting: list[FailureCluster] = [*locked_clusters]
     proposal_cluster_ids: dict[str, str] = {}
     for index, proposal in enumerate(proposals):
-        cluster = matches.get(index)
+        matched_cluster = matches.get(index)
         proposal_ids = set(proposal.failure_ids)
-        if cluster is None:
-            cluster = _create_cluster(
+        if matched_cluster is None:
+            matched_cluster = _create_cluster(
                 session,
                 project_id,
                 proposal,
@@ -907,27 +909,27 @@ def cluster_project_failures(
                 assignment_kind="automatic",
             )
         else:
-            current_ids = existing_sets.get(cluster.id, set())
+            current_ids = existing_sets.get(matched_cluster.id, set())
             unchanged = (
                 current_ids == proposal_ids
-                and cluster.representative_failure_id
+                and matched_cluster.representative_failure_id
                 == proposal.representative.failure_id
-                and cluster.algorithm_version == ALGORITHM_VERSION
-                and cluster.feature_version == FEATURE_VERSION
+                and matched_cluster.algorithm_version == ALGORITHM_VERSION
+                and matched_cluster.feature_version == FEATURE_VERSION
             )
             if not unchanged:
                 _write_revision(
                     session,
-                    cluster,
+                    matched_cluster,
                     proposal,
                     reason="automatic_recluster",
                     assignment_kind="automatic",
                 )
-            cluster.status = "active"
-            cluster.superseded_by_cluster_id = None
-        resulting.append(cluster)
+            matched_cluster.status = "active"
+            matched_cluster.superseded_by_cluster_id = None
+        resulting.append(matched_cluster)
         for failure_id in proposal.failure_ids:
-            proposal_cluster_ids[failure_id] = cluster.id
+            proposal_cluster_ids[failure_id] = matched_cluster.id
 
     for cluster in automatic_clusters:
         if cluster.id in used_existing:
@@ -956,7 +958,9 @@ def cluster_project_failures(
             session.refresh(cluster)
     else:
         session.flush()
-    return sorted(resulting, key=lambda item: (item.status != "active", item.cluster_key))
+    return sorted(
+        resulting, key=lambda item: (item.status != "active", item.cluster_key)
+    )
 
 
 def _forced_proposal(failures: Sequence[Failure]) -> ProposedCluster:
@@ -1050,7 +1054,9 @@ def review_cluster(
             or target.project_id != cluster.project_id
             or target.status != "active"
         ):
-            raise ValueError("merge target must be an active cluster in the same project")
+            raise ValueError(
+                "merge target must be an active cluster in the same project"
+            )
         target_members = current_memberships(session, target)
         affected_failure_ids = set(current_failures)
         union: dict[str, Failure] = {
@@ -1160,9 +1166,7 @@ def pairwise_cluster_metrics(
     max_index = (predicted_positive + truth_positive) / 2
     denominator = max_index - expected_index
     adjusted_rand = (
-        (true_positive - expected_index) / denominator
-        if denominator
-        else 1.0
+        (true_positive - expected_index) / denominator if denominator else 1.0
     )
     return {
         "case_count": len(ids),

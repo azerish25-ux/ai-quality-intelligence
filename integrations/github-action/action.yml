@@ -49,11 +49,30 @@ inputs:
     description: Trusted number of planned test shards
     required: false
     default: ""
+  config-path:
+    description: Optional explicit path to operator-selected inert JSON configuration; never auto-discovered from PR contents
+    required: false
+    default: ""
+  config-sha256:
+    description: SHA-256 from reviewed workflow/operator configuration, required with config-path; integrity is not provenance
+    required: false
+    default: ""
+  analysis-mode:
+    description: Only deterministic is supported; empty uses config or the deterministic default
+    required: false
+    default: ""
+  publication-mode:
+    description: summary (default) or artifact-only; neither mode posts comments or activates a provider
+    required: false
+    default: ""
   database-url:
     description: SQLAlchemy database URL; PostgreSQL is recommended
     required: false
     default: sqlite+pysqlite:///./failurelens-action.db
 outputs:
+  evidence-path:
+    description: Bounded canonical inert evidence.json export, empty on processing failure
+    value: ${{ steps.failurelens.outputs.evidence-path }}
   report-json-path:
     description: Sanitized versioned JSON report path, empty on processing failure
     value: ${{ steps.failurelens.outputs.report-json-path }}
@@ -106,6 +125,10 @@ runs:
         FAILURELENS_ATTEMPT: ${{ inputs.attempt }}
         FAILURELENS_EXPECTED_INPUTS: ${{ inputs.expected-inputs }}
         FAILURELENS_SHARD_COUNT: ${{ inputs.shard-count }}
+        FAILURELENS_CONFIG_PATH: ${{ inputs.config-path }}
+        FAILURELENS_CONFIG_SHA256: ${{ inputs.config-sha256 }}
+        FAILURELENS_ANALYSIS_MODE: ${{ inputs.analysis-mode }}
+        FAILURELENS_PUBLICATION_MODE: ${{ inputs.publication-mode }}
         FAILURELENS_DATABASE_URL: ${{ inputs.database-url }}
         FAILURELENS_REPORT: ${{ inputs.report }}
         FAILURELENS_PROJECT: ${{ inputs.project }}

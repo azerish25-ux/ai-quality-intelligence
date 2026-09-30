@@ -1,22 +1,27 @@
 from __future__ import annotations
 
-from .telemetry import instrument
-
 import hashlib
 import io
 import json
+import math
 import re
 import stat
-import struct
 import urllib.parse
 import xml.etree.ElementTree as ET
 import zipfile
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
-from typing import Any, Callable
+from typing import Any
 
 from .config import Settings
-from .redaction import analytic_scalar, redact_sensitive_field, redact_text, redaction_provenance
+from .redaction import (
+    analytic_scalar,
+    redact_sensitive_field,
+    redact_text,
+    redaction_provenance,
+)
+from .telemetry import instrument
 
 PARSER_VERSION = "ingestion-v3"
 REGISTRY_VERSION = "adapter-registry-v1"
@@ -144,13 +149,13 @@ def digest_bytes(content: bytes) -> str:
 
 
 def _duration_ms(value: object, *, multiplier: float = 1.0) -> float | None:
-    if value is None:
+    if not isinstance(value, (str, int, float)):
         return None
     try:
         result = float(value) * multiplier
-    except (TypeError, ValueError):
+    except (ValueError, OverflowError):
         return None
-    return result if result >= 0 else None
+    return result if math.isfinite(result) and result >= 0 else None
 
 
 def _json_object(content: bytes, label: str) -> dict[str, Any]:
@@ -190,12 +195,20 @@ def _safe_json_value(value: Any, *, depth: int = 0) -> Any:
 def _sanitize_url(value: str) -> str:
     try:
         parsed = urllib.parse.urlsplit(value)
-        query = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True, max_num_fields=500)
+        query = urllib.parse.parse_qsl(
+            parsed.query, keep_blank_values=True, max_num_fields=500
+        )
     except ValueError:
         return redact_text(value[:2048]).text
     safe_query = urllib.parse.urlencode([(key[:240], "[REDACTED]") for key, _ in query])
     return urllib.parse.urlunsplit(
-        (parsed.scheme, parsed.netloc.rsplit("@", 1)[-1], redact_text(parsed.path).text, safe_query, "")
+        (
+            parsed.scheme,
+            parsed.netloc.rsplit("@", 1)[-1],
+            redact_text(parsed.path).text,
+            safe_query,
+            "",
+        )
     )[:2048]
 
 
@@ -203,26 +216,30 @@ def _strip_terminal_controls(value: str) -> tuple[str, bool]:
     ansi = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
     cleaned = ansi.sub("", value)
     transformed = cleaned != value
-    filtered = "".join(
-        char for char in cleaned if char in "\n\r\t" or ord(char) >= 32
-    )
+    filtered = "".join(char for char in cleaned if char in "\n\r\t" or ord(char) >= 32)
     return filtered, transformed or filtered != cleaned
 
 
 def parse_junit_xml(content: bytes) -> list[ParsedObservation]:
     upper = content.upper()
     if b"<!DOCTYPE" in upper or b"<!ENTITY" in upper:
-        raise IngestionError("unsafe_xml", "DTD and entity declarations are not accepted")
+        raise IngestionError(
+            "unsafe_xml", "DTD and entity declarations are not accepted"
+        )
     try:
         root = ET.fromstring(content)
     except ET.ParseError as exc:
         raise IngestionError("malformed_report", f"Malformed JUnit XML: {exc}") from exc
     root_name = root.tag.rsplit("}", 1)[-1]
     if root_name not in {"testsuite", "testsuites"}:
-        raise IngestionError("unsupported_format", f"Unsupported JUnit root: {root.tag}")
+        raise IngestionError(
+            "unsupported_format", f"Unsupported JUnit root: {root.tag}"
+        )
 
     observations: list[ParsedObservation] = []
-    suites = [node for node in root.iter() if node.tag.rsplit("}", 1)[-1] == "testsuite"]
+    suites = [
+        node for node in root.iter() if node.tag.rsplit("}", 1)[-1] == "testsuite"
+    ]
     for suite_index, suite in enumerate(suites):
         suite_name = suite.attrib.get("name")
         properties: dict[str, str] = {}
@@ -230,15 +247,21 @@ def parse_junit_xml(content: bytes) -> list[ParsedObservation]:
             if child.tag.rsplit("}", 1)[-1] != "properties":
                 continue
             for prop in list(child):
-                if prop.tag.rsplit("}", 1)[-1] == "property" and prop.attrib.get("name"):
+                if prop.tag.rsplit("}", 1)[-1] == "property" and prop.attrib.get(
+                    "name"
+                ):
                     properties[prop.attrib["name"]] = str(
                         prop.attrib.get("value") or prop.text or ""
                     )[:2000]
-        cases = [node for node in list(suite) if node.tag.rsplit("}", 1)[-1] == "testcase"]
+        cases = [
+            node for node in list(suite) if node.tag.rsplit("}", 1)[-1] == "testcase"
+        ]
         for case_index, case in enumerate(cases):
             name = case.attrib.get("name")
             if not name:
-                raise IngestionError("malformed_report", "JUnit testcase is missing name")
+                raise IngestionError(
+                    "malformed_report", "JUnit testcase is missing name"
+                )
             classname = case.attrib.get("classname")
             identity = "::".join(part for part in [classname, name] if part)
             outcome = "passed"
@@ -261,13 +284,17 @@ def parse_junit_xml(content: bytes) -> list[ParsedObservation]:
             if failing is not None:
                 outcome = "failed"
                 message = "\n".join(
-                    value for value in [failing.attrib.get("message"), failing.text] if value
+                    value
+                    for value in [failing.attrib.get("message"), failing.text]
+                    if value
                 ).strip()
                 exception_type = failing.attrib.get("type")
             elif skipped is not None:
                 outcome = "skipped"
                 message = skipped.attrib.get("message") or skipped.text
-            raw_excerpt = "\n".join(value for value in [message, system_out, system_err] if value)
+            raw_excerpt = "\n".join(
+                value for value in [message, system_out, system_err] if value
+            )
             redacted = redact_text(raw_excerpt[:40_000]) if raw_excerpt else None
             observations.append(
                 ParsedObservation(
@@ -339,7 +366,9 @@ def parse_playwright_json(content: bytes) -> list[ParsedObservation]:
     data = _json_object(content, "Playwright JSON")
     suites = data.get("suites")
     if not isinstance(suites, list):
-        raise IngestionError("unsupported_format", "Playwright JSON requires a suites array")
+        raise IngestionError(
+            "unsupported_format", "Playwright JSON requires a suites array"
+        )
     observations: list[ParsedObservation] = []
 
     def walk(suite: dict[str, Any], parents: list[str], suite_path: list[int]) -> None:
@@ -347,23 +376,31 @@ def parse_playwright_json(content: bytes) -> list[ParsedObservation]:
         lineage = parents + ([title] if title else [])
         specs = suite.get("specs", [])
         if not isinstance(specs, list):
-            raise IngestionError("malformed_report", "Playwright suite specs must be an array")
+            raise IngestionError(
+                "malformed_report", "Playwright suite specs must be an array"
+            )
         for spec_index, spec in enumerate(specs):
             if not isinstance(spec, dict):
                 continue
             spec_title = str(spec.get("title") or "unnamed")
             tests = spec.get("tests", [])
             if not isinstance(tests, list):
-                raise IngestionError("malformed_report", "Playwright spec tests must be an array")
+                raise IngestionError(
+                    "malformed_report", "Playwright spec tests must be an array"
+                )
             for test_index, test in enumerate(tests):
                 if not isinstance(test, dict):
                     continue
                 project_name = test.get("projectName")
                 test_id = test.get("testId") or spec.get("id")
-                identity = str(test_id) if test_id else "::".join(lineage + [spec_title])
+                identity = (
+                    str(test_id) if test_id else "::".join(lineage + [spec_title])
+                )
                 results = test.get("results") or []
                 if not isinstance(results, list):
-                    raise IngestionError("malformed_report", "Playwright test results must be an array")
+                    raise IngestionError(
+                        "malformed_report", "Playwright test results must be an array"
+                    )
                 if not results:
                     status = str(test.get("status") or "unknown")
                     results = [{"status": status}]
@@ -382,7 +419,9 @@ def parse_playwright_json(content: bytes) -> list[ParsedObservation]:
                     message, exception_type = _playwright_error(result)
                     stdout = _stream_text(result.get("stdout"))
                     stderr = _stream_text(result.get("stderr"))
-                    raw = "\n".join(value for value in [message, stdout, stderr] if value)
+                    raw = "\n".join(
+                        value for value in [message, stdout, stderr] if value
+                    )
                     redacted = redact_text(raw[:40_000]) if raw else None
                     attachments = []
                     for attachment in (
@@ -394,11 +433,15 @@ def parse_playwright_json(content: bytes) -> list[ParsedObservation]:
                             continue
                         attachments.append(
                             {
-                                "name": str(attachment.get("name") or "attachment")[:240],
+                                "name": str(attachment.get("name") or "attachment")[
+                                    :240
+                                ],
                                 "contentType": str(
-                                    attachment.get("contentType") or "application/octet-stream"
+                                    attachment.get("contentType")
+                                    or "application/octet-stream"
                                 )[:160],
-                                "path": str(attachment.get("path") or "")[:1024] or None,
+                                "path": str(attachment.get("path") or "")[:1024]
+                                or None,
                             }
                         )
                     attempt = result.get("retry")
@@ -414,7 +457,9 @@ def parse_playwright_json(content: bytes) -> list[ParsedObservation]:
                             test_identity=identity,
                             suite=" / ".join(lineage) or None,
                             source_path=str(source_path) if source_path else None,
-                            browser=str(project_name) if project_name is not None else None,
+                            browser=str(project_name)
+                            if project_name is not None
+                            else None,
                             attempt=attempt,
                             outcome=outcome,
                             duration_ms=_duration_ms(result.get("duration")),
@@ -428,7 +473,9 @@ def parse_playwright_json(content: bytes) -> list[ParsedObservation]:
                                 "attachments": attachments,
                                 "worker_index": result.get("workerIndex"),
                                 "parallel_index": result.get("parallelIndex"),
-                                "redacted_classes": list(redacted.classes) if redacted else [],
+                                "redacted_classes": list(redacted.classes)
+                                if redacted
+                                else [],
                             },
                             evidence_excerpt=redacted.text if redacted else None,
                             evidence_locator={
@@ -443,7 +490,9 @@ def parse_playwright_json(content: bytes) -> list[ParsedObservation]:
                     had_failure = had_failure or outcome == "failed"
         children = suite.get("suites", [])
         if not isinstance(children, list):
-            raise IngestionError("malformed_report", "Playwright child suites must be an array")
+            raise IngestionError(
+                "malformed_report", "Playwright child suites must be an array"
+            )
         for child_index, child in enumerate(children):
             if isinstance(child, dict):
                 walk(child, lineage, suite_path + [child_index])
@@ -452,7 +501,9 @@ def parse_playwright_json(content: bytes) -> list[ParsedObservation]:
         if isinstance(suite, dict):
             walk(suite, [], [suite_index])
     if not observations:
-        raise IngestionError("empty_report", "Playwright JSON report contains no test results")
+        raise IngestionError(
+            "empty_report", "Playwright JSON report contains no test results"
+        )
     return observations
 
 
@@ -460,14 +511,18 @@ def parse_pytest_json(content: bytes) -> list[ParsedObservation]:
     data = _json_object(content, "pytest-json-report")
     tests = data.get("tests")
     if not isinstance(tests, list):
-        raise IngestionError("unsupported_format", "pytest JSON report requires a tests array")
+        raise IngestionError(
+            "unsupported_format", "pytest JSON report requires a tests array"
+        )
     observations: list[ParsedObservation] = []
     for index, test in enumerate(tests):
         if not isinstance(test, dict):
             continue
         nodeid = str(test.get("nodeid") or "").strip()
         if not nodeid:
-            raise IngestionError("malformed_report", "pytest test entry is missing nodeid")
+            raise IngestionError(
+                "malformed_report", "pytest test entry is missing nodeid"
+            )
         raw_outcome = str(test.get("outcome") or "unknown")
         outcome = {
             "passed": "passed",
@@ -484,7 +539,9 @@ def parse_pytest_json(content: bytes) -> list[ParsedObservation]:
             phase = test.get(phase_name)
             if not isinstance(phase, dict):
                 continue
-            crash = phase.get("crash") if isinstance(phase.get("crash"), dict) else {}
+            crash = phase.get("crash")
+            if not isinstance(crash, dict):
+                crash = {}
             longrepr = phase.get("longrepr")
             message = crash.get("message") or longrepr
             if message:
@@ -516,13 +573,16 @@ def parse_pytest_json(content: bytes) -> list[ParsedObservation]:
                 browser=None,
                 attempt=0,
                 outcome=outcome,
-                duration_ms=total_duration or _duration_ms(test.get("duration"), multiplier=1000),
+                duration_ms=total_duration
+                or _duration_ms(test.get("duration"), multiplier=1000),
                 message=redacted.text if redacted else None,
                 exception_type=exception_type,
                 details={
                     "producer": "pytest-json-report",
                     "raw_outcome": raw_outcome,
-                    "keywords": [str(item)[:240] for item in test.get("keywords", [])[:100]]
+                    "keywords": [
+                        str(item)[:240] for item in test.get("keywords", [])[:100]
+                    ]
                     if isinstance(test.get("keywords"), list)
                     else [],
                     "wasxfail": test.get("wasxfail"),
@@ -540,7 +600,11 @@ def parse_pytest_json(content: bytes) -> list[ParsedObservation]:
             if not isinstance(collector, dict) or collector.get("outcome") != "failed":
                 continue
             nodeid = str(collector.get("nodeid") or f"collector-{index}")
-            raw = str(collector.get("longrepr") or collector.get("result") or "collection failed")
+            raw = str(
+                collector.get("longrepr")
+                or collector.get("result")
+                or "collection failed"
+            )
             redacted = redact_text(raw[:40_000])
             observations.append(
                 ParsedObservation(
@@ -553,7 +617,10 @@ def parse_pytest_json(content: bytes) -> list[ParsedObservation]:
                     duration_ms=None,
                     message=redacted.text,
                     exception_type="CollectionError",
-                    details={"producer": "pytest-json-report", "collection_error": True},
+                    details={
+                        "producer": "pytest-json-report",
+                        "collection_error": True,
+                    },
                     evidence_excerpt=redacted.text,
                     evidence_locator={
                         "kind": "json-pointer",
@@ -562,7 +629,9 @@ def parse_pytest_json(content: bytes) -> list[ParsedObservation]:
                 )
             )
     if not observations:
-        raise IngestionError("empty_report", "pytest JSON report contains no tests or collection errors")
+        raise IngestionError(
+            "empty_report", "pytest JSON report contains no tests or collection errors"
+        )
     return observations
 
 
@@ -577,7 +646,10 @@ def _rest_assured_junit_adapter(content: bytes, _: str, __: Settings) -> Adapter
             ParsedObservation(
                 **{
                     **observation.__dict__,
-                    "details": {**observation.details, "producer": "rest-assured-junit"},
+                    "details": {
+                        **observation.details,
+                        "producer": "rest-assured-junit",
+                    },
                 }
             )
         )
@@ -605,7 +677,9 @@ def _k6_adapter(content: bytes, _: str, __: Settings) -> AdapterResult:
     data = _json_object(content, "k6 summary JSON")
     metrics = data.get("metrics")
     if not isinstance(metrics, dict):
-        raise IngestionError("unsupported_format", "k6 summary requires a metrics object")
+        raise IngestionError(
+            "unsupported_format", "k6 summary requires a metrics object"
+        )
     observations: list[ParsedObservation] = []
     metric_summaries: dict[str, Any] = {}
     metric_items = list(metrics.items())
@@ -613,18 +687,27 @@ def _k6_adapter(content: bytes, _: str, __: Settings) -> AdapterResult:
     for metric_name, metric in metric_items[:MAX_K6_METRICS]:
         if not isinstance(metric, dict):
             continue
-        values = metric.get("values") if isinstance(metric.get("values"), dict) else {}
-        thresholds = metric.get("thresholds") if isinstance(metric.get("thresholds"), dict) else {}
+        values = metric.get("values")
+        if not isinstance(values, dict):
+            values = {}
+        thresholds = metric.get("thresholds")
+        if not isinstance(thresholds, dict):
+            thresholds = {}
         safe_values = {
             str(key)[:120]: value
             for key, value in list(values.items())[:100]
             if isinstance(value, (int, float, bool))
+            and (not isinstance(value, float) or math.isfinite(value))
         }
         threshold_summary: dict[str, bool | None] = {}
         for threshold_name, threshold in list(thresholds.items())[:100]:
             ok: bool | None
             if isinstance(threshold, dict):
-                ok = threshold.get("ok") if isinstance(threshold.get("ok"), bool) else None
+                ok = (
+                    threshold.get("ok")
+                    if isinstance(threshold.get("ok"), bool)
+                    else None
+                )
             elif isinstance(threshold, bool):
                 ok = threshold
             else:
@@ -686,7 +769,9 @@ def _console_text_adapter(content: bytes, _: str, settings: Settings) -> Adapter
     try:
         raw = content.decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise IngestionError("malformed_encoding", "Console text must be UTF-8") from exc
+        raise IngestionError(
+            "malformed_encoding", "Console text must be UTF-8"
+        ) from exc
     cleaned, transformed = _strip_terminal_controls(raw)
     retained = cleaned[: settings.analysis_text_budget]
     redacted = redact_text(retained)
@@ -712,7 +797,9 @@ def _console_jsonl_adapter(content: bytes, _: str, settings: Settings) -> Adapte
     try:
         text = content.decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise IngestionError("malformed_encoding", "Console JSONL must be UTF-8") from exc
+        raise IngestionError(
+            "malformed_encoding", "Console JSONL must be UTF-8"
+        ) from exc
     events: list[dict[str, Any]] = []
     error_events = 0
     events_truncated = False
@@ -726,11 +813,13 @@ def _console_jsonl_adapter(content: bytes, _: str, settings: Settings) -> Adapte
             event = json.loads(line)
         except json.JSONDecodeError as exc:
             raise IngestionError(
-                "malformed_report", f"Console JSONL line {line_number} is invalid: {exc}"
+                "malformed_report",
+                f"Console JSONL line {line_number} is invalid: {exc}",
             ) from exc
         if not isinstance(event, dict):
             raise IngestionError(
-                "malformed_report", f"Console JSONL line {line_number} must be an object"
+                "malformed_report",
+                f"Console JSONL line {line_number} must be an object",
             )
         safe_event = _safe_json_value(event)
         events.append(safe_event)
@@ -748,7 +837,11 @@ def _console_jsonl_adapter(content: bytes, _: str, settings: Settings) -> Adapte
             "safe_preview": preview[: settings.analysis_text_budget],
         },
         warnings=(
-            *(("content_truncated",) if len(preview) > settings.analysis_text_budget else ()),
+            *(
+                ("content_truncated",)
+                if len(preview) > settings.analysis_text_budget
+                else ()
+            ),
             *(("event_limit_reached",) if events_truncated else ()),
         ),
     )
@@ -766,19 +859,27 @@ def _har_adapter(content: bytes, _: str, __: Settings) -> AdapterResult:
     for index, entry in enumerate(entries[:MAX_NETWORK_EVENTS]):
         if not isinstance(entry, dict):
             continue
-        request = entry.get("request") if isinstance(entry.get("request"), dict) else {}
-        response = entry.get("response") if isinstance(entry.get("response"), dict) else {}
+        request = entry.get("request")
+        if not isinstance(request, dict):
+            request = {}
+        response = entry.get("response")
+        if not isinstance(response, dict):
+            response = {}
         method = str(request.get("method") or "GET")[:32]
         url = _sanitize_url(str(request.get("url") or ""))
         status_value = response.get("status")
         try:
-            status = int(status_value)
-        except (TypeError, ValueError):
+            status = (
+                int(status_value) if isinstance(status_value, (str, int, float)) else 0
+            )
+        except (ValueError, OverflowError):
             status = 0
         status_counts[str(status)] = status_counts.get(str(status), 0) + 1
         error = entry.get("_error") or response.get("_error")
         if status >= 400 or error:
-            message = f"HAR network failure: {method} {url} returned {status or 'unknown'}"
+            message = (
+                f"HAR network failure: {method} {url} returned {status or 'unknown'}"
+            )
             if error:
                 message += f"; error={redact_text(str(error)[:2000]).text}"
             observations.append(
@@ -824,7 +925,9 @@ def _network_jsonl_adapter(content: bytes, _: str, __: Settings) -> AdapterResul
     try:
         text = content.decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise IngestionError("malformed_encoding", "Network JSONL must be UTF-8") from exc
+        raise IngestionError(
+            "malformed_encoding", "Network JSONL must be UTF-8"
+        ) from exc
     observations: list[ParsedObservation] = []
     count = 0
     events_truncated = False
@@ -839,11 +942,13 @@ def _network_jsonl_adapter(content: bytes, _: str, __: Settings) -> AdapterResul
             event = json.loads(line)
         except json.JSONDecodeError as exc:
             raise IngestionError(
-                "malformed_report", f"Network JSONL line {line_number} is invalid: {exc}"
+                "malformed_report",
+                f"Network JSONL line {line_number} is invalid: {exc}",
             ) from exc
         if not isinstance(event, dict):
             raise IngestionError(
-                "malformed_report", f"Network JSONL line {line_number} must be an object"
+                "malformed_report",
+                f"Network JSONL line {line_number} must be an object",
             )
         method = str(event.get("method") or "GET")[:32]
         url = _sanitize_url(str(event.get("url") or event.get("route") or ""))
@@ -858,10 +963,13 @@ def _network_jsonl_adapter(content: bytes, _: str, __: Settings) -> AdapterResul
             attempt = max(int(attempt_value or 0), 0)
         except (TypeError, ValueError) as exc:
             raise IngestionError(
-                "malformed_report", f"Network JSONL line {line_number} has an invalid attempt"
+                "malformed_report",
+                f"Network JSONL line {line_number} has an invalid attempt",
             ) from exc
         if status >= 400 or error:
-            message = f"Network event failure: {method} {url} returned {status or 'unknown'}"
+            message = (
+                f"Network event failure: {method} {url} returned {status or 'unknown'}"
+            )
             if error:
                 message += f"; error={redact_text(str(error)[:2000]).text}"
             observations.append(
@@ -869,7 +977,9 @@ def _network_jsonl_adapter(content: bytes, _: str, __: Settings) -> AdapterResul
                     test_identity=f"network::{method}::{url}",
                     suite="network-jsonl",
                     source_path=None,
-                    browser=str(event.get("browser"))[:80] if event.get("browser") else None,
+                    browser=str(event.get("browser"))[:80]
+                    if event.get("browser")
+                    else None,
                     attempt=attempt,
                     outcome="failed",
                     duration_ms=_duration_ms(event.get("duration_ms")),
@@ -895,11 +1005,15 @@ def _network_jsonl_adapter(content: bytes, _: str, __: Settings) -> AdapterResul
     )
 
 
-def _rest_assured_evidence_adapter(content: bytes, _: str, settings: Settings) -> AdapterResult:
+def _rest_assured_evidence_adapter(
+    content: bytes, _: str, settings: Settings
+) -> AdapterResult:
     data = _json_object(content, "REST Assured evidence")
     exchanges = data.get("exchanges")
     if not isinstance(exchanges, list):
-        raise IngestionError("unsupported_format", "REST Assured evidence requires exchanges")
+        raise IngestionError(
+            "unsupported_format", "REST Assured evidence requires exchanges"
+        )
     safe_exchanges: list[dict[str, Any]] = []
     exchanges_truncated = len(exchanges) > MAX_REST_EXCHANGES
     for exchange in exchanges[:MAX_REST_EXCHANGES]:
@@ -909,9 +1023,13 @@ def _rest_assured_evidence_adapter(content: bytes, _: str, settings: Settings) -
             {
                 "test_identity": str(exchange.get("test_identity") or "")[:512] or None,
                 "method": str(exchange.get("method") or "GET")[:32],
-                "route": _sanitize_url(str(exchange.get("route") or exchange.get("url") or "")),
+                "route": _sanitize_url(
+                    str(exchange.get("route") or exchange.get("url") or "")
+                ),
                 "status": exchange.get("status"),
-                "assertion": redact_text(str(exchange.get("assertion") or "")[:5000]).text,
+                "assertion": redact_text(
+                    str(exchange.get("assertion") or "")[:5000]
+                ).text,
                 "request": _safe_json_value(exchange.get("request", {})),
                 "response": _safe_json_value(exchange.get("response", {})),
             }
@@ -924,7 +1042,11 @@ def _rest_assured_evidence_adapter(content: bytes, _: str, settings: Settings) -
             "safe_preview": preview[: settings.analysis_text_budget],
         },
         warnings=(
-            *(("content_truncated",) if len(preview) > settings.analysis_text_budget else ()),
+            *(
+                ("content_truncated",)
+                if len(preview) > settings.analysis_text_budget
+                else ()
+            ),
             *(("event_limit_reached",) if exchanges_truncated else ()),
         ),
     )
@@ -933,13 +1055,15 @@ def _rest_assured_evidence_adapter(content: bytes, _: str, settings: Settings) -
 def _github_metadata_adapter(content: bytes, _: str, __: Settings) -> AdapterResult:
     data = _json_object(content, "GitHub metadata")
     commit_sha = data.get("commit_sha") or data.get("head_sha")
-    for field, value in {
+    for field_name, value in {
         "commit_sha": commit_sha,
         "base_sha": data.get("base_sha"),
         "parent_sha": data.get("parent_sha"),
     }.items():
         if value is not None and not re.fullmatch(r"[0-9a-fA-F]{7,64}", str(value)):
-            raise IngestionError("malformed_report", f"GitHub metadata has an invalid {field}")
+            raise IngestionError(
+                "malformed_report", f"GitHub metadata has an invalid {field_name}"
+            )
     safe = {
         "repository": str(data.get("repository") or "")[:240] or None,
         "commit_sha": str(commit_sha) if commit_sha else None,
@@ -951,7 +1075,8 @@ def _github_metadata_adapter(content: bytes, _: str, __: Settings) -> AdapterRes
         "run_id": str(data.get("run_id") or "")[:120] or None,
         "run_attempt": data.get("run_attempt"),
         "trigger": str(data.get("trigger") or "")[:120] or None,
-        "author_display": redact_text(str(data.get("author_display") or "")[:240]).text or None,
+        "author_display": redact_text(str(data.get("author_display") or "")[:240]).text
+        or None,
         "trust": str(data.get("trust") or "self_reported")[:80],
     }
     return AdapterResult(metadata={"producer": "github-metadata", **safe})
@@ -967,11 +1092,15 @@ def _changed_files_adapter(content: bytes, _: str, __: Settings) -> AdapterResul
         )
     files = data.get("files")
     if not isinstance(files, list):
-        raise IngestionError("unsupported_format", "Changed-file input requires a files array")
-    for field in ("base_sha", "head_sha"):
-        value = data.get(field)
+        raise IngestionError(
+            "unsupported_format", "Changed-file input requires a files array"
+        )
+    for field_name in ("base_sha", "head_sha"):
+        value = data.get(field_name)
         if value is not None and not re.fullmatch(r"[0-9a-fA-F]{7,64}", str(value)):
-            raise IngestionError("malformed_report", f"Changed-file input has an invalid {field}")
+            raise IngestionError(
+                "malformed_report", f"Changed-file input has an invalid {field_name}"
+            )
     files_truncated = len(files) > MAX_CHANGED_FILES
     normalized: list[dict[str, Any]] = []
     for index, item in enumerate(files[:MAX_CHANGED_FILES]):
@@ -979,22 +1108,30 @@ def _changed_files_adapter(content: bytes, _: str, __: Settings) -> AdapterResul
             item = {"path": item, "status": "modified"}
         if not isinstance(item, dict):
             raise IngestionError(
-                "malformed_report", f"Changed-file entry {index} must be an object or path"
+                "malformed_report",
+                f"Changed-file entry {index} must be an object or path",
             )
         status = str(item.get("status") or "modified").lower()
         if status not in {"added", "modified", "deleted", "renamed", "copied"}:
-            raise IngestionError("malformed_report", f"Unsupported changed-file status: {status}")
+            raise IngestionError(
+                "malformed_report", f"Unsupported changed-file status: {status}"
+            )
         path = item.get("path") or item.get("new_path")
         if not isinstance(path, str) or not path.strip():
-            raise IngestionError("malformed_report", f"Changed-file entry {index} has no path")
+            raise IngestionError(
+                "malformed_report", f"Changed-file entry {index} has no path"
+            )
         safe_path = safe_archive_name(path)
         old_path = item.get("old_path")
         normalized.append(
             {
                 "status": status,
                 "path": safe_path,
-                "old_path": safe_archive_name(old_path) if isinstance(old_path, str) else None,
-                "coverage_reference": str(item.get("coverage_reference") or "")[:1024] or None,
+                "old_path": safe_archive_name(old_path)
+                if isinstance(old_path, str)
+                else None,
+                "coverage_reference": str(item.get("coverage_reference") or "")[:1024]
+                or None,
                 "diff_reference": str(item.get("diff_reference") or "")[:1024] or None,
             }
         )
@@ -1028,6 +1165,7 @@ def _changed_files_adapter(content: bytes, _: str, __: Settings) -> AdapterResul
 def _image_dimensions(content: bytes) -> tuple[str, int, int]:
     # Kept as a compatibility helper; validation must also decode the full raster.
     from .image_codec import ImageCodecError, decode_image
+
     try:
         metadata, _ = decode_image(content, Settings())
     except ImageCodecError as exc:
@@ -1035,8 +1173,11 @@ def _image_dimensions(content: bytes) -> tuple[str, int, int]:
     return metadata["media_type"], metadata["width"], metadata["height"]
 
 
-def _screenshot_adapter(content: bytes, _: str, settings: Settings) -> AdapterResult:
+def _screenshot_adapter(
+    content: bytes, _filename: str, settings: Settings
+) -> AdapterResult:
     from .image_codec import ImageCodecError, decode_image
+
     try:
         metadata, _ = decode_image(content, settings)
     except ImageCodecError as exc:
@@ -1045,8 +1186,12 @@ def _screenshot_adapter(content: bytes, _: str, settings: Settings) -> AdapterRe
     # A perceptual descriptor is derived from pixels too: do not expose it until review.
     metadata.pop("dhash", None)
     return AdapterResult(
-        metadata={**metadata, "producer": "screenshot", "review_state": "restricted",
-                  "safe_derivative": "metadata-only"},
+        metadata={
+            **metadata,
+            "producer": "screenshot",
+            "review_state": "restricted",
+            "safe_derivative": "metadata-only",
+        },
         warnings=("pixel_content_not_sanitized", "review_required_before_display"),
         restricted=True,
     )
@@ -1073,29 +1218,43 @@ def _validate_zip_infos(
         safe = safe_archive_name(info.filename)
         folded = safe.casefold()
         if folded in normalized_names:
-            raise IngestionError("unsafe_archive", "ZIP contains colliding normalized paths")
+            raise IngestionError(
+                "unsafe_archive", "ZIP contains colliding normalized paths"
+            )
         normalized_names[folded] = info
         if info.flag_bits & 0x1:
-            raise IngestionError("unsafe_archive", "Encrypted ZIP entries are not accepted")
+            raise IngestionError(
+                "unsafe_archive", "Encrypted ZIP entries are not accepted"
+            )
         if _is_symlink(info):
             raise IngestionError("unsafe_archive", "ZIP symlinks are not accepted")
         expanded += info.file_size
         if expanded > settings.max_expanded_bytes:
-            raise IngestionError("limit_exceeded", "ZIP expanded content exceeds configured limit")
+            raise IngestionError(
+                "limit_exceeded", "ZIP expanded content exceeds configured limit"
+            )
         if info.file_size and info.compress_size == 0:
-            raise IngestionError("unsafe_archive", "ZIP entry has an invalid compression size")
+            raise IngestionError(
+                "unsafe_archive", "ZIP entry has an invalid compression size"
+            )
         if info.file_size and info.compress_size:
             ratio = info.file_size / info.compress_size
             if ratio > settings.max_compression_ratio:
-                raise IngestionError("unsafe_archive", "ZIP compression ratio exceeds configured limit")
+                raise IngestionError(
+                    "unsafe_archive", "ZIP compression ratio exceeds configured limit"
+                )
         suffix = PurePosixPath(safe).suffix.lower()
-        if suffix in {".zip", ".tar", ".gz", ".tgz", ".7z", ".rar"} and folded not in allowed:
+        if (
+            suffix in {".zip", ".tar", ".gz", ".tgz", ".7z", ".rar"}
+            and folded not in allowed
+        ):
             raise IngestionError("unsafe_archive", "Nested archives are not accepted")
     return normalized_names
 
 
 def _trace_adapter(content: bytes, _: str, settings: Settings) -> AdapterResult:
     from .trace_evidence import build_trace_index
+
     metadata, warnings = build_trace_index(content, settings)
     return AdapterResult(metadata=metadata, warnings=warnings, restricted=True)
 
@@ -1117,8 +1276,10 @@ def _detect_pytest(content: bytes, _: str) -> bool:
         data = json.loads(content)
     except (UnicodeDecodeError, json.JSONDecodeError):
         return False
-    return isinstance(data, dict) and isinstance(data.get("tests"), list) and (
-        "summary" in data or "exitcode" in data or "collectors" in data
+    return (
+        isinstance(data, dict)
+        and isinstance(data.get("tests"), list)
+        and ("summary" in data or "exitcode" in data or "collectors" in data)
     )
 
 
@@ -1127,8 +1288,10 @@ def _detect_changed_files(content: bytes, filename: str) -> bool:
         data = json.loads(content)
     except (UnicodeDecodeError, json.JSONDecodeError):
         return "changes" in filename.lower()
-    return isinstance(data, dict) and isinstance(data.get("files"), list) and (
-        "base_sha" in data or "head_sha" in data or "complete" in data
+    return (
+        isinstance(data, dict)
+        and isinstance(data.get("files"), list)
+        and ("base_sha" in data or "head_sha" in data or "complete" in data)
     )
 
 
@@ -1144,41 +1307,71 @@ def _detect_github_metadata(content: bytes, filename: str) -> bool:
 
 def _transaction_adapter(content: bytes, _: str, __: Settings) -> AdapterResult:
     from .transaction_evidence import parse_transaction_observation
+
     try:
         observation = parse_transaction_observation(content)
     except (ValueError, UnicodeDecodeError, RecursionError) as exc:
-        raise IngestionError("malformed_report", "Invalid bounded transaction observation") from exc
-    return AdapterResult(metadata={"transaction_observation": observation},
-                         warnings=("producer_reported_measurements_not_causal_proof",))
+        raise IngestionError(
+            "malformed_report", "Invalid bounded transaction observation"
+        ) from exc
+    return AdapterResult(
+        metadata={"transaction_observation": observation},
+        warnings=("producer_reported_measurements_not_causal_proof",),
+    )
 
 
 def _contract_adapter(content: bytes, _: str, __: Settings) -> AdapterResult:
     from .contract_evidence import parse_contract_observation
+
     try:
         observation = parse_contract_observation(content)
     except (ValueError, UnicodeDecodeError, RecursionError) as exc:
-        raise IngestionError("malformed_report", "Invalid bounded contract observation") from exc
-    return AdapterResult(metadata={"contract_observation": observation},
-                         warnings=("producer_reported_measurements_not_causal_proof",))
+        raise IngestionError(
+            "malformed_report", "Invalid bounded contract observation"
+        ) from exc
+    return AdapterResult(
+        metadata={"contract_observation": observation},
+        warnings=("producer_reported_measurements_not_causal_proof",),
+    )
 
 
 def _domain_adapter(content: bytes, _: str, __: Settings) -> AdapterResult:
     from .domain_evidence import parse_domain_observation
+
     try:
         observation = parse_domain_observation(content)
     except (ValueError, UnicodeDecodeError, RecursionError) as exc:
-        raise IngestionError("malformed_report", "Invalid bounded domain observation") from exc
-    return AdapterResult(metadata={"domain_observation": observation},
-                         warnings=("producer_reported_contract_not_causal_proof",))
+        raise IngestionError(
+            "malformed_report", "Invalid bounded domain observation"
+        ) from exc
+    return AdapterResult(
+        metadata={"domain_observation": observation},
+        warnings=("producer_reported_contract_not_causal_proof",),
+    )
 
 
 def _register_adapters() -> None:
-    _register(AdapterSpec(kind="contract-observations-json", parser_version="contract-observations-v1",
-                          parser=_contract_adapter))
-    _register(AdapterSpec(kind="domain-observations-json", parser_version="domain-observations-v1",
-                          parser=_domain_adapter))
-    _register(AdapterSpec(kind="transaction-observations-json", parser_version="transaction-observations-v1",
-                          parser=_transaction_adapter))
+    _register(
+        AdapterSpec(
+            kind="contract-observations-json",
+            parser_version="contract-observations-v1",
+            parser=_contract_adapter,
+        )
+    )
+    _register(
+        AdapterSpec(
+            kind="domain-observations-json",
+            parser_version="domain-observations-v1",
+            parser=_domain_adapter,
+        )
+    )
+    _register(
+        AdapterSpec(
+            kind="transaction-observations-json",
+            parser_version="transaction-observations-v1",
+            parser=_transaction_adapter,
+        )
+    )
     _register(
         AdapterSpec(
             kind="junit-xml",
@@ -1304,7 +1497,9 @@ def _register_adapters() -> None:
             aliases=("png", "jpeg", "image"),
             suffixes=(".png", ".jpg", ".jpeg"),
             media_types=("image/png", "image/jpeg"),
-            detector=lambda content, _: content.startswith((b"\x89PNG\r\n\x1a\n", b"\xff\xd8")),
+            detector=lambda content, _: content.startswith(
+                (b"\x89PNG\r\n\x1a\n", b"\xff\xd8")
+            ),
         )
     )
     _register(
@@ -1332,7 +1527,9 @@ def _resolve_adapter(
     if requested != "auto":
         canonical = _ALIASES.get(requested)
         if not canonical:
-            raise IngestionError("unsupported_format", f"Unsupported input kind: {kind}")
+            raise IngestionError(
+                "unsupported_format", f"Unsupported input kind: {kind}"
+            )
         return _ADAPTERS[canonical]
 
     normalized_media = (media_type or "").split(";", 1)[0].strip().lower()
@@ -1355,7 +1552,7 @@ def _resolve_adapter(
             "junit-xml": 80,
             "screenshot": 90,
         }
-        return sorted(candidates, key=lambda item: priority.get(item.kind, 100))[0]
+        return min(candidates, key=lambda item: priority.get(item.kind, 100))
     if suffix == ".json" or normalized_media in {
         "application/json",
         "application/json-report",
@@ -1363,20 +1560,30 @@ def _resolve_adapter(
         try:
             json.loads(content)
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise IngestionError("malformed_report", f"Malformed JSON input: {exc}") from exc
+            raise IngestionError(
+                "malformed_report", f"Malformed JSON input: {exc}"
+            ) from exc
 
-    media_candidates = [spec for spec in _ADAPTERS.values() if normalized_media in spec.media_types]
+    media_candidates = [
+        spec for spec in _ADAPTERS.values() if normalized_media in spec.media_types
+    ]
     if len(media_candidates) == 1:
         return media_candidates[0]
     suffix_candidates = [spec for spec in _ADAPTERS.values() if suffix in spec.suffixes]
     if suffix == ".jsonl":
         lowered = filename.lower()
-        return _ADAPTERS["network-jsonl"] if "network" in lowered or "har" in lowered else _ADAPTERS["console-jsonl"]
+        return (
+            _ADAPTERS["network-jsonl"]
+            if "network" in lowered or "har" in lowered
+            else _ADAPTERS["console-jsonl"]
+        )
     if suffix_candidates:
         non_json = [spec for spec in suffix_candidates if suffix != ".json"]
         if len(non_json) == 1:
             return non_json[0]
-    raise IngestionError("unsupported_format", f"Unable to detect input type for {filename!r}")
+    raise IngestionError(
+        "unsupported_format", f"Unable to detect input type for {filename!r}"
+    )
 
 
 def _parse_input_bytes(
@@ -1411,14 +1618,18 @@ def _parsed_input(
     # Typed payloads are schema-validated by their adapter, and their bodies are
     # sanitized by the typed persistence path. Correlation dimensions must use
     # the same project context as primary test observations before binding.
-    for field in ("transaction_observation", "contract_observation", "domain_observation"):
-        value = combined_metadata.get(field)
+    for field_name in (
+        "transaction_observation",
+        "contract_observation",
+        "domain_observation",
+    ):
+        value = combined_metadata.get(field_name)
         if isinstance(value, dict):
             value = dict(value)
             for dimension in ("test_identity", "browser"):
                 if isinstance(value.get(dimension), str):
                     value[dimension] = redact_text(value[dimension]).text
-            combined_metadata[field] = value
+            combined_metadata[field_name] = value
     combined_metadata["redaction_policy"] = redaction_provenance()
     return ParsedInput(
         input_id=input_id,
@@ -1487,13 +1698,17 @@ def _guess_media_type(path: str, kind: str) -> str:
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
         ".zip": "application/zip",
-    }.get(suffix, "application/octet-stream" if kind != "console-text" else "text/plain")
+    }.get(
+        suffix, "application/octet-stream" if kind != "console-text" else "text/plain"
+    )
 
 
 def _manifest_input_id(value: object, index: int) -> str:
     input_id = str(value or f"input-{index + 1}").strip()
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,119}", input_id):
-        raise IngestionError("malformed_report", f"Invalid manifest input id: {input_id!r}")
+        raise IngestionError(
+            "malformed_report", f"Invalid manifest input id: {input_id!r}"
+        )
     return input_id
 
 
@@ -1505,7 +1720,9 @@ def _parse_manifest_v2(
 ) -> ParsedArtifact:
     entries = manifest.get("inputs")
     if not isinstance(entries, list) or not entries:
-        raise IngestionError("malformed_report", "Manifest v2 requires a non-empty inputs array")
+        raise IngestionError(
+            "malformed_report", "Manifest v2 requires a non-empty inputs array"
+        )
     if len(entries) > settings.max_archive_entries:
         raise IngestionError("limit_exceeded", "Manifest declares too many inputs")
     parsed_inputs: list[ParsedInput] = []
@@ -1520,29 +1737,45 @@ def _parse_manifest_v2(
 
     for index, raw_entry in enumerate(entries):
         if not isinstance(raw_entry, dict):
-            raise IngestionError("malformed_report", f"Manifest input {index} must be an object")
+            raise IngestionError(
+                "malformed_report", f"Manifest input {index} must be an object"
+            )
         input_id = _manifest_input_id(raw_entry.get("id"), index)
         if input_id in seen_ids:
-            raise IngestionError("malformed_report", f"Duplicate manifest input id: {input_id}")
+            raise IngestionError(
+                "malformed_report", f"Duplicate manifest input id: {input_id}"
+            )
         seen_ids.add(input_id)
         required = raw_entry.get("required", True)
         if not isinstance(required, bool):
-            raise IngestionError("malformed_report", f"Manifest input {input_id} required must be boolean")
+            raise IngestionError(
+                "malformed_report",
+                f"Manifest input {input_id} required must be boolean",
+            )
         if required:
             required_count += 1
         path_value = raw_entry.get("path")
         if not isinstance(path_value, str):
-            raise IngestionError("malformed_report", f"Manifest input {input_id} requires a path")
+            raise IngestionError(
+                "malformed_report", f"Manifest input {input_id} requires a path"
+            )
         path = safe_archive_name(path_value)
         path_key = path.casefold()
         if path_key in seen_paths:
-            raise IngestionError("malformed_report", f"Duplicate manifest input path: {path}")
+            raise IngestionError(
+                "malformed_report", f"Duplicate manifest input path: {path}"
+            )
         seen_paths.add(path_key)
         kind = str(raw_entry.get("kind") or "auto")[:80]
-        media_type = str(raw_entry.get("media_type") or _guess_media_type(path, kind))[:160]
+        media_type = str(raw_entry.get("media_type") or _guess_media_type(path, kind))[
+            :160
+        ]
         entry_metadata = raw_entry.get("metadata")
         if entry_metadata is not None and not isinstance(entry_metadata, dict):
-            raise IngestionError("malformed_report", f"Manifest input {input_id} metadata must be an object")
+            raise IngestionError(
+                "malformed_report",
+                f"Manifest input {input_id} metadata must be an object",
+            )
         safe_metadata = _safe_json_value(entry_metadata or {})
         info = normalized_names.get(path.casefold())
         if info is None or info.is_dir():
@@ -1626,7 +1859,17 @@ def _parse_manifest_v2(
         except IngestionError as exc:
             if required:
                 required_complete = False
-            status = "unsupported" if exc.code in {"unsupported_format", "unsupported_schema", "unsupported_trace_version", "unsupported_trace_producer"} else "rejected"
+            status = (
+                "unsupported"
+                if exc.code
+                in {
+                    "unsupported_format",
+                    "unsupported_schema",
+                    "unsupported_trace_version",
+                    "unsupported_trace_producer",
+                }
+                else "rejected"
+            )
             parsed_inputs.append(
                 ParsedInput(
                     input_id=input_id,
@@ -1655,7 +1898,10 @@ def _parse_manifest_v2(
             metadata={
                 **safe_metadata,
                 "role": str(raw_entry.get("role") or "supporting")[:80],
-                "correlates_to": [str(value)[:120] for value in raw_entry.get("correlates_to", [])[:100]]
+                "correlates_to": [
+                    str(value)[:120]
+                    for value in raw_entry.get("correlates_to", [])[:100]
+                ]
                 if isinstance(raw_entry.get("correlates_to"), list)
                 else [],
             },
@@ -1670,13 +1916,19 @@ def _parse_manifest_v2(
         ):
             primary_name = path
 
-    usable = [item for item in parsed_inputs if item.status in {"accepted", "restricted"}]
+    usable = [
+        item for item in parsed_inputs if item.status in {"accepted", "restricted"}
+    ]
     completeness = "complete" if required_complete and usable else "partial"
-    fallback_name = next((item.path for item in parsed_inputs if item.path), "manifest.json")
+    fallback_name = next(
+        (item.path for item in parsed_inputs if item.path), "manifest.json"
+    )
     return ParsedArtifact(
         source_format="failurelens-bundle-v2",
         parser_version=f"zip-v2/{REGISTRY_VERSION}",
-        report_name=primary_name or (usable[0].path if usable else fallback_name) or "manifest.json",
+        report_name=primary_name
+        or (usable[0].path if usable else fallback_name)
+        or "manifest.json",
         observations=tuple(observations),
         warnings=tuple(warnings),
         manifest_version=MANIFEST_V2,
@@ -1687,9 +1939,13 @@ def _parse_manifest_v2(
     )
 
 
-def parse_zip_bundle(content: bytes, filename: str, settings: Settings) -> ParsedArtifact:
+def parse_zip_bundle(
+    content: bytes, filename: str, settings: Settings
+) -> ParsedArtifact:
     if len(content) > settings.max_bundle_bytes:
-        raise IngestionError("limit_exceeded", "ZIP bundle exceeds configured upload limit")
+        raise IngestionError(
+            "limit_exceeded", "ZIP bundle exceeds configured upload limit"
+        )
     try:
         archive = zipfile.ZipFile(io.BytesIO(content))
     except zipfile.BadZipFile as exc:
@@ -1700,18 +1956,35 @@ def parse_zip_bundle(content: bytes, filename: str, settings: Settings) -> Parse
         # are exempted from the generic nested-archive rejection.
         manifest_raw: dict[str, Any] | None = None
         manifest_member = next(
-            (info for info in infos if info.filename.replace("\\", "/").casefold() == "manifest.json"),
+            (
+                info
+                for info in infos
+                if info.filename.replace("\\", "/").casefold() == "manifest.json"
+            ),
             None,
         )
         if manifest_member is not None:
-            if manifest_member.file_size > min(settings.max_file_bytes, MAX_MANIFEST_BYTES):
-                raise IngestionError("limit_exceeded", "Bundle manifest.json exceeds its size limit")
+            if manifest_member.file_size > min(
+                settings.max_file_bytes, MAX_MANIFEST_BYTES
+            ):
+                raise IngestionError(
+                    "limit_exceeded", "Bundle manifest.json exceeds its size limit"
+                )
             try:
                 decoded = json.loads(archive.read(manifest_member))
-            except (UnicodeDecodeError, json.JSONDecodeError, KeyError, RecursionError) as exc:
-                raise IngestionError("malformed_report", "Bundle manifest.json is invalid") from exc
+            except (
+                UnicodeDecodeError,
+                json.JSONDecodeError,
+                KeyError,
+                RecursionError,
+            ) as exc:
+                raise IngestionError(
+                    "malformed_report", "Bundle manifest.json is invalid"
+                ) from exc
             if not isinstance(decoded, dict):
-                raise IngestionError("malformed_report", "Bundle manifest.json must be an object")
+                raise IngestionError(
+                    "malformed_report", "Bundle manifest.json must be an object"
+                )
             manifest_raw = decoded
         allowed_nested: set[str] = set()
         if manifest_raw and manifest_raw.get("schema_version") == MANIFEST_V2:
@@ -1720,16 +1993,21 @@ def parse_zip_bundle(content: bytes, filename: str, settings: Settings) -> Parse
                 for entry in entries:
                     if (
                         isinstance(entry, dict)
-                        and str(entry.get("kind") or "").lower() in {"playwright-trace", "trace"}
+                        and str(entry.get("kind") or "").lower()
+                        in {"playwright-trace", "trace"}
                         and isinstance(entry.get("path"), str)
                     ):
                         allowed_nested.add(safe_archive_name(entry["path"]))
-        normalized_names = _validate_zip_infos(infos, settings, allow_nested_paths=allowed_nested)
+        normalized_names = _validate_zip_infos(
+            infos, settings, allow_nested_paths=allowed_nested
+        )
 
         if manifest_raw is not None:
             schema_version = manifest_raw.get("schema_version")
             if schema_version == MANIFEST_V2:
-                return _parse_manifest_v2(archive, normalized_names, manifest_raw, settings)
+                return _parse_manifest_v2(
+                    archive, normalized_names, manifest_raw, settings
+                )
             if schema_version != "1.0":
                 raise IngestionError(
                     "unsupported_schema",
@@ -1737,13 +2015,20 @@ def parse_zip_bundle(content: bytes, filename: str, settings: Settings) -> Parse
                 )
             candidate = manifest_raw.get("report")
             if not isinstance(candidate, str):
-                raise IngestionError("malformed_report", "Bundle manifest v1 requires a report path")
+                raise IngestionError(
+                    "malformed_report", "Bundle manifest v1 requires a report path"
+                )
             report_name = safe_archive_name(candidate)
             info = normalized_names.get(report_name.casefold())
             if info is None or info.is_dir():
-                raise IngestionError("missing_attachment", "Bundle manifest report path is absent")
+                raise IngestionError(
+                    "missing_attachment", "Bundle manifest report path is absent"
+                )
             if info.file_size > settings.max_file_bytes:
-                raise IngestionError("limit_exceeded", "Report inside bundle exceeds configured file limit")
+                raise IngestionError(
+                    "limit_exceeded",
+                    "Report inside bundle exceeds configured file limit",
+                )
             report_content = archive.read(info)
             parsed = _standalone_artifact(report_content, report_name, settings)
             item = ParsedInput(
@@ -1782,7 +2067,17 @@ def parse_zip_bundle(content: bytes, filename: str, settings: Settings) -> Parse
             for info in infos
             if not info.is_dir()
             and PurePosixPath(info.filename).suffix.lower()
-            in {".xml", ".json", ".jsonl", ".har", ".log", ".txt", ".png", ".jpg", ".jpeg"}
+            in {
+                ".xml",
+                ".json",
+                ".jsonl",
+                ".har",
+                ".log",
+                ".txt",
+                ".png",
+                ".jpg",
+                ".jpeg",
+            }
             and info.filename.casefold() != "manifest.json"
         ]
         if len(candidates) != 1:
@@ -1793,7 +2088,9 @@ def parse_zip_bundle(content: bytes, filename: str, settings: Settings) -> Parse
         report_name = safe_archive_name(candidates[0])
         info = normalized_names[report_name.casefold()]
         if info.file_size > settings.max_file_bytes:
-            raise IngestionError("limit_exceeded", "Input inside bundle exceeds configured file limit")
+            raise IngestionError(
+                "limit_exceeded", "Input inside bundle exceeds configured file limit"
+            )
         parsed = _standalone_artifact(archive.read(info), report_name, settings)
         item = ParsedInput(
             **{
@@ -1832,7 +2129,9 @@ def parse_artifact(
     if suffix == ".zip" or content.startswith(b"PK\x03\x04"):
         if source_format.strip().lower() in {"playwright-trace", "trace"}:
             if len(content) > settings.max_file_bytes:
-                raise IngestionError("limit_exceeded", "Trace exceeds configured file limit")
+                raise IngestionError(
+                    "limit_exceeded", "Trace exceeds configured file limit"
+                )
             return _standalone_artifact(
                 content,
                 filename,

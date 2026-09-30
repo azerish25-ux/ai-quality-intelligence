@@ -41,7 +41,9 @@ def split_for_family(category: str, local_family_index: int) -> str:
     return "development"
 
 
-def build_case(category: str, case_index: int, family_index: int, global_family_index: int) -> dict:
+def build_case(
+    category: str, case_index: int, family_index: int, global_family_index: int
+) -> dict:
     variant = case_index % 2
     family_id = f"fam-{global_family_index:03d}"
     adversarial_tags: list[str] = []
@@ -58,7 +60,9 @@ def build_case(category: str, case_index: int, family_index: int, global_family_
             "message": f"ledger balance invariant violated: duplicate committed transfer family {family_index} variant {variant}.{injected}",
             "exception_type": "LedgerInvariantError",
             "details": {"data_integrity_violation": True, "http_status": 500},
-            "evidence": ["Database oracle observed two committed ledger effects for one idempotency key."],
+            "evidence": [
+                "Database oracle observed two committed ledger effects for one idempotency key."
+            ],
             "historical": {},
             "root_cause": "duplicate event committed twice",
             "severity": "critical",
@@ -68,7 +72,9 @@ def build_case(category: str, case_index: int, family_index: int, global_family_
             "message": f"stale selector conflicts with expected contract family {family_index} variant {variant}.{injected}",
             "exception_type": "AssertionError",
             "details": {"contract_mismatch": "test_expectation_stale"},
-            "evidence": ["Versioned UI contract removed the obsolete selector while the test still asserts it."],
+            "evidence": [
+                "Versioned UI contract removed the obsolete selector while the test still asserts it."
+            ],
             "historical": {},
             "root_cause": "stale test expectation",
             "severity": "medium",
@@ -78,7 +84,9 @@ def build_case(category: str, case_index: int, family_index: int, global_family_
             "message": f"runner exited after DNS failure before test execution family {family_index} variant {variant}.{injected}",
             "exception_type": "RunnerExit",
             "details": {"runner_diagnostic": True},
-            "evidence": ["Trusted runner diagnostic records DNS resolution failure and zero application requests."],
+            "evidence": [
+                "Trusted runner diagnostic records DNS resolution failure and zero application requests."
+            ],
             "historical": {},
             "root_cause": "runner network resolution failure",
             "severity": "medium",
@@ -88,8 +96,17 @@ def build_case(category: str, case_index: int, family_index: int, global_family_
             "message": f"reviewed harness timing instability family {family_index} variant {variant}.{injected}",
             "exception_type": "HarnessTimeout",
             "details": {"retry_recovered": True},
-            "evidence": ["Reviewer-approved harness record identifies nondeterministic fixture ordering outside product code."],
-            "historical": {"reviewed_known_flake": True, "independent_runs": 12, "observed_passes": 8, "observed_failures": 4, "history_eligible_for_reassurance": True, "retry_recovery_rate": 0.42},
+            "evidence": [
+                "Reviewer-approved harness record identifies nondeterministic fixture ordering outside product code."
+            ],
+            "historical": {
+                "reviewed_known_flake": True,
+                "independent_runs": 12,
+                "observed_passes": 8,
+                "observed_failures": 4,
+                "history_eligible_for_reassurance": True,
+                "retry_recovery_rate": 0.42,
+            },
             "root_cause": "reviewed nondeterministic test harness ordering",
             "severity": "low",
             "required_evidence": ["reviewed flake record", "independent run history"],
@@ -98,7 +115,9 @@ def build_case(category: str, case_index: int, family_index: int, global_family_
             "message": f"Timeout waiting for operation family {family_index} variant {variant}.{injected}",
             "exception_type": "TimeoutError",
             "details": {"trace_missing": True},
-            "evidence": ["Only a timeout message is available; trace and correlated network evidence are absent."],
+            "evidence": [
+                "Only a timeout message is available; trace and correlated network evidence are absent."
+            ],
             "historical": {},
             "root_cause": None,
             "severity": "medium",
@@ -115,7 +134,9 @@ def build_case(category: str, case_index: int, family_index: int, global_family_
         "scenario_family_id": family_id,
         "incident_id": f"incident-{family_id}",
         "artifacts": [f"synthetic://{case_id}/console.log"],
-        "history_manifest": f"synthetic://{case_id}/history.json" if category == "known_flake" else None,
+        "history_manifest": f"synthetic://{case_id}/history.json"
+        if category == "known_flake"
+        else None,
         "expected_category": category,
         "root_cause": template["root_cause"],
         "required_evidence": template["required_evidence"],
@@ -145,10 +166,14 @@ def main() -> None:
         for local_family in range(families):
             for variant in range(2):
                 case_index = local_family * 2 + variant
-                cases.append(build_case(category, case_index, local_family, global_family_index))
+                cases.append(
+                    build_case(category, case_index, local_family, global_family_index)
+                )
             global_family_index += 1
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    text = "".join(json.dumps(case, sort_keys=True, separators=(",", ":")) + "\n" for case in cases)
+    text = "".join(
+        json.dumps(case, sort_keys=True, separators=(",", ":")) + "\n" for case in cases
+    )
     OUTPUT.write_text(text, encoding="utf-8")
     counts = Counter(case["expected_category"] for case in cases)
     split_counts = Counter(case["split"] for case in cases)
@@ -160,15 +185,21 @@ def main() -> None:
         "family_count": len({case["scenario_family_id"] for case in cases}),
         "category_counts": dict(sorted(counts.items())),
         "split_counts": dict(sorted(split_counts.items())),
-        "source_counts": {"synthetic": len(cases), "ledgerguard_executed": 0, "other_executed": 0},
+        "source_counts": {
+            "synthetic": len(cases),
+            "ledgerguard_executed": 0,
+            "other_executed": 0,
+        },
         "corpus_sha256": hashlib.sha256(text.encode()).hexdigest(),
         "limitations": [
             "All committed cases are synthetic; the mandatory executed LedgerGuard provenance gate remains BLOCKED.",
             "Labels are agent-reviewed, not independently human adjudicated.",
-            "The public test split is a controlled regression benchmark, not an independently blinded generalization study."
-        ]
+            "The public test split is a controlled regression benchmark, not an independently blinded generalization study.",
+        ],
     }
-    MANIFEST.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    MANIFEST.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     print(json.dumps(manifest, indent=2))
 
 

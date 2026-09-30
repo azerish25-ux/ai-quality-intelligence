@@ -29,9 +29,7 @@ def upgrade() -> None:
     op.add_column(
         "runs", sa.Column("environment", sa.String(length=160), nullable=True)
     )
-    op.add_column(
-        "runs", sa.Column("timezone", sa.String(length=80), nullable=True)
-    )
+    op.add_column("runs", sa.Column("timezone", sa.String(length=80), nullable=True))
     op.add_column("runs", sa.Column("worker_count", sa.Integer(), nullable=True))
     op.add_column("runs", sa.Column("shard_count", sa.Integer(), nullable=True))
     op.create_index(

@@ -4,6 +4,7 @@ stdin: one JSON options line, then the image bytes. stdout: one JSON result
 line, optionally followed by a canonical PNG. Never echo decoder exceptions:
 plugins can include untrusted artifact text in their error messages.
 """
+
 from __future__ import annotations
 
 import io
@@ -15,6 +16,7 @@ import warnings
 def main() -> None:
     try:
         import resource
+
         resource.setrlimit(resource.RLIMIT_AS, (768 * 1024 * 1024, 768 * 1024 * 1024))
         resource.setrlimit(resource.RLIMIT_CPU, (8, 8))
         resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
@@ -41,6 +43,9 @@ def main() -> None:
                 if getattr(probe, "n_frames", 1) != 1:
                     fail("unsupported_image_frames")
                     return
+                if probe.format is None:
+                    fail("malformed_image")
+                    return
                 media_type = Image.MIME[probe.format]
                 probe.verify()
             with Image.open(io.BytesIO(content), formats=["PNG", "JPEG"]) as decoded:
@@ -60,22 +65,38 @@ def main() -> None:
         draw = ImageDraw.Draw(image)
         for mask in masks:
             x, y, w, h = (mask[key] for key in ("x", "y", "width", "height"))
-            if (any(type(v) is not int for v in (x, y, w, h)) or x < 0 or y < 0
-                    or w <= 0 or h <= 0 or x + w > width or y + h > height):
+            if (
+                any(type(v) is not int for v in (x, y, w, h))
+                or x < 0
+                or y < 0
+                or w <= 0
+                or h <= 0
+                or x + w > width
+                or y + h > height
+            ):
                 fail("invalid_mask")
                 return
             draw.rectangle((x, y, x + w - 1, y + h - 1), fill=(0, 0, 0))
         if options.get("preview_size"):
-            image.thumbnail((options["preview_size"], options["preview_size"]), Image.Resampling.LANCZOS)
+            image.thumbnail(
+                (options["preview_size"], options["preview_size"]),
+                Image.Resampling.LANCZOS,
+            )
         grey = image.convert("L").resize((9, 8), Image.Resampling.LANCZOS)
         pixels = list(grey.getdata())
         dhash = 0
         for y in range(8):
             for x in range(8):
                 dhash = (dhash << 1) | (pixels[y * 9 + x] > pixels[y * 9 + x + 1])
-        result = {"width": width, "height": height, "pixels": width * height,
-                  "media_type": media_type, "coordinate_system": "exif-transposed-pixels-v1",
-                  "dhash": f"{dhash:016x}", "codec_version": "pillow-" + Image.__version__}
+        result = {
+            "width": width,
+            "height": height,
+            "pixels": width * height,
+            "media_type": media_type,
+            "coordinate_system": "exif-transposed-pixels-v1",
+            "dhash": f"{dhash:016x}",
+            "codec_version": "pillow-" + Image.__version__,
+        }
         output = b""
         if options.get("encode"):
             target = io.BytesIO()
@@ -88,7 +109,15 @@ def main() -> None:
         sys.stdout.buffer.write(json.dumps(result).encode() + b"\n" + output)
     except (Image.DecompressionBombError, Image.DecompressionBombWarning, MemoryError):
         fail("limit_exceeded")
-    except (UnidentifiedImageError, OSError, SyntaxError, ValueError, KeyError, TypeError, OverflowError):
+    except (
+        UnidentifiedImageError,
+        OSError,
+        SyntaxError,
+        ValueError,
+        KeyError,
+        TypeError,
+        OverflowError,
+    ):
         fail("malformed_image")
 
 

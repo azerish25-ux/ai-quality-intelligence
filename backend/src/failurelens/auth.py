@@ -6,7 +6,7 @@ import os
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import select
@@ -314,7 +314,7 @@ def _authenticate_ingestion_token(session: Session, raw_token: str) -> Principal
 
 def current_principal(
     request: Request,
-    session: Session = Depends(get_session),
+    session: Annotated[Session, Depends(get_session)],
 ) -> Principal:
     settings = get_settings()
     raw_token = _extract_raw_token(request, settings)

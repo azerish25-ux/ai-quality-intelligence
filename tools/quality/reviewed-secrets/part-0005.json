@@ -1,0 +1,1392 @@
+{
+  "entries": [
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/220/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "24a0ce647208ffacca1b672cb928934480d58e7f92cb148cb1ba56b504de63fe",
+          "line": 6168
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0552",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2ac112e54efda927db383c9af3ff4e7352f69794af7b9874f645bec1d0fba477"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/55/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "8fab40728a844cb0981e49788fb3abee29c13f381999f3f61376eb2370da4915",
+          "line": 1684
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0219",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2c797f5f6e591813b6ce189c3df7c4dec8626cbda73e9c8be3612170e446a72d"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/82/control/sha256; /cases/82/later/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "75a4e224ea76550312dc6ebffd40494f9c38cd21727d6fcc1c2561e6cff5bebd",
+          "line": 2358
+        },
+        {
+          "context_sha256": "ae997ac7e567579513fee5acbb6ea6cbe53e27094a0b851f7d89636986e9e1ef",
+          "line": 2372
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0273",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2c7a3e005128c573fb8eb5dc309e4e4407aa149290a0d6b81938d37a5d73d87c"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/126/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "bf4934777827c80e60a5ee8f4e30cddf36efc002fb413750545aa9074bb0f1a2",
+          "line": 3453
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0363",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2d3733d50b61ae71d0d6a80e0fd3b63ac7d7873fc7145b457d702fc1a3237830"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/90/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "55e19313757c55bc086570d51073e99c08d4118e1327100f54f98fdb79db51af",
+          "line": 2583
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0290",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2d5464111bddeba38e6207a95cfc72cff884ed8bad5883d3ca0652cf054438ae"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/112/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "36e7a212d87708ab570abce86133466d047b2203983f2f7c9f35247a7baa5232",
+          "line": 3102
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0334",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2d8412a866faf94e6e33af67218bd508ef9e99a05442289550852c8a3bc49118"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/13/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "2544351e924acc35ac7e586cf75bb03fe70e4d6eb5ae5c967e83d6231ed1ef5f",
+          "line": 403
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0133",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2e08f9d597270653b7e4435d01cf92a1b8b732c51cdf93f70f4f703f714c7d6d"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/15/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "9c24efa73248a4a79fbe7f33ba2313094733c68adf4500fa28cda8239d4b81ed",
+          "line": 438
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0136",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2e2f4c812fb42f0ea7934f876b166d76b9918024b8f6cf17d4b413dc09a7f283"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/252/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "3fbe16abd39618b09821c910834511a7068fd8d621eeb226659245bd81e36346",
+          "line": 7068
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0618",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2e4386cef70997164ed401acf642374c9157e246604613682d54429d8764163c"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/24/current/sha256; /cases/24/prior/0/artifact/sha256; /cases/24/prior/2/artifact/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "9e3663df0196fe2e6cc9296e266c0fb299fdbcef6739d5f6647041eade6d0393",
+          "line": 748
+        },
+        {
+          "context_sha256": "83f9937686dd17fd40734252ee88e07bd015973b1e121e993240b590ff6a2655",
+          "line": 764
+        },
+        {
+          "context_sha256": "79bbf7f1ccd7962812a8621416cd8a0d464daa3d762cf11af210456ebdcf01ce",
+          "line": 784
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0156",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2e8fcb1f177eda5aa91679b4f0c6a82e9a87f0f5482368faca18c89ebd4e8715"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/37/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "30ba890820e372d360b513d2244f87ee068753e42c567589b81639f9ecbbed01",
+          "line": 1135
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0183",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2e9ab4492bb8a97accde38003045a9d301b1142db9052c2a12f5c06b12a7f00e"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/244/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "311fc7f9b196f2a5fae11ebb2678bb23161cf73507a1c0ce51f661280efacebf",
+          "line": 6900
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0602",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2f8623558f831e428ea528955d279592b8e6e3ae27132e9495168c0867089ad7"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/129/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "d29c1425f94de65158851426ae93c83b5526b7439f1cc007cd60632ac7cd1e7a",
+          "line": 3523
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0370",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2f9d914e4245b517ffdb62c5dcbf725870206143baa0bf71861bee7d6f615aad"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/130/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "3e605316e422605606eb7c5cdcfdece8c083127e666791e044cfcfd7cd498489",
+          "line": 3537
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0371",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2fb7ecb39bc50ea7ae795e8de5f4f855c402b6bd6a6e93e6a6c627ca1c47df7a"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/44/current/sha256; /cases/44/prior/0/artifact/sha256; /cases/44/prior/2/artifact/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "69edbe5afd8604ae9b7e0c8e514b9c0d8625adccbdd94280cd1e3abb72e00d58",
+          "line": 1339
+        },
+        {
+          "context_sha256": "16b6d8ec069d07536e32b5cce07cc60d45f9130d6a9b5b9c6b791f294905fa1d",
+          "line": 1355
+        },
+        {
+          "context_sha256": "71cbb88c9cff85c4d91dc085de9e58f9a8da9424bbd76b38d79503ded89b8c52",
+          "line": 1375
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0197",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3057ab023b3c797512dbd6a039c64933d622d7735acc7ee5b1e2ff037481234c"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/59/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "2b01f6c68da143f23e4766475c7fc067b8d7abe867fa490357757d51fc6d4971",
+          "line": 1768
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0227",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "30dee16460c527cd9778894b7574527482e508f6d1ab75d22d99b630490f4407"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/218/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "6f703b586ea5f1b6724490e49d542ad1ae10a7fc1c2912528af7b17b567b4442",
+          "line": 6126
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0548",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "30e39e499fb13c1c6d4db0aca40632e837b773a03ef7ad2e35504043563c713c"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/237/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "c4e6b76c9007ceda0fb9a4c0ed57434da9fc3ada53537f15aa7d8e1a2540f19b",
+          "line": 6639
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0587",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "31014108487ecf0882c603e9a7de18b6f97b6c9b78181b33a332e5c9de0523f5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/85/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "69594601faaeb0332d7ea79c21d93168ecbcecc5fe5f9a166f09b0112fced801",
+          "line": 2485
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0281",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "314dcb3e125091c6b7c6cb905153e07726c7cea5138335367181851b51ed9885"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/129/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "2f90065aba7297324695a936c5a1f1647f0499c3098d203699558b94a5751e37",
+          "line": 3516
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0369",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "32239c35563b89a06c577114d53f4c7a6eec1f656d71f39d4359e435ca24358e"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/251/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "c7c128eee5f4ecb31666038a00966bb7bf090f33a76650735f4148a9c2d98655",
+          "line": 7054
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0617",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3253ae075d0d7efaa506f3d7ec42f7305aa82950ce97e5231e477dd9a08bdafa"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/237/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "ce6cd8639295676142829d450ef4aa5b7618625f8504eb533bc2dc2325f21eb9",
+          "line": 6646
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0588",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "327f8f627ee03324a389710e740b152da1db5e16b486070c67c5072e233af2ae"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/217/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "87dab871501d68678d886ac849fbdb06d4c9ab83c1d8fdeabaf28976330d0d63",
+          "line": 6105
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0546",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "32f0e60ccc7b8ee210b6c1ee36a74511765d911372382d2b600a1f03c3cbc5b7"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/210/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "94366c3111cb5e4aa71e2f49023889d1cc8a923f56287d80c88d281b3ed2eb36",
+          "line": 5908
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0533",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "332e07cabde3613184ce6fabbaef6251a4c1c110e7f9d7c33b48c1ec2f897fbe"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/156/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "cddb7b162d96bc7885584ffed0208d138ca04f5528cec0f1f733e33d313fb9f7",
+          "line": 4254
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0423",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3422baa54fc035b074d3ddd51baa939130109868a6f915d4355fa30bfcc8d9b8"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/22/prior/1/artifact/sha256; /cases/22/prior/3/artifact/sha256; /cases/22/prior/4/artifact/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "4e596501a8557ba7479048719d840b04f99a0c9525462a9dffd01b368ab1c611",
+          "line": 675
+        },
+        {
+          "context_sha256": "388fb8de98642ea1e4613a1382a34914a083d6f08ba5a5af519e8686a3274535",
+          "line": 695
+        },
+        {
+          "context_sha256": "11580f75271de41a3721ac3deba24df705c6458bdedd46a7a9c73b915c041384",
+          "line": 705
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0152",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3434aff6f4b0c1c4a5fddf955055e18c65e3364ed5a15b7a473d612484128d0f"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/35/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "c0a5b060721d68a52340bb744bb60468b9241ea28eb4c51d96d0c50aee565254",
+          "line": 1086
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0178",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "347084da597d8a05f80da3efaa6b35f638a5d911a68356401a4fc1414b8ea508"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/0/source_revision; /cases/6/source_revision; /cases/9/source_revision; /cases/12/source_revision; /cases/15/source_revision; /cases/16/source_revision; /cases/26/source_revision; /cases/29/source_revision; /cases/30/source_revision; /cases/34/source_revision; /cases/38/source_revision; /cases/41/source_revision; /cases/42/source_revision; /cases/48/source_revision; /cases/54/source_revision; /cases/60/source_revision; /cases/63/source_revision; /cases/65/source_revision; /cases/78/source_revision; /cases/81/source_revision; /cases/85/source_revision; /cases/88/source_revision; /cases/89/source_revision; /cases/95/source_revision; /cases/97/source_revision; /cases/101/source_revision; /cases/102/source_revision; /cases/105/source_revision; /cases/109/source_revision; /cases/110/source_revision; /cases/114/source_revision; /cases/120/source_revision; /cases/136/source_revision; /cases/142/source_revision; /cases/144/source_revision; /cases/164/source_revision; /cases/167/source_revision; /cases/168/source_revision; /cases/169/source_revision; /cases/172/source_revision; /cases/176/source_revision; /cases/181/source_revision; /cases/183/source_revision; /cases/187/source_revision; /cases/193/source_revision; /cases/195/source_revision; /cases/209/source_revision; /cases/217/source_revision; /cases/220/source_revision; /cases/225/source_revision; /cases/227/source_revision; /cases/230/source_revision; /cases/231/source_revision; /cases/237/source_revision; /cases/243/source_revision; /cases/251/source_revision; /cases/253/source_revision; /cases/255/source_revision; /cases/256/source_revision; /cases/259/source_revision",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 22
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 262
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 325
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 388
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 451
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 472
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 853
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 916
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 937
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 1078
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 1162
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 1225
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 1246
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 1486
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 1669
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 1795
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 1915
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 1957
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 2287
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 2350
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 2491
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 2554
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 2575
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 2701
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 2743
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 2884
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 2905
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 2968
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 3052
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 3073
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 3157
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 3340
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 3733
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 3916
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 3958
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 4549
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 4669
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 4690
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 4711
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 4831
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 4972
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 5134
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 5176
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 5317
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 5500
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 5542
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 5893
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 6118
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 6181
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 6343
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 6385
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 6448
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 6469
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 6652
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 6892
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 7060
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 7102
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 7201
+        },
+        {
+          "context_sha256": "9bc0df997f46eb8bf42c3dd62f4f86c33f1020d8a41f7cf4b7a3917650f390f2",
+          "line": 7222
+        },
+        {
+          "context_sha256": "f1134574565a3f825a4b753948950f52f8f3a2257dbbe3682155ac91968a7d5a",
+          "line": 7342
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0106",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3489d7a15a6e55d6cb411770ca117168693075bb6b1f1e6ff50a1db455794635"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/154/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "657e7d09c0de93d3d4ab498e3206db81b2ac9d5c3aefb8ac196829b2f463f56c",
+          "line": 4219
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0420",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "361a3d8cace8b3a1165dd3cc6e150287da73335ebc1a279445224eb9c4b88f69"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/176/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "75318cd71b20b1e323402d8b94757f5b2cd897b76079e6ceab8c25957610c2dc",
+          "line": 4966
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0465",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "36a6387dae76d937a592ac55d598683b7b8b1303acccddd335dd8eeaeaa35486"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/255/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "ab82dfe951bd8893c65292e861f9959fe58debd67539a254f56c43490ff0c348",
+          "line": 7188
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0624",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "36d80ecc0a4ea24acb3b3f9089fd324f99968497893be2235be2f9e63e1ebffd"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/73/current/sha256; /cases/73/prior/0/artifact/sha256; /cases/73/prior/2/artifact/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "2e8ace5b2a841e509f8633f988fe6a1fabc91d1f68655be9ee4006f59ddbd22b",
+          "line": 2119
+        },
+        {
+          "context_sha256": "5ba56350ecbe30cd5eead6c45c443c9c69e2f66ec3e2d80009502a5ba297c9d3",
+          "line": 2135
+        },
+        {
+          "context_sha256": "f1177ec3037ad4c01f2bf71f78981169e5cd4daaef4fb0287c52e4cde95eacf0",
+          "line": 2155
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0256",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "376d1fa3c60087e750fa008b4977cba6da6faec52c7e4f9c433ec5104afcd50e"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/39/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "56c6752716d03dfd27b3071cf64a4c34c52f6667d6611ae11a316e389d193a0c",
+          "line": 1177
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0187",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "37f7634bdd74ebaa9c102d8dd7281c983f8a2a8b48317608e7339902c48a5526"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/142/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "fb70986bb50137d5fed2a191fe420cb63e8d66e19eb61fe5bd6fd7bf1d51dc9f",
+          "line": 3910
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0396",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "386e07832198d6336b9f577696d430f61fe031ea75b1345f2ec6b259db29a35d"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/187/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "3c98bed416bccc2b867b7e16e82297afbb8e5b438b30531244c3c770c5486623",
+          "line": 5304
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0486",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "38c58281926a12eab5a9fa81eba6c6c3feefc3c9b4f072a1d64773edb88f226c"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/62/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "dc189f5c8d350e095c99e72de5eef7673dbc32fb16c9d2906d70c2eda4fa17ca",
+          "line": 1888
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0234",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "39461b13325ad18244c096f768aa58c118e6da0f0ddbfdf59ca0b383d6b88bc1"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/206/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "b0b5c3e53eb1cff2dfa107f805a1432e396190c1fd0f57f117acf90d07ff28a6",
+          "line": 5817
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0524",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "39f3c70e6afa4d2bbe925664c45f5656df7e0dc5af35c6302d5c5c88198687d2"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/206/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "858847e3bfae3ada73673b9c6592992b835443bb0945729e0975dc348055d7ba",
+          "line": 5824
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0525",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3a32f2fdc693d902f7cd55ea54b5ac6436061ec38cdb03e37cbf724a7863e163"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/40/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "a0f697e5b0409dc8dc18fa73e76f3df73bcf70258c540b436015d1e9a076d2f4",
+          "line": 1198
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0189",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3a6c099285b3badbda103f2dc62d7f56614a692bc3dc5f64dbf68cdd018d6fd5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/15/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "05d3978ddebe228a2b40c908eaffd1bdf5aa7d31a3f0b3daf0fda1d1388a49bc",
+          "line": 445
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0137",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3a8eec267bb5dadc2187a583720fcc5a1fba97ac19e72708534e8647f0d7a1f8"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/26/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "b740d4b382d5127f8a531292334bee8ece0c05a900bc7d334f5dca6c92f32924",
+          "line": 847
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0160",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3ad2c89e46bde215bc1510925b5da841691365ac2c65a9507082c5f6aa542f7a"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/173/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "1126b3137a71c1277d92907962b3c8d9eec9769d2e36d4ef25deb68b9439f5f3",
+          "line": 4846
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0459",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3b0d31ef9b13b7768016fe7003ca179ff570c89d8ae58964b71da95fdc0bbb5f"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/236/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "7d3dfee96043c9cd275daa9a49c6e6ea0927d0d55c3ddbbbd50e77866e2b4391",
+          "line": 6625
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0586",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3d8a872a14264fd283c7867a577f24483bb1523101b28595f3908a0560f3fdf2"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/132/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "0c9f35772d26f970b9d8ecae1514bda69727c04bc6e6df088995bb728a978c47",
+          "line": 3643
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0376",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3e4dd8acec7e4657a2bb51f7898cc1a45a9f0e73e209669e87067ffe6eda13f5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/163/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "373aa4d49dc836598e7954c51c401fa8d3307c5ec1e07792b1751266809e6021",
+          "line": 4522
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0439",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3f9efa79ff09d5cae6b126515e788ea43ee71b8b54b219d8ea73a3868f598921"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/223/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "dfb63620af5daacf1c492e87d9b94fd9feb32f5cbe3ad85ae99748a4abd42587",
+          "line": 6295
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0560",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3ff90f91f9819ea271589624e0ccd41d29893ab1ff65df1660680ba011df9906"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/128/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "e162c64ce385676050b5a4aba50aa2ce50cb0d066540218e6afbf15a9451beff",
+          "line": 3502
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0368",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "405b91ada64db547c86eb9837ce1db4f366f01e22fbe46cc84761ec249c519a5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/98/control/sha256; /cases/98/later/sha256; /cases/98/prior/1/artifact/sha256; /cases/98/prior/3/artifact/sha256; /cases/98/prior/4/artifact/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "64335ab388409bdfddd3325a00cffabb8d3e35e1cf31beacd814fcecf4d314a4",
+          "line": 2751
+        },
+        {
+          "context_sha256": "08622c371d5acbdef76ec016e61c4ece6e051ce095a4a9e71a0e41d53f5c73a4",
+          "line": 2765
+        },
+        {
+          "context_sha256": "4eb8269192de2dec38990e29b5a3bd73a824c4c0a4c1e1df2288a06cd791c206",
+          "line": 2784
+        },
+        {
+          "context_sha256": "d0349c7d8ed32ca329c3d77e16f8680370f123d0b9737a97363ef2c4b4e6e532",
+          "line": 2804
+        },
+        {
+          "context_sha256": "6ebc5c0eb4bc0332e3e56e0fc0c7461ac497200cabf12488f1990bcb34349cb0",
+          "line": 2814
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0306",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "40e1cf7b0cca2241eac550516348beea18eb85fce9241030fc8eb4dea93539e1"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/211/control/sha256; /cases/211/later/sha256; /cases/211/prior/1/artifact/sha256; /cases/211/prior/3/artifact/sha256; /cases/211/prior/4/artifact/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "2a5610ebcca1d26dbb9d2827ad6387f1ec074570cd5fe5503ab66969c8b5986e",
+          "line": 5922
+        },
+        {
+          "context_sha256": "fbd292e1eed58d53c56c4e37b6b841b2f56a376f5faf4c54f97ae979b280d504",
+          "line": 5936
+        },
+        {
+          "context_sha256": "d4a249c769194f95db76eb22259a5e92337922f9b6d32433610e593c4d70c116",
+          "line": 5955
+        },
+        {
+          "context_sha256": "81be1f93d02b8eb2d05d32c26d414529de21d2db7cf889fe9e5244c1b76c1d97",
+          "line": 5975
+        },
+        {
+          "context_sha256": "7a5eccc710a8a62a2b526cd16a37aabb0bcb0fd02b2806b9ac7ce01e61bf2d9f",
+          "line": 5985
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0534",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "40eb41015319f36250264efe6aeb2c24a4200e7cbb74a4f6d6567e51a2df8969"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/124/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "a2a0ea6eaae031cb8433f87faf58c314a263235b32fe6e0e175c5a4e19020575",
+          "line": 3411
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0359",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "40f68e4e9d5289ac619805a7d0afd1a7cad1f329622b6f9ec964cb675e740feb"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/96/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "971cf1686005ce96844a2f63e230a98d6f05ad8eb85f2fa04ab57c906d3d6300",
+          "line": 2709
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0302",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "41b91036e6a29d837971d3c2a808349a416d1d5ea4be9fc40337a4cfb5f95cea"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/20/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "f1784ae44166798a544f3a26aaa7020e148aa8072c14ab64bd1b0ca61f34fa99",
+          "line": 607
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0147",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "4300906761d0d0d9a2f962f95b5a6fdd0efdeed7723d4eb4a99d1e3c5972b954"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/178/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "1e60e9fcfa3d89b9dc51f9b786bf4374b3256b83e622d7335d9785e37984eb5d",
+          "line": 5001
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0468",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "432a42cb108f975f5c6d7eaa6dca5c9e142dc1261c1eb9a6706673d26b2d936d"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/37/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "61d80633b2e92762eed6bb11864e518592d55e05c8d7d515175e0517e50e1d81",
+          "line": 1128
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0182",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "44886c3d89f3a23124b174ecafaaaf0cc25733e50c65d691db5be95de28ce5e3"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/49/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "ea619878f6d360ce6d4369b907a8aa9bccd987553e72e2310de068347e7a7f7a",
+          "line": 1501
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0207",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "44998ad96a4e1639bd1c270154ace697d02d6dec9ab905966dd7bfb5854e0545"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/30/control/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "32b0a28d09a94e8b9ef83ec307a64c02726d4023cbebf85fbc046f4ce29b7f59",
+          "line": 924
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0167",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "44bbfbe9c476ab083c936b3ea888140e126a3ef5deda684954c87adbe0338abd"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/cases/112/current/sha256",
+      "file": "evaluation/corpus/benchmark-v1/inputs/manifest.json",
+      "file_sha256": "f0d9a4ef3d6d983ad9f03a717774282974928c846de33c34590fedede7d7e485",
+      "occurrences": [
+        {
+          "context_sha256": "b450b3e5789c6ba654faa9d5a95daf79c77d069fec3e86b40ceb543169b46e44",
+          "line": 3109
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0335",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "44f1fa9b9c77336eeb2659f4e49e07ea86ab2dd2235d7466bcb38bd958701be4"
+    }
+  ],
+  "schema_version": 1
+}

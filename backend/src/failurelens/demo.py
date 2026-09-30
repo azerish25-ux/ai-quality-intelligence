@@ -3,13 +3,15 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .models import Failure, Project
+from .models import Failure, Outcome
 from .schemas import IngestionRequest, TestObservation
 from .service import analyze_and_persist, create_project, ingest_normalized
 
 
 def seed_demo(session: Session) -> dict[str, str]:
-    project = create_project(session, "ledgerguard-demo", "LedgerGuard synthetic demonstration")
+    project = create_project(
+        session, "ledgerguard-demo", "LedgerGuard synthetic demonstration"
+    )
     request = IngestionRequest(
         external_id="demo-run-001",
         repository="azerish25-ux/transaction-reliability-lab",
@@ -22,13 +24,16 @@ def seed_demo(session: Session) -> dict[str, str]:
         worker_count=1,
         shard_count=1,
         expected_inputs=1,
-        source_metadata={"synthetic": True, "notice": "No claim of actual LedgerGuard execution"},
+        source_metadata={
+            "synthetic": True,
+            "notice": "No claim of actual LedgerGuard execution",
+        },
         observations=[
             TestObservation(
                 test_identity="payments::duplicate-idempotency",
                 source_path="tests/payments.spec.ts",
                 browser="chromium",
-                outcome="failed",
+                outcome=Outcome.failed,
                 message=(
                     "balance invariant violated at src/ledger.py:114: "
                     "duplicate committed transfer produced double charge"
@@ -46,7 +51,7 @@ def seed_demo(session: Session) -> dict[str, str]:
                 test_identity="payments::duplicate-idempotency",
                 source_path="tests/payments.spec.ts",
                 browser="firefox",
-                outcome="failed",
+                outcome=Outcome.failed,
                 message=(
                     "balance invariant violated at src/ledger.py:992: "
                     "duplicate committed transfer produced double charge"
@@ -62,14 +67,14 @@ def seed_demo(session: Session) -> dict[str, str]:
             ),
             TestObservation(
                 test_identity="ui::checkout-selector",
-                outcome="failed",
+                outcome=Outcome.failed,
                 message="Timeout waiting for selector [data-testid=pay-now]",
                 exception_type="TimeoutError",
                 details={"trace_missing": True},
             ),
             TestObservation(
                 test_identity="api::health",
-                outcome="passed",
+                outcome=Outcome.passed,
                 duration_ms=42,
             ),
         ],

@@ -30,11 +30,15 @@ jobs:
         check: [locks, lint, format, types, python-audit, secrets, workflows]
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: "1"
-      PIP_CACHE_DIR: ${{ runner.temp }}/quality-pip-cache
-      UV_CACHE_DIR: ${{ runner.temp }}/quality-uv-cache
-      XDG_CACHE_HOME: ${{ runner.temp }}/quality-cache
-      NPM_CONFIG_CACHE: ${{ runner.temp }}/quality-npm-cache
     steps:
+      - name: Set isolated cache paths after runner allocation
+        shell: bash
+        run: |
+          printf '%s\n' \
+            "PIP_CACHE_DIR=$RUNNER_TEMP/quality-pip-cache" \
+            "UV_CACHE_DIR=$RUNNER_TEMP/quality-uv-cache" \
+            "XDG_CACHE_HOME=$RUNNER_TEMP/quality-cache" \
+            "NPM_CONFIG_CACHE=$RUNNER_TEMP/quality-npm-cache" >> "$GITHUB_ENV"
       - name: Check out exact source without retained credentials
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -83,10 +87,14 @@ jobs:
     timeout-minutes: 20
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: "1"
-      PIP_CACHE_DIR: ${{ runner.temp }}/quality-pip-cache
-      XDG_CACHE_HOME: ${{ runner.temp }}/quality-cache
-      NPM_CONFIG_CACHE: ${{ runner.temp }}/quality-npm-cache
     steps:
+      - name: Set isolated cache paths after runner allocation
+        shell: bash
+        run: |
+          printf '%s\n' \
+            "PIP_CACHE_DIR=$RUNNER_TEMP/quality-pip-cache" \
+            "XDG_CACHE_HOME=$RUNNER_TEMP/quality-cache" \
+            "NPM_CONFIG_CACHE=$RUNNER_TEMP/quality-npm-cache" >> "$GITHUB_ENV"
       - name: Check out exact source without retained credentials
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:

@@ -190,11 +190,13 @@ def build_cases() -> list[dict[str, Any]]:
         ),
         _case(
             "impact-renamed-old-path",
-            changes=[{
-                "status": "renamed",
-                "path": "src/profile_new.py",
-                "old_path": "src/old-profile.py",
-            }],
+            changes=[
+                {
+                    "status": "renamed",
+                    "path": "src/profile_new.py",
+                    "old_path": "src/old-profile.py",
+                }
+            ],
             revealing_tests=["profile"],
             family="rename-delete",
             rationale="Rename handling must preserve the reviewed old-path ownership mapping.",
@@ -293,7 +295,9 @@ def main() -> None:
             "The fixture does not satisfy the required actual LedgerGuard execution count.",
         ],
     }
-    MANIFEST.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    MANIFEST.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     print(json.dumps({"cases": len(cases), "manifest": str(MANIFEST)}, indent=2))
 
 

@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from sqlalchemy import func, select
-
 from failurelens.clustering import (
     ALGORITHM_VERSION,
     FEATURE_VERSION,
@@ -22,8 +20,10 @@ from failurelens.models import (
     FailureCluster,
     Outcome,
 )
-from failurelens.schemas import IngestionRequest, TestObservation as Observation
+from failurelens.schemas import IngestionRequest
+from failurelens.schemas import TestObservation as Observation
 from failurelens.service import create_project, ingest_normalized
+from sqlalchemy import func, select
 
 
 def _ingest_failure(
@@ -299,7 +299,9 @@ def test_reprocessing_is_idempotent_and_version_change_appends_revision(
     assert cluster.current_revision == 1
     assert session.scalar(select(func.count(ClusterRevision.id))) == 1
 
-    monkeypatch.setattr("failurelens.clustering.ALGORITHM_VERSION", "explainable-complete-link-v2-test")
+    monkeypatch.setattr(
+        "failurelens.clustering.ALGORITHM_VERSION", "explainable-complete-link-v2-test"
+    )
     cluster_project_failures(session, project.id)
     session.refresh(cluster)
     assert cluster.current_revision == 2

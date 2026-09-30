@@ -4,23 +4,25 @@ Revision ID: 7f3c1d9a2b44
 Revises: 2bdd16d7c241
 Create Date: 2026-09-26 22:15:00.000000
 """
-from typing import Sequence, Union
 
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
-
+from alembic import op
 
 revision: str = "7f3c1d9a2b44"
-down_revision: Union[str, None] = "2bdd16d7c241"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "2bdd16d7c241"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
     # Batch mode keeps the revision executable for the supported SQLite
     # developer profile while remaining a normal ALTER on PostgreSQL.
     with op.batch_alter_table("analyses") as batch_op:
-        batch_op.add_column(sa.Column("input_digest", sa.String(length=64), nullable=True))
+        batch_op.add_column(
+            sa.Column("input_digest", sa.String(length=64), nullable=True)
+        )
         batch_op.create_unique_constraint(
             "uq_analysis_input",
             ["failure_id", "analysis_version", "input_digest"],
@@ -85,7 +87,9 @@ def upgrade() -> None:
             name="uq_ingestion_identity",
         ),
     )
-    op.create_index("ix_ingestions_project_id", "ingestions", ["project_id"], unique=False)
+    op.create_index(
+        "ix_ingestions_project_id", "ingestions", ["project_id"], unique=False
+    )
     op.create_index(
         "ix_ingestions_project_created",
         "ingestions",

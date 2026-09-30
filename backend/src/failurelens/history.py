@@ -5,6 +5,7 @@ import json
 import math
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
+from itertools import pairwise
 from statistics import median
 from typing import Any, NamedTuple
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -119,7 +120,11 @@ def _outcome_counts(values: list[str]) -> dict[str, int]:
 
 def _aggregate_run_outcome(values: list[str]) -> str:
     if len(values) == 1:
-        return values[0] if values[0] in {"passed", "failed", "skipped", "cancelled", "unknown"} else Outcome.unknown.value
+        return (
+            values[0]
+            if values[0] in {"passed", "failed", "skipped", "cancelled", "unknown"}
+            else Outcome.unknown.value
+        )
     observed = set(values)
     for outcome in (
         Outcome.failed,
@@ -198,7 +203,9 @@ def _breakdown_rows(
     for label, items in sorted(grouped.items(), key=lambda pair: pair[0]):
         outcomes = [str(item["final_outcome"]) for item in items]
         counts = _outcome_counts(outcomes)
-        pass_fail_denominator = counts[Outcome.passed.value] + counts[Outcome.failed.value]
+        pass_fail_denominator = (
+            counts[Outcome.passed.value] + counts[Outcome.failed.value]
+        )
         rows.append(
             {
                 "value": label,
@@ -223,7 +230,11 @@ def _sequence_summary(observations: list[dict[str, Any]]) -> dict[str, Any]:
         item
         for item in sorted(
             observations,
-            key=lambda value: (value["observed_at"], value["run_id"], value["browser"] or ""),
+            key=lambda value: (
+                value["observed_at"],
+                value["run_id"],
+                value["browser"] or "",
+            ),
         )
         if item["final_outcome"] in {Outcome.passed.value, Outcome.failed.value}
     ]
@@ -248,7 +259,7 @@ def _sequence_summary(observations: list[dict[str, Any]]) -> dict[str, Any]:
 
     intervals = [
         (_as_utc(current) - _as_utc(previous)).total_seconds()
-        for previous, current in zip(failure_times, failure_times[1:])
+        for previous, current in pairwise(failure_times)
     ]
     return {
         "ordered_pass_fail_observations": len(ordered),
@@ -404,6 +415,7 @@ def _reviewed_known_flake_events(
 
 from .telemetry import instrument
 
+
 @instrument("history")
 def build_test_history(
     session: Session,
@@ -476,12 +488,26 @@ def build_test_history(
 
     statement = (
         select(
-            TestExecution.id, TestExecution.browser, TestExecution.attempt,
-            TestExecution.outcome, TestExecution.duration_ms,
-            Run.id, Run.external_id, Run.commit_sha, Run.branch,
-            Run.environment, Run.run_scope, Run.completeness, Run.evidence_expired_at,
-            Run.timezone, Run.worker_count, Run.shard_count, Run.started_at,
-            Run.created_at, Run.repository, Run.framework,
+            TestExecution.id,
+            TestExecution.browser,
+            TestExecution.attempt,
+            TestExecution.outcome,
+            TestExecution.duration_ms,
+            Run.id,
+            Run.external_id,
+            Run.commit_sha,
+            Run.branch,
+            Run.environment,
+            Run.run_scope,
+            Run.completeness,
+            Run.evidence_expired_at,
+            Run.timezone,
+            Run.worker_count,
+            Run.shard_count,
+            Run.started_at,
+            Run.created_at,
+            Run.repository,
+            Run.framework,
         )
         .select_from(TestExecution)
         .join(Run, TestExecution.run_id == Run.id)
@@ -494,7 +520,37 @@ def build_test_history(
         )
         .limit(MAX_HISTORY_EXECUTIONS + 1)
     )
-    raw_rows = [(_HistoryAttempt(*row[:5]), _HistoryRun(*row[5:])) for row in session.execute(statement)]
+    # Keyed scalar projections avoid SQLAlchemy's fixed-length tuple overloads
+    # for wide selects and keep each field bound to its source column.
+    raw_rows = [
+        (
+            _HistoryAttempt(
+                row[TestExecution.id],
+                row[TestExecution.browser],
+                row[TestExecution.attempt],
+                row[TestExecution.outcome],
+                row[TestExecution.duration_ms],
+            ),
+            _HistoryRun(
+                row[Run.id],
+                row[Run.external_id],
+                row[Run.commit_sha],
+                row[Run.branch],
+                row[Run.environment],
+                row[Run.run_scope],
+                row[Run.completeness],
+                row[Run.evidence_expired_at],
+                row[Run.timezone],
+                row[Run.worker_count],
+                row[Run.shard_count],
+                row[Run.started_at],
+                row[Run.created_at],
+                row[Run.repository],
+                row[Run.framework],
+            ),
+        )
+        for row in session.execute(statement).mappings()
+    ]
     truncated = len(raw_rows) > MAX_HISTORY_EXECUTIONS
     raw_rows = raw_rows[:MAX_HISTORY_EXECUTIONS]
 
@@ -509,13 +565,19 @@ def build_test_history(
             continue
         if after_utc is not None and observed_at < after_utc:
             continue
-        if run.repository != selected_run.repository or run.framework != selected_run.framework:
+        if (
+            run.repository != selected_run.repository
+            or run.framework != selected_run.framework
+        ):
             continue
         if match_branch and run.branch != branch:
             continue
         if match_environment and run.environment != environment:
             continue
-        if normalized_scope is not None and _normalize_scope(run.run_scope) != normalized_scope:
+        if (
+            normalized_scope is not None
+            and _normalize_scope(run.run_scope) != normalized_scope
+        ):
             continue
         if match_worker_count and run.worker_count != worker_count:
             continue
@@ -551,7 +613,9 @@ def build_test_history(
                 "browser": browser_key or None,
                 "environment": run.environment,
                 "run_scope": _normalize_scope(run.run_scope),
-                "run_completeness": "expired" if run.evidence_expired_at else run.completeness,
+                "run_completeness": "expired"
+                if run.evidence_expired_at
+                else run.completeness,
                 "timezone": run.timezone,
                 "worker_count": run.worker_count,
                 "shard_count": run.shard_count,
@@ -566,7 +630,8 @@ def build_test_history(
                 "final_execution_id": final.id,
                 "retry_recovered": retry_recovered,
                 "duration_ms": final.duration_ms,
-                "duplicate_attempt_numbers": len(set(attempt_numbers)) != len(attempt_numbers),
+                "duplicate_attempt_numbers": len(set(attempt_numbers))
+                != len(attempt_numbers),
             }
         )
 
@@ -580,7 +645,7 @@ def build_test_history(
 
     run_observations: list[dict[str, Any]] = []
     for run_id, items in observations_by_run.items():
-        ordered_items = sorted(items, key=lambda item: (item["browser"] or ""))
+        ordered_items = sorted(items, key=lambda item: item["browser"] or "")
         representative = ordered_items[0]
         first_outcome = _aggregate_run_outcome(
             [str(item["first_outcome"]) for item in ordered_items]
@@ -638,7 +703,9 @@ def build_test_history(
     final_counts = _outcome_counts(
         [str(item["final_outcome"]) for item in run_observations]
     )
-    pass_fail_denominator = final_counts[Outcome.passed.value] + final_counts[Outcome.failed.value]
+    pass_fail_denominator = (
+        final_counts[Outcome.passed.value] + final_counts[Outcome.failed.value]
+    )
     first_pass_fail_denominator = (
         first_counts[Outcome.passed.value] + first_counts[Outcome.failed.value]
     )
@@ -647,11 +714,23 @@ def build_test_history(
         for item in run_observations
         if item["first_outcome"] == Outcome.failed.value
     ]
-    retry_recovered_count = sum(bool(item["retry_recovered"]) for item in retry_eligible)
+    retry_recovered_count = sum(
+        bool(item["retry_recovered"]) for item in retry_eligible
+    )
 
     comparable_runs_statement = (
-        select(Run.id, Run.started_at, Run.created_at, Run.repository, Run.framework,
-               Run.branch, Run.environment, Run.run_scope, Run.worker_count, Run.shard_count)
+        select(
+            Run.id,
+            Run.started_at,
+            Run.created_at,
+            Run.repository,
+            Run.framework,
+            Run.branch,
+            Run.environment,
+            Run.run_scope,
+            Run.worker_count,
+            Run.shard_count,
+        )
         .where(
             Run.project_id == selected_run.project_id,
             _nullable_equal(Run.repository, selected_run.repository),
@@ -662,30 +741,53 @@ def build_test_history(
         .order_by(func.coalesce(Run.started_at, Run.created_at), Run.id)
         .limit(MAX_HISTORY_RUNS + 1)
     )
-    comparable_rows = [_ComparableRun(*row) for row in session.execute(comparable_runs_statement)]
+    comparable_rows = [
+        _ComparableRun(
+            row[0],
+            row[1],
+            row[2],
+            row[3],
+            row[4],
+            row[5],
+            row[6],
+            row[7],
+            row[8],
+            row[9],
+        )
+        for row in session.execute(comparable_runs_statement)
+    ]
     comparable_truncated = len(comparable_rows) > MAX_HISTORY_RUNS
     candidate_run_ids: set[str] = set()
-    for run in comparable_rows[:MAX_HISTORY_RUNS]:
-        observed_at = _run_timestamp(run)
-        if exclude_run_id and run.id == exclude_run_id:
+    for comparable_run in comparable_rows[:MAX_HISTORY_RUNS]:
+        observed_at = _run_timestamp(comparable_run)
+        if exclude_run_id and comparable_run.id == exclude_run_id:
             continue
-        if observed_at >= cutoff_utc or _as_utc(run.created_at) >= cutoff_utc:
+        if (
+            observed_at >= cutoff_utc
+            or _as_utc(comparable_run.created_at) >= cutoff_utc
+        ):
             continue
         if after_utc is not None and observed_at < after_utc:
             continue
-        if run.repository != selected_run.repository or run.framework != selected_run.framework:
+        if (
+            comparable_run.repository != selected_run.repository
+            or comparable_run.framework != selected_run.framework
+        ):
             continue
-        if match_branch and run.branch != branch:
+        if match_branch and comparable_run.branch != branch:
             continue
-        if match_environment and run.environment != environment:
+        if match_environment and comparable_run.environment != environment:
             continue
-        if normalized_scope is not None and _normalize_scope(run.run_scope) != normalized_scope:
+        if (
+            normalized_scope is not None
+            and _normalize_scope(comparable_run.run_scope) != normalized_scope
+        ):
             continue
-        if match_worker_count and run.worker_count != worker_count:
+        if match_worker_count and comparable_run.worker_count != worker_count:
             continue
-        if match_shard_count and run.shard_count != shard_count:
+        if match_shard_count and comparable_run.shard_count != shard_count:
             continue
-        candidate_run_ids.add(run.id)
+        candidate_run_ids.add(comparable_run.id)
 
     observed_run_ids = {str(item["run_id"]) for item in run_observations}
     reviewed_events, review_truncated = _reviewed_known_flake_events(
@@ -933,8 +1035,10 @@ def build_test_history(
             "selection_bias_present": bool(selected_subset_count),
             "truncated": truncated or comparable_truncated or review_truncated,
             "notes": [
-                "Overall rates use one conservative outcome per independent run; browser "
-                "breakdowns use run/browser cohorts.",
+                (
+                    "Overall rates use one conservative outcome per independent run; browser "
+                    "breakdowns use run/browser cohorts."
+                ),
                 "Retries are not counted as independent runs.",
                 "Runs without a matching test observation are not counted as passes.",
                 "Review decisions and runs at or after the cutoff are excluded.",
@@ -983,9 +1087,7 @@ def history_context_for_failure(session: Session, failure: Failure) -> dict[str,
         "history_input_digest": report["history_input_digest"],
         "history_cutoff": report["window"]["before"],
         "independent_runs": report["sample_sizes"]["independent_runs"],
-        "independent_observations": report["sample_sizes"][
-            "independent_observations"
-        ],
+        "independent_observations": report["sample_sizes"]["independent_observations"],
         "observed_passes": final_counts[Outcome.passed.value],
         "observed_failures": final_counts[Outcome.failed.value],
         "reviewed_known_flake": report["review"]["reviewed_known_flake"],
@@ -996,9 +1098,7 @@ def history_context_for_failure(session: Session, failure: Failure) -> dict[str,
         "history_eligible_for_reassurance": report["safety"][
             "history_eligible_for_reassurance"
         ],
-        "insufficient_data_reasons": report["safety"][
-            "insufficient_data_reasons"
-        ],
+        "insufficient_data_reasons": report["safety"]["insufficient_data_reasons"],
         "cohort": {
             "browser": failure.execution.browser,
             "branch": failure.run.branch,

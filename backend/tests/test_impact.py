@@ -4,17 +4,14 @@ import hashlib
 import json
 
 import pytest
-from sqlalchemy import select
-
 from failurelens.models import (
-    ImpactMappingSnapshot,
     ImpactOverride,
     ImpactRecommendation,
-    Project,
     Run,
     RunInput,
     RunStatus,
 )
+from sqlalchemy import select
 
 BASE_SHA = "1" * 40
 HEAD_SHA = "2" * 40
@@ -135,7 +132,10 @@ def _mapping_payload(
         "policy_version": "impact-policy-v1",
         "trusted": trusted,
         "coverage_complete": coverage_complete,
-        "source_metadata": {"generator": "controlled-test", "trusted_revision": HEAD_SHA},
+        "source_metadata": {
+            "generator": "controlled-test",
+            "trusted_revision": HEAD_SHA,
+        },
         "tests": [
             {
                 "test_key": "smoke",
@@ -227,7 +227,9 @@ def test_focused_selection_is_explainable_persisted_and_override_audited(
         "unrelated"
     ]
     checkout = next(
-        item for item in recommendation["selected_tests"] if item["test_key"] == "checkout"
+        item
+        for item in recommendation["selected_tests"]
+        if item["test_key"] == "checkout"
     )
     assert "mapping:coverage" in checkout["reason_codes"]
     assert checkout["mapping_edge_ids"]
@@ -239,14 +241,10 @@ def test_focused_selection_is_explainable_persisted_and_override_audited(
     assert repeated["id"] == recommendation["id"]
     assert len(session.scalars(select(ImpactRecommendation)).all()) == 1
 
-    listed = client.get(
-        f"/api/v1/projects/{project['id']}/impact-recommendations"
-    )
+    listed = client.get(f"/api/v1/projects/{project['id']}/impact-recommendations")
     assert listed.status_code == 200
     assert [item["id"] for item in listed.json()] == [recommendation["id"]]
-    fetched = client.get(
-        f"/api/v1/impact-recommendations/{recommendation['id']}"
-    )
+    fetched = client.get(f"/api/v1/impact-recommendations/{recommendation['id']}")
     assert fetched.status_code == 200
     assert fetched.json()["input_digest"] == recommendation["input_digest"]
     overview = client.get("/api/v1/overview").json()
@@ -303,7 +301,9 @@ def test_focused_selection_is_explainable_persisted_and_override_audited(
     assert len(session.scalars(select(ImpactOverride)).all()) == 1
 
 
-def test_reverse_dependency_and_renamed_old_path_select_impacted_test(client, session) -> None:
+def test_reverse_dependency_and_renamed_old_path_select_impacted_test(
+    client, session
+) -> None:
     project = _project(client, "impact-dependency")
     run, _ = _run_with_changes(
         session,
@@ -326,7 +326,9 @@ def test_reverse_dependency_and_renamed_old_path_select_impacted_test(client, se
         "checkout",
     }
     checkout = next(
-        item for item in recommendation["selected_tests"] if item["test_key"] == "checkout"
+        item
+        for item in recommendation["selected_tests"]
+        if item["test_key"] == "checkout"
     )
     mapping_reason = next(
         reason for reason in checkout["reasons"] if reason["code"] == "mapping:coverage"
@@ -336,7 +338,14 @@ def test_reverse_dependency_and_renamed_old_path_select_impacted_test(client, se
 
 
 @pytest.mark.parametrize(
-    ("files", "trust", "complete", "mapping_trusted", "coverage_complete", "expected_reason"),
+    (
+        "files",
+        "trust",
+        "complete",
+        "mapping_trusted",
+        "coverage_complete",
+        "expected_reason",
+    ),
     [
         (
             [{"status": "modified", "path": "src/checkout.py"}],
@@ -478,11 +487,16 @@ def test_mapping_versions_are_immutable_and_paths_are_validated(client) -> None:
     assert response.status_code == 422
     assert "dependency edges must target" in response.json()["detail"]
 
-    snapshots = client.get(
-        f"/api/v1/projects/{project['id']}/impact-mappings"
-    ).json()
+    snapshots = client.get(f"/api/v1/projects/{project['id']}/impact-mappings").json()
     assert [item["id"] for item in snapshots] == [first["id"]]
-    assert len(client.get(f"/api/v1/projects/{project['id']}/impact-mappings?limit=1&offset=1").json()) == 0
+    assert (
+        len(
+            client.get(
+                f"/api/v1/projects/{project['id']}/impact-mappings?limit=1&offset=1"
+            ).json()
+        )
+        == 0
+    )
 
 
 def test_project_and_run_isolation_prevent_cross_project_impact_analysis(
@@ -523,7 +537,10 @@ def test_mismatched_base_or_head_never_yields_focused_subset(client, session) ->
     assert recommendation["status"] == "FULL_SUITE_REQUIRED"
     assert "run_head_sha_mismatch" in recommendation["safety_reasons"]
 
-def test_requested_comparison_sha_must_match_changed_file_evidence(client, session) -> None:
+
+def test_requested_comparison_sha_must_match_changed_file_evidence(
+    client, session
+) -> None:
     project = _project(client, "impact-request-sha-mismatch")
     run, _ = _run_with_changes(
         session,

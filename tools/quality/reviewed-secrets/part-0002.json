@@ -1,0 +1,1663 @@
+{
+  "entries": [
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "frontend test-only literal and assertion",
+      "file": "backend/tests/test_providers.py",
+      "file_sha256": "c4f07b36ccee9c9ae99e906a9fe2c7281ae557d79d52573c3ed2036c68aa48cf",
+      "occurrences": [
+        {
+          "context_sha256": "a76113f66b9c76641e82368d141aadefb8e1c41eee93c53402a429af94cb19e1",
+          "line": 237
+        }
+      ],
+      "reason": "Synthetic userinfo on example/malformed endpoints used to test endpoint rejection or trace redaction; no credential verification performed.",
+      "review_id": "candidate-0066",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Hex High Entropy String",
+      "evidence": "test_sensitive_input_is_redacted_before_transport",
+      "file": "backend/tests/test_providers.py",
+      "file_sha256": "c4f07b36ccee9c9ae99e906a9fe2c7281ae557d79d52573c3ed2036c68aa48cf",
+      "occurrences": [
+        {
+          "context_sha256": "5b2ac4e57dbbe18b91b77b0227710747adb650c059a39bebb0374876ac84142e",
+          "line": 118
+        }
+      ],
+      "reason": "Literal canary used by an explicit redaction/non-persistence assertion; not an externally obtained credential.",
+      "review_id": "candidate-0065",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "da4ec3358a10c9b0872eb877953cc7b07af5f4d75e4c1cb0597cbbf41e5dbe35"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_occurrence_scan_rejects_incomplete_or_inconsistent_cli_result",
+      "file": "backend/tests/test_quality_checks.py",
+      "file_sha256": "66a73739712b75da00bc76959245eb93f8c0f21a287d36d673db342ae04a0da9",
+      "occurrences": [
+        {
+          "context_sha256": "2ed761f8841ed710b06d1d38ba7f4fbc96fcdb7418826ecc6dd2528245abc84e",
+          "line": 634
+        }
+      ],
+      "reason": "Synthetic scanner-result fingerprint used only to exercise occurrence reconciliation; no account or credential.",
+      "review_id": "quality-regression-0002",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent source review",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "117de594c5e5cd826d022193961db6784b607738cecb22b5730b0943238f522c"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_occurrence_scan_rejects_incomplete_or_inconsistent_cli_result",
+      "file": "backend/tests/test_quality_checks.py",
+      "file_sha256": "66a73739712b75da00bc76959245eb93f8c0f21a287d36d673db342ae04a0da9",
+      "occurrences": [
+        {
+          "context_sha256": "bb613b26b28e677fad511950be77560326117a1c94cec5b0a6690bd92a9f764a",
+          "line": 652
+        }
+      ],
+      "reason": "Synthetic extra detector fingerprint exercises unexpected occurrence rejection; no account or credential.",
+      "review_id": "quality-regression-0004",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent source review",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3d18c6959c8a3fb0351a4e4b497fe15af4fdb5f58396761b5497b1f1884ee91a"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_occurrence_scan_rejects_incomplete_or_inconsistent_cli_result",
+      "file": "backend/tests/test_quality_checks.py",
+      "file_sha256": "66a73739712b75da00bc76959245eb93f8c0f21a287d36d673db342ae04a0da9",
+      "occurrences": [
+        {
+          "context_sha256": "7a4d434a7d87732779e588a2125b07532347115696ce77d2e25566a74b3e7260",
+          "line": 642
+        }
+      ],
+      "reason": "Explicit fake scanner candidate used to test rejection of incomplete or inconsistent scanner results.",
+      "review_id": "quality-regression-0003",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent source review",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "4ccce59bc8ec6680263d9eb7275ef8697dc500ae362416108abccfeb98171c1e"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_occurrence_scan_rejects_incomplete_or_inconsistent_cli_result",
+      "file": "backend/tests/test_quality_checks.py",
+      "file_sha256": "66a73739712b75da00bc76959245eb93f8c0f21a287d36d673db342ae04a0da9",
+      "occurrences": [
+        {
+          "context_sha256": "4f8b33c5c53f339b25797e6bc93cdda720ac61d1320848750fa522ea717e9f9a",
+          "line": 653
+        }
+      ],
+      "reason": "Explicit second fake scanner candidate exercises unexpected occurrence rejection; no account or credential.",
+      "review_id": "quality-regression-0005",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent source review",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "e220fbaa8e852289b520523847ae45629f50a3eccf9008500965317474048da4"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_metrics_require_system_admin_and_contain_no_resource_identifiers",
+      "file": "backend/tests/test_telemetry.py",
+      "file_sha256": "dee04e0ba21f9be5e9a4d0759c2a33deb45ba01392ffc522c5e54693e56957ae",
+      "occurrences": [
+        {
+          "context_sha256": "fc686b8d9f75982b24398f203feef9c280c58a1bfceee32b971ce8a1b9d1b19e",
+          "line": 181
+        },
+        {
+          "context_sha256": "9eef510186ff73bcd987f8557b28ff08563361321182472871409bbf6552bc00",
+          "line": 189
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0067",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "9eca0d2dba5856e374bffbd289ed30db2a1d6c16dcb73202ebe57b9335e67b04"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "frontend test-only literal and assertion",
+      "file": "backend/tests/test_trace_safety.py",
+      "file_sha256": "66c93ab33023ecc60d89273ae28b22c314b744ee1585116f0e6ce07c36cdf02d",
+      "occurrences": [
+        {
+          "context_sha256": "6d7760aff231282a32cb654b8cc130bbca6b23796c553f5cd649dc218fd34126",
+          "line": 87
+        },
+        {
+          "context_sha256": "7f7b6736d18587fcbbbf85f8f1b8ed6fc33a61e3c242c4c818474c8f6712a3f3",
+          "line": 88
+        },
+        {
+          "context_sha256": "48cb1eba22008e4147795b2b65eed6f07f4a75efc9b6bf0f6ed33319af380de9",
+          "line": 109
+        }
+      ],
+      "reason": "Synthetic userinfo on example/malformed endpoints used to test endpoint rejection or trace redaction; no credential verification performed.",
+      "review_id": "candidate-0068",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "8bdb64774ea913c43455a3c830df31cb1250d5a59223b03e8289fed677008246"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Private Key",
+      "evidence": "test_trace_safe_index_and_cited_events_do_not_serve_boundary_canaries",
+      "file": "backend/tests/test_trace_safety.py",
+      "file_sha256": "66c93ab33023ecc60d89273ae28b22c314b744ee1585116f0e6ce07c36cdf02d",
+      "occurrences": [
+        {
+          "context_sha256": "125f15468840d8172845db32718b130173194bb369856340f34b263122c6ba08",
+          "line": 135
+        }
+      ],
+      "reason": "Private-key header marker wrapping repeated explicit synthetic canary text in a trace-sanitization test, not a serialized private key.",
+      "review_id": "candidate-0069",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "573da6fd127efb9e9d07de2d30783788373e365fa5abe86c541064f326aebfad"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "README.md: production-security guidance; docs/security.md; compose.yaml: no database host-port publication; internal runtime network; loopback application ingress",
+      "file": "compose.yaml",
+      "file_sha256": "f98ebfa4de1680d118eff70c808587e24b38e63c889d4e2cd1b9555625db131f",
+      "occurrences": [
+        {
+          "context_sha256": "f1a13e365942776e6e0ecf2e46b2cb47d5b6d12e0fddfcfae0f74e3d7601bc2c",
+          "line": 22
+        },
+        {
+          "context_sha256": "610d35e872852a6fede056ac2fb27696da094c89896a0680a5bc7a9bd772bc0a",
+          "line": 44
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0071",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Secret Keyword",
+      "evidence": "README.md: production-security guidance; docs/security.md; compose.yaml: no database host-port publication; internal runtime network; loopback application ingress",
+      "file": "compose.yaml",
+      "file_sha256": "f98ebfa4de1680d118eff70c808587e24b38e63c889d4e2cd1b9555625db131f",
+      "occurrences": [
+        {
+          "context_sha256": "1aef901de97e19de9102a7f7859b1dc2a364f2ac8123f2ef0517a68ba0b87bdf",
+          "line": 7
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0070",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/0/artifact_sha256",
+      "file": "docs/assets/provenance.json",
+      "file_sha256": "297469294f4fdf7c22de976fb0f2ccacea21b8e9b46b04d7abde6f723269d4bc",
+      "occurrences": [
+        {
+          "context_sha256": "c915f927f3b29d332305746d1871ac2b1e48c493ca0feb3b20850042ca8919a5",
+          "line": 8
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0074",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "09793bfb0cb1e0bfecd48acc5ae4eb77c08b5bae86a6df1f8b354543fe60c5f4"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/0/sha256",
+      "file": "docs/assets/provenance.json",
+      "file_sha256": "297469294f4fdf7c22de976fb0f2ccacea21b8e9b46b04d7abde6f723269d4bc",
+      "occurrences": [
+        {
+          "context_sha256": "07764a961caf0f30c05af134272ed0af335c424a6d16e1048ac45d607d517eee",
+          "line": 4
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0072",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2bbeb924a5177926e25d13649e13d2f250c3b2256700e96f98b69eccac585288"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/1/artifact_sha256",
+      "file": "docs/assets/provenance.json",
+      "file_sha256": "297469294f4fdf7c22de976fb0f2ccacea21b8e9b46b04d7abde6f723269d4bc",
+      "occurrences": [
+        {
+          "context_sha256": "3fdcd363ef7322b315c9e56c60abb720e27c10b99f388b09eca20622991574f6",
+          "line": 18
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0076",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "366f4e25142740d4fb8e023d3f96523cc3c1232f84f07b1b3bacd827cd80de0e"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/0/source_revision; /1/source_revision",
+      "file": "docs/assets/provenance.json",
+      "file_sha256": "297469294f4fdf7c22de976fb0f2ccacea21b8e9b46b04d7abde6f723269d4bc",
+      "occurrences": [
+        {
+          "context_sha256": "8250b22d783130984b22cc2a92797eb36be809f8cc62015dfcdf73c00f83c872",
+          "line": 5
+        },
+        {
+          "context_sha256": "13901964701f96081911ae72dda1f79a3a037d9e7dbbf5e4da09b85a5c414b64",
+          "line": 15
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0073",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "4b6b69d7528ba9f5c32b2912bdc40e4d33cb0023ec068e04fc9208bcacc33e69"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/1/sha256",
+      "file": "docs/assets/provenance.json",
+      "file_sha256": "297469294f4fdf7c22de976fb0f2ccacea21b8e9b46b04d7abde6f723269d4bc",
+      "occurrences": [
+        {
+          "context_sha256": "8d18fabbd4ac6b7702f1a1709922a13289035ad4b96da6d39f066b23654a698b",
+          "line": 14
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0075",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "8642be563d03ea6770405b9170726d60c2b1007123b8b243a0829d2f0bbec29d"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "README.md: production-security guidance; docs/security.md; compose.yaml: no database host-port publication; internal runtime network; loopback application ingress",
+      "file": "docs/fullstack-evaluation.md",
+      "file_sha256": "fc5db31019d488de6e0c5ed141401d407918236f2894d7bbee8ad1cf243698a9",
+      "occurrences": [
+        {
+          "context_sha256": "820fcf82a8fa0dfe9ea785f23677bb3a700513a3c29499adcc3da0df243e0cbf",
+          "line": 83
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0077",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "README.md: production-security guidance; docs/security.md; compose.yaml: no database host-port publication; internal runtime network; loopback application ingress",
+      "file": "docs/ledgerguard-evaluation.md",
+      "file_sha256": "7dde54fd541647ca7a5d63efc597e7fd5a611b2072e8e292955c6d53153fb098",
+      "occurrences": [
+        {
+          "context_sha256": "9d169fded48eea3d0c37d0c67497e606d40fc13a3da178a5ac5904b5a78e639b",
+          "line": 48
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0078",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/generator_source_revision",
+      "file": "evaluation/corpus/benchmark-v1/freeze.json",
+      "file_sha256": "0e4394cc07ed6eedcb7f1c8ad029c5f7dcbbc8d4f05257888efe7d80e868a706",
+      "occurrences": [
+        {
+          "context_sha256": "8ec7683412d0ab3423d26cf8b6bfd301af9f111c43ab3e32432cff2773db4162",
+          "line": 19
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0084",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "14bd01b3de02677815c497a53769e3ac3131cfd1daf9c22a874dca5c642149c2"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/ground-truth.json",
+      "file": "evaluation/corpus/benchmark-v1/freeze.json",
+      "file_sha256": "0e4394cc07ed6eedcb7f1c8ad029c5f7dcbbc8d4f05257888efe7d80e868a706",
+      "occurrences": [
+        {
+          "context_sha256": "f068d1c49a0cf35b3e99fb613639ce0755efed5dfc77b8750a72b54524bdbe49",
+          "line": 15
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0081",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "65c7124c26afdd6052aa61535096665fd7959e0fe79e276b6292f49964076640"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/catalog_sha256",
+      "file": "evaluation/corpus/benchmark-v1/freeze.json",
+      "file_sha256": "0e4394cc07ed6eedcb7f1c8ad029c5f7dcbbc8d4f05257888efe7d80e868a706",
+      "occurrences": [
+        {
+          "context_sha256": "69d0521db75110ec80c0a415bb062358a1e7afba40c2d9f9f47895e5c60b87b6",
+          "line": 3
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0079",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "6e817021f7def463e64aa231aaa3cde79e80fc83736fa27ad1fa8c3946fdabd1"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/policy.json",
+      "file": "evaluation/corpus/benchmark-v1/freeze.json",
+      "file_sha256": "0e4394cc07ed6eedcb7f1c8ad029c5f7dcbbc8d4f05257888efe7d80e868a706",
+      "occurrences": [
+        {
+          "context_sha256": "bd74548409252de95e6048e3cbf9bedbbed62ff03beb85a72191dcf25ab1b58d",
+          "line": 17
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0083",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "92f5912c9b84228d50040004552f3c6e63ea1005f6b37e134f6bda3a576bdd44"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/inputs/manifest.json",
+      "file": "evaluation/corpus/benchmark-v1/freeze.json",
+      "file_sha256": "0e4394cc07ed6eedcb7f1c8ad029c5f7dcbbc8d4f05257888efe7d80e868a706",
+      "occurrences": [
+        {
+          "context_sha256": "0183c95765e6c13894371fbcdcef481661483eddfea9f6d2b04bb3864062b0b3",
+          "line": 16
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0082",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "b4fcdba7b889b5ddf7427e61b12af28f58f22a61618130b044ae2a68f604baa2"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/file_sha256/families.json",
+      "file": "evaluation/corpus/benchmark-v1/freeze.json",
+      "file_sha256": "0e4394cc07ed6eedcb7f1c8ad029c5f7dcbbc8d4f05257888efe7d80e868a706",
+      "occurrences": [
+        {
+          "context_sha256": "daa430d2592e9b183dfa423d3f6803173a33faea7ac525b5a975b02b112f13ea",
+          "line": 14
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0080",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "bb0a79da2c0f9531fc30828ade0a3c0ce9779bbc2a439c0550578d8117674232"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/retained_execution_archive_sha256",
+      "file": "evaluation/corpus/benchmark-v1/freeze.json",
+      "file_sha256": "0e4394cc07ed6eedcb7f1c8ad029c5f7dcbbc8d4f05257888efe7d80e868a706",
+      "occurrences": [
+        {
+          "context_sha256": "b728cd33be42044fe2a357894954e7f1aedb37caf95ee300c80c048da9504ab6",
+          "line": 27
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0085",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "cad2e6af438688dba8985ca96143b7145644b35d711ddbc28df4296aa19dec96"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/1/source_revision; /2/source_revision; /3/source_revision; /4/source_revision; /5/source_revision; /7/source_revision; /8/source_revision; /10/source_revision; 200 reviewed semantic field locations; all detected line occurrences are bound below.",
+      "file": "evaluation/corpus/benchmark-v1/ground-truth.json",
+      "file_sha256": "0b4231d1da3348010f472986d7c2a5b7caa6edeb3d7fc8a4517f7bd6175e5219",
+      "occurrences": [
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 70
+        },
+        {
+          "context_sha256": "5cf0c20149249c2e81e5f3788261f910ccce683c1afa040e459ca8b2a1dffb23",
+          "line": 102
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 134
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 166
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 198
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 270
+        },
+        {
+          "context_sha256": "5cf0c20149249c2e81e5f3788261f910ccce683c1afa040e459ca8b2a1dffb23",
+          "line": 302
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 376
+        },
+        {
+          "context_sha256": "33d637e6dad7a60af5bb021ecfa7d59ade5377c124ba63978eea935308d4fb50",
+          "line": 408
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 480
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 512
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 624
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 656
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 688
+        },
+        {
+          "context_sha256": "6c990ab908d072edf2c403aafe0b03c2da11e8fa52dd9d6f44cf119353bb32ac",
+          "line": 720
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 752
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 786
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 818
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 850
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 882
+        },
+        {
+          "context_sha256": "c22557b8be36c6cc739e054f11c99e5013b58595de3b0a09dc5667e8f719327c",
+          "line": 954
+        },
+        {
+          "context_sha256": "33d637e6dad7a60af5bb021ecfa7d59ade5377c124ba63978eea935308d4fb50",
+          "line": 986
+        },
+        {
+          "context_sha256": "6c990ab908d072edf2c403aafe0b03c2da11e8fa52dd9d6f44cf119353bb32ac",
+          "line": 1098
+        },
+        {
+          "context_sha256": "7f0fe33d182716e059ae88e28776760f421e72b0325bfe25bc26ebc72a3e3abc",
+          "line": 1132
+        },
+        {
+          "context_sha256": "5cf0c20149249c2e81e5f3788261f910ccce683c1afa040e459ca8b2a1dffb23",
+          "line": 1164
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 1238
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 1270
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 1302
+        },
+        {
+          "context_sha256": "5cf0c20149249c2e81e5f3788261f910ccce683c1afa040e459ca8b2a1dffb23",
+          "line": 1374
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 1406
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 1518
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 1550
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 1582
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 1614
+        },
+        {
+          "context_sha256": "7f0fe33d182716e059ae88e28776760f421e72b0325bfe25bc26ebc72a3e3abc",
+          "line": 1648
+        },
+        {
+          "context_sha256": "5cf0c20149249c2e81e5f3788261f910ccce683c1afa040e459ca8b2a1dffb23",
+          "line": 1720
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 1752
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 1784
+        },
+        {
+          "context_sha256": "ac2aefc298b273df5dd4617afb3090442acc09c5fbcfffb2b45bed1d0238dc9d",
+          "line": 1816
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 1848
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 1920
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 1952
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 1984
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 2016
+        },
+        {
+          "context_sha256": "33d637e6dad7a60af5bb021ecfa7d59ade5377c124ba63978eea935308d4fb50",
+          "line": 2048
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 2122
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 2154
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 2226
+        },
+        {
+          "context_sha256": "a6258c31941c44821bffcec84b0c47a46f6459f98b9ea9602bd2720ddcc25c30",
+          "line": 2298
+        },
+        {
+          "context_sha256": "c22557b8be36c6cc739e054f11c99e5013b58595de3b0a09dc5667e8f719327c",
+          "line": 2330
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 2364
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 2396
+        },
+        {
+          "context_sha256": "a6258c31941c44821bffcec84b0c47a46f6459f98b9ea9602bd2720ddcc25c30",
+          "line": 2428
+        },
+        {
+          "context_sha256": "33d637e6dad7a60af5bb021ecfa7d59ade5377c124ba63978eea935308d4fb50",
+          "line": 2460
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 2492
+        },
+        {
+          "context_sha256": "5cf0c20149249c2e81e5f3788261f910ccce683c1afa040e459ca8b2a1dffb23",
+          "line": 2524
+        },
+        {
+          "context_sha256": "33d637e6dad7a60af5bb021ecfa7d59ade5377c124ba63978eea935308d4fb50",
+          "line": 2556
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 2590
+        },
+        {
+          "context_sha256": "c22557b8be36c6cc739e054f11c99e5013b58595de3b0a09dc5667e8f719327c",
+          "line": 2622
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 2656
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 2728
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 2760
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 2834
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 2866
+        },
+        {
+          "context_sha256": "7f0fe33d182716e059ae88e28776760f421e72b0325bfe25bc26ebc72a3e3abc",
+          "line": 2900
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 2972
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 3004
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 3116
+        },
+        {
+          "context_sha256": "33d637e6dad7a60af5bb021ecfa7d59ade5377c124ba63978eea935308d4fb50",
+          "line": 3148
+        },
+        {
+          "context_sha256": "c22557b8be36c6cc739e054f11c99e5013b58595de3b0a09dc5667e8f719327c",
+          "line": 3180
+        },
+        {
+          "context_sha256": "ac2aefc298b273df5dd4617afb3090442acc09c5fbcfffb2b45bed1d0238dc9d",
+          "line": 3212
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 3244
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 3316
+        },
+        {
+          "context_sha256": "a6258c31941c44821bffcec84b0c47a46f6459f98b9ea9602bd2720ddcc25c30",
+          "line": 3388
+        },
+        {
+          "context_sha256": "a6258c31941c44821bffcec84b0c47a46f6459f98b9ea9602bd2720ddcc25c30",
+          "line": 3420
+        },
+        {
+          "context_sha256": "33d637e6dad7a60af5bb021ecfa7d59ade5377c124ba63978eea935308d4fb50",
+          "line": 3452
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 3564
+        },
+        {
+          "context_sha256": "6c990ab908d072edf2c403aafe0b03c2da11e8fa52dd9d6f44cf119353bb32ac",
+          "line": 3598
+        },
+        {
+          "context_sha256": "ac2aefc298b273df5dd4617afb3090442acc09c5fbcfffb2b45bed1d0238dc9d",
+          "line": 3670
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 3704
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 3736
+        },
+        {
+          "context_sha256": "7f0fe33d182716e059ae88e28776760f421e72b0325bfe25bc26ebc72a3e3abc",
+          "line": 3850
+        },
+        {
+          "context_sha256": "7f0fe33d182716e059ae88e28776760f421e72b0325bfe25bc26ebc72a3e3abc",
+          "line": 3884
+        },
+        {
+          "context_sha256": "5cf0c20149249c2e81e5f3788261f910ccce683c1afa040e459ca8b2a1dffb23",
+          "line": 3916
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 3988
+        },
+        {
+          "context_sha256": "5cf0c20149249c2e81e5f3788261f910ccce683c1afa040e459ca8b2a1dffb23",
+          "line": 4020
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 4052
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 4084
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 4118
+        },
+        {
+          "context_sha256": "6c990ab908d072edf2c403aafe0b03c2da11e8fa52dd9d6f44cf119353bb32ac",
+          "line": 4192
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 4226
+        },
+        {
+          "context_sha256": "6c990ab908d072edf2c403aafe0b03c2da11e8fa52dd9d6f44cf119353bb32ac",
+          "line": 4258
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 4290
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 4322
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 4354
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 4386
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 4418
+        },
+        {
+          "context_sha256": "a6258c31941c44821bffcec84b0c47a46f6459f98b9ea9602bd2720ddcc25c30",
+          "line": 4450
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 4482
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 4514
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 4546
+        },
+        {
+          "context_sha256": "c22557b8be36c6cc739e054f11c99e5013b58595de3b0a09dc5667e8f719327c",
+          "line": 4578
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 4610
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 4642
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 4714
+        },
+        {
+          "context_sha256": "ac2aefc298b273df5dd4617afb3090442acc09c5fbcfffb2b45bed1d0238dc9d",
+          "line": 4746
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 4778
+        },
+        {
+          "context_sha256": "6c990ab908d072edf2c403aafe0b03c2da11e8fa52dd9d6f44cf119353bb32ac",
+          "line": 4810
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 4842
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 4914
+        },
+        {
+          "context_sha256": "7f0fe33d182716e059ae88e28776760f421e72b0325bfe25bc26ebc72a3e3abc",
+          "line": 4988
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 5020
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 5052
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 5084
+        },
+        {
+          "context_sha256": "c22557b8be36c6cc739e054f11c99e5013b58595de3b0a09dc5667e8f719327c",
+          "line": 5116
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 5148
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 5182
+        },
+        {
+          "context_sha256": "33d637e6dad7a60af5bb021ecfa7d59ade5377c124ba63978eea935308d4fb50",
+          "line": 5214
+        },
+        {
+          "context_sha256": "6c990ab908d072edf2c403aafe0b03c2da11e8fa52dd9d6f44cf119353bb32ac",
+          "line": 5248
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 5282
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 5316
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 5348
+        },
+        {
+          "context_sha256": "7f0fe33d182716e059ae88e28776760f421e72b0325bfe25bc26ebc72a3e3abc",
+          "line": 5382
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 5414
+        },
+        {
+          "context_sha256": "33d637e6dad7a60af5bb021ecfa7d59ade5377c124ba63978eea935308d4fb50",
+          "line": 5446
+        },
+        {
+          "context_sha256": "33d637e6dad7a60af5bb021ecfa7d59ade5377c124ba63978eea935308d4fb50",
+          "line": 5478
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 5510
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 5542
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 5574
+        },
+        {
+          "context_sha256": "a6258c31941c44821bffcec84b0c47a46f6459f98b9ea9602bd2720ddcc25c30",
+          "line": 5646
+        },
+        {
+          "context_sha256": "c22557b8be36c6cc739e054f11c99e5013b58595de3b0a09dc5667e8f719327c",
+          "line": 5678
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 5830
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 5862
+        },
+        {
+          "context_sha256": "c22557b8be36c6cc739e054f11c99e5013b58595de3b0a09dc5667e8f719327c",
+          "line": 5934
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 5966
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 5998
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 6072
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 6106
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 6138
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 6170
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 6242
+        },
+        {
+          "context_sha256": "33d637e6dad7a60af5bb021ecfa7d59ade5377c124ba63978eea935308d4fb50",
+          "line": 6314
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 6346
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 6378
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 6450
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 6482
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 6516
+        },
+        {
+          "context_sha256": "c22557b8be36c6cc739e054f11c99e5013b58595de3b0a09dc5667e8f719327c",
+          "line": 6548
+        },
+        {
+          "context_sha256": "6c990ab908d072edf2c403aafe0b03c2da11e8fa52dd9d6f44cf119353bb32ac",
+          "line": 6582
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 6654
+        },
+        {
+          "context_sha256": "a6258c31941c44821bffcec84b0c47a46f6459f98b9ea9602bd2720ddcc25c30",
+          "line": 6726
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 6760
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 6792
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 6824
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 6856
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 6888
+        },
+        {
+          "context_sha256": "c22557b8be36c6cc739e054f11c99e5013b58595de3b0a09dc5667e8f719327c",
+          "line": 6920
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 6952
+        },
+        {
+          "context_sha256": "33d637e6dad7a60af5bb021ecfa7d59ade5377c124ba63978eea935308d4fb50",
+          "line": 6984
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 7016
+        },
+        {
+          "context_sha256": "6c990ab908d072edf2c403aafe0b03c2da11e8fa52dd9d6f44cf119353bb32ac",
+          "line": 7050
+        },
+        {
+          "context_sha256": "6c990ab908d072edf2c403aafe0b03c2da11e8fa52dd9d6f44cf119353bb32ac",
+          "line": 7084
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 7116
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 7190
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 7222
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 7254
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 7286
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 7318
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 7350
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 7382
+        },
+        {
+          "context_sha256": "6c990ab908d072edf2c403aafe0b03c2da11e8fa52dd9d6f44cf119353bb32ac",
+          "line": 7456
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 7488
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 7562
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 7594
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 7626
+        },
+        {
+          "context_sha256": "c22557b8be36c6cc739e054f11c99e5013b58595de3b0a09dc5667e8f719327c",
+          "line": 7658
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 7730
+        },
+        {
+          "context_sha256": "d79dc42819db836ef75b441dcfbb5a69ca2e37592c234abb564f5d9bddc89edf",
+          "line": 7804
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 7838
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 7950
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 7982
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 8014
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 8046
+        },
+        {
+          "context_sha256": "6c990ab908d072edf2c403aafe0b03c2da11e8fa52dd9d6f44cf119353bb32ac",
+          "line": 8080
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 8154
+        },
+        {
+          "context_sha256": "c0efed6092d1ae7ae59073b0c0b828c4b3902221add887a99c3d7ab95e9c86d0",
+          "line": 8186
+        },
+        {
+          "context_sha256": "b86bef6c1ec5683f6abb7bb7c9b0e23e51ac14f0b0f4c7e505376885155cc7e9",
+          "line": 8218
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 8250
+        },
+        {
+          "context_sha256": "7f0fe33d182716e059ae88e28776760f421e72b0325bfe25bc26ebc72a3e3abc",
+          "line": 8284
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 8356
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 8388
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 8420
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 8452
+        },
+        {
+          "context_sha256": "a6258c31941c44821bffcec84b0c47a46f6459f98b9ea9602bd2720ddcc25c30",
+          "line": 8484
+        },
+        {
+          "context_sha256": "060af823bc9feca2fa176c709145a7551354879707b470db74f0186a8cf74f9a",
+          "line": 8516
+        },
+        {
+          "context_sha256": "87ca3ca40eab80cac5722c2674b7a6e5ab7b70b0773537900f52a478c93ddb84",
+          "line": 8550
+        },
+        {
+          "context_sha256": "c22557b8be36c6cc739e054f11c99e5013b58595de3b0a09dc5667e8f719327c",
+          "line": 8622
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 8694
+        },
+        {
+          "context_sha256": "c5a135e73e013dcbbdfc872e401d24ffe418fc0fbba02381c7417ad4fd314838",
+          "line": 8806
+        },
+        {
+          "context_sha256": "88370abae60a1815e09b1a445b3d74f8e713d31df460d19b07946dbbcb2fdaaa",
+          "line": 8838
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0089",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "14bd01b3de02677815c497a53769e3ac3131cfd1daf9c22a874dca5c642149c2"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/78/mutation_source_sha256; /89/mutation_source_sha256; /97/mutation_source_sha256; /243/mutation_source_sha256",
+      "file": "evaluation/corpus/benchmark-v1/ground-truth.json",
+      "file_sha256": "0b4231d1da3348010f472986d7c2a5b7caa6edeb3d7fc8a4517f7bd6175e5219",
+      "occurrences": [
+        {
+          "context_sha256": "b51e6a1bad015fc52b1e737c5ada72d8763c837a592f0bafae84c8a47fae2435",
+          "line": 2682
+        },
+        {
+          "context_sha256": "a0066b12408ad4cc0642b821e13b05f69197bd087728c5c53777707ef8accba8",
+          "line": 3070
+        },
+        {
+          "context_sha256": "8a6c4ccee1fc16e2e9005588e118e093d9f5226fcec79fc1f3a36b891b40c190",
+          "line": 3342
+        },
+        {
+          "context_sha256": "f263dcc89742bce3dd8096574a20b2bee23eca314114de2b5790b237f984ae6d",
+          "line": 8310
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0100",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "192987ee0270e974b897c8d8658bf0bfed0cb066312b89e56cdb00da5cfcb56e"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/34/mutation_source_sha256; /41/mutation_source_sha256; /144/mutation_source_sha256; /195/mutation_source_sha256",
+      "file": "evaluation/corpus/benchmark-v1/ground-truth.json",
+      "file_sha256": "0b4231d1da3348010f472986d7c2a5b7caa6edeb3d7fc8a4517f7bd6175e5219",
+      "occurrences": [
+        {
+          "context_sha256": "1857d71498b187936deab62ad175d617ff19f8329087d9cdbe246e1605b81d7f",
+          "line": 1190
+        },
+        {
+          "context_sha256": "b64c7447a35647502a6f5fba499bb5d3e05356f78da2099c2bb15f84c8e2666b",
+          "line": 1432
+        },
+        {
+          "context_sha256": "b30428eb6c8b0a1c51f6d82e9ba2f7be6083806c7acb1d2cfd071d8b32e7ad2a",
+          "line": 4940
+        },
+        {
+          "context_sha256": "01faa8df20b313a0ad48f6a2452df56cb5b7b3d9e392896f9b58c046577a3a9b",
+          "line": 6680
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0095",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "1edac7c1c4766a46be72d17963000e2751582567e7e724f0d0fe09585294f3b8"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/0/source_revision; /6/source_revision; /9/source_revision; /12/source_revision; /15/source_revision; /16/source_revision; /26/source_revision; /29/source_revision; /30/source_revision; /34/source_revision; /38/source_revision; /41/source_revision; /42/source_revision; /48/source_revision; /54/source_revision; /60/source_revision; /63/source_revision; /65/source_revision; /78/source_revision; /81/source_revision; /85/source_revision; /88/source_revision; /89/source_revision; /95/source_revision; /97/source_revision; /101/source_revision; /102/source_revision; /105/source_revision; /109/source_revision; /110/source_revision; /114/source_revision; /120/source_revision; /136/source_revision; /142/source_revision; /144/source_revision; /164/source_revision; /167/source_revision; /168/source_revision; /169/source_revision; /172/source_revision; /176/source_revision; /181/source_revision; /183/source_revision; /187/source_revision; /193/source_revision; /195/source_revision; /209/source_revision; /217/source_revision; /220/source_revision; /225/source_revision; /227/source_revision; /230/source_revision; /231/source_revision; /237/source_revision; /243/source_revision; /251/source_revision; /253/source_revision; /255/source_revision; /256/source_revision; /259/source_revision",
+      "file": "evaluation/corpus/benchmark-v1/ground-truth.json",
+      "file_sha256": "0b4231d1da3348010f472986d7c2a5b7caa6edeb3d7fc8a4517f7bd6175e5219",
+      "occurrences": [
+        {
+          "context_sha256": "8ffe0bba7f5a8d9f7707c96e47d967eb0f13b6f9504049568d35d1f2c277e3ec",
+          "line": 38
+        },
+        {
+          "context_sha256": "5803aed8985d892245bc1dfcc1cd40ddf2d8a846bc8acc987f190374502078cb",
+          "line": 238
+        },
+        {
+          "context_sha256": "68ce14b284b0d828090fd12b381050536e20a17756cbe286e782ad67f874312b",
+          "line": 342
+        },
+        {
+          "context_sha256": "8ffe0bba7f5a8d9f7707c96e47d967eb0f13b6f9504049568d35d1f2c277e3ec",
+          "line": 448
+        },
+        {
+          "context_sha256": "68ce14b284b0d828090fd12b381050536e20a17756cbe286e782ad67f874312b",
+          "line": 552
+        },
+        {
+          "context_sha256": "8ffe0bba7f5a8d9f7707c96e47d967eb0f13b6f9504049568d35d1f2c277e3ec",
+          "line": 592
+        },
+        {
+          "context_sha256": "5803aed8985d892245bc1dfcc1cd40ddf2d8a846bc8acc987f190374502078cb",
+          "line": 922
+        },
+        {
+          "context_sha256": "68ce14b284b0d828090fd12b381050536e20a17756cbe286e782ad67f874312b",
+          "line": 1026
+        },
+        {
+          "context_sha256": "68ce14b284b0d828090fd12b381050536e20a17756cbe286e782ad67f874312b",
+          "line": 1066
+        },
+        {
+          "context_sha256": "68ce14b284b0d828090fd12b381050536e20a17756cbe286e782ad67f874312b",
+          "line": 1204
+        },
+        {
+          "context_sha256": "5803aed8985d892245bc1dfcc1cd40ddf2d8a846bc8acc987f190374502078cb",
+          "line": 1342
+        },
+        {
+          "context_sha256": "9aeee2e721dd79ed478d733dd55c9cc48b8966fd28ef7360bd3df25a7538dc54",
+          "line": 1446
+        },
+        {
+          "context_sha256": "5803aed8985d892245bc1dfcc1cd40ddf2d8a846bc8acc987f190374502078cb",
+          "line": 1486
+        },
+        {
+          "context_sha256": "9aeee2e721dd79ed478d733dd55c9cc48b8966fd28ef7360bd3df25a7538dc54",
+          "line": 1688
+        },
+        {
+          "context_sha256": "8ffe0bba7f5a8d9f7707c96e47d967eb0f13b6f9504049568d35d1f2c277e3ec",
+          "line": 1888
+        },
+        {
+          "context_sha256": "5803aed8985d892245bc1dfcc1cd40ddf2d8a846bc8acc987f190374502078cb",
+          "line": 2088
+        },
+        {
+          "context_sha256": "cc7edfd804b981195bda08aeb22bc49fce699f7e0ddcc19250167878cc0c6fda",
+          "line": 2194
+        },
+        {
+          "context_sha256": "68ce14b284b0d828090fd12b381050536e20a17756cbe286e782ad67f874312b",
+          "line": 2266
+        },
+        {
+          "context_sha256": "c0e49b2b4ffdf52214f86ee6b303f57036a7511b20846ff8095c8cf03fbe3d6c",
+          "line": 2696
+        },
+        {
+          "context_sha256": "9aeee2e721dd79ed478d733dd55c9cc48b8966fd28ef7360bd3df25a7538dc54",
+          "line": 2800
+        },
+        {
+          "context_sha256": "5803aed8985d892245bc1dfcc1cd40ddf2d8a846bc8acc987f190374502078cb",
+          "line": 2940
+        },
+        {
+          "context_sha256": "9aeee2e721dd79ed478d733dd55c9cc48b8966fd28ef7360bd3df25a7538dc54",
+          "line": 3044
+        },
+        {
+          "context_sha256": "bb11b26131b4016170a9048fcd1ae3f7a7d28209979a12abfcd999be0a03cc61",
+          "line": 3084
+        },
+        {
+          "context_sha256": "8ffe0bba7f5a8d9f7707c96e47d967eb0f13b6f9504049568d35d1f2c277e3ec",
+          "line": 3284
+        },
+        {
+          "context_sha256": "48ed0ff9aa12e1c8f8273f2c1a8fa00e8cd901e1b8e998886e5638a904dbdc1d",
+          "line": 3356
+        },
+        {
+          "context_sha256": "48ed0ff9aa12e1c8f8273f2c1a8fa00e8cd901e1b8e998886e5638a904dbdc1d",
+          "line": 3492
+        },
+        {
+          "context_sha256": "8ffe0bba7f5a8d9f7707c96e47d967eb0f13b6f9504049568d35d1f2c277e3ec",
+          "line": 3532
+        },
+        {
+          "context_sha256": "bb11b26131b4016170a9048fcd1ae3f7a7d28209979a12abfcd999be0a03cc61",
+          "line": 3638
+        },
+        {
+          "context_sha256": "5803aed8985d892245bc1dfcc1cd40ddf2d8a846bc8acc987f190374502078cb",
+          "line": 3776
+        },
+        {
+          "context_sha256": "c0e49b2b4ffdf52214f86ee6b303f57036a7511b20846ff8095c8cf03fbe3d6c",
+          "line": 3816
+        },
+        {
+          "context_sha256": "9aeee2e721dd79ed478d733dd55c9cc48b8966fd28ef7360bd3df25a7538dc54",
+          "line": 3956
+        },
+        {
+          "context_sha256": "5803aed8985d892245bc1dfcc1cd40ddf2d8a846bc8acc987f190374502078cb",
+          "line": 4158
+        },
+        {
+          "context_sha256": "68ce14b284b0d828090fd12b381050536e20a17756cbe286e782ad67f874312b",
+          "line": 4682
+        },
+        {
+          "context_sha256": "9aeee2e721dd79ed478d733dd55c9cc48b8966fd28ef7360bd3df25a7538dc54",
+          "line": 4882
+        },
+        {
+          "context_sha256": "5803aed8985d892245bc1dfcc1cd40ddf2d8a846bc8acc987f190374502078cb",
+          "line": 4954
+        },
+        {
+          "context_sha256": "68ce14b284b0d828090fd12b381050536e20a17756cbe286e782ad67f874312b",
+          "line": 5614
+        },
+        {
+          "context_sha256": "8ffe0bba7f5a8d9f7707c96e47d967eb0f13b6f9504049568d35d1f2c277e3ec",
+          "line": 5718
+        },
+        {
+          "context_sha256": "9aeee2e721dd79ed478d733dd55c9cc48b8966fd28ef7360bd3df25a7538dc54",
+          "line": 5758
+        },
+        {
+          "context_sha256": "68ce14b284b0d828090fd12b381050536e20a17756cbe286e782ad67f874312b",
+          "line": 5798
+        },
+        {
+          "context_sha256": "68ce14b284b0d828090fd12b381050536e20a17756cbe286e782ad67f874312b",
+          "line": 5902
+        },
+        {
+          "context_sha256": "9aeee2e721dd79ed478d733dd55c9cc48b8966fd28ef7360bd3df25a7538dc54",
+          "line": 6038
+        },
+        {
+          "context_sha256": "5803aed8985d892245bc1dfcc1cd40ddf2d8a846bc8acc987f190374502078cb",
+          "line": 6210
+        },
+        {
+          "context_sha256": "8ffe0bba7f5a8d9f7707c96e47d967eb0f13b6f9504049568d35d1f2c277e3ec",
+          "line": 6282
+        },
+        {
+          "context_sha256": "9aeee2e721dd79ed478d733dd55c9cc48b8966fd28ef7360bd3df25a7538dc54",
+          "line": 6418
+        },
+        {
+          "context_sha256": "9aeee2e721dd79ed478d733dd55c9cc48b8966fd28ef7360bd3df25a7538dc54",
+          "line": 6622
+        },
+        {
+          "context_sha256": "8ffe0bba7f5a8d9f7707c96e47d967eb0f13b6f9504049568d35d1f2c277e3ec",
+          "line": 6694
+        },
+        {
+          "context_sha256": "5803aed8985d892245bc1dfcc1cd40ddf2d8a846bc8acc987f190374502078cb",
+          "line": 7156
+        },
+        {
+          "context_sha256": "5803aed8985d892245bc1dfcc1cd40ddf2d8a846bc8acc987f190374502078cb",
+          "line": 7422
+        },
+        {
+          "context_sha256": "9aeee2e721dd79ed478d733dd55c9cc48b8966fd28ef7360bd3df25a7538dc54",
+          "line": 7528
+        },
+        {
+          "context_sha256": "8ffe0bba7f5a8d9f7707c96e47d967eb0f13b6f9504049568d35d1f2c277e3ec",
+          "line": 7698
+        },
+        {
+          "context_sha256": "68ce14b284b0d828090fd12b381050536e20a17756cbe286e782ad67f874312b",
+          "line": 7770
+        },
+        {
+          "context_sha256": "68ce14b284b0d828090fd12b381050536e20a17756cbe286e782ad67f874312b",
+          "line": 7878
+        },
+        {
+          "context_sha256": "5803aed8985d892245bc1dfcc1cd40ddf2d8a846bc8acc987f190374502078cb",
+          "line": 7918
+        },
+        {
+          "context_sha256": "68ce14b284b0d828090fd12b381050536e20a17756cbe286e782ad67f874312b",
+          "line": 8120
+        },
+        {
+          "context_sha256": "cc7edfd804b981195bda08aeb22bc49fce699f7e0ddcc19250167878cc0c6fda",
+          "line": 8324
+        },
+        {
+          "context_sha256": "9aeee2e721dd79ed478d733dd55c9cc48b8966fd28ef7360bd3df25a7538dc54",
+          "line": 8590
+        },
+        {
+          "context_sha256": "8ffe0bba7f5a8d9f7707c96e47d967eb0f13b6f9504049568d35d1f2c277e3ec",
+          "line": 8662
+        },
+        {
+          "context_sha256": "9aeee2e721dd79ed478d733dd55c9cc48b8966fd28ef7360bd3df25a7538dc54",
+          "line": 8734
+        },
+        {
+          "context_sha256": "8ffe0bba7f5a8d9f7707c96e47d967eb0f13b6f9504049568d35d1f2c277e3ec",
+          "line": 8774
+        },
+        {
+          "context_sha256": "8ffe0bba7f5a8d9f7707c96e47d967eb0f13b6f9504049568d35d1f2c277e3ec",
+          "line": 8878
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0088",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3489d7a15a6e55d6cb411770ca117168693075bb6b1f1e6ff50a1db455794635"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/42/mutation_source_sha256; /81/mutation_source_sha256; /164/mutation_source_sha256; /259/mutation_source_sha256",
+      "file": "evaluation/corpus/benchmark-v1/ground-truth.json",
+      "file_sha256": "0b4231d1da3348010f472986d7c2a5b7caa6edeb3d7fc8a4517f7bd6175e5219",
+      "occurrences": [
+        {
+          "context_sha256": "5ba42b60a397a61c6e6b45952793b47a681c574dd85caa934d3df561e5aed3a3",
+          "line": 1472
+        },
+        {
+          "context_sha256": "d1b590d8c0006d6cb871124fe6b36f0eb4882866a654013ded583d8cf2d8a199",
+          "line": 2786
+        },
+        {
+          "context_sha256": "5c764372ebdf919850d6d750a30a26af911c54b83c2110549b421b29476f5feb",
+          "line": 5600
+        },
+        {
+          "context_sha256": "1d7260cab83b8fcdffc4424a76a521744db960f12941c96ede6b810991e7aaa7",
+          "line": 8864
+        }
+      ],
+      "reason": "Exact 64-hex digest in artifact/source/corpus integrity metadata. Classification concerns field semantics, not a fresh authentication of the retained artifact.",
+      "review_id": "candidate-0096",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3c81e06fea329741bba174b80239a3a09c07052fd2f499a26d7a4fe8d90b2703"
+    }
+  ],
+  "schema_version": 1
+}

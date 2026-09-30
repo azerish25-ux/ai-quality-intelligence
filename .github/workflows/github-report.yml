@@ -123,8 +123,10 @@ jobs:
           comparison-trust: self_reported
           expected-inputs: "2"
           shard-count: "2"
+          analysis-mode: deterministic
+          publication-mode: summary
           database-url: ${{ env.FAILURELENS_DATABASE_URL }}
-      - name: Retain only sanitized output projections and status
+      - name: Retain only declared sanitized reports, inert evidence, and status
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -132,6 +134,7 @@ jobs:
           path: |
             ${{ steps.triage.outputs.report-path }}
             ${{ steps.triage.outputs.report-json-path }}
+            ${{ steps.triage.outputs.evidence-path }}
             ${{ steps.triage.outputs.status-path }}
           if-no-files-found: error
           retention-days: 14

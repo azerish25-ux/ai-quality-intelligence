@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import argparse
-import os
-from dataclasses import asdict
 import hashlib
-import re
 import json
+import os
+import re
 import socket
 import time
 from pathlib import Path
@@ -13,13 +12,11 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from .api import app  # noqa: F401
 from .config import get_settings
 from .db import SessionLocal, initialize_database
 from .demo import seed_demo
-from .github_report import render_markdown
+from .github_publication import PublicationError
 from .github_snapshot import report_snapshot
-from .github_publication import GitHubPublisher, PublicationError
 from .impact import create_impact_recommendation, impact_recommendation_to_schema
 from .infrastructure import (
     build_infrastructure_correlation,
@@ -28,7 +25,6 @@ from .infrastructure import (
 )
 from .jobs import process_next
 from .models import (
-    Analysis,
     Failure,
     Ingestion,
     PerformancePolicy,
@@ -55,7 +51,9 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("doctor")
     sub.add_parser("demo")
-    sub.add_parser("demo-history", help="explicit synthetic 100-run history; demo mode only")
+    sub.add_parser(
+        "demo-history", help="explicit synthetic 100-run history; demo mode only"
+    )
 
     ingest = sub.add_parser("ingest")
     ingest.add_argument("report", type=Path)
@@ -99,18 +97,43 @@ def main() -> None:
     report.add_argument("--run", required=True)
     report.add_argument("--format", choices=["markdown", "json"], default="markdown")
 
-    publish = sub.add_parser("publish-github", help="opt-in advisory PR comment; serialize per PR/project")
+    evidence_export = sub.add_parser(
+        "export-evidence",
+        help="retain a bounded approved report-reference subset as inert JSON",
+    )
+    evidence_export.add_argument("--run", required=True)
+    evidence_export.add_argument("--report-digest", required=True)
+    evidence_export.add_argument("--output", type=Path, required=True)
+
+    publish = sub.add_parser(
+        "publish-github", help="opt-in advisory PR comment; serialize per PR/project"
+    )
     publish.add_argument("--run", required=True)
     publish.add_argument("--repository", required=True)
     publish.add_argument("--pull-number", required=True, type=int)
     publish.add_argument("--bot-login", default="github-actions[bot]")
+    publish.add_argument("--source-run-id")
+    publish.add_argument("--source-run-attempt", type=int)
+
+    reconcile = sub.add_parser(
+        "reconcile-github",
+        help="inspect an uncertain GitHub publication without resending it",
+    )
+    reconcile.add_argument("--publication", required=True)
+    reconcile.add_argument(
+        "--repair-stale",
+        action="store_true",
+        help="explicitly permit a neutral stale/HOLD repair after exact write reconciliation",
+    )
 
     impact = sub.add_parser(
         "impact",
         help="create a deterministic impact recommendation for an ingested changed-file run",
     )
     impact.add_argument("--project", required=True, help="project slug")
-    impact.add_argument("--run", required=True, help="run ID containing changed-files input")
+    impact.add_argument(
+        "--run", required=True, help="run ID containing changed-files input"
+    )
     impact.add_argument("--mapping-snapshot", required=True)
     impact.add_argument("--changed-input")
 
@@ -143,19 +166,32 @@ def main() -> None:
     infrastructure_correlation.add_argument("--window-seconds", type=int, default=900)
     infrastructure_correlation.add_argument("--minimum-support", type=int, default=3)
 
-    recovery = sub.add_parser("recover-account", help="explicit local database-operator recovery; never a startup action")
+    recovery = sub.add_parser(
+        "recover-account",
+        help="explicit local database-operator recovery; never a startup action",
+    )
     recovery.add_argument("--username", required=True)
     recovery.add_argument("--reason", required=True)
-    recovery.add_argument("--activate", action="store_true", help="explicitly reactivate an inactive account")
-    recovery.add_argument("--confirm-local-administrator-access", action="store_true", required=True)
+    recovery.add_argument(
+        "--activate",
+        action="store_true",
+        help="explicitly reactivate an inactive account",
+    )
+    recovery.add_argument(
+        "--confirm-local-administrator-access", action="store_true", required=True
+    )
 
-    trace_inspect = sub.add_parser("trace-inspect", help="Validate a local original and print pinned, local-only viewer instructions")
+    trace_inspect = sub.add_parser(
+        "trace-inspect",
+        help="Validate a local original and print pinned, local-only viewer instructions",
+    )
     trace_inspect.add_argument("trace", type=Path)
     trace_inspect.add_argument("--sha256", required=True)
     args = parser.parse_args()
     if args.command == "trace-inspect":
         from .ingestion import IngestionError
         from .trace_evidence import build_trace_index
+
         if not re.fullmatch(r"[0-9a-fA-F]{64}", args.sha256):
             raise SystemExit("Expected a 64-character SHA-256 digest")
         settings = get_settings()
@@ -172,16 +208,35 @@ def main() -> None:
             index, warnings = build_trace_index(content, settings)
         except IngestionError as exc:
             raise SystemExit(f"Local trace rejected: {exc.code}") from None
-        print(json.dumps({"status": "verified_local_original", "sha256": args.sha256.lower(),
-            "producer_versions": index["producer_versions"], "schema_versions": index["schema_versions"],
-            "events": index["event_count"], "warnings": warnings,
-            "viewer_argv": ["npx", "--no-install", "playwright", "show-trace", str(args.trace.resolve())],
-            "instructions": "Use an isolated local workspace with Playwright 1.63.0 already installed and network disabled. "
-                "Original DOM, network and image content has NOT been sanitized. Do not host it on the dashboard origin. "
-                "This command has not installed software, fetched resources, or launched a viewer."}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "status": "verified_local_original",
+                    "sha256": args.sha256.lower(),
+                    "producer_versions": index["producer_versions"],
+                    "schema_versions": index["schema_versions"],
+                    "events": index["event_count"],
+                    "warnings": warnings,
+                    "viewer_argv": [
+                        "npx",
+                        "--no-install",
+                        "playwright",
+                        "show-trace",
+                        str(args.trace.resolve()),
+                    ],
+                    "instructions": "Use an isolated local workspace with Playwright 1.63.0 already installed and network disabled. "
+                    "Original DOM, network and image content has NOT been sanitized. Do not host it on the dashboard origin. "
+                    "This command has not installed software, fetched resources, or launched a viewer.",
+                },
+                indent=2,
+            )
+        )
         return
     initialize_database()
     settings = get_settings()
+    project: Project | None
+    run: Run | None
+    ingestion: Ingestion | None
     with SessionLocal() as session:
         if args.command == "doctor":
             session.execute(select(1))
@@ -197,25 +252,43 @@ def main() -> None:
             )
         elif args.command == "recover-account":
             from .accounts import operator_recovery
+
             if not args.reason.strip():
                 raise SystemExit("a non-empty audit reason is required")
-            user, record, raw = operator_recovery(session, args.username, reason=args.reason, activate=args.activate)
-            print(json.dumps({"user_id": user.id, "token": raw, "expires_at": record.expires_at.isoformat(),
-                              "notice": "Shown once. Redeem in the recovery form; keep this output private."}))
+            user, record, raw = operator_recovery(
+                session, args.username, reason=args.reason, activate=args.activate
+            )
+            print(
+                json.dumps(
+                    {
+                        "user_id": user.id,
+                        "token": raw,
+                        "expires_at": record.expires_at.isoformat(),
+                        "notice": "Shown once. Redeem in the recovery form; keep this output private.",
+                    }
+                )
+            )
         elif args.command == "demo-history":
             from .demo_history import seed_history
+
             print(json.dumps(seed_history(session), indent=2))
         elif args.command == "demo":
             print(json.dumps(seed_demo(session), indent=2))
         elif args.command == "ingest":
             if not args.report.is_file():
                 raise SystemExit(f"report not found: {args.report}")
-            project = session.scalar(select(Project).where(Project.slug == args.project)) or create_project(
+            project = session.scalar(
+                select(Project).where(Project.slug == args.project)
+            ) or create_project(
                 session,
                 args.project,
                 args.project,
             )
-            max_bytes = settings.max_bundle_bytes if args.report.suffix.lower() == ".zip" else settings.max_file_bytes
+            max_bytes = (
+                settings.max_bundle_bytes
+                if args.report.suffix.lower() == ".zip"
+                else settings.max_file_bytes
+            )
             if args.report.stat().st_size > max_bytes:
                 raise SystemExit(f"report exceeds configured {max_bytes}-byte limit")
             content = args.report.read_bytes()
@@ -225,6 +298,7 @@ def main() -> None:
                 ".zip": "application/zip",
             }.get(args.report.suffix.lower(), "application/octet-stream")
             from .retention import lock_project
+
             lock_project(session, project.id)
             stored = store_bytes(
                 content,
@@ -304,11 +378,22 @@ def main() -> None:
                 )
             )
         elif args.command == "analyze":
-            failures = session.scalars(select(Failure).where(Failure.run_id == args.run)).all()
+            failures = session.scalars(
+                select(Failure).where(Failure.run_id == args.run)
+            ).all()
             results = [analyze_and_persist(session, failure) for failure in failures]
-            print(json.dumps({"analyzed": len(results), "analysis_ids": [item.id for item in results]}))
+            print(
+                json.dumps(
+                    {
+                        "analyzed": len(results),
+                        "analysis_ids": [item.id for item in results],
+                    }
+                )
+            )
         elif args.command == "impact":
-            project = session.scalar(select(Project).where(Project.slug == args.project))
+            project = session.scalar(
+                select(Project).where(Project.slug == args.project)
+            )
             if project is None:
                 raise SystemExit("project not found")
             try:
@@ -329,7 +414,9 @@ def main() -> None:
                 )
             )
         elif args.command == "infrastructure-event":
-            project = session.scalar(select(Project).where(Project.slug == args.project))
+            project = session.scalar(
+                select(Project).where(Project.slug == args.project)
+            )
             if project is None:
                 raise SystemExit("project not found")
             if not args.event.is_file():
@@ -414,22 +501,75 @@ def main() -> None:
                 )
             )
         elif args.command == "publish-github":
-            run = session.get(Run, args.run)
-            if not run or run.repository != args.repository:
-                raise SystemExit("run not found or repository does not match trusted destination")
-            project = session.get(Project, run.project_id)
-            analyses = list(session.scalars(select(Analysis).join(Failure).where(Failure.run_id == run.id)).all())
-            publisher = None
+            from .github_publication_service import durable_publish
+
             try:
-                publisher = GitHubPublisher(os.environ.get("FAILURELENS_GITHUB_TOKEN", ""), bot_login=args.bot_login)
-                receipt = publisher.publish(repository=args.repository, pull_number=args.pull_number,
-                    project=project.slug, tested_head=run.commit_sha, report=report_snapshot(session, run)["markdown"])
-                print(json.dumps(asdict(receipt)))
+                receipt = durable_publish(
+                    SessionLocal,
+                    run_id=args.run,
+                    repository=args.repository,
+                    pull_number=args.pull_number,
+                    token=os.environ.get("FAILURELENS_GITHUB_TOKEN", ""),
+                    bot_login=args.bot_login,
+                    source_run_id=args.source_run_id,
+                    source_run_attempt=args.source_run_attempt,
+                )
             except PublicationError as exc:
                 raise SystemExit(str(exc)) from None
-            finally:
-                if publisher:
-                    publisher.close()
+            print(json.dumps(receipt, default=str))
+            if receipt["status"] not in {"created", "updated", "unchanged", "stale"}:
+                raise SystemExit(2)
+        elif args.command == "reconcile-github":
+            from .github_publication_service import reconcile_publication
+
+            try:
+                receipt = reconcile_publication(
+                    SessionLocal,
+                    publication_id=args.publication,
+                    token=os.environ.get("FAILURELENS_GITHUB_TOKEN", ""),
+                    repair_stale=args.repair_stale,
+                )
+            except PublicationError as exc:
+                raise SystemExit(str(exc)) from None
+            print(json.dumps(receipt, default=str))
+            if receipt["status"] not in {"created", "updated", "unchanged", "stale"}:
+                raise SystemExit(2)
+        elif args.command == "export-evidence":
+            from .github_evidence import canonical_export_bytes, evidence_for_report
+
+            run = session.get(Run, args.run)
+            if not run:
+                raise SystemExit("run not found")
+            if not re.fullmatch(r"[0-9a-f]{64}", args.report_digest):
+                raise SystemExit("invalid report digest")
+            snapshot = report_snapshot(session, run)
+            if snapshot["report_digest"] != args.report_digest:
+                raise SystemExit("report changed; regenerate before exporting evidence")
+            try:
+                document = evidence_for_report(session, run, snapshot)
+                content = canonical_export_bytes(document)
+                descriptor = os.open(
+                    args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
+                )
+                with os.fdopen(descriptor, "wb") as handle:
+                    handle.write(content)
+            except (OSError, ValueError):
+                raise SystemExit(
+                    "could not create the approved evidence export"
+                ) from None
+            print(
+                json.dumps(
+                    {
+                        "schema_version": "github-evidence-export-receipt-v1",
+                        "run_id": run.id,
+                        "report_digest": snapshot["report_digest"],
+                        "evidence_digest": document["evidence_digest"],
+                        "bytes": len(content),
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+            )
         elif args.command == "report":
             run = session.get(Run, args.run)
             if not run:
@@ -438,7 +578,11 @@ def main() -> None:
             if args.format == "markdown":
                 print(snapshot["markdown"], end="")
             else:
-                print(json.dumps(snapshot, indent=2))
+                print(
+                    json.dumps(
+                        snapshot, sort_keys=True, separators=(",", ":"), allow_nan=False
+                    )
+                )
 
 
 if __name__ == "__main__":

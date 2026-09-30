@@ -72,9 +72,15 @@ def upgrade() -> None:
     # Nullable foreign keys deliberately preserve legacy data without guessing
     # which execution/input produced evidence in multi-failure or multi-input runs.
     with op.batch_alter_table("evidence") as batch_op:
-        batch_op.add_column(sa.Column("run_input_id", sa.String(length=36), nullable=True))
-        batch_op.add_column(sa.Column("execution_id", sa.String(length=36), nullable=True))
-        batch_op.add_column(sa.Column("derivative_id", sa.String(length=36), nullable=True))
+        batch_op.add_column(
+            sa.Column("run_input_id", sa.String(length=36), nullable=True)
+        )
+        batch_op.add_column(
+            sa.Column("execution_id", sa.String(length=36), nullable=True)
+        )
+        batch_op.add_column(
+            sa.Column("derivative_id", sa.String(length=36), nullable=True)
+        )
         batch_op.add_column(
             sa.Column(
                 "provenance_kind",
@@ -143,9 +149,7 @@ def upgrade() -> None:
     op.create_index(
         "ix_evidence_execution_scope", "evidence", ["run_id", "execution_id"]
     )
-    op.create_index(
-        "ix_evidence_input_scope", "evidence", ["run_id", "run_input_id"]
-    )
+    op.create_index("ix_evidence_input_scope", "evidence", ["run_id", "run_input_id"])
 
     # A legacy run with exactly one execution/input is unambiguous and can be
     # scoped safely. Multi-execution/input legacy evidence stays unscoped and is
@@ -237,9 +241,7 @@ def downgrade() -> None:
         "ix_artifact_derivatives_project_digest",
         table_name="artifact_derivatives",
     )
-    op.drop_index(
-        "ix_artifact_derivatives_run_id", table_name="artifact_derivatives"
-    )
+    op.drop_index("ix_artifact_derivatives_run_id", table_name="artifact_derivatives")
     op.drop_index(
         "ix_artifact_derivatives_project_id", table_name="artifact_derivatives"
     )

@@ -13,10 +13,16 @@ DEFAULT_CASES = ROOT / "corpus" / "performance-cases.jsonl"
 
 
 def load_cases(path: Path) -> list[dict[str, Any]]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
 
 
-def evaluate(cases: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def evaluate(
+    cases: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     predictions: list[dict[str, Any]] = []
     repeated_predictions: list[dict[str, Any]] = []
     for case in cases:
@@ -30,12 +36,15 @@ def evaluate(cases: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[st
 
     case_count = len(predictions)
     correct = sum(1 for item in predictions if item["correct"])
-    regressions = [item for item in predictions if item["expected_status"] == "REGRESSION"]
+    regressions = [
+        item for item in predictions if item["expected_status"] == "REGRESSION"
+    ]
     dangerous_false_negatives = [
         item for item in regressions if item["status"] != "REGRESSION"
     ]
     compatibility_cases = [
-        item for item in predictions
+        item
+        for item in predictions
         if item["expected_status"] in {"BASELINE_UNAVAILABLE", "INCOMPATIBLE_BASELINE"}
     ]
     compatibility_correct = sum(1 for item in compatibility_cases if item["correct"])
@@ -52,15 +61,27 @@ def evaluate(cases: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[st
         if {
             key: first[key]
             for key in (
-                "status", "accepted_run_ids", "baseline_value", "canonical_unit",
-                "absolute_change", "relative_change", "aggregation", "significance_claimed"
+                "status",
+                "accepted_run_ids",
+                "baseline_value",
+                "canonical_unit",
+                "absolute_change",
+                "relative_change",
+                "aggregation",
+                "significance_claimed",
             )
         }
         == {
             key: second[key]
             for key in (
-                "status", "accepted_run_ids", "baseline_value", "canonical_unit",
-                "absolute_change", "relative_change", "aggregation", "significance_claimed"
+                "status",
+                "accepted_run_ids",
+                "baseline_value",
+                "canonical_unit",
+                "absolute_change",
+                "relative_change",
+                "aggregation",
+                "significance_claimed",
             )
         }
     )
@@ -71,7 +92,8 @@ def evaluate(cases: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[st
         "status_accuracy": correct / case_count if case_count else 0,
         "regression_recall": (
             (len(regressions) - len(dangerous_false_negatives)) / len(regressions)
-            if regressions else None
+            if regressions
+            else None
         ),
         "dangerous_false_negative": {
             "numerator": len(dangerous_false_negatives),
@@ -80,15 +102,20 @@ def evaluate(cases: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[st
         },
         "compatibility_selection_accuracy": (
             compatibility_correct / len(compatibility_cases)
-            if compatibility_cases else None
+            if compatibility_cases
+            else None
         ),
         "evidence_citation_validity": citation_valid / case_count if case_count else 0,
-        "deterministic_repeat_agreement": deterministic / case_count if case_count else 0,
+        "deterministic_repeat_agreement": deterministic / case_count
+        if case_count
+        else 0,
         "statistical_significance_claims": sum(
             1 for item in predictions if item["significance_claimed"]
         ),
         "non_median_baseline_aggregations": sum(
-            1 for item in predictions if item["aggregation"] != "median_of_run_level_observations"
+            1
+            for item in predictions
+            if item["aggregation"] != "median_of_run_level_observations"
         ),
         "status_counts": dict(sorted(status_counts.items())),
         "limitations": [
@@ -141,7 +168,9 @@ def main() -> None:
     (args.output / "performance-metrics.json").write_text(
         json.dumps(metrics, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
-    (args.output / "performance-report.md").write_text(render_report(metrics), encoding="utf-8")
+    (args.output / "performance-report.md").write_text(
+        render_report(metrics), encoding="utf-8"
+    )
     print(json.dumps(metrics, indent=2, sort_keys=True))
 
 

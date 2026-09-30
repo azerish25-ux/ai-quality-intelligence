@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from .telemetry import instrument
-
 import hashlib
 import os
 import re
@@ -9,6 +7,8 @@ import uuid
 from collections.abc import AsyncIterable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
+
+from .telemetry import instrument
 
 
 class StorageError(ValueError):
@@ -32,23 +32,33 @@ def safe_filename(name: str) -> str:
         raise StorageError("unsafe_filename", "Filename is empty or invalid")
     path = PurePosixPath(value)
     if path.is_absolute() or len(path.parts) != 1 or path.name in {"", ".", ".."}:
-        raise StorageError("unsafe_filename", "Filename must be a single relative path component")
+        raise StorageError(
+            "unsafe_filename", "Filename must be a single relative path component"
+        )
     if re.match(r"^[A-Za-z]:", value) or any(ord(char) < 32 for char in value):
-        raise StorageError("unsafe_filename", "Filename contains a drive prefix or control character")
+        raise StorageError(
+            "unsafe_filename", "Filename contains a drive prefix or control character"
+        )
     return path.name
 
 
 def _resolve_under(root: Path, relative_path: str) -> Path:
     if ".redaction" in PurePosixPath(relative_path).parts:
-        raise StorageError("reserved_storage_path", "Private operational state is not evidence storage")
+        raise StorageError(
+            "reserved_storage_path", "Private operational state is not evidence storage"
+        )
     root_resolved = root.resolve()
     candidate = (root_resolved / relative_path).resolve()
     try:
         relative = candidate.relative_to(root_resolved)
     except ValueError as exc:
-        raise StorageError("unsafe_storage_path", "Stored artifact path escapes the configured root") from exc
+        raise StorageError(
+            "unsafe_storage_path", "Stored artifact path escapes the configured root"
+        ) from exc
     if ".redaction" in relative.parts:
-        raise StorageError("reserved_storage_path", "Private operational state is not evidence storage")
+        raise StorageError(
+            "reserved_storage_path", "Private operational state is not evidence storage"
+        )
     return candidate
 
 
@@ -57,7 +67,9 @@ def _final_relative_path(project_id: str, digest: str, filename: str) -> str:
 
 
 def _derivative_relative_path(project_id: str, digest: str, filename: str) -> str:
-    return PurePosixPath("derivatives", project_id, digest[:2], digest, filename).as_posix()
+    return PurePosixPath(
+        "derivatives", project_id, digest[:2], digest, filename
+    ).as_posix()
 
 
 def _finalize(
@@ -83,11 +95,15 @@ def _finalize(
         existing_size = destination.stat().st_size
         if existing_size != size_bytes:
             temporary.unlink(missing_ok=True)
-            raise StorageError("storage_collision", "Existing digest path has an unexpected size")
+            raise StorageError(
+                "storage_collision", "Existing digest path has an unexpected size"
+            )
         existing_digest = hashlib.sha256(destination.read_bytes()).hexdigest()
         if existing_digest != digest:
             temporary.unlink(missing_ok=True)
-            raise StorageError("storage_collision", "Existing digest path has unexpected content")
+            raise StorageError(
+                "storage_collision", "Existing digest path has unexpected content"
+            )
         temporary.unlink(missing_ok=True)
     else:
         os.replace(temporary, destination)
@@ -125,7 +141,10 @@ async def store_stream(
                     continue
                 size += len(chunk)
                 if size > max_bytes:
-                    raise StorageError("limit_exceeded", f"Upload exceeds the {max_bytes}-byte file limit")
+                    raise StorageError(
+                        "limit_exceeded",
+                        f"Upload exceeds the {max_bytes}-byte file limit",
+                    )
                 digest.update(chunk)
                 handle.write(chunk)
             handle.flush()
@@ -160,7 +179,9 @@ def store_bytes(
     if not content:
         raise StorageError("empty_upload", "Uploaded artifact is empty")
     if len(content) > max_bytes:
-        raise StorageError("limit_exceeded", f"Upload exceeds the {max_bytes}-byte file limit")
+        raise StorageError(
+            "limit_exceeded", f"Upload exceeds the {max_bytes}-byte file limit"
+        )
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     incoming = root / "incoming"
     incoming.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -187,7 +208,6 @@ def store_bytes(
         raise
 
 
-
 @instrument("persistence")
 def store_derivative_bytes(
     content: bytes,
@@ -208,7 +228,9 @@ def store_derivative_bytes(
     if not content:
         raise StorageError("empty_derivative", "Safe derivative is empty")
     if len(content) > max_bytes:
-        raise StorageError("limit_exceeded", f"Derivative exceeds the {max_bytes}-byte file limit")
+        raise StorageError(
+            "limit_exceeded", f"Derivative exceeds the {max_bytes}-byte file limit"
+        )
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     incoming = root / "incoming"
     incoming.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -234,6 +256,7 @@ def store_derivative_bytes(
         temporary.unlink(missing_ok=True)
         raise
 
+
 def read_stored_bytes(
     *,
     root: Path,
@@ -246,11 +269,17 @@ def read_stored_bytes(
     try:
         size = path.stat().st_size
     except FileNotFoundError as exc:
-        raise StorageError("storage_missing", "Stored source artifact no longer exists") from exc
+        raise StorageError(
+            "storage_missing", "Stored source artifact no longer exists"
+        ) from exc
     if size != expected_size:
-        raise StorageError("storage_size_mismatch", "Stored source artifact size changed")
+        raise StorageError(
+            "storage_size_mismatch", "Stored source artifact size changed"
+        )
     if size > max_bytes:
-        raise StorageError("limit_exceeded", "Stored source artifact exceeds the configured limit")
+        raise StorageError(
+            "limit_exceeded", "Stored source artifact exceeds the configured limit"
+        )
     content = path.read_bytes()
     digest = hashlib.sha256(content).hexdigest()
     if digest != expected_digest:

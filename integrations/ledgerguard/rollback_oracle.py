@@ -4,6 +4,7 @@ Evaluation-only: no runtime schemas, classifier, publication predicates or
 producer-generated verdicts are imported. A failed command without inspected
 SQL effects is not proof of successful fault injection.
 """
+
 from __future__ import annotations
 
 from collections import Counter
@@ -25,8 +26,8 @@ def _uuid(value: object) -> str:
 def _snapshot(value: dict, source: str, destination: str) -> tuple[dict, dict, Counter]:
     if not isinstance(value, dict) or set(value) != {"balances", "effects", "entries"}:
         raise ValueError("Incomplete SQL snapshot")
-    for key in value:
-        if not isinstance(value[key], list) or len(value[key]) > 1024:
+    for rows in value.values():
+        if not isinstance(rows, list) or len(rows) > 1024:
             raise ValueError("SQL snapshot exceeds the bounded experiment")
     balances = {}
     for row in value["balances"]:
@@ -40,7 +41,14 @@ def _snapshot(value: dict, source: str, destination: str) -> tuple[dict, dict, C
         raise ValueError("Both distinct accounts must be observed")
     effects = {}
     for row in value["effects"]:
-        if not isinstance(row, dict) or set(row) != {"id", "source_id", "destination_id", "amount_minor", "currency", "journal_id"}:
+        if not isinstance(row, dict) or set(row) != {
+            "id",
+            "source_id",
+            "destination_id",
+            "amount_minor",
+            "currency",
+            "journal_id",
+        }:
             raise ValueError("Invalid transfer observation")
         key = _uuid(row["id"])
         if key in effects:
@@ -52,18 +60,26 @@ def _snapshot(value: dict, source: str, destination: str) -> tuple[dict, dict, C
         effects[key] = row
     entries = Counter()
     for row in value["entries"]:
-        if not isinstance(row, dict) or set(row) != {"journal_id", "account_id", "side", "amount_minor"}:
+        if not isinstance(row, dict) or set(row) != {
+            "journal_id",
+            "account_id",
+            "side",
+            "amount_minor",
+        }:
             raise ValueError("Invalid journal observation")
         journal = _uuid(row["journal_id"])
         account = _uuid(row["account_id"])
         if account not in balances or row["side"] not in {"DEBIT", "CREDIT"}:
             raise ValueError("Invalid journal role")
-        entries[(journal, account, row["side"], _integer(row["amount_minor"], minimum=1))] += 1
+        entries[
+            (journal, account, row["side"], _integer(row["amount_minor"], minimum=1))
+        ] += 1
     return balances, effects, entries
 
 
-def verify_observation(before: dict, after: dict, *, command: dict, response: dict,
-                       expected_effects: int) -> dict:
+def verify_observation(
+    before: dict, after: dict, *, command: dict, response: dict, expected_effects: int
+) -> dict:
     """Require actual terminal HTTP rejection and exactly zero or one SQL effect.
 
     Zero is the passing rollback control; one is the deliberately faulty early
@@ -77,8 +93,11 @@ def verify_observation(before: dict, after: dict, *, command: dict, response: di
     amount = _integer(command["amount_minor"], minimum=1)
     if amount > 10**12 or command["currency"] != "CAD":
         raise ValueError("Unsupported isolated fixture intent")
-    if (type(response.get("status")) is not int or response["status"] != 422
-            or response.get("code") != "TRANSFER_REJECTED"):
+    if (
+        type(response.get("status")) is not int
+        or response["status"] != 422
+        or response.get("code") != "TRANSFER_REJECTED"
+    ):
         raise ValueError("The expected real business rejection was not observed")
     old_balances, old_effects, old_entries = _snapshot(before, source, destination)
     new_balances, new_effects, new_entries = _snapshot(after, source, destination)
@@ -103,6 +122,10 @@ def verify_observation(before: dict, after: dict, *, command: dict, response: di
     credit = new_balances[destination] - old_balances[destination]
     if debit != expected_effects * amount or credit != expected_effects * amount:
         raise ValueError("Independent balance deltas disagree with committed transfers")
-    return {"expectation_met": True, "committed_transfers": len(added),
-            "debit_minor": debit, "credit_minor": credit,
-            "no_effects_after_rejection": expected_effects == 0}
+    return {
+        "expectation_met": True,
+        "committed_transfers": len(added),
+        "debit_minor": debit,
+        "credit_minor": credit,
+        "no_effects_after_rejection": expected_effects == 0,
+    }

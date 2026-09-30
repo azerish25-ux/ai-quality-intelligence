@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import replace
-from functools import wraps
 import math
 import re
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
+from functools import wraps
 from typing import Any
 
 from sqlalchemy import and_, func, or_, select
@@ -28,7 +28,6 @@ from .evidence_validation import (
 from .fingerprint import make_fingerprint
 from .history import history_context_for_failure
 from .ingestion import (
-    PARSER_VERSION,
     ParsedArtifact,
     ParsedInput,
     ParsedObservation,
@@ -58,17 +57,31 @@ from .performance import (
     infer_metric_direction,
     register_performance_observation,
 )
-from .redaction import (REDACTION_VERSION, RedactionContext, analytic_scalar,
-                        current_redaction_context, redact_sensitive_field, redact_text,
-                        redaction_provenance, redaction_scope, valid_project_provenance)
+from .redaction import (
+    REDACTION_VERSION,
+    RedactionContext,
+    analytic_scalar,
+    current_redaction_context,
+    redact_sensitive_field,
+    redact_text,
+    redaction_provenance,
+    redaction_scope,
+    valid_project_provenance,
+)
 from .redaction_keys import RedactionKeyError, load_key
-from .telemetry import instrument, trace_context
-from .schemas import AnalysisResult, Confidence, IngestionRequest, ReviewCreate, RunMetadata
+from .schemas import (
+    AnalysisResult,
+    Confidence,
+    IngestionRequest,
+    ReviewCreate,
+    RunMetadata,
+)
 from .storage import (
     StoredUpload,
     read_stored_bytes,
     store_derivative_bytes,
 )
+from .telemetry import instrument, trace_context
 
 INGEST_JOB_KIND = "ingest_and_analyze_v1"
 ARTIFACT_POLICY_VERSION = "artifact-policy-v2"
@@ -76,8 +89,13 @@ MAX_PERSISTED_PERFORMANCE_OBSERVATIONS = 20_000
 MAX_PERFORMANCE_VALUES_PER_METRIC = 32
 
 
-def _new_redaction_context(session: Session, project_id: str, settings: Settings,
-                           *, key_reference: str | None = None) -> RedactionContext:
+def _new_redaction_context(
+    session: Session,
+    project_id: str,
+    settings: Settings,
+    *,
+    key_reference: str | None = None,
+) -> RedactionContext:
     try:
         key = load_key(settings, expected_reference=key_reference)
     except RedactionKeyError as exc:
@@ -85,13 +103,22 @@ def _new_redaction_context(session: Session, project_id: str, settings: Settings
             raise
         # A DB-only restore or loss of the entire key directory must not silently
         # initialize a new correlation epoch. Version columns survive retention.
-        prior = any(session.scalar(query.limit(1)) is not None for query in (
-            select(Artifact.id).where(Artifact.redaction_version == REDACTION_VERSION),
-            select(ArtifactDerivative.id).where(ArtifactDerivative.redaction_version == REDACTION_VERSION),
-            select(Ingestion.id).where(Ingestion.policy_version == ARTIFACT_POLICY_VERSION,
-                                      Ingestion.source_metadata["redaction_policy"]["version"].as_string()
-                                      == REDACTION_VERSION),
-        ))
+        prior = any(
+            session.scalar(query.limit(1)) is not None
+            for query in (
+                select(Artifact.id).where(
+                    Artifact.redaction_version == REDACTION_VERSION
+                ),
+                select(ArtifactDerivative.id).where(
+                    ArtifactDerivative.redaction_version == REDACTION_VERSION
+                ),
+                select(Ingestion.id).where(
+                    Ingestion.policy_version == ARTIFACT_POLICY_VERSION,
+                    Ingestion.source_metadata["redaction_policy"]["version"].as_string()
+                    == REDACTION_VERSION,
+                ),
+            )
+        )
         if prior:
             raise RedactionKeyError("redaction_key_missing_restore_required") from None
         key = load_key(settings, allow_local_create=True)
@@ -110,6 +137,7 @@ def _scoped_parsed_ingestion(function):
         context = _new_redaction_context(session, project.id, settings)
         with redaction_scope(context):
             return function(session, project, *args, **kwargs)
+
     return scoped
 
 
@@ -156,6 +184,16 @@ def _metric_threshold_status(thresholds: dict[str, Any]) -> str:
     return "unknown"
 
 
+def _finite_metric_value(value: object) -> float | None:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return None
+    try:
+        number = float(value)
+    except OverflowError:
+        return None
+    return number if math.isfinite(number) else None
+
+
 def _json_pointer_escape(value: str) -> str:
     return value.replace("~", "~0").replace("/", "~1")
 
@@ -191,17 +229,27 @@ def _persist_performance_observations(
     )
     final_executions: dict[tuple[str, str | None], TestExecution] = {}
     for execution in executions:
-        final_executions.setdefault((execution.test_identity, execution.browser), execution)
-    evidence_rows = list(
-        session.scalars(
-            select(Evidence).where(
-                Evidence.run_id == run.id,
-                Evidence.execution_id.in_([item.id for item in final_executions.values()]),
-            )
-        ).all()
-    ) if final_executions else []
+        final_executions.setdefault(
+            (execution.test_identity, execution.browser), execution
+        )
+    evidence_rows = (
+        list(
+            session.scalars(
+                select(Evidence).where(
+                    Evidence.run_id == run.id,
+                    Evidence.execution_id.in_(
+                        [item.id for item in final_executions.values()]
+                    ),
+                )
+            ).all()
+        )
+        if final_executions
+        else []
+    )
     evidence_by_execution = {
-        item.execution_id: item for item in evidence_rows if item.execution_id is not None
+        item.execution_id: item
+        for item in evidence_rows
+        if item.execution_id is not None
     }
     for execution in final_executions.values():
         evidence = evidence_by_execution.get(execution.id)
@@ -243,7 +291,9 @@ def _persist_performance_observations(
             dimensions=dimensions,
             threshold_status="unknown",
             threshold_details={},
-            source_digest=run_input.digest if run_input and run_input.digest else artifact.digest,
+            source_digest=run_input.digest
+            if run_input and run_input.digest
+            else artifact.digest,
             source_locator=evidence.locator,
             direction="lower_is_better",
             observed_at=run.started_at or run.created_at,
@@ -257,7 +307,10 @@ def _persist_performance_observations(
         if persisted >= MAX_PERSISTED_PERFORMANCE_OBSERVATIONS:
             truncated = True
             break
-        if item.kind != "k6-summary-json" or item.status not in {"accepted", "restricted"}:
+        if item.kind != "k6-summary-json" or item.status not in {
+            "accepted",
+            "restricted",
+        }:
             continue
         metrics = item.metadata.get("metrics")
         if not isinstance(metrics, dict):
@@ -266,40 +319,48 @@ def _persist_performance_observations(
         if run_input is None:
             continue
         producer = str(item.metadata.get("producer") or "k6-handleSummary")
-        producer_version = str(
-            item.metadata.get("producer_version")
-            or (run.source_metadata or {}).get("k6_version")
-            or ""
-        ) or None
+        producer_version = (
+            str(
+                item.metadata.get("producer_version")
+                or (run.source_metadata or {}).get("k6_version")
+                or ""
+            )
+            or None
+        )
         workload = str(
             item.metadata.get("workload")
             or item.metadata.get("scenario")
             or (run.source_metadata or {}).get("workload")
             or "default"
         )[:512]
-        state = item.metadata.get("state") if isinstance(item.metadata.get("state"), dict) else {}
+        state = item.metadata.get("state")
+        if not isinstance(state, dict):
+            state = {}
         for metric_name, metric in sorted(metrics.items()):
             if persisted >= MAX_PERSISTED_PERFORMANCE_OBSERVATIONS:
                 truncated = True
                 break
             if not isinstance(metric, dict):
                 continue
-            values = metric.get("values") if isinstance(metric.get("values"), dict) else {}
-            thresholds = metric.get("thresholds") if isinstance(metric.get("thresholds"), dict) else {}
+            values = metric.get("values")
+            if not isinstance(values, dict):
+                values = {}
+            thresholds = metric.get("thresholds")
+            if not isinstance(thresholds, dict):
+                thresholds = {}
             metric_type = str(metric.get("type") or "") or None
             contains = str(metric.get("contains") or "") or None
             numeric_values = [
-                (str(key), float(value))
+                (str(key), number)
                 for key, value in values.items()
-                if isinstance(value, (int, float))
-                and not isinstance(value, bool)
-                and math.isfinite(float(value))
+                if (number := _finite_metric_value(value)) is not None
             ][:MAX_PERFORMANCE_VALUES_PER_METRIC]
             sample_count_value = values.get("count")
             sample_count = (
                 int(sample_count_value)
                 if isinstance(sample_count_value, (int, float))
                 and not isinstance(sample_count_value, bool)
+                and _finite_metric_value(sample_count_value) is not None
                 and sample_count_value >= 0
                 else None
             )
@@ -340,7 +401,9 @@ def _persist_performance_observations(
                     "thresholds": thresholds,
                     "state": state,
                 }
-                excerpt = json.dumps(typed_observation, sort_keys=True, separators=(",", ":"))
+                excerpt = json.dumps(
+                    typed_observation, sort_keys=True, separators=(",", ":")
+                )
                 derivative = _get_or_create_text_derivative(
                     session,
                     project=project,
@@ -431,15 +494,20 @@ def _persist_performance_observations(
 
 
 def manifest_digest(payload: dict[str, Any]) -> str:
-    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    canonical = json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 @instrument("redaction")
-def _sanitize_evidence_value(value: Any, *, max_text: int, depth: int = 0,
-                             _remaining: list[int] | None = None) -> tuple[Any, set[str]]:
+def _sanitize_evidence_value(
+    value: Any, *, max_text: int, depth: int = 0, _remaining: list[int] | None = None
+) -> tuple[Any, set[str]]:
     """Trace one bounded structured-redaction operation, not each recursive field."""
-    return _sanitize_evidence_value_inner(value, max_text=max_text, depth=depth, _remaining=_remaining)
+    return _sanitize_evidence_value_inner(
+        value, max_text=max_text, depth=depth, _remaining=_remaining
+    )
 
 
 def _sanitize_evidence_value_inner(
@@ -471,7 +539,7 @@ def _sanitize_evidence_value_inner(
         return redacted.text, classes
     if isinstance(value, dict):
         safe: dict[str, Any] = {}
-        classes: set[str] = set()
+        classes = set()
         for index, (key, item) in enumerate(value.items()):
             if index >= 500 or remaining[0] <= 0:
                 safe["__truncated__"] = "analysis-text-budget-or-member-limit"
@@ -497,7 +565,7 @@ def _sanitize_evidence_value_inner(
         return safe, classes
     if isinstance(value, (list, tuple)):
         safe_items: list[Any] = []
-        classes: set[str] = set()
+        classes = set()
         for index, item in enumerate(value):
             if index >= 1000 or remaining[0] <= 0:
                 safe_items.append("[TRUNCATED:analysis-text-budget-or-list-limit]")
@@ -549,7 +617,10 @@ def _get_or_create_text_derivative(
         "excerpt": excerpt,
         "observation": observation,
         "source_locator": source_locator,
-        "redaction": {**redaction_provenance(project.id), "classes": sorted(redaction_classes)},
+        "redaction": {
+            **redaction_provenance(project.id),
+            "classes": sorted(redaction_classes),
+        },
     }
     content = _canonical_json_bytes(payload)
     digest = hashlib.sha256(content).hexdigest()
@@ -692,6 +763,7 @@ def ingest_parsed_report(
     settings: Settings | None = None,
 ) -> Run:
     from .retention import lock_project
+
     lock_project(session, project.id)
     settings = settings or get_settings()
     input_records = _bind_changed_file_trust(
@@ -749,7 +821,9 @@ def ingest_parsed_report(
         cluster_project_failures(session, project.id)
         return existing
 
-    safe_source_metadata, _ = _sanitize_evidence_value(metadata.source_metadata, max_text=settings.analysis_text_budget)
+    safe_source_metadata, _ = _sanitize_evidence_value(
+        metadata.source_metadata, max_text=settings.analysis_text_budget
+    )
     input_summary = [
         {
             "id": item.input_id,
@@ -842,7 +916,10 @@ def ingest_parsed_report(
             media_type=item.media_type,
             parser_version=item.parser_version,
             warnings=list(item.warnings),
-            metadata_json={**item.metadata, "redaction_policy": redaction_provenance(project.id)},
+            metadata_json={
+                **item.metadata,
+                "redaction_policy": redaction_provenance(project.id),
+            },
         )
         session.add(run_input)
         run_inputs_by_input_id[item.input_id] = run_input
@@ -896,7 +973,9 @@ def ingest_parsed_report(
                 if observation.parameterization
                 else None
             ),
-            browser=redact_text(observation.browser).text if observation.browser else None,
+            browser=redact_text(observation.browser).text
+            if observation.browser
+            else None,
             attempt=observation.attempt,
             outcome=outcome,
             duration_ms=observation.duration_ms,
@@ -914,9 +993,7 @@ def ingest_parsed_report(
         safe_excerpt = redact_text(raw_excerpt)
         excerpt = safe_excerpt.text[: settings.analysis_text_budget]
         redaction_classes = (
-            set(safe_excerpt.classes)
-            | set(safe_message.classes)
-            | detail_redactions
+            set(safe_excerpt.classes) | set(safe_message.classes) | detail_redactions
         )
         if len(safe_excerpt.text) > settings.analysis_text_budget:
             redaction_classes.add("truncated")
@@ -955,12 +1032,12 @@ def ingest_parsed_report(
             "source": source_locator,
             "derivative": {"kind": "json-pointer", "pointer": "/excerpt"},
         }
-        run_input = run_inputs_by_input_id.get(input_id)
+        evidence_run_input = run_inputs_by_input_id.get(input_id)
         evidence = Evidence(
             project_id=project.id,
             run_id=run.id,
             artifact_id=artifact.id,
-            run_input_id=run_input.id if run_input else None,
+            run_input_id=evidence_run_input.id if evidence_run_input else None,
             execution_id=execution.id,
             derivative_id=derivative.id,
             kind="current_run_observation",
@@ -982,9 +1059,7 @@ def ingest_parsed_report(
         session.flush()
         if outcome is Outcome.failed:
             message = safe_message.text or excerpt or "Test failed without a message"
-            fingerprint, features = make_fingerprint(
-                message, safe_exception, details
-            )
+            fingerprint, features = make_fingerprint(message, safe_exception, details)
             session.add(
                 Failure(
                     project_id=project.id,
@@ -1008,19 +1083,29 @@ def ingest_parsed_report(
     )
 
     from .domain_evidence import register_domain_inputs
+
     register_domain_inputs(session, project, run, artifact, settings)
 
     from .transaction_evidence import register_transaction_inputs
+
     register_transaction_inputs(session, project, run, artifact, settings)
     from .contract_evidence import register_contract_inputs
+
     register_contract_inputs(session, project, run, artifact, settings)
 
     from .binary_evidence import register_binary_inputs
+
     register_binary_inputs(session, project, run, artifact, settings)
 
     for run_input in run_inputs_by_input_id.values():
-        run_input.metadata_json = {**run_input.metadata_json, "redaction_policy": redaction_provenance(project.id)}
-    run.source_metadata = {**run.source_metadata, "redaction_policy": redaction_provenance(project.id)}
+        run_input.metadata_json = {
+            **run_input.metadata_json,
+            "redaction_policy": redaction_provenance(project.id),
+        }
+    run.source_metadata = {
+        **run.source_metadata,
+        "redaction_policy": redaction_provenance(project.id),
+    }
     run.status = RunStatus.complete if completeness == "complete" else RunStatus.partial
     run.ended_at = datetime.now(UTC)
     try:
@@ -1044,9 +1129,13 @@ def ingest_parsed_report(
     return run
 
 
-def ingest_normalized(session: Session, project: Project, request: IngestionRequest) -> Run:
+def ingest_normalized(
+    session: Session, project: Project, request: IngestionRequest
+) -> Run:
     payload = request.model_dump(mode="json")
-    artifact_payload = json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    artifact_payload = json.dumps(payload, sort_keys=True, ensure_ascii=False).encode(
+        "utf-8"
+    )
     artifact_digest = hashlib.sha256(artifact_payload).hexdigest()
     parsed = [
         ParsedObservation(
@@ -1062,7 +1151,10 @@ def ingest_normalized(session: Session, project: Project, request: IngestionRequ
             exception_type=observation.exception_type,
             details=observation.details,
             evidence_excerpt=observation.message,
-            evidence_locator={"kind": "json-pointer", "pointer": f"/observations/{index}"},
+            evidence_locator={
+                "kind": "json-pointer",
+                "pointer": f"/observations/{index}",
+            },
         )
         for index, observation in enumerate(request.observations)
     ]
@@ -1120,13 +1212,13 @@ def _validate_ingestion_idempotency(
         "source_format": source_format,
     }
     conflicts = [
-        field
-        for field, value in supplied.items()
-        if value != getattr(existing, field)
+        field for field, value in supplied.items() if value != getattr(existing, field)
     ]
     # Processing derives the effective count from the manifest; retries must
     # compare the original transport declaration, not that derived count.
-    declared_expected = existing.source_metadata.get("declared_expected_inputs", existing.expected_inputs)
+    declared_expected = existing.source_metadata.get(
+        "declared_expected_inputs", existing.expected_inputs
+    )
     if metadata.expected_inputs != declared_expected:
         conflicts.append("expected_inputs")
     context = {
@@ -1162,7 +1254,8 @@ def enqueue_artifact_ingestion(
     source_format: str = "auto",
     settings: Settings | None = None,
 ) -> Ingestion:
-    from .retention import lock_project, _delete_later, flush_deletions
+    from .retention import _delete_later, flush_deletions, lock_project
+
     lock_project(session, project.id)
     existing = session.scalar(
         select(Ingestion).where(
@@ -1179,27 +1272,33 @@ def enqueue_artifact_ingestion(
             _delete_later(session, project.id, stored.relative_path)
             session.commit()
             flush_deletions(session, project.id, settings or get_settings())
-            _validate_ingestion_idempotency(existing, metadata, source_format=source_format)
+            _validate_ingestion_idempotency(
+                existing, metadata, source_format=source_format
+            )
             # Deliberately discarded binary originals are not a failed/expired
             # investigation. A retry acknowledges its durable result without
             # requeueing work or retaining newly submitted source bytes. Actual
             # retention expiry keeps the established conflict behavior.
             from .binary_evidence import BINARY_POLICY
+
             run = session.get(Run, existing.run_id) if existing.run_id else None
-            if (run is not None and run.evidence_expired_at is None
-                    and run.source_metadata.get("binary_original_policy") == BINARY_POLICY
-                    and existing.state in (IngestionState.succeeded, IngestionState.partial)):
+            if (
+                run is not None
+                and run.evidence_expired_at is None
+                and run.source_metadata.get("binary_original_policy") == BINARY_POLICY
+                and existing.state in (IngestionState.succeeded, IngestionState.partial)
+            ):
                 return existing
             raise ValueError("source expired; submit a new external ID or attempt")
-        _validate_ingestion_idempotency(
-            existing, metadata, source_format=source_format
-        )
+        _validate_ingestion_idempotency(existing, metadata, source_format=source_format)
         return existing
 
     settings = settings or get_settings()
     context = _new_redaction_context(session, project.id, settings)
     with redaction_scope(context):
-        safe_source_metadata, _ = _sanitize_evidence_value(metadata.source_metadata, max_text=settings.analysis_text_budget)
+        safe_source_metadata, _ = _sanitize_evidence_value(
+            metadata.source_metadata, max_text=settings.analysis_text_budget
+        )
     ingestion = Ingestion(
         project_id=project.id,
         external_id=metadata.external_id,
@@ -1271,6 +1370,7 @@ def retry_ingestion(
     settings: Settings | None = None,
 ) -> Ingestion:
     from .retention import lock_project
+
     lock_project(session, ingestion.project_id)
     session.refresh(ingestion)
     if ingestion.source_expired_at is not None:
@@ -1280,7 +1380,9 @@ def retry_ingestion(
         IngestionState.dead_lettered,
         IngestionState.cancelled,
     }:
-        raise ValueError(f"ingestion in state {ingestion.state.value} cannot be retried")
+        raise ValueError(
+            f"ingestion in state {ingestion.state.value} cannot be retried"
+        )
     settings = settings or get_settings()
     job = Job(
         project_id=ingestion.project_id,
@@ -1318,7 +1420,10 @@ def cancel_ingestion(session: Session, ingestion: Ingestion) -> Ingestion:
         return ingestion
     ingestion.state = IngestionState.cancelled
     ingestion.completed_at = datetime.now(UTC)
-    ingestion.diagnostics = [*ingestion.diagnostics, {"phase": "cancel", "status": "cancelled"}]
+    ingestion.diagnostics = [
+        *ingestion.diagnostics,
+        {"phase": "cancel", "status": "cancelled"},
+    ]
     if ingestion.job and ingestion.job.state in {JobState.queued, JobState.running}:
         ingestion.job.state = JobState.cancelled
         ingestion.job.lease_owner = None
@@ -1330,23 +1435,41 @@ def cancel_ingestion(session: Session, ingestion: Ingestion) -> Ingestion:
 
 @instrument("ingestion")
 def process_artifact_ingestion(
-    session: Session, ingestion: Ingestion, *, settings: Settings | None = None,
+    session: Session,
+    ingestion: Ingestion,
+    *,
+    settings: Settings | None = None,
     heartbeat: Any | None = None,
 ) -> Run:
     settings = settings or get_settings()
-    pin = (ingestion.source_metadata.get("redaction_policy")
-           if ingestion.policy_version == ARTIFACT_POLICY_VERSION else None)
-    if ingestion.policy_version == ARTIFACT_POLICY_VERSION and not valid_project_provenance(pin, ingestion.project_id):
+    pin = (
+        ingestion.source_metadata.get("redaction_policy")
+        if ingestion.policy_version == ARTIFACT_POLICY_VERSION
+        else None
+    )
+    if (
+        ingestion.policy_version == ARTIFACT_POLICY_VERSION
+        and not valid_project_provenance(pin, ingestion.project_id)
+    ):
         raise RedactionKeyError("redaction_ingestion_pin_invalid")
-    context = _new_redaction_context(session, ingestion.project_id, settings,
-                                    key_reference=pin["key_ref"] if pin else None)
+    context = _new_redaction_context(
+        session,
+        ingestion.project_id,
+        settings,
+        key_reference=pin["key_ref"] if pin else None,
+    )
     if pin is None:
         # Server migration of a queued legacy record; do not trust artifact fields.
-        ingestion.source_metadata = {**ingestion.source_metadata, "redaction_policy": context.provenance()}
+        ingestion.source_metadata = {
+            **ingestion.source_metadata,
+            "redaction_policy": context.provenance(),
+        }
         ingestion.policy_version = ARTIFACT_POLICY_VERSION
         session.commit()
     with redaction_scope(context):
-        return _process_artifact_ingestion(session, ingestion, settings=settings, heartbeat=heartbeat)
+        return _process_artifact_ingestion(
+            session, ingestion, settings=settings, heartbeat=heartbeat
+        )
 
 
 def _process_artifact_ingestion(
@@ -1375,46 +1498,48 @@ def _process_artifact_ingestion(
     )
     if heartbeat:
         heartbeat()
-    metadata = RunMetadata(
-        external_id=ingestion.external_id,
-        attempt=ingestion.attempt,
-        repository=ingestion.repository,
-        commit_sha=ingestion.commit_sha,
-        base_sha=ingestion.base_sha,
-        branch=ingestion.branch,
-        framework=parsed.source_format,
-        run_scope=str(ingestion.source_metadata.get("run_scope") or "unknown"),
-        comparison_trust=str(
-            ingestion.source_metadata.get("comparison_trust") or "self_reported"
-        ),
-        environment=(
-            str(ingestion.source_metadata["environment"])
-            if ingestion.source_metadata.get("environment") is not None
-            else None
-        ),
-        timezone=(
-            str(ingestion.source_metadata["timezone"])
-            if ingestion.source_metadata.get("timezone") is not None
-            else None
-        ),
-        worker_count=(
-            int(ingestion.source_metadata["worker_count"])
-            if ingestion.source_metadata.get("worker_count") is not None
-            else None
-        ),
-        shard_count=(
-            int(ingestion.source_metadata["shard_count"])
-            if ingestion.source_metadata.get("shard_count") is not None
-            else None
-        ),
-        expected_inputs=ingestion.expected_inputs,
-        source_metadata={
-            **ingestion.source_metadata,
-            "ingestion_id": ingestion.id,
-            "report_name": parsed.report_name,
-            "source_format_requested": ingestion.source_format,
-            "manifest_version": parsed.manifest_version,
-        },
+    metadata = RunMetadata.model_validate(
+        {
+            "external_id": ingestion.external_id,
+            "attempt": ingestion.attempt,
+            "repository": ingestion.repository,
+            "commit_sha": ingestion.commit_sha,
+            "base_sha": ingestion.base_sha,
+            "branch": ingestion.branch,
+            "framework": parsed.source_format,
+            "run_scope": str(ingestion.source_metadata.get("run_scope") or "unknown"),
+            "comparison_trust": str(
+                ingestion.source_metadata.get("comparison_trust") or "self_reported"
+            ),
+            "environment": (
+                str(ingestion.source_metadata["environment"])
+                if ingestion.source_metadata.get("environment") is not None
+                else None
+            ),
+            "timezone": (
+                str(ingestion.source_metadata["timezone"])
+                if ingestion.source_metadata.get("timezone") is not None
+                else None
+            ),
+            "worker_count": (
+                int(ingestion.source_metadata["worker_count"])
+                if ingestion.source_metadata.get("worker_count") is not None
+                else None
+            ),
+            "shard_count": (
+                int(ingestion.source_metadata["shard_count"])
+                if ingestion.source_metadata.get("shard_count") is not None
+                else None
+            ),
+            "expected_inputs": ingestion.expected_inputs,
+            "source_metadata": {
+                **ingestion.source_metadata,
+                "ingestion_id": ingestion.id,
+                "report_name": parsed.report_name,
+                "source_format_requested": ingestion.source_format,
+                "manifest_version": parsed.manifest_version,
+            },
+        }
     )
     run = ingest_parsed_report(
         session,
@@ -1437,15 +1562,18 @@ def _process_artifact_ingestion(
         restricted=True,
         settings=settings,
     )
-    failures = list(session.scalars(select(Failure).where(Failure.run_id == run.id)).all())
+    failures = list(
+        session.scalars(select(Failure).where(Failure.run_id == run.id)).all()
+    )
     for failure in failures:
         analyze_and_persist(session, failure)
         if heartbeat:
             heartbeat()
 
-    ingestion = session.get(Ingestion, ingestion.id)
-    if ingestion is None:
+    refreshed_ingestion = session.get(Ingestion, ingestion.id)
+    if refreshed_ingestion is None:
         raise RuntimeError("ingestion disappeared while processing")
+    ingestion = refreshed_ingestion
     session.refresh(ingestion)
     if ingestion.state is IngestionState.cancelled:
         return run
@@ -1454,7 +1582,9 @@ def _process_artifact_ingestion(
     ingestion.received_inputs = run.received_inputs
     ingestion.parser_version = parsed.parser_version
     ingestion.state = (
-        IngestionState.succeeded if run.completeness == "complete" else IngestionState.partial
+        IngestionState.succeeded
+        if run.completeness == "complete"
+        else IngestionState.partial
     )
     ingestion.error_code = None
     ingestion.error_message = None
@@ -1491,11 +1621,11 @@ def _process_artifact_ingestion(
         },
     ]
     from .binary_evidence import discard_binary_source
+
     discard_binary_source(session, ingestion, run)
     session.commit()
     session.refresh(ingestion)
     return run
-
 
 
 def select_failure_evidence(session: Session, failure: Failure) -> list[Evidence]:
@@ -1552,11 +1682,16 @@ def select_failure_evidence(session: Session, failure: Failure) -> list[Evidence
 @instrument("analysis")
 def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
     from fastapi import HTTPException
+
     from .retention import lock_project
+
     lock_project(session, failure.project_id)
     session.refresh(failure.run)
     if failure.run.evidence_expired_at is not None:
-        raise HTTPException(410, "evidence expired; submit a new run rather than resurrecting old evidence")
+        raise HTTPException(
+            410,
+            "evidence expired; submit a new run rather than resurrecting old evidence",
+        )
     evidence_rows = select_failure_evidence(session, failure)
     historical = history_context_for_failure(session, failure)
     settings = get_settings()
@@ -1641,9 +1776,7 @@ def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
 
     revision = (
         session.scalar(
-            select(func.max(Analysis.revision)).where(
-                Analysis.failure_id == failure.id
-            )
+            select(func.max(Analysis.revision)).where(Analysis.failure_id == failure.id)
         )
         or 0
     ) + 1
@@ -1677,9 +1810,7 @@ def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
             "history_policy_version": historical["policy_version"],
             "history_input_digest": historical["history_input_digest"],
             "history_cohort": historical["cohort"],
-            "parser_versions": sorted(
-                {item.parser_version for item in evidence_rows}
-            ),
+            "parser_versions": sorted({item.parser_version for item in evidence_rows}),
             "extractor_versions": sorted(
                 {item.extractor_version for item in evidence_rows}
             ),
@@ -1728,15 +1859,36 @@ def analyze_and_persist(session: Session, failure: Failure) -> Analysis:
 def analysis_to_schema(row: Analysis) -> AnalysisResult:
     if row.failure.run.evidence_expired_at is not None:
         reason = "Evidence expired under the project retention policy. The recorded category is historical, not a current verified diagnosis."
-        return AnalysisResult(analysis_id=row.id, analysis_version=row.analysis_version,
-            failure_id=row.failure_id, run_id=row.failure.run_id, evidence_state="expired", recorded_category=row.category,
-            category=Category.insufficient_evidence, severity=row.severity,
-            confidence=Confidence(value=None, kind="unavailable", explanation=reason), evidence_completeness="expired",
-            summary=reason, claims=[], supporting_evidence_ids=[], contradictory_evidence_ids=[],
-            missing_evidence=["evidence_expired"], hypotheses=[], next_investigation=[{
-                "action": "Collect fresh evidence in a new run", "rationale": reason, "evidence_ids": []}],
-            abstention_reason=reason, policy_flags=["evidence_expired"], provenance={"retention_state": "expired"},
-            validation_version=row.validation_version, validation_results={"status": "expired"})
+        return AnalysisResult(
+            analysis_id=row.id,
+            analysis_version=row.analysis_version,
+            failure_id=row.failure_id,
+            run_id=row.failure.run_id,
+            evidence_state="expired",
+            recorded_category=row.category,
+            category=Category.insufficient_evidence,
+            severity=row.severity,
+            confidence=Confidence(value=None, kind="unavailable", explanation=reason),
+            evidence_completeness="expired",
+            summary=reason,
+            claims=[],
+            supporting_evidence_ids=[],
+            contradictory_evidence_ids=[],
+            missing_evidence=["evidence_expired"],
+            hypotheses=[],
+            next_investigation=[
+                {
+                    "action": "Collect fresh evidence in a new run",
+                    "rationale": reason,
+                    "evidence_ids": [],
+                }
+            ],
+            abstention_reason=reason,
+            policy_flags=["evidence_expired"],
+            provenance={"retention_state": "expired"},
+            validation_version=row.validation_version,
+            validation_results={"status": "expired"},
+        )
     publication_validated = persisted_analysis_is_publication_validated(row)
     if publication_validated:
         category = row.category
@@ -1775,7 +1927,7 @@ def analysis_to_schema(row: Analysis) -> AnalysisResult:
         claims = []
         supporting_ids = []
         contradictory_ids = []
-        missing = sorted(set([*row.missing_evidence, "validated analysis revision"]))
+        missing = sorted({*row.missing_evidence, "validated analysis revision"})
         hypotheses = [
             {
                 "description": row.summary,
@@ -1793,7 +1945,7 @@ def analysis_to_schema(row: Analysis) -> AnalysisResult:
         ]
         abstention_reason = reason
         policy_flags = sorted(
-            set([*row.policy_flags, "legacy_analysis_not_publication_validated"])
+            {*row.policy_flags, "legacy_analysis_not_publication_validated"}
         )
         validation_results = row.validation_results or {
             "version": row.validation_version,
@@ -1838,29 +1990,36 @@ def add_review(
     actor: str | None = None,
 ) -> ReviewEvent:
     from .retention import lock_project
+
     lock_project(session, analysis.failure.project_id)
     session.refresh(analysis)
     session.refresh(analysis.failure.run)
     expired = analysis.failure.run.evidence_expired_at is not None
-    current_version = session.scalar(
-        select(func.max(ReviewEvent.version)).where(ReviewEvent.analysis_id == analysis.id)
-    ) or 0
+    current_version = (
+        session.scalar(
+            select(func.max(ReviewEvent.version)).where(
+                ReviewEvent.analysis_id == analysis.id
+            )
+        )
+        or 0
+    )
     if request.expected_version != current_version:
         raise ValueError(
             f"review version conflict: expected {request.expected_version}, current {current_version}"
         )
     if request.decision == "category_correction" and request.proposed_category is None:
         raise ValueError("category_correction requires proposed_category")
-    if request.decision != "category_correction" and request.proposed_category is not None:
-        raise ValueError("proposed_category is only valid for category_correction")
     if (
-        request.release_advice == "NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE"
-        and (
-            expired
-            or analysis.evidence_completeness != "complete"
-            or analysis.category in {Category.product_defect, Category.insufficient_evidence}
-            or bool(analysis.policy_flags)
-        )
+        request.decision != "category_correction"
+        and request.proposed_category is not None
+    ):
+        raise ValueError("proposed_category is only valid for category_correction")
+    if request.release_advice == "NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE" and (
+        expired
+        or analysis.evidence_completeness != "complete"
+        or analysis.category
+        in {Category.product_defect, Category.insufficient_evidence}
+        or bool(analysis.policy_flags)
     ):
         raise ValueError(
             "reassuring release advice is blocked by incomplete evidence, unresolved "
@@ -1875,10 +2034,17 @@ def add_review(
     )
     if cited_ids:
         rows = list(
-            session.scalars(select(Evidence).where(Evidence.id.in_(sorted(cited_ids)))).all()
+            session.scalars(
+                select(Evidence).where(Evidence.id.in_(sorted(cited_ids)))
+            ).all()
         )
-        found = {row.id for row in rows if row.project_id == failure.project_id
-                 and row.derivative is not None and row.derivative.retention_state == "active"}
+        found = {
+            row.id
+            for row in rows
+            if row.project_id == failure.project_id
+            and row.derivative is not None
+            and row.derivative.retention_state == "active"
+        }
         missing = sorted(cited_ids - found)
         if missing:
             raise ValueError(
@@ -1898,7 +2064,9 @@ def add_review(
         actor_kind=effective_principal.audit_kind,
         actor_user_id=effective_principal.user_id,
         decision=request.decision,
-        proposed_category=request.proposed_category.value if request.proposed_category else None,
+        proposed_category=request.proposed_category.value
+        if request.proposed_category
+        else None,
         reason=request.reason,
         supporting_evidence_ids=request.supporting_evidence_ids,
         contradictory_evidence_ids=request.contradictory_evidence_ids,

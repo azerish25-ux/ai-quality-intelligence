@@ -577,6 +577,299 @@ Upgraded pinned Vitest within major four from 4.0.18 to **4.1.11**, addressing t
 published UI/API and mocker path-traversal advisories. Local frontend verification
 passed **48 tests**, TypeScript and Vite production build. An earlier independent
 npm audit after the upgrade returned zero vulnerabilities; that does not mark the
-separately denied quality-gate invocation as passed. Build metadata now lives under
+separately unrun quality-gate invocation as passed. Build metadata now lives under
 node_modules/.cache, preserving the source-cleanliness contract instead of adding
 an ignore exemption.
+
+
+### Clean local integration and follow-up boundary repairs
+
+The complete privacy/Action/tooling tree `9d82f40e064f0df2fc2d8863cb72aec7e9030210`
+was committed locally as `f7d847fa56f92a3277cc917f6892623780e1d711`. Its clean
+backend run passed **1,302 tests, nine PostgreSQL-only skips, 85.81% branch-aware
+coverage**. The strict mutation run passed seven baselines/seven kills with zero
+survivors/errors and clean provenance. Lock/export parity and the whole-workflow
+offline auditor passed. These are local-source results; no PostgreSQL/hosted
+acceptance is inferred from skipped cases or from the earlier `9414d91` CI.
+
+The dedicated clean-source scans exposed **758 lint findings, 151 unformatted
+files and 892 secret candidates**. The initial type-gate invocation returned a
+tool-execution error, correctly not a clean result; diagnostic mypy runs then
+reported 161 actual type findings. Original failures were not relabeled as passes.
+An offline source-bound review classified all 892 candidates into 844 integrity/
+provenance identifiers, 26 synthetic canaries and 22 deliberately published
+local/demo database credentials. The latter really authenticate disposable
+instances and are not called fictitious. No candidate was automatically exempted;
+reviewed exception handling requires exact source/context guards and separate
+raw/reviewed/unresolved counts. The dedicated npm metadata audit remains not run.
+
+Follow-up work removes the static debt while preserving semantic boundaries:
+
+- API dependency/parameter declarations use Annotated; generated OpenAPI remains
+  exactly identical over 77 paths. All 126 focused API/auth/parameter cases pass.
+- Binary input lookup now rejects absent or mismatched project/run links before
+  metadata exposure, reviews, revocations or comparisons. Fifty-six affected
+  tests pass, including 24 new cases; 13 reproduced defects in the old source.
+- Publication predicates reject malformed unhashable categories and boolean
+  scores instead of crashing or treating booleans as integers. All 339 affected
+  tests pass, including 16 new cases; five fail against the old validator.
+- Non-finite/overflow numeric artifact values no longer produce infinite
+  durations or HAR/k6 conversion crashes. Failure observations remain present;
+  invalid measurements become unavailable. The 127-case affected run and 62-case
+  privacy/evidence run pass, including 11 new malformed-number cases.
+- Runtime typing and fixed-code exception logging preserve worker/telemetry
+  containment without raw traceback, exception text or provider secrets. The
+  516-case affected run and final 38-case history/privacy run pass, including four
+  new raw-log/transport-slot regressions. Whole-backend gradual mypy reports no
+  errors on this edited tree; it is not a strict annotation-completeness claim.
+
+Formatting was checked against executable AST equality before later type repairs:
+145 files were identical; one migration module only lost trailing whitespace in
+its docstring. Collection-literal rewrites separately verified unshadowed builtins
+and normalized AST equivalence. Existing imports required for model registration
+and PostgreSQL fixture discovery remain explicit. Subprocess calls state their
+existing check=False behavior, and evaluation loop closures bind their case scope.
+All 60 component-oracle outputs and 21 weekly fixture outputs compare identically
+with the committed pre-cleanup implementation. Frozen artifacts were not regenerated.
+The harness/privacy affected run passed 173 tests with five PostgreSQL-only skips.
+
+The combined follow-up source was committed locally as
+`9369ee2e1f36943d740d57c2f5d9ab47968abe88` (tree
+`224053aafb31ac92f5d88fccb1e575aea7dbe7a6`). Its clean full backend run passed
+**1,415 tests, nine PostgreSQL-only skips, 85.90% branch-aware coverage**. Strict
+mutations passed seven baselines/seven kills with zero errors. All six independent
+offline gates passed: lint, format, gradual backend types, lock/export parity,
+workflow audit and source-bound secret review. The latter reconciled 900 reviewed
+source candidates and 2,075 recomputed policy-metadata candidates, with no
+unresolved cases or policy errors. These are source-specific local results, not
+hosted acceptance or a claim that every possible secret is detectable.
+
+The required npm metadata audit remains NOT RUN because its external transmission
+has not been authorized. Security acceptance remains blocked. The original
+90%/95% coverage visibility goals, stable read performance and frozen classifier
+quality are still not claimed achieved. No labels, denominators, targets or
+historical measurements were changed to produce a green result.
+
+### M7 application workflow, awaiting committed-source and hosted verification
+
+The next implementation connects the existing optional provider library to an
+operator-configured API, dedicated durable worker and administrator approval UI.
+It remains disabled by default. Submission and execution require production
+authentication, secure cookies, an allowed project, a current administrator
+session, a matching worker heartbeat and immutable analysis/evidence/configuration
+digests. Demo deployments cannot submit, even as authenticated administrators.
+Preview discloses the destination origin, approved excerpts, limits and dated or
+unknown pricing before explicit approval. Provider hypotheses remain unverified;
+deterministic classifications, reviews and contradictions are never replaced.
+
+Migration `e6c8a2f4b130` adds linked provider jobs, shared admission state and durable
+once-per-attempt circuit accounting. Short transactions reserve request/token
+budgets before transport. Cancellation, lease loss and recovery never resend or
+refund an uncertain request. Late completion may settle numeric usage and release
+the transport permit, but cannot revive a terminal proposal or account one circuit
+failure twice. The ordinary ingestion worker excludes provider job types from
+both execution and recovery.
+
+The separate Compose overlay places the credential only in the provider worker
+and permits egress only through an exact-host CONNECT proxy. DNS results must all
+be public addresses; numeric connects prevent a second resolution. Resolver slots,
+connections, headers, bytes and deadlines are bounded. API and ordinary-worker
+network membership remains isolated from the proxy. The overlay requires a fresh
+trusted production-auth database; disabling demo mode does not invalidate accounts
+previously created in a demo deployment.
+
+Initial focused local verification passed **286 provider/configuration/ledger cases** with
+seven new PostgreSQL cases explicitly skipped, **81 proxy/deployment cases**, and
+**99 frontend tests**, plus frontend type/build and scoped Python static checks.
+Actual local production-auth HTTP/API/worker fixture checks covered proposal
+success, HTTP 503 fallback and cancellation; authenticated demo setup returned 403.
+Fixtures use synthetic sessions and injected MockTransport, never a real provider.
+Separate desktop/narrow provider browser jobs preserve the four existing demo
+browser lanes and their 43 tests. Local browser execution is blocked by the
+available browser environment; no visual acceptance is inferred from unit tests.
+
+Independent review then reproduced three integration defects: known worker-token
+echoes could survive generic response redaction, provider jobs could block the real
+retention cleanup queue, and backend/UI string bounds could disagree on a valid
+proposal. All three repairs pass their new regressions: ten decoded credential-echo
+cases, six actual retention-queue cases and fourteen output/preview contract cases.
+The preview is compared to the exact sanitized request payload, including a context
+larger than 32 KiB. Backend and frontend limits now agree on Unicode code points;
+invalid older cached proposals are withheld without blocking invocation history.
+The revised frontend passes **115 tests** and production type/build checks.
+The deployment review also rejected reuse of the published demo database password:
+the optional overlay now requires operator-owned database URL/password values for
+all application services and PostgreSQL, with no fallback. Its synthetic fixture
+checks pass **85 local cases**; actual Compose missing/empty-value rejection and
+container checks remain pending.
+
+Full clean-source verification, new source-bound candidate review, real PostgreSQL,
+Docker topology and hosted browser execution remain required for this new tree.
+No real model invocation, paid-provider benchmark or live publication has occurred.
+
+The first clean full M7 source `79c73542bb5328bc7f948ca513b2ba4e4f6f0444`
+(tree `28427833516966b929ad2ef90fa667732b77b9f4`) produced **1,704 passes, one
+failure and sixteen PostgreSQL-only skips**, with 86.37% branch-aware coverage.
+The failure is retained: an older runtime-diagnostic regression called a private
+transport helper whose contract now defers exception propagation until durable
+accounting settles. That regression now exercises the public provider boundary,
+initializes real telemetry before capturing its logger, and retains the exact
+exception identity, private fixed-code log and released-slot assertions. It also
+checks the consumed reservation and released outer concurrency permit. This is a
+test-interface correction, not removal of the safety regression.
+
+At `79c7354`, all six independent offline gates passed on clean source, including
+**3,030 raw secret candidates: 915 reviewed source, 2,115 independently validated
+policy metadata and zero unresolved**. Frontend verification passed 115 tests and
+production type/build. A fresh clean full backend and strict mutation run are
+required after the diagnostic-test correction; the failed source is not relabeled
+successful. No npm audit or hosted acceptance is inferred.
+
+The correction was committed locally as `132efc083d6ad51dd9c80920ab456465a0622759`
+(tree `85cebd7ba70abb25395fdd7e6919e7809bd8a401`). Its clean full backend run passed
+**1,705 tests with sixteen PostgreSQL-only skips and 86.37% branch-aware coverage**.
+The strict mutation suite passed seven baselines/seven kills with zero survivors
+or errors and clean provenance. All six independent offline gates passed, including
+the same 3,030-candidate fully reconciled secret scan. The frontend tree is unchanged
+from the 115-test/type/build verification at `79c7354`. PostgreSQL, Docker topology,
+browser execution, live model evaluation and new hosted CI remain unverified. The
+required npm audit remains NOT RUN and aggregate security acceptance is blocked.
+
+### M8 report, retained evidence and durable publication integration
+
+The next local implementation expands the shared report from existing persisted
+data: skipped reasons, effective impact decisions, current clusters, performance
+comparisons and conservative prior exact-base new/existing/unknown observations.
+Logical identity includes suite/source path; whole-record JSON trimming regenerates
+Markdown so removed citations cannot linger. Stored regressions, unavailable
+comparisons and violated full-suite fallbacks force HOLD. No preview creates
+recommendations or invents a favorable baseline. The 112-case focused report,
+Action and publication suite passed before final integration.
+
+`github_evidence.py` retains at most 100 approved reference entries/500,000 bytes
+as canonical inert JSON. Exact derivative excerpts, narrow scalar observations,
+immutable locators and provenance are revalidated at export. Originals, storage
+paths, arbitrary nested metadata and binary bodies are excluded. Counts expose
+rejected, unavailable and omitted references. The digest-bound CLI/API detects
+report/evidence changes; HTTP downloads preserve canonical bytes. Thirty-two
+focused export/snapshot/validator tests pass. The Action verifies actual exclusive
+output, digest, receipt, byte bounds and scope before exposing `evidence-path`.
+Its strict optional config cannot enable code, credentials, provider or comment
+execution. All 86 Action cases and the offline workflow auditor pass.
+
+Migration `f8d0c2e4a610` and the dedicated publisher service persist target
+reservations, attributable publication attempts and bounded write journals. Bot
+identity is verified before any mutation. Write intent commits before HTTP; no
+transaction spans transport. Missing acknowledgements preserve a sticky reservation.
+Reconciliation fences the original process and never treats absence as permission
+to resend. Only explicit neutral repair may replace an exactly observed stale report.
+Source workflow metadata remains labeled unverified. History APIs are read-only
+and project-authorized; analysis/provider code gains no GitHub capability.
+
+Independent review reproduced two defects and both are fixed: malformed comment
+records could be mistaken for absence and create a duplicate; no-op/reconciliation
+paths could accept changed evidence without notice. Required shapes now fail before
+POST, and every new success/no-op checks current scope/evidence/report digest.
+Observed historical writes remain recorded while drift becomes failed/uncertain;
+same-SHA neutral repair uses truthful evidence-change wording. The expanded local
+publication suite passes **103 tests**, with three real PostgreSQL cases explicitly
+skipped. Whole-backend type checking passed before the final UI integration.
+
+The final receipt extension records report schema and exact analysis revision
+identity without storing prose. A full-scope manifest covers every latest analysis,
+including detail omitted by byte limits; visible ID/revision references are bounded
+at 50 and remaining references are counted. A regression proves that revising an
+omitted analysis changes report identity even when Markdown is unchanged. The
+expanded publication suite now passes **134 tests**, with the same three PostgreSQL
+skips. All 28 snapshot/export tests pass after that manifest extension.
+
+The dashboard adds canonical report/evidence JSON downloads beside Markdown.
+It preserves original server bytes, verifies hashes without reserializing Python
+floats/Unicode escapes, checks scope and limits, and cancels stale work on refresh,
+navigation and sign-out. Production type/build and **200 frontend tests** pass.
+A real synthetic SQLite ingestion/report/export round trip through the transpiled
+frontend preserves the exact bytes. All 43 existing browser tests still collect;
+extended desktop/narrow download journeys have not been executed locally.
+
+New source-bound secret review, combined clean-source verification, real PostgreSQL,
+hosted Action/browser execution and an authorized live publication target remain
+required. No live GitHub comment, provider call, npm audit or external release has
+been performed. These implementation results do not complete the failed frozen
+classifier-quality requirements or the full master project.
+
+### M8 clean-source checkpoint and first resumed hosted verification
+
+Local `d7dd7ebc4b21da82d86ed2d73d225979e1715d92`, tree
+`e5d31d11451148ce4882fb0a869bf474a66cfe9b`, passed **1,907 backend tests** with
+**nineteen explicitly PostgreSQL-only skips**, **200 frontend tests**, production
+type/build and all six offline quality gates. The source remained clean during the
+full run and strict mutation verification: seven baselines, seven kills, zero
+survivors or errors. Secret review resolved all 3,052 candidates (921 source plus
+2,131 independently validated policy metadata), with zero unresolved or policy
+errors. Existing producer inputs were verified prior CI exports.
+
+Coverage terminology matters: the reported **87.4926% is combined statement and
+branch coverage**. Actual branch-only coverage is **2,985/3,822 = 78.1005%**. The
+master's 90% branch-only target and 95% critical-module targets remain unmet;
+earlier combined percentages must not be read as branch-only acceptance.
+
+Owner-authorized delivery resumed with remote
+`efa9a13dfbe70a266217acc5b0bcae4b98cd238e`, whose tree exactly matches local
+`f7d847f`. All ten jobs in [ordinary CI 36725943839](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36725943839)
+and eight other workflows passed. The unchanged [frozen benchmark](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36725943695)
+still failed. The [operational read benchmark](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36725945608)
+retains another failure: **710.69 ms warm p95**, zero failed requests, 50,000
+executions/concurrency ten on the AMD EPYC 7763 runner. Its 500 ms threshold remains
+unchanged. These results belong to efa9a13, not the newer M7/M8 source.
+
+The first [quality workflow](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36725942000)
+failed before creating jobs. Inspection found `runner.temp` references in job-level
+`env`, where the [GitHub context availability rules](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability)
+do not permit `runner`. The correction initializes the same isolated cache paths
+in the first shell step after runner allocation. New regressions check every
+workflow's job/global environments and execute both initialization scripts with
+space-containing runner paths. All 80 focused quality/context tests and the offline
+workflow/secret gates pass. The initial focused rerun hit pytest's temporary-root
+symlink safety check after relocating inactive scratch; restoring a real root and
+preserving individual archived paths resolved that environment failure.
+
+The npm audit remains explicitly NOT RUN pending its separate approval. The
+required aggregate still fails when that audit is skipped; fixing workflow syntax
+does not waive security acceptance. No live comment, external provider request or
+external collector was sent. Fresh hosted acceptance for newer M7/M8 source remains
+pending at this record; branch coverage, stable performance and failed frozen
+classifier quality still prevent a full-project completion claim.
+
+
+### Bounded review-policy delivery repair
+
+The large canonical policy exceeded the reliable connected-service transfer path;
+ordinary Git transport could read the repository but had no CLI authentication.
+No partial source tree was moved onto `main`. The source policy is now packaged as
+sixteen canonical parts below 70 KB with an ordered, digest-bound index, preserving
+all scan scope and validation rules. Both filesystem and scanner inventories must
+match; missing, extra, reordered, duplicate or modified parts fail closed.
+
+Independent reconstruction first reproduced the original 921 ordered review
+entries, scanner configuration and all 1,047,671 bytes exactly. Changing the loader
+correctly invalidated its own old source guard, and the real scan rejected all
+3,101 candidates while that guard was stale. A separate independent review then
+authorized only the nonsecret policy-path entry's source/occurrence guard refresh;
+all other entry fields and all other 920 entries remain unchanged. The original
+policy, migration proof and guard delta are preserved. All 129 focused tests pass,
+including 49 new malformed-input, inventory, symlink and metadata-boundary cases.
+The first new resource-limit test used a cap larger than its fixture; its retained
+failed run is corrected by deriving the cap from the actual fixture size.
+
+This changes tooling and packaging, not application classification or held-out
+labels. Required npm audit remains NOT RUN. New hosted acceptance is still required
+for the final delivered commit; earlier full M8 verification remains separately
+identified above.
+
+Final packaging verification passed all six offline gates. The actual scan reports
+**3,101 raw candidates: 921 reviewed source and 2,180 validated policy metadata,
+zero unresolved and zero policy errors**. Metadata counts now include separately
+scanned part/index digest occurrences; source review count remains 921. Final
+focused verification is **129 passed**, with no skips. The application source is
+unchanged from the earlier full M8 run; this targeted tooling verification is not
+a substitute for the final commit's PostgreSQL/browser/hosted acceptance.

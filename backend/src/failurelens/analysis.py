@@ -2,13 +2,19 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any
 
+from .contract_evidence import (
+    CLAIM_TEXT,
+    CONTRACT_CATEGORY,
+    CONTRACT_SEVERITY,
+    contract_findings,
+)
+from .domain_evidence import domain_findings
 from .models import Category
 from .transaction_evidence import transaction_findings
-from .contract_evidence import CLAIM_TEXT, CONTRACT_CATEGORY, CONTRACT_SEVERITY, contract_findings
-from .domain_evidence import domain_findings
 
 ANALYSIS_VERSION = "deterministic-v6"
 RULES_VERSION = "rules-v6"
@@ -83,15 +89,22 @@ def rule_signal_counts(
         ]
     )
 
-    product_signals = 8 if any(f.status == "duplicate" for _, f in transaction_findings(evidence)) else 0
+    product_signals = (
+        8
+        if any(f.status == "duplicate" for _, f in transaction_findings(evidence))
+        else 0
+    )
     if any(f.status == "violation" for _, f in domain_findings(evidence)):
         product_signals += 8
     test_signals = 0
     infrastructure_signals = 0
     flake_signals = 0
 
-    typed_categories = {CONTRACT_CATEGORY[f.contract] for _, f in contract_findings(evidence)
-                        if f.status == "violated"}
+    typed_categories = {
+        CONTRACT_CATEGORY[f.contract]
+        for _, f in contract_findings(evidence)
+        if f.status == "violated" and f.contract is not None
+    }
     product_signals += 8 * ("product_defect" in typed_categories)
     test_signals += 8 * ("test_defect" in typed_categories)
     infrastructure_signals += 8 * ("infrastructure_failure" in typed_categories)
@@ -233,10 +246,18 @@ def analyze_failure(
         flags.append("mixed_cause_or_contradictory_evidence")
 
     contracts = contract_findings(evidence)
-    contract_conflict = any(f.status in {"invalid", "incomplete", "conflicting"} for _, f in contracts)
+    contract_conflict = any(
+        f.status in {"invalid", "incomplete", "conflicting"} for _, f in contracts
+    )
     for kind in {f.contract for _, f in contracts}:
-        contract_conflict |= len({f.status for _, f in contracts if f.contract == kind}) > 1
-    diagnostic_categories = {CONTRACT_CATEGORY[f.contract] for _, f in contracts if f.status == "violated"}
+        contract_conflict |= (
+            len({f.status for _, f in contracts if f.contract == kind}) > 1
+        )
+    diagnostic_categories = {
+        CONTRACT_CATEGORY[f.contract]
+        for _, f in contracts
+        if f.status == "violated" and f.contract is not None
+    }
     if len(diagnostic_categories) > 1:
         contract_conflict = True
         flags.append("multiple_supported_diagnostic_categories")
@@ -246,7 +267,9 @@ def analyze_failure(
         missing.append("consistent execution-bound contract measurements")
 
     domains = domain_findings(evidence)
-    domain_conflict = any(f.status in {"invalid", "incomplete", "conflicting"} for _, f in domains)
+    domain_conflict = any(
+        f.status in {"invalid", "incomplete", "conflicting"} for _, f in domains
+    )
     for kind in {f.kind for _, f in domains}:
         domain_conflict |= len({f.status for _, f in domains if f.kind == kind}) > 1
     if domain_conflict:
@@ -255,10 +278,16 @@ def analyze_failure(
         missing.append("consistent execution-bound domain measurements")
 
     transactions = transaction_findings(evidence)
-    transaction_conflict = bool(transactions and (
-        any(f.status in {"invalid", "incomplete", "conflicting"} for _, f in transactions)
-        or len({f.count for _, f in transactions}) > 1
-    ))
+    transaction_conflict = bool(
+        transactions
+        and (
+            any(
+                f.status in {"invalid", "incomplete", "conflicting"}
+                for _, f in transactions
+            )
+            or len({f.count for _, f in transactions}) > 1
+        )
+    )
     if transaction_conflict:
         contradictions.extend(identifier for identifier, _ in transactions)
         flags.append("transaction_measurements_incomplete_or_conflicting")
@@ -268,11 +297,21 @@ def analyze_failure(
     winner, winner_score = ordered[0]
     runner_up_score = ordered[1][1]
 
-    if contract_conflict or domain_conflict or transaction_conflict or winner_score < 3 or winner_score == runner_up_score or not evidence_ids:
-        reason = "Available observations do not distinguish the required categories safely."
-        if product_signals >= 2 and max(
-            test_signals, infrastructure_signals, flake_signals
-        ) >= 2:
+    if (
+        contract_conflict
+        or domain_conflict
+        or transaction_conflict
+        or winner_score < 3
+        or winner_score == runner_up_score
+        or not evidence_ids
+    ):
+        reason = (
+            "Available observations do not distinguish the required categories safely."
+        )
+        if (
+            product_signals >= 2
+            and max(test_signals, infrastructure_signals, flake_signals) >= 2
+        ):
             flags.append("dangerous_downgrade_blocked")
         if not evidence_ids:
             missing.append("resolvable current-run evidence")
@@ -289,7 +328,7 @@ def analyze_failure(
             supporting_ids=evidence_ids,
             contradictory_ids=tuple(contradictions),
             missing=tuple(sorted(set(missing))),
-            claims=tuple(),
+            claims=(),
             hypotheses=(
                 {
                     "description": "Cause remains unresolved",
@@ -325,9 +364,7 @@ def analyze_failure(
         Category.insufficient_evidence: "insufficient evidence",
     }[winner]
 
-    if winner is Category.known_flake and not _history_supports_known_flake(
-        historical
-    ):
+    if winner is Category.known_flake and not _history_supports_known_flake(historical):
         flags.append("known_flake_requires_reviewed_history")
         return analyze_failure(
             message=message,
@@ -365,7 +402,7 @@ def analyze_failure(
                 supporting_ids=evidence_ids,
                 contradictory_ids=tuple(sorted(set(contradictions))),
                 missing=tuple(sorted(set(missing))),
-                claims=tuple(),
+                claims=(),
                 hypotheses=(
                     {
                         "description": category_text,
@@ -408,7 +445,7 @@ def analyze_failure(
         category=winner,
         historical=historical,
     )
-    claim = {
+    claim: dict[str, object] = {
         "id": "claim-1",
         "kind": "inference",
         "text": f"Observed signals support a {category_text} classification.",
@@ -420,38 +457,68 @@ def analyze_failure(
         },
         "validation_status": "pending",
     }
-    violations = [(identifier, finding) for identifier, finding in contracts
-                  if finding.status == "violated" and CONTRACT_CATEGORY[finding.contract] == winner.value]
-    if violations:
-        kind = violations[0][1].contract
-        claim_evidence_ids = tuple(identifier for identifier, finding in violations if finding.contract == kind)
-        claim = {"id": "claim-1", "kind": "inference", "text": CLAIM_TEXT[kind],
-                 "evidence_ids": list(claim_evidence_ids),
-                 "predicate": {"kind": "contract_violation", "contract": kind},
-                 "validation_status": "pending"}
+    violations = [
+        (identifier, finding)
+        for identifier, finding in contracts
+        if finding.status == "violated"
+        and finding.contract is not None
+        and CONTRACT_CATEGORY[finding.contract] == winner.value
+    ]
+    if violations and (kind := violations[0][1].contract) is not None:
+        claim_evidence_ids = tuple(
+            identifier for identifier, finding in violations if finding.contract == kind
+        )
+        claim = {
+            "id": "claim-1",
+            "kind": "inference",
+            "text": CLAIM_TEXT[kind],
+            "evidence_ids": list(claim_evidence_ids),
+            "predicate": {"kind": "contract_violation", "contract": kind},
+            "validation_status": "pending",
+        }
         severity = CONTRACT_SEVERITY[kind]
         flags.append("structured_contract_violation")
-    domain_violations = [(identifier, finding) for identifier, finding in domains if finding.status == "violation"]
+    domain_violations = [
+        (identifier, finding)
+        for identifier, finding in domains
+        if finding.status == "violation"
+    ]
     if winner is Category.product_defect and domain_violations and not violations:
         kind = domain_violations[0][1].kind
-        matching = [(identifier, finding) for identifier, finding in domain_violations if finding.kind == kind]
+        matching = [
+            (identifier, finding)
+            for identifier, finding in domain_violations
+            if finding.kind == kind
+        ]
         claim_evidence_ids = tuple(identifier for identifier, _ in matching)
         finding = matching[0][1]
-        claim = {"id": "claim-1", "kind": "inference", "text": finding.claim,
-                 "evidence_ids": list(claim_evidence_ids),
-                 "predicate": finding.predicate,
-                 "validation_status": "pending"}
+        claim = {
+            "id": "claim-1",
+            "kind": "inference",
+            "text": finding.claim,
+            "evidence_ids": list(claim_evidence_ids),
+            "predicate": finding.predicate,
+            "validation_status": "pending",
+        }
         severity = "critical" if kind == "operation_identity" else "high"
         flags.append("structured_domain_violation")
-    duplicate_findings = [(identifier, finding) for identifier, finding in transactions if finding.status == "duplicate"]
+    duplicate_findings = [
+        (identifier, finding)
+        for identifier, finding in transactions
+        if finding.status == "duplicate"
+    ]
     if winner is Category.product_defect and duplicate_findings:
         claim_evidence_ids = tuple(identifier for identifier, _ in duplicate_findings)
         observed_count = duplicate_findings[0][1].count
         claim = {
-            "id": "claim-1", "kind": "inference",
+            "id": "claim-1",
+            "kind": "inference",
             "text": f"Reported request and database measurements reconcile {observed_count} committed effects for one retried logical request; this supports a product-defect investigation without establishing the responsible component.",
             "evidence_ids": list(claim_evidence_ids),
-            "predicate": {"kind": "committed_effect_multiplicity", "count": observed_count},
+            "predicate": {
+                "kind": "committed_effect_multiplicity",
+                "count": observed_count,
+            },
             "validation_status": "pending",
         }
         severity = "critical"
@@ -475,7 +542,7 @@ def analyze_failure(
         contradictory_ids=tuple(sorted(set(contradictions))),
         missing=tuple(sorted(set(missing))),
         claims=(claim,),
-        hypotheses=tuple(),
+        hypotheses=(),
         next_steps=(
             {
                 "action": "Review the cited evidence and reproduce the leading hypothesis",

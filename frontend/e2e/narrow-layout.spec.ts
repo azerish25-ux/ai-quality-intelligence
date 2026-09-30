@@ -58,6 +58,9 @@ test('report digest and expanded evidence text stay inside the narrow viewport',
   await page.getByRole('button', { name: 'Load synthetic demo' }).click();
   const panel = page.locator('#github-report');
   await expect(panel.getByRole('button', { name: 'Download Markdown report' })).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Download JSON report', exact: true })).toBeEnabled();
+  await expect(panel.getByRole('button', { name: 'Download approved evidence JSON', exact: true })).toBeEnabled();
+  await expect(panel.getByLabel('Evidence export scope')).toContainText('Reported reference subset');
   await panel.scrollIntoViewIfNeeded();
   const withinViewport = () => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
   await expect.poll(withinViewport).toBe(true);

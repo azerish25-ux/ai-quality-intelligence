@@ -103,7 +103,9 @@ def _case(
         "schema_version": "performance-evaluation-v1",
         "expected_status": expected_status,
         "current": current or _current(),
-        "baselines": baselines if baselines is not None else [
+        "baselines": baselines
+        if baselines is not None
+        else [
             _baseline(0, 98),
             _baseline(1, 100),
             _baseline(2, 102),
@@ -115,32 +117,62 @@ def _case(
 
 def build_cases() -> list[dict[str, Any]]:
     return [
-        _case("perf-001-clear-regression", "REGRESSION", current=_current(value=130), tags=["regression"]),
-        _case("perf-002-clear-improvement", "IMPROVEMENT", current=_current(value=75), tags=["improvement"]),
-        _case("perf-003-within-tolerance", "WITHIN_TOLERANCE", current=_current(value=106), tags=["tolerance"]),
-        _case("perf-004-missing-baseline", "BASELINE_UNAVAILABLE", baselines=[], tags=["missing-baseline"]),
+        _case(
+            "perf-001-clear-regression",
+            "REGRESSION",
+            current=_current(value=130),
+            tags=["regression"],
+        ),
+        _case(
+            "perf-002-clear-improvement",
+            "IMPROVEMENT",
+            current=_current(value=75),
+            tags=["improvement"],
+        ),
+        _case(
+            "perf-003-within-tolerance",
+            "WITHIN_TOLERANCE",
+            current=_current(value=106),
+            tags=["tolerance"],
+        ),
+        _case(
+            "perf-004-missing-baseline",
+            "BASELINE_UNAVAILABLE",
+            baselines=[],
+            tags=["missing-baseline"],
+        ),
         _case(
             "perf-005-stale-baseline",
             "INCOMPATIBLE_BASELINE",
-            baselines=[_baseline(index, 100 + index, age_days=90) for index in range(3)],
+            baselines=[
+                _baseline(index, 100 + index, age_days=90) for index in range(3)
+            ],
             tags=["stale"],
         ),
         _case(
             "perf-006-different-workload",
             "INCOMPATIBLE_BASELINE",
-            baselines=[_baseline(index, 100 + index, workload="search-steady") for index in range(3)],
+            baselines=[
+                _baseline(index, 100 + index, workload="search-steady")
+                for index in range(3)
+            ],
             tags=["workload"],
         ),
         _case(
             "perf-007-different-environment",
             "INCOMPATIBLE_BASELINE",
-            baselines=[_baseline(index, 100 + index, environment="staging") for index in range(3)],
+            baselines=[
+                _baseline(index, 100 + index, environment="staging")
+                for index in range(3)
+            ],
             tags=["environment"],
         ),
         _case(
             "perf-008-incompatible-unit",
             "INCOMPATIBLE_BASELINE",
-            baselines=[_baseline(index, 100 + index, unit="unknown") for index in range(3)],
+            baselines=[
+                _baseline(index, 100 + index, unit="unknown") for index in range(3)
+            ],
             tags=["unit"],
         ),
         _case(
@@ -153,7 +185,9 @@ def build_cases() -> list[dict[str, Any]]:
         _case(
             "perf-010-different-statistic",
             "INCOMPATIBLE_BASELINE",
-            baselines=[_baseline(index, 100 + index, statistic="avg") for index in range(3)],
+            baselines=[
+                _baseline(index, 100 + index, statistic="avg") for index in range(3)
+            ],
             tags=["statistic"],
         ),
         _case(
@@ -165,13 +199,18 @@ def build_cases() -> list[dict[str, Any]]:
         _case(
             "perf-012-incomplete-baselines",
             "INCOMPATIBLE_BASELINE",
-            baselines=[_baseline(index, 100 + index, completeness="partial") for index in range(3)],
+            baselines=[
+                _baseline(index, 100 + index, completeness="partial")
+                for index in range(3)
+            ],
             tags=["completeness"],
         ),
         _case(
             "perf-013-future-leakage",
             "INCOMPATIBLE_BASELINE",
-            baselines=[_baseline(index, 100 + index, prior=False) for index in range(3)],
+            baselines=[
+                _baseline(index, 100 + index, prior=False) for index in range(3)
+            ],
             tags=["leakage"],
         ),
         _case(
@@ -186,7 +225,12 @@ def build_cases() -> list[dict[str, Any]]:
             "perf-015-repeated-distribution",
             "REGRESSION",
             current=_current(value=140),
-            baselines=[_baseline(0, 90), _baseline(1, 100), _baseline(2, 120), _baseline(3, 105)],
+            baselines=[
+                _baseline(0, 90),
+                _baseline(1, 100),
+                _baseline(2, 120),
+                _baseline(3, 105),
+            ],
             tags=["repeated", "uncertainty"],
         ),
         _case(
@@ -205,7 +249,10 @@ def build_cases() -> list[dict[str, Any]]:
         _case(
             "perf-018-project-isolation",
             "INCOMPATIBLE_BASELINE",
-            baselines=[_baseline(index, 100 + index, project="other-project") for index in range(3)],
+            baselines=[
+                _baseline(index, 100 + index, project="other-project")
+                for index in range(3)
+            ],
             tags=["isolation"],
         ),
         _case(
@@ -219,7 +266,14 @@ def build_cases() -> list[dict[str, Any]]:
                 direction="higher_is_better",
             ),
             baselines=[
-                _baseline(index, value, metric_name="http_reqs", statistic="rate", unit="requests/s", direction="higher_is_better")
+                _baseline(
+                    index,
+                    value,
+                    metric_name="http_reqs",
+                    statistic="rate",
+                    unit="requests/s",
+                    direction="higher_is_better",
+                )
                 for index, value in enumerate((98, 100, 102))
             ],
             tags=["direction"],
@@ -250,7 +304,9 @@ def main() -> None:
             "Run-level exported percentiles are compared as run-level observations and never aggregated into a new percentile.",
         ],
     }
-    MANIFEST.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    MANIFEST.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 if __name__ == "__main__":

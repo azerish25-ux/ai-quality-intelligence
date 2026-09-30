@@ -5,8 +5,6 @@ import json
 import zipfile
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select
-
 from failurelens.config import get_settings
 from failurelens.jobs import claim_next, process_claimed, process_next
 from failurelens.models import (
@@ -23,6 +21,7 @@ from failurelens.models import (
 from failurelens.schemas import RunMetadata
 from failurelens.service import create_project, enqueue_artifact_ingestion
 from failurelens.storage import store_bytes
+from sqlalchemy import func, select
 
 
 def _project(client) -> str:
@@ -36,7 +35,7 @@ def _project(client) -> str:
 
 def test_raw_junit_is_queued_processed_and_auto_analyzed(client, session) -> None:
     project_id = _project(client)
-    junit = b'''<testsuite name="payments" tests="2"><testcase classname="Transfer" name="duplicate" time="0.03"><failure type="LedgerInvariantError" message="duplicate committed transfer">ledger unbalanced after double charge</failure></testcase><testcase classname="Health" name="ok" time="0.01"/></testsuite>'''
+    junit = b"""<testsuite name="payments" tests="2"><testcase classname="Transfer" name="duplicate" time="0.03"><failure type="LedgerInvariantError" message="duplicate committed transfer">ledger unbalanced after double charge</failure></testcase><testcase classname="Health" name="ok" time="0.01"/></testsuite>"""
     response = client.post(
         f"/api/v1/projects/{project_id}/ingestions",
         params={
@@ -65,9 +64,13 @@ def test_raw_junit_is_queued_processed_and_auto_analyzed(client, session) -> Non
     assert failures[0]["latest_analysis"]["category"] == "product_defect"
     assert failures[0]["latest_analysis"]["supporting_evidence_ids"]
 
-    artifact = session.scalar(select(Artifact).where(Artifact.run_id == completed["run_id"]))
+    artifact = session.scalar(
+        select(Artifact).where(Artifact.run_id == completed["run_id"])
+    )
     assert artifact is not None and artifact.restricted is True
-    evidence = session.scalar(select(Evidence).where(Evidence.run_id == completed["run_id"]))
+    evidence = session.scalar(
+        select(Evidence).where(Evidence.run_id == completed["run_id"])
+    )
     assert evidence is not None and len(evidence.content_digest) == 64
 
     duplicate = client.post(
@@ -87,7 +90,9 @@ def test_raw_junit_is_queued_processed_and_auto_analyzed(client, session) -> Non
     assert session.scalar(select(func.count(Run.id))) == 1
 
 
-def test_changed_file_trust_is_bound_by_transport_not_artifact_claim(client, session) -> None:
+def test_changed_file_trust_is_bound_by_transport_not_artifact_claim(
+    client, session
+) -> None:
     project_id = _project(client)
     changes = {
         "base_sha": "abcdef0",
@@ -110,7 +115,10 @@ def test_changed_file_trust_is_bound_by_transport_not_artifact_claim(client, ses
         headers={"content-type": "application/json"},
     )
     assert untrusted.status_code == 202, untrusted.text
-    assert process_next(session, "worker-changes-untrusted", settings=get_settings()) is True
+    assert (
+        process_next(session, "worker-changes-untrusted", settings=get_settings())
+        is True
+    )
     untrusted_run_id = client.get(
         f"/api/v1/ingestions/{untrusted.json()['id']}"
     ).json()["run_id"]
@@ -136,10 +144,12 @@ def test_changed_file_trust_is_bound_by_transport_not_artifact_claim(client, ses
         headers={"content-type": "application/json"},
     )
     assert trusted.status_code == 202, trusted.text
-    assert process_next(session, "worker-changes-trusted", settings=get_settings()) is True
-    trusted_run_id = client.get(
-        f"/api/v1/ingestions/{trusted.json()['id']}"
-    ).json()["run_id"]
+    assert (
+        process_next(session, "worker-changes-trusted", settings=get_settings()) is True
+    )
+    trusted_run_id = client.get(f"/api/v1/ingestions/{trusted.json()['id']}").json()[
+        "run_id"
+    ]
     trusted_input = session.scalar(
         select(RunInput).where(RunInput.run_id == trusted_run_id)
     )
@@ -147,7 +157,9 @@ def test_changed_file_trust_is_bound_by_transport_not_artifact_claim(client, ses
     assert trusted_input.metadata_json["trust"] == "trusted_workflow"
 
 
-def test_playwright_report_preserves_attempts_and_auto_analysis(client, session) -> None:
+def test_playwright_report_preserves_attempts_and_auto_analysis(
+    client, session
+) -> None:
     project_id = _project(client)
     report = {
         "suites": [
@@ -180,7 +192,11 @@ def test_playwright_report_preserves_attempts_and_auto_analysis(client, session)
     }
     response = client.post(
         f"/api/v1/projects/{project_id}/ingestions",
-        params={"external_id": "pw-1", "filename": "playwright-report.json", "expected_inputs": 1},
+        params={
+            "external_id": "pw-1",
+            "filename": "playwright-report.json",
+            "expected_inputs": 1,
+        },
         content=json.dumps(report).encode(),
         headers={"content-type": "application/json"},
     )
@@ -218,7 +234,9 @@ def test_expired_lease_recovery_is_idempotent(session) -> None:
     session.commit()
 
     recovered = claim_next(session, "worker-recovered", 30)
-    assert recovered is not None and recovered.id == first.id and recovered.attempts == 2
+    assert (
+        recovered is not None and recovered.id == first.id and recovered.attempts == 2
+    )
     process_claimed(session, recovered, "worker-recovered", settings)
     session.refresh(ingestion)
     first_run_id = ingestion.run_id
@@ -258,7 +276,9 @@ def test_malformed_report_fails_permanently_with_diagnostics(client, session) ->
     assert result["run_id"] is None
 
 
-def test_cancellation_is_terminal_and_worker_failure_cannot_resurrect_it(client, session) -> None:
+def test_cancellation_is_terminal_and_worker_failure_cannot_resurrect_it(
+    client, session
+) -> None:
     project_id = _project(client)
     response = client.post(
         f"/api/v1/projects/{project_id}/ingestions",
@@ -348,8 +368,9 @@ def test_same_report_bytes_are_distinct_across_run_attempts(client) -> None:
     assert ids[0] != ids[1]
 
 
-
-def test_manifest_v2_persists_input_scope_and_missing_required_artifacts(client, session) -> None:
+def test_manifest_v2_persists_input_scope_and_missing_required_artifacts(
+    client, session
+) -> None:
     project_id = _project(client)
     manifest = {
         "schema_version": "2.0",

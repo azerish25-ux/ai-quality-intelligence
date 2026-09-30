@@ -5,9 +5,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from evaluation.generate_corpus import main as generate_corpus
-from evaluation.generate_clustering_corpus import main as generate_clustering_corpus
 from evaluation.clustering_harness import evaluate_clustering
+from evaluation.generate_clustering_corpus import main as generate_clustering_corpus
+from evaluation.generate_corpus import main as generate_corpus
 from evaluation.harness import evaluate
 
 

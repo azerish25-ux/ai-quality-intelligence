@@ -37,6 +37,8 @@ def test_retry_outcomes_do_not_inflate_independent_test_count(session):
         Execution(
             run_id=run.id,
             test_identity=existing.test_identity,
+            suite=existing.suite,
+            source_path=existing.source_path,
             browser=existing.browser,
             parameterization=existing.parameterization,
             attempt=existing.attempt + 1,
@@ -248,6 +250,35 @@ def test_projection_bounds_json_and_markdown_and_discloses_omissions(session):
     assert report["omitted_analyses"] == 63 - len(report["analyses"])
     assert report["omitted_analyses"] > 13
     assert "omitted" in report["markdown"]
+    assert report["analysis_manifest"]["count"] == 63
+
+    # An omitted analysis still belongs to the report's revision identity even
+    # when a new revision leaves the rendered counts and Markdown unchanged.
+    visible = [item["analysis_id"] for item in report["analyses"]]
+    omitted = session.scalar(
+        select(Analysis)
+        .join(Failure)
+        .where(
+            Failure.run_id == run.id,
+            Analysis.id.not_in(visible),
+            Analysis.validation_version.is_(None),
+        )
+        .limit(1)
+    )
+    values = {
+        column.name: getattr(omitted, column.name)
+        for column in Analysis.__table__.columns
+        if column.name not in {"id", "created_at", "revision"}
+    }
+    session.add(Analysis(**values, revision=omitted.revision + 1))
+    session.commit()
+    revised = report_snapshot(session, run)
+    assert revised["markdown"] == report["markdown"]
+    assert revised["analysis_count"] == report["analysis_count"]
+    assert (
+        revised["analysis_manifest"]["digest"] != report["analysis_manifest"]["digest"]
+    )
+    assert revised["report_digest"] != report["report_digest"]
 
 
 def test_json_bound_accounts_for_non_ascii_escape_expansion(session):

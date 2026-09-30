@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import argparse
-import socket
+import logging
 import signal
+import socket
 import threading
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-from typing import Callable
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
@@ -17,12 +18,22 @@ from .ingestion import IngestionError
 from .models import Ingestion, IngestionState, Job, JobState
 from .service import INGEST_JOB_KIND, process_artifact_ingestion
 from .storage import StorageError
-from .telemetry import configure_telemetry, shutdown_telemetry, observe_result, stage, SpanKind
+from .telemetry import (
+    SpanKind,
+    configure_telemetry,
+    observe_result,
+    shutdown_telemetry,
+    stage,
+)
 
+logger = logging.getLogger(__name__)
 
 PERMANENT_INGESTION_ERRORS = {
-    "unsupported_trace_version", "unsupported_trace_producer", "unsupported_image_frames",
-    "image_processing_failed", "image_processing_timeout",
+    "unsupported_trace_version",
+    "unsupported_trace_producer",
+    "unsupported_image_frames",
+    "image_processing_failed",
+    "image_processing_timeout",
     "ambiguous_bundle",
     "digest_mismatch",
     "empty_report",
@@ -53,6 +64,9 @@ def claim_next(session: Session, worker_id: str, lease_seconds: int) -> Job | No
             ),
             Job.available_at <= now,
             Job.attempts < Job.max_attempts,
+            # Provider attempts have irreversible external spend. Only their
+            # dedicated fenced worker may claim or recover these jobs.
+            ~Job.kind.startswith("model_provider"),
         )
         .order_by(Job.available_at, Job.created_at)
         .limit(1)
@@ -98,7 +112,9 @@ def complete(session: Session, job: Job, *, partial: bool = False) -> None:
 
 
 def _linked_ingestion(session: Session, job: Job) -> Ingestion | None:
-    ingestion_id = job.payload.get("ingestion_id") if isinstance(job.payload, dict) else None
+    ingestion_id = (
+        job.payload.get("ingestion_id") if isinstance(job.payload, dict) else None
+    )
     if not isinstance(ingestion_id, str):
         return None
     return session.get(Ingestion, ingestion_id)
@@ -127,7 +143,9 @@ def fail(
     terminal = permanent or job.attempts >= job.max_attempts
     job.state = JobState.dead_lettered if terminal else JobState.queued
     if not terminal:
-        job.available_at = datetime.now(UTC) + timedelta(seconds=min(60, 2 ** job.attempts))
+        job.available_at = datetime.now(UTC) + timedelta(
+            seconds=min(60, 2**job.attempts)
+        )
 
     ingestion = _linked_ingestion(session, job)
     if ingestion and ingestion.state is not IngestionState.cancelled:
@@ -159,6 +177,7 @@ def _process_claimed(
     settings: Settings,
 ) -> None:
     from .retention import RETENTION_JOB_KIND, process_cleanup
+
     if job.kind == RETENTION_JOB_KIND:
         process_cleanup(session, job, worker_id, settings)
         return
@@ -209,16 +228,31 @@ def _process_claimed(
         return
     complete(session, job, partial=run.completeness != "complete")
     from .retention import flush_deletions
+
     flush_deletions(session, ingestion.project_id, settings)
 
 
-def process_claimed(session: Session, job: Job, worker_id: str, settings: Settings) -> None:
+def process_claimed(
+    session: Session, job: Job, worker_id: str, settings: Settings
+) -> None:
     parent = job.payload.get("traceparent") if isinstance(job.payload, dict) else None
     with stage("job", parent=parent, kind=SpanKind.CONSUMER) as span:
-        span.set_attribute("job.kind", job.kind if job.kind in {INGEST_JOB_KIND, "retention_cleanup_v1", "noop"} else "unsupported")
+        span.set_attribute(
+            "job.kind",
+            job.kind
+            if job.kind in {INGEST_JOB_KIND, "retention_cleanup_v1", "noop"}
+            else "unsupported",
+        )
         span.set_attribute("job.attempt", max(0, min(20, job.attempts)))
-        created = job.created_at.replace(tzinfo=UTC) if job.created_at.tzinfo is None else job.created_at
-        span.set_attribute("job.queue_delay_ms", max(0, (datetime.now(UTC) - created).total_seconds() * 1000))
+        created = (
+            job.created_at.replace(tzinfo=UTC)
+            if job.created_at.tzinfo is None
+            else job.created_at
+        )
+        span.set_attribute(
+            "job.queue_delay_ms",
+            max(0, (datetime.now(UTC) - created).total_seconds() * 1000),
+        )
         _process_claimed(session, job, worker_id, settings)
 
 
@@ -237,19 +271,29 @@ def process_next(
     except (IngestionError, StorageError) as exc:
         session.rollback()
         current = session.get(Job, job.id)
-        if current is not None and (current.lease_owner == worker_id or current.state == JobState.cancelled):
+        if current is not None and (
+            current.lease_owner == worker_id or current.state == JobState.cancelled
+        ):
             fail(
                 session,
                 current,
                 exc.code if current.kind == "retention_cleanup_v1" else str(exc),
                 error_code=exc.code,
-                permanent=exc.code in PERMANENT_INGESTION_ERRORS or exc.code == "missing_ingestion",
+                permanent=exc.code in PERMANENT_INGESTION_ERRORS
+                or exc.code == "missing_ingestion",
             )
     except Exception as exc:  # worker boundary
+        logger.exception("worker_boundary_error", exc_info=False)
         session.rollback()
         current = session.get(Job, job.id)
-        if current is not None and (current.lease_owner == worker_id or current.state == JobState.cancelled):
-            message = "retention_worker_error" if current.kind == "retention_cleanup_v1" else str(exc)
+        if current is not None and (
+            current.lease_owner == worker_id or current.state == JobState.cancelled
+        ):
+            message = (
+                "retention_worker_error"
+                if current.kind == "retention_cleanup_v1"
+                else str(exc)
+            )
             fail(session, current, message)
     return True
 
@@ -287,6 +331,7 @@ def main() -> None:
         while not stopped.is_set():
             if time.monotonic() >= next_retention_sweep:
                 from .retention import schedule_due
+
                 with SessionLocal() as maintenance_session:
                     schedule_due(maintenance_session)
                 next_retention_sweep = time.monotonic() + 60

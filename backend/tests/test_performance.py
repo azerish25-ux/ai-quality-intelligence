@@ -5,8 +5,6 @@ import json
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlalchemy import select
-
 from failurelens.config import get_settings
 from failurelens.ingestion import parse_artifact
 from failurelens.models import Evidence, PerformanceObservation, Project, Run
@@ -21,10 +19,13 @@ from failurelens.performance import (
 from failurelens.schemas import (
     IngestionRequest,
     PerformancePolicyCreate,
+    RunMetadata,
+)
+from failurelens.schemas import (
     TestObservation as ObservationInput,
 )
 from failurelens.service import create_project, ingest_normalized, ingest_parsed_report
-from failurelens.schemas import RunMetadata
+from sqlalchemy import select
 
 
 def _ingest_duration_run(
@@ -101,7 +102,11 @@ def _register_k6_like_metric(
         browser=None,
         producer="k6-handleSummary",
         producer_version="0.54.0",
-        extra={"contains": "time", "metric_type": "trend", "load_profile": "steady-10-vus-60s"},
+        extra={
+            "contains": "time",
+            "metric_type": "trend",
+            "load_profile": "steady-10-vus-60s",
+        },
     )
     row = register_performance_observation(
         session,
@@ -147,7 +152,6 @@ def _strict_policy(session, project: Project, *, version: str = "perf-v1"):
 
 def test_normalized_ingestion_persists_final_duration_with_evidence(session):
     project = create_project(session, "perf-ingestion", "Performance ingestion")
-    at = datetime(2026, 9, 1, 12, tzinfo=UTC)
     run = ingest_normalized(
         session,
         project,
@@ -158,7 +162,11 @@ def test_normalized_ingestion_persists_final_duration_with_evidence(session):
             comparison_trust="trusted_workflow",
             environment="ci-linux",
             timezone="UTC",
-            source_metadata={"load_profile": "steady", "executor": "runner-a", "region": "ca"},
+            source_metadata={
+                "load_profile": "steady",
+                "executor": "runner-a",
+                "region": "ca",
+            },
             observations=[
                 ObservationInput(
                     test_identity="tests/perf.spec.ts::latency",
@@ -178,7 +186,13 @@ def test_normalized_ingestion_persists_final_duration_with_evidence(session):
             ],
         ),
     )
-    rows = list(session.scalars(select(PerformanceObservation).where(PerformanceObservation.run_id == run.id)).all())
+    rows = list(
+        session.scalars(
+            select(PerformanceObservation).where(
+                PerformanceObservation.run_id == run.id
+            )
+        ).all()
+    )
     assert len(rows) == 1
     row = rows[0]
     assert row.original_value == 110
@@ -257,7 +271,9 @@ def test_k6_summary_persists_bounded_metric_values_and_safe_evidence(session):
         session.scalars(
             select(PerformanceObservation)
             .where(PerformanceObservation.run_id == run.id)
-            .order_by(PerformanceObservation.metric_name, PerformanceObservation.statistic)
+            .order_by(
+                PerformanceObservation.metric_name, PerformanceObservation.statistic
+            )
         ).all()
     )
     assert {(row.metric_name, row.statistic, row.canonical_unit) for row in rows} == {
@@ -268,11 +284,17 @@ def test_k6_summary_persists_bounded_metric_values_and_safe_evidence(session):
         ("http_reqs", "count", "count"),
         ("http_reqs", "rate", "requests/s"),
     }
-    p95 = next(row for row in rows if row.metric_name == "http_req_duration" and row.statistic == "p95")
+    p95 = next(
+        row
+        for row in rows
+        if row.metric_name == "http_req_duration" and row.statistic == "p95"
+    )
     evidence = session.get(Evidence, p95.evidence_id)
     assert evidence is not None
     assert evidence.kind == "performance_metric_observation"
-    assert evidence.locator["source"]["pointer"].endswith("/metrics/http_req_duration/values/p(95)")
+    assert evidence.locator["source"]["pointer"].endswith(
+        "/metrics/http_req_duration/values/p(95)"
+    )
     assert p95.threshold_status == "passed"
 
 
@@ -316,7 +338,11 @@ def test_compatible_prior_baseline_detects_regression_and_is_idempotent(session)
     assert replay[0].id == comparison.id
     schema = performance_comparison_to_schema(replay[0])
     assert schema.baseline.aggregation == "median_of_run_level_observations"
-    assert [member.canonical_value for member in schema.baseline.members] == [100.0, 105.0, 95.0]
+    assert [member.canonical_value for member in schema.baseline.members] == [
+        100.0,
+        105.0,
+        95.0,
+    ]
 
 
 def test_incompatible_environment_cannot_form_reassuring_baseline(session):
@@ -346,7 +372,12 @@ def test_incompatible_environment_cannot_form_reassuring_baseline(session):
     assert comparison.status == "INCOMPATIBLE_BASELINE"
     assert comparison.baseline_value is None
     assert comparison.relative_change is None
-    assert comparison.compatibility["rejected_reason_counts"]["dimension_mismatch:environment"] == 3
+    assert (
+        comparison.compatibility["rejected_reason_counts"][
+            "dimension_mismatch:environment"
+        ]
+        == 3
+    )
     assert "no usable compatible baseline" in comparison.summary
 
 
@@ -402,7 +433,9 @@ def test_run_level_p95_uses_median_and_never_claims_aggregate_percentile(session
             duration_ms=10,
             observed_at=start + timedelta(days=index),
         )
-        _register_k6_like_metric(session, run, value=value, observed_at=start + timedelta(days=index))
+        _register_k6_like_metric(
+            session, run, value=value, observed_at=start + timedelta(days=index)
+        )
     current_run, _ = _ingest_duration_run(
         session,
         project,
@@ -419,7 +452,10 @@ def test_run_level_p95_uses_median_and_never_claims_aggregate_percentile(session
     assert comparison.status == "REGRESSION"
     assert comparison.baseline_value == 100.0
     assert comparison.baseline_snapshot.baseline_mad == 10.0
-    assert "run_level_percentiles_are_not_an_aggregate_percentile" in comparison.confounders
+    assert (
+        "run_level_percentiles_are_not_an_aggregate_percentile"
+        in comparison.confounders
+    )
     assert "never averaged" in comparison.uncertainty["note"]
 
 
@@ -451,7 +487,9 @@ def test_classification_handles_direction_tolerance_and_zero_baseline():
     assert zero["relative_change"] is None
 
 
-def test_performance_api_exposes_policies_observations_baselines_and_comparisons(client, session):
+def test_performance_api_exposes_policies_observations_baselines_and_comparisons(
+    client, session
+):
     project = create_project(session, "perf-api", "Performance API")
     start = datetime(2026, 6, 1, 12, tzinfo=UTC)
     for index, value in enumerate((100.0, 101.0, 99.0)):
@@ -480,8 +518,16 @@ def test_performance_api_exposes_policies_observations_baselines_and_comparisons
             "max_baseline_age_days": 30,
             "require_trusted": True,
             "required_dimensions": [
-                "repository", "workload", "environment", "browser", "run_scope",
-                "producer", "producer_version", "load_profile", "region", "executor"
+                "repository",
+                "workload",
+                "environment",
+                "browser",
+                "run_scope",
+                "producer",
+                "producer_version",
+                "load_profile",
+                "region",
+                "executor",
             ],
             "direction_overrides": {},
         },
@@ -493,7 +539,10 @@ def test_performance_api_exposes_policies_observations_baselines_and_comparisons
         f"/api/v1/runs/{current_run.id}/performance-observations"
     )
     assert observations_response.status_code == 200
-    assert observations_response.json()[0]["evidence_id"] == current_observation.evidence_id
+    assert (
+        observations_response.json()[0]["evidence_id"]
+        == current_observation.evidence_id
+    )
 
     baseline_response = client.post(
         f"/api/v1/projects/{project.id}/performance-baselines",

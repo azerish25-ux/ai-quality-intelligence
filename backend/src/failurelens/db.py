@@ -37,6 +37,6 @@ def get_session() -> Generator[Session, None, None]:
 
 
 def initialize_database(bind=None) -> None:
-    from . import models  # noqa: F401
+    from . import models
 
-    Base.metadata.create_all(bind or engine)
+    models.Base.metadata.create_all(bind or engine)

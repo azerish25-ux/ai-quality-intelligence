@@ -1,0 +1,1326 @@
+{
+  "entries": [
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/benchmark-evaluation.yml",
+      "file_sha256": "523b480c84daeac9c98d873731b86dea9400474e7142d024fa293118083ce084",
+      "occurrences": [
+        {
+          "context_sha256": "4afb96259ded804d0b3e7a100584045ae6c3f740b4854b1f6f6b1b2719b82d07",
+          "line": 29
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0002",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Secret Keyword",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/benchmark-evaluation.yml",
+      "file_sha256": "523b480c84daeac9c98d873731b86dea9400474e7142d024fa293118083ce084",
+      "occurrences": [
+        {
+          "context_sha256": "54cf66cf92de96683d7dda2eb3dfbbde93082d04820e48a01058a01d2171f728",
+          "line": 23
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0001",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/campaign-evaluation.yml",
+      "file_sha256": "d81bc20548f7feea1789b3f8e74099872db271faf1f2784a5b93b80efe23ab3e",
+      "occurrences": [
+        {
+          "context_sha256": "8976a45cadd260375953054a1e11e94f77ebbfdb2f6c107c5ee9a52341fc3c1f",
+          "line": 29
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0004",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Secret Keyword",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/campaign-evaluation.yml",
+      "file_sha256": "d81bc20548f7feea1789b3f8e74099872db271faf1f2784a5b93b80efe23ab3e",
+      "occurrences": [
+        {
+          "context_sha256": "cc688f2b149e86bb51398672ed5f7a03a391c32d6ab9eade8c1b4345c5078575",
+          "line": 23
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0003",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/ci.yml",
+      "file_sha256": "1590b1ff25069bdb85d723821d61f0463c05dbc740bc8c852835a345b5539710",
+      "occurrences": [
+        {
+          "context_sha256": "af78dcf338f5990df3c413e011170f56369165f8f9e1d4cd0439113bac4e130b",
+          "line": 80
+        },
+        {
+          "context_sha256": "58fc7d25262b481a5eddb79b0c53c5a94ae7f3467b661508d1d98de6ff575d7b",
+          "line": 150
+        },
+        {
+          "context_sha256": "3e29aa15335b9aafd59e57ccdeb4953dd66c9afac0d84530d6027ee40dd14aa2",
+          "line": 255
+        },
+        {
+          "context_sha256": "8938ae284ae9cf96eecb86ce5fa96cc66cdb078bdd25a953c7eb7f8551cbd4c3",
+          "line": 351
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0006",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "pinned Git reference or COMMAND_BLOB constant",
+      "file": ".github/workflows/ci.yml",
+      "file_sha256": "1590b1ff25069bdb85d723821d61f0463c05dbc740bc8c852835a345b5539710",
+      "occurrences": [
+        {
+          "context_sha256": "98bafbf81b39190122ee3d5212f488b05c4faeea7ea0b942f6d2f076de97383b",
+          "line": 161
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0007",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3489d7a15a6e55d6cb411770ca117168693075bb6b1f1e6ff50a1db455794635"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Secret Keyword",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/ci.yml",
+      "file_sha256": "1590b1ff25069bdb85d723821d61f0463c05dbc740bc8c852835a345b5539710",
+      "occurrences": [
+        {
+          "context_sha256": "0aea663a44c3ea89a8169d65ab04fd84acd98e3fe6bad4d7e2a2b332fba730ba",
+          "line": 71
+        },
+        {
+          "context_sha256": "c3163b575ba27f802e45f3db4d48fb921e6ce4e467bc259febce1858e9cb1a5d",
+          "line": 141
+        },
+        {
+          "context_sha256": "18850b3be888c2acbffd10c13ae45bc35066c5ae06310eacde0d994b3a714073",
+          "line": 246
+        },
+        {
+          "context_sha256": "9e14c769bc03eca7b05f639310d38af119a51296db2f16e936fbc097b4bcdd98",
+          "line": 342
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0005",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/diagnostic-evaluation.yml",
+      "file_sha256": "4a04e0c09708926d134975bcdd3b23d320ecc0a82a17f17a717e0526689e98d1",
+      "occurrences": [
+        {
+          "context_sha256": "75893ac6d2db27aa4708bed6bf5ec7fae8153da5f4fc604ac4bdd6c35ce3d444",
+          "line": 29
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0009",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "pinned Git reference or COMMAND_BLOB constant",
+      "file": ".github/workflows/diagnostic-evaluation.yml",
+      "file_sha256": "4a04e0c09708926d134975bcdd3b23d320ecc0a82a17f17a717e0526689e98d1",
+      "occurrences": [
+        {
+          "context_sha256": "98bafbf81b39190122ee3d5212f488b05c4faeea7ea0b942f6d2f076de97383b",
+          "line": 40
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0010",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3489d7a15a6e55d6cb411770ca117168693075bb6b1f1e6ff50a1db455794635"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Secret Keyword",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/diagnostic-evaluation.yml",
+      "file_sha256": "4a04e0c09708926d134975bcdd3b23d320ecc0a82a17f17a717e0526689e98d1",
+      "occurrences": [
+        {
+          "context_sha256": "3ad6932184c808242fca027694846d46cbcd86c37e3b60c3f2c96e6e2b085b58",
+          "line": 23
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0008",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/fullstack-evaluation.yml",
+      "file_sha256": "addafaefbe59146b28e7ad3cc935f37d5e57e870d8dc7f74acc814285b760cc6",
+      "occurrences": [
+        {
+          "context_sha256": "b1692fb758fcdd8f163e5532d2ca64474b2bc940bed8efc2974fb5942bf4c8e1",
+          "line": 29
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0012",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "pinned Git reference or COMMAND_BLOB constant",
+      "file": ".github/workflows/fullstack-evaluation.yml",
+      "file_sha256": "addafaefbe59146b28e7ad3cc935f37d5e57e870d8dc7f74acc814285b760cc6",
+      "occurrences": [
+        {
+          "context_sha256": "98bafbf81b39190122ee3d5212f488b05c4faeea7ea0b942f6d2f076de97383b",
+          "line": 40
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0013",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3489d7a15a6e55d6cb411770ca117168693075bb6b1f1e6ff50a1db455794635"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Secret Keyword",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/fullstack-evaluation.yml",
+      "file_sha256": "addafaefbe59146b28e7ad3cc935f37d5e57e870d8dc7f74acc814285b760cc6",
+      "occurrences": [
+        {
+          "context_sha256": "44f5795d6ac25116992e80340431fd991d012e6036e17360c974b6da594483a7",
+          "line": 23
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0011",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/github-report.yml",
+      "file_sha256": "e666aaae7c304b927d2c02071ff55af643fd1386b4747c2f30b170060248254d",
+      "occurrences": [
+        {
+          "context_sha256": "1ff2e8f3d53ce82b181f08d1e5c742c54e498381fa0e31acedaee6a310ccfd32",
+          "line": 76
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0015",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Secret Keyword",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/github-report.yml",
+      "file_sha256": "e666aaae7c304b927d2c02071ff55af643fd1386b4747c2f30b170060248254d",
+      "occurrences": [
+        {
+          "context_sha256": "62dd16b030bbea828b06a56e9298bdca187be00c0c321937fef18103a168cef8",
+          "line": 67
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0014",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/operational-benchmark.yml",
+      "file_sha256": "8075a20326bf43ecd92f8f914472967aaef94b1190720c80243ff4545750220b",
+      "occurrences": [
+        {
+          "context_sha256": "3a9b33401a91aa27820dd1dd23b23e3c4809893263727b035b002c558cd0f939",
+          "line": 29
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0017",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Secret Keyword",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/operational-benchmark.yml",
+      "file_sha256": "8075a20326bf43ecd92f8f914472967aaef94b1190720c80243ff4545750220b",
+      "occurrences": [
+        {
+          "context_sha256": "705b0e25fa4eec1801c6ac61eeee5494981f0b5bf8fdd544caf8f7a3b50ce6da",
+          "line": 23
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0016",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/rollback-evaluation.yml",
+      "file_sha256": "6eac0925d96903e4629b9143ba1b735c94a5e1c57b563a0b072b6e1c96cdcb88",
+      "occurrences": [
+        {
+          "context_sha256": "ca8330a81763e0c51f4c8da7b287259a5cdbeedd5720feabcb0c0cf1362f1d2a",
+          "line": 29
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0019",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "pinned Git reference or COMMAND_BLOB constant",
+      "file": ".github/workflows/rollback-evaluation.yml",
+      "file_sha256": "6eac0925d96903e4629b9143ba1b735c94a5e1c57b563a0b072b6e1c96cdcb88",
+      "occurrences": [
+        {
+          "context_sha256": "98bafbf81b39190122ee3d5212f488b05c4faeea7ea0b942f6d2f076de97383b",
+          "line": 40
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0020",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3489d7a15a6e55d6cb411770ca117168693075bb6b1f1e6ff50a1db455794635"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Secret Keyword",
+      "evidence": "workflow-local postgres service and matching disposable database configuration",
+      "file": ".github/workflows/rollback-evaluation.yml",
+      "file_sha256": "6eac0925d96903e4629b9143ba1b735c94a5e1c57b563a0b072b6e1c96cdcb88",
+      "occurrences": [
+        {
+          "context_sha256": "a15d6dea27d2db4cb38f4e9efbcf7b82dddc197755793a8648477d2c41778f46",
+          "line": 23
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0018",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "intentional_public_demo_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "README.md: production-security guidance; docs/security.md; compose.yaml: no database host-port publication; internal runtime network; loopback application ingress",
+      "file": "backend/Dockerfile",
+      "file_sha256": "0794422ab39332fe621bb92e21261c5cb29371f5938fe89e01418e90d5fb3db3",
+      "occurrences": [
+        {
+          "context_sha256": "6defebeac059998482f4ecafa79dda28c3a60dac0137af69352a9a69564d7f07",
+          "line": 15
+        }
+      ],
+      "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
+      "review_id": "candidate-0021",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "d6df7e41df70b496f873d446192799286251b107bbbe76b5c50c26c15408c7d5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/7f3c1d9a2b44_durable_ingestion_pipeline.py",
+      "file_sha256": "fd848c85fdddb6f47e539435d95dddef6e140e67275b40ad9ff6eec6573534be",
+      "occurrences": [
+        {
+          "context_sha256": "4c6954a44362215a83d7a01f809ab614da7952fdcb9d0af5527860416008ec98",
+          "line": 13
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0022",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "6bed37c260205e629cadeedca676d872591be4755d273ba167278582eab5b59f"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/a4f6e8c2d901_m5_project_rbac_audit.py",
+      "file_sha256": "8856bec7b3cbb963d24cdada7593e35e1f5a182c3c6e0edf3b9502153d2425e7",
+      "occurrences": [
+        {
+          "context_sha256": "9108dbe8267bb491e2cb7714c24b19d7d8e17d987b2b00a03c529c5803f39ed9",
+          "line": 15
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0023",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "73fe812caa763ace09d2b70f52af70ccafae5482c00750711735d352cb1e13dd"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module down_revision annotation/assignment; backend/migrations/versions/7f3c1d9a2b44_durable_ingestion_pipeline.py revision",
+      "file": "backend/migrations/versions/a4f6e8c2d901_m5_project_rbac_audit.py",
+      "file_sha256": "8856bec7b3cbb963d24cdada7593e35e1f5a182c3c6e0edf3b9502153d2425e7",
+      "occurrences": [
+        {
+          "context_sha256": "aabad1058283ed5ee6ff217a412bb78d85b7927b4817dbeb08e195e09f8f22b2",
+          "line": 16
+        }
+      ],
+      "reason": "Existing Alembic predecessor revision ID newly detected after type-annotation modernization. The assigned bytes and migration graph role are unchanged.",
+      "review_id": "independent-current-24",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "9b786ca21de6df0b4bbe9250a4d7ab45dae613fd283d0175f785221d18c16216"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/a91f2c7d4e10_m2_manifest_inputs.py",
+      "file_sha256": "cd9658c5e7d8d576196ac26fe6012c976a6f5c606ffa5860446ab7bf74b9af7e",
+      "occurrences": [
+        {
+          "context_sha256": "49f026ae96fe1623c1e79b61b106ddada6c4bb71725c9dce1e6eedefc5e992c3",
+          "line": 14
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0025",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "6bed37c260205e629cadeedca676d872591be4755d273ba167278582eab5b59f"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/a91f2c7d4e10_m2_manifest_inputs.py",
+      "file_sha256": "cd9658c5e7d8d576196ac26fe6012c976a6f5c606ffa5860446ab7bf74b9af7e",
+      "occurrences": [
+        {
+          "context_sha256": "4de1affd398c70b905aef2cdcac76cce21df2da2e7c4a8e6ae18464e9fa91f6d",
+          "line": 13
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0024",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "cffeaf7dc831d98be37c2764fa3b472aa3e498d9086d8ec8500d388c16d2bc57"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/b2c8e5f1a730_performance_intelligence.py",
+      "file_sha256": "bf53e5d42c837038a953948ea069fe6b063b8bc553fd3da34158adfdbe1aec13",
+      "occurrences": [
+        {
+          "context_sha256": "963804c71a9a0ebb8c669e9c4085174708244449f7806fd087b4036a9762c474",
+          "line": 13
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0026",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "15784b9a0e8db6847ddb20e948bf3d832bd7276ee026483feaceb21d6af4e481"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/b2c8e5f1a730_performance_intelligence.py",
+      "file_sha256": "bf53e5d42c837038a953948ea069fe6b063b8bc553fd3da34158adfdbe1aec13",
+      "occurrences": [
+        {
+          "context_sha256": "76c26609cc2b493902a62486039642f9cbcf8ce40fae26b64f94510ee1444c0d",
+          "line": 14
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0027",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "6eda08d8deb1a169f707c3bd83df8390a943acda349649ca3f889280d0e67ae8"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/b7d3a9e5c620_m53_operational_lifecycle.py",
+      "file_sha256": "3af41f516adf20c37dccb1b0ff5699b0eaf0d8bc364b7b2c27c4961d82c4d4f6",
+      "occurrences": [
+        {
+          "context_sha256": "eaf27f232f009be818bc3eada2a75b50e0c5c133d98b0158056b7537a9f67053",
+          "line": 11
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0029",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "73fe812caa763ace09d2b70f52af70ccafae5482c00750711735d352cb1e13dd"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/b7d3a9e5c620_m53_operational_lifecycle.py",
+      "file_sha256": "3af41f516adf20c37dccb1b0ff5699b0eaf0d8bc364b7b2c27c4961d82c4d4f6",
+      "occurrences": [
+        {
+          "context_sha256": "ad83d01db1173e0d585d86f2115f739987454b8aba09cc861ae9a2dd7c31e619",
+          "line": 10
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0028",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "b77c0e9d6b4cc0b4f4ca753c6054effff5f204a9233b118bc57b66811e1f2436"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/c4e1d9a7b2f0_evidence_integrity_boundary.py",
+      "file_sha256": "47d96031aa66febce12c9043f6cb1e9e3cad02b76f98f888fc934055e698f0af",
+      "occurrences": [
+        {
+          "context_sha256": "3c3357916568adbbb2318c5561cea77cbb8bd6f012d4e52c5250d6abf1f04fab",
+          "line": 13
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0030",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "29fac77bb7e323f35eb091a084ad0d4303a8c5cede120c1b68f0674ea53037bf"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/c4e1d9a7b2f0_evidence_integrity_boundary.py",
+      "file_sha256": "47d96031aa66febce12c9043f6cb1e9e3cad02b76f98f888fc934055e698f0af",
+      "occurrences": [
+        {
+          "context_sha256": "227be58b20c01014515ad75ffb349a5d60f72d91dc2b5ac6a2ef452d7ec5b304",
+          "line": 14
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0031",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "cffeaf7dc831d98be37c2764fa3b472aa3e498d9086d8ec8500d388c16d2bc57"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/c7a9e2f4b610_infrastructure_event_correlation.py",
+      "file_sha256": "4f68bebf765cc492e4902840837ca81befb4d286632b7dafed98ca28079a66a4",
+      "occurrences": [
+        {
+          "context_sha256": "0d5b85ace5e296922943ef0c082ecbcb3e5b6f2ac0b6011f697768f4d9991ed0",
+          "line": 14
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0033",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "15784b9a0e8db6847ddb20e948bf3d832bd7276ee026483feaceb21d6af4e481"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/c7a9e2f4b610_infrastructure_event_correlation.py",
+      "file_sha256": "4f68bebf765cc492e4902840837ca81befb4d286632b7dafed98ca28079a66a4",
+      "occurrences": [
+        {
+          "context_sha256": "994f84e65b4ce3bc00af42fc5fd7d687de11c924de35950f1e0823e9db13b168",
+          "line": 13
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0032",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "9b786ca21de6df0b4bbe9250a4d7ab45dae613fd283d0175f785221d18c16216"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/c8f2e6a9d410_binary_evidence_reviews.py",
+      "file_sha256": "4367e5a6489b8bacdb610540669b7bcbd9d304988329e693c5448f40cc82990d",
+      "occurrences": [
+        {
+          "context_sha256": "6a7f1885287806afcb4970b4fcf239c4e69ed762497513cba0d47206bb27ac64",
+          "line": 10
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0034",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "b619255bd91d652369dfa89e681dbc70549fb408f90d5fb69a9e1589803bcd5f"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/c8f2e6a9d410_binary_evidence_reviews.py",
+      "file_sha256": "4367e5a6489b8bacdb610540669b7bcbd9d304988329e693c5448f40cc82990d",
+      "occurrences": [
+        {
+          "context_sha256": "312a4c2cd66817fc9469f4f2d3f9f35c02e8605ff62c272ea1f9537c2f63ea3d",
+          "line": 11
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0035",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "b77c0e9d6b4cc0b4f4ca753c6054effff5f204a9233b118bc57b66811e1f2436"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/d3a5f7c9b120_durable_model_ledger.py",
+      "file_sha256": "3e2d299bfc74800676aca699dc834b88436a1095a94e56db466b6d320b56f606",
+      "occurrences": [
+        {
+          "context_sha256": "645b9d833dc6a7675f76fa210f035af488c8a330a51ff0a8f74a0848e4c3e1e8",
+          "line": 10
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0036",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "055ebbe25a6686ab47a30af831175504a644d9bba3756b11da18cf9cf4109c2c"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/d3a5f7c9b120_durable_model_ledger.py",
+      "file_sha256": "3e2d299bfc74800676aca699dc834b88436a1095a94e56db466b6d320b56f606",
+      "occurrences": [
+        {
+          "context_sha256": "93a198dd94d552489fbae0bffaba18f102327675bfdea74e8db18c817a377c7f",
+          "line": 11
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0037",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "b619255bd91d652369dfa89e681dbc70549fb408f90d5fb69a9e1589803bcd5f"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/d8f6c1a9b230_explainable_failure_clustering.py",
+      "file_sha256": "d438c11a7db609c99a3540f18da561b3e2efbde38ea65ced1df45ed1010ce160",
+      "occurrences": [
+        {
+          "context_sha256": "f6e9d00e3ad3ec143d1d4abba87987f4e75e0cf593cb235e80cbb99842993ae9",
+          "line": 14
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0039",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "29fac77bb7e323f35eb091a084ad0d4303a8c5cede120c1b68f0674ea53037bf"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/d8f6c1a9b230_explainable_failure_clustering.py",
+      "file_sha256": "d438c11a7db609c99a3540f18da561b3e2efbde38ea65ced1df45ed1010ce160",
+      "occurrences": [
+        {
+          "context_sha256": "5eee183ad803f981e72bb344f689a1bb5adf3a29415c1b86867bd8090438a04e",
+          "line": 13
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0038",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "683a444600e6b4384bc9dc1eb582ee84c3a0a9497d6e0fd0a37f088b8c91cfe9"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/e4b7c2d9a510_historical_outcome_intelligence.py",
+      "file_sha256": "bb73b730bfe4d5c74d2df72340151b204a659c669fa310729223f6f4ab9a9329",
+      "occurrences": [
+        {
+          "context_sha256": "450f2d99ca28f205d7f4317fd8a358c174effed03d7fc8a33b3fcec4110b74c8",
+          "line": 14
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0041",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "683a444600e6b4384bc9dc1eb582ee84c3a0a9497d6e0fd0a37f088b8c91cfe9"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/e4b7c2d9a510_historical_outcome_intelligence.py",
+      "file_sha256": "bb73b730bfe4d5c74d2df72340151b204a659c669fa310729223f6f4ab9a9329",
+      "occurrences": [
+        {
+          "context_sha256": "b6e6702c62983d64c842498703ac3b2d27da3482231517c858b049573e7de403",
+          "line": 13
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0040",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "7ddeee910de6f4c120813fa8a92f4223536abc39aeaeea4d8794b9e1bef444d8"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/f1a9d4c7e620_explainable_change_impact.py",
+      "file_sha256": "32ccec8db2c115c5f20f291a118fe7df5b25245eed035522fb6c738c6be5a2f1",
+      "occurrences": [
+        {
+          "context_sha256": "0e7849122a14d33bfbc9b9997d279b2dcc4fd1061bac991afb3073e16032e99d",
+          "line": 13
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0042",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "6eda08d8deb1a169f707c3bd83df8390a943acda349649ca3f889280d0e67ae8"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "module revision/down_revision declaration",
+      "file": "backend/migrations/versions/f1a9d4c7e620_explainable_change_impact.py",
+      "file_sha256": "32ccec8db2c115c5f20f291a118fe7df5b25245eed035522fb6c738c6be5a2f1",
+      "occurrences": [
+        {
+          "context_sha256": "0149bce5e2252635156cef875646238a0f68f2abf5751edf17035a7486fcd94a",
+          "line": 14
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0043",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "7ddeee910de6f4c120813fa8a92f4223536abc39aeaeea4d8794b9e1bef444d8"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_production_security_configuration_refuses_unsafe_defaults",
+      "file": "backend/tests/test_auth.py",
+      "file_sha256": "6fc91e514bab7c2eca576d3f9db0a6a43093a2cd15039de62d7580cd1087a7c8",
+      "occurrences": [
+        {
+          "context_sha256": "36f8318207be875ae46a73d459933605d90c752392b60a8fb7ed4340faeb3681",
+          "line": 110
+        },
+        {
+          "context_sha256": "21179eecada2f2ccb13892c8f5baaf50a20dbb7c96a41d19ffb58f6fb9bd0ab1",
+          "line": 124
+        },
+        {
+          "context_sha256": "1722bfa9dcea2adc10e3c887125d182b8c34cc2636d0b6d96e0627c70b04cf10",
+          "line": 131
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0044",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "025f9ce6c04fe6a3492c80eed4b07dc6b05d1ce0386ef47ec1a65b01cb629684"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_login_me_logout_and_invalid_credentials_are_audited",
+      "file": "backend/tests/test_auth.py",
+      "file_sha256": "6fc91e514bab7c2eca576d3f9db0a6a43093a2cd15039de62d7580cd1087a7c8",
+      "occurrences": [
+        {
+          "context_sha256": "754a2300afccde38398435c1048bf257d3b6888f7c5baec2e113182090c89cc4",
+          "line": 146
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0046",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "6786324d71483a9ddfa6e2125490379f9f0ebac3d84e880d4a7bca4d4cbc8ac0"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_production_security_configuration_refuses_unsafe_defaults",
+      "file": "backend/tests/test_auth.py",
+      "file_sha256": "6fc91e514bab7c2eca576d3f9db0a6a43093a2cd15039de62d7580cd1087a7c8",
+      "occurrences": [
+        {
+          "context_sha256": "1a09cf54e7f1954adfc0818a4ad71853d9bb2ab2c8958a148f4e15a426bf9be7",
+          "line": 117
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0045",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "7750e5644cf856467b1acb0e59b3dbe5a2991e69bc1b9846abd4f991c800cf8e"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "frozen",
+      "file": "backend/tests/test_benchmark.py",
+      "file_sha256": "4e62189f9a874065bad29d2e8f3460ce58d14e5fd6e3ec5cc204721ac521c4c2",
+      "occurrences": [
+        {
+          "context_sha256": "c1fe5067d1a86c387654551e88e211248e854d899291bf2f52efeebacf984486",
+          "line": 37
+        },
+        {
+          "context_sha256": "93649f5bde2dfa830e9ea5ca425d06217e5f61cda49071a2559c8daf2cde4839",
+          "line": 58
+        },
+        {
+          "context_sha256": "1c602b6f8714401080256a96164c30415b09aec51e5d61c492eadcd925ad17fb",
+          "line": 65
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0047",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "4f63ea7e13c200c1d361d6f9b7af397bad95c062c862afe1b3a017f3628fa6de"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Basic Auth Credentials",
+      "evidence": "trace_bytes",
+      "file": "backend/tests/test_binary_evidence.py",
+      "file_sha256": "d6297f4858498872522f0fceba763a5080e8cba0a0a1dac6311fef7ec45ac6b6",
+      "occurrences": [
+        {
+          "context_sha256": "c708af149f16f44f0dc9fce65085704b05200579557e135ce06756a7eb0ced7f",
+          "line": 84
+        }
+      ],
+      "reason": "Synthetic userinfo on example/malformed endpoints used to test endpoint rejection or trace redaction; no credential verification performed.",
+      "review_id": "candidate-0049",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "user_headers",
+      "file": "backend/tests/test_binary_evidence.py",
+      "file_sha256": "d6297f4858498872522f0fceba763a5080e8cba0a0a1dac6311fef7ec45ac6b6",
+      "occurrences": [
+        {
+          "context_sha256": "f9bbe97a45807cb9c5152fbcd1de162c6c4376b5a6c466df8f6993faa41534de",
+          "line": 242
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0050",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "87cbebfeebc05f7c54ac9336c4b4bbec831227a641951a4bde7edd56020f8590"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "trace_bytes",
+      "file": "backend/tests/test_binary_evidence.py",
+      "file_sha256": "d6297f4858498872522f0fceba763a5080e8cba0a0a1dac6311fef7ec45ac6b6",
+      "occurrences": [
+        {
+          "context_sha256": "42faa91ad39277785114fe440d1d79af11495ba82a558a00e884754246b06c6a",
+          "line": 55
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0048",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "f269e077d677c8c0296689fa54f84daa28c8cc855f832e27f5cd75745b403756"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_safe_derivative_redacts_secrets_and_records_source_map",
+      "file": "backend/tests/test_evidence_validation.py",
+      "file_sha256": "8d1a1a72ad12c7c5d48adcaa982d073507336f0bfb4f32d98baa567a1ffdced7",
+      "occurrences": [
+        {
+          "context_sha256": "ba0138c28800571dd5d1189640bca7ec86b7c3cdf9dbad319a2814c4d5fbd6ce",
+          "line": 51
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0051",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "cd70b85f3d242108418a60fc08be2cdf55788e549020b7123e0e31187260594b"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "test_real_catalog_has_distinct_mechanisms_not_numbered_template_families",
+      "file": "backend/tests/test_executed_evaluation.py",
+      "file_sha256": "fb4c08e2704afaa9958ab1d29e07aa19106ffc3a74b6af3487275c5173a8cde7",
+      "occurrences": [
+        {
+          "context_sha256": "a8bdd21142f66883bbac19f134b102adec69258ef22d0be4438c20068ebce7ae",
+          "line": 176
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0052",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "3489d7a15a6e55d6cb411770ca117168693075bb6b1f1e6ff50a1db455794635"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "test_real_retained_snapshot_rescores_and_exports_exact_safe_evidence",
+      "file": "backend/tests/test_finality_snapshot.py",
+      "file_sha256": "a210096a76cc45f8ce631dccef262eb01cc4284988f635c831c445e38b939f70",
+      "occurrences": [
+        {
+          "context_sha256": "274b712abf124c6097f3afad3468bd52afabbee327373497c53095ea2c719dd3",
+          "line": 38
+        }
+      ],
+      "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
+      "review_id": "candidate-0053",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "232a54f0743c717e857a9626eb5bfa46486a22de15fa3d006e8b89b06a905ff9"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_proxy_rejects_invalid_upstream_receipts_without_logging_body; parameterized invalid receipt response; loopback ThreadingHTTPServer and error-only assertions",
+      "file": "backend/tests/test_fullstack_evaluation.py",
+      "file_sha256": "7a58cdbfd4409c77e7e25e29e729f64680dce3af95a09ccda5e003b70dc8fdf3",
+      "occurrences": [
+        {
+          "context_sha256": "dc52a8484455e0a988008fe4a1e9b555f4ac94a82ffb36d8b19383da0970907c",
+          "line": 372
+        }
+      ],
+      "reason": "Explicit synthetic canary in a new invalid-upstream-receipt regression test, served only by a loopback mock HTTP server. Used to ensure error diagnostics do not retain response secrets; not an authentication credential.",
+      "review_id": "independent-current-55",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "67c6dcc00fd6a7073111c74daf29ac2990b11ba707350dfd70b057ec5b94e9e2"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Hex High Entropy String",
+      "evidence": "test_markdown_metadata_cannot_create_links_mentions_or_leak_declared_secrets",
+      "file": "backend/tests/test_github_report.py",
+      "file_sha256": "7bd0d4c20a68fc31fa0ea43bb446c1e3862054673ced77643eeb42b3e3343c15",
+      "occurrences": [
+        {
+          "context_sha256": "3e12a738403b4d4a13c6bb8828aa9beee94fcae7272f0a2cd9d128f7ad5eef92",
+          "line": 50
+        }
+      ],
+      "reason": "Literal canary used by an explicit redaction/non-persistence assertion; not an externally obtained credential.",
+      "review_id": "candidate-0054",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "da4ec3358a10c9b0872eb877953cc7b07af5f4d75e4c1cb0597cbbf41e5dbe35"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_preview_requires_project_role",
+      "file": "backend/tests/test_github_snapshot.py",
+      "file_sha256": "0d7e01cf82ec8788affae97bcdb17497f737e90b613baf1744b410fdbe774bdb",
+      "occurrences": [
+        {
+          "context_sha256": "ce9f6dee24282ea6854d9615bc49baf3b98cf5285838ee4470f607cb8ed93085",
+          "line": 90
+        },
+        {
+          "context_sha256": "81f2c009a98ac8e70c3ecb38a7f57f9c236245169a476adb7166ddcc58d38ccd",
+          "line": 95
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0055",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "ae5506d7bc9c3dc9eeca738bd922b29d146291ddb13e2edcf6dd555494f78d61"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_environment_does_not_inherit_credentials_services_or_python_hooks",
+      "file": "backend/tests/test_mutation_safeguards.py",
+      "file_sha256": "6e16cce5e30ca10dbb7a53b69295e42b19a1afe5d6dfa617d4e72b375804baa7",
+      "occurrences": [
+        {
+          "context_sha256": "4b6520f5ea7dd8eb942efb725ff389f5919baa4d485af7e7a0596559e6b6a209",
+          "line": 207
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0056",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2ee8f42267a3635138b7b04501b6a854349d168cdc4e2db23bf05b64e65371f7"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "frontend test-only literal and assertion",
+      "file": "backend/tests/test_operations.py",
+      "file_sha256": "6c6ddb6c930dcd325788e3829f6dd1ad34f5f1336bbe7399b0f3842b2a28a647",
+      "occurrences": [
+        {
+          "context_sha256": "4aaf024ad8fe7dd6bdde60eab7d25b5ee9b9dadd77dbce1e7ae7efe8415806cb",
+          "line": 32
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0058",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "5492189d63a30845b99413808d7eef1d0a0f08ca68720d17c9277988662b2d7a"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "frontend test-only literal and assertion",
+      "file": "backend/tests/test_operations.py",
+      "file_sha256": "6c6ddb6c930dcd325788e3829f6dd1ad34f5f1336bbe7399b0f3842b2a28a647",
+      "occurrences": [
+        {
+          "context_sha256": "e2609e91fa5fe098a32dbac3dd9d5536798c87388cbb95a5e5e1c60466849e07",
+          "line": 31
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0057",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "87cbebfeebc05f7c54ac9336c4b4bbec831227a641951a4bde7edd56020f8590"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_password_change_reauthenticates_rotates_and_revokes",
+      "file": "backend/tests/test_operations.py",
+      "file_sha256": "6c6ddb6c930dcd325788e3829f6dd1ad34f5f1336bbe7399b0f3842b2a28a647",
+      "occurrences": [
+        {
+          "context_sha256": "3ca1cdd87a8f6588e4057251cf0bfa834346b145af49e24b655e8738c38e796b",
+          "line": 86
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0059",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "8810ad581e59f2bc3928b261707a71308f7e139eb04820366dc4d5c18d980225"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "frontend test-only literal and assertion",
+      "file": "backend/tests/test_operations_postgres.py",
+      "file_sha256": "07f972fb3e63f536dad96bf217e3045ea01e3e1a72d3ef02ae22ac2e1da031c8",
+      "occurrences": [
+        {
+          "context_sha256": "9ea147afe6e637fedafd6f020b4ea221b2db76d3083b40619b0a4426ed413694",
+          "line": 25
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0060",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "1951ebb0459d6239f68ca7a6dd9659b291303c74c2662233c18b36eb712f6a4a"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "_principal; backend/tests/conftest.py session fixture; backend/src/failurelens/auth.py verify_password",
+      "file": "backend/tests/test_overview_queries.py",
+      "file_sha256": "1b7ca612b7398b6991d8ef32a366a4534c91e6b4915950cc4d7a30c6baf3c3ba",
+      "occurrences": [
+        {
+          "context_sha256": "20198baf15561c10383e3efc2a4292c565099ce5e4a9002620545cc804423500",
+          "line": 201
+        }
+      ],
+      "reason": "Existing short non-scrypt password-hash placeholder in a test-only User record. The helper returns a Principal directly using the isolated database fixture; auth.verify_password rejects the placeholder encoding. Newly detected due to line splitting.",
+      "review_id": "independent-current-63",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "bb310ae75eb4a77421ea0d52b9db9a10d93be149185126cbfdada35d55c970e9"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_normalized_source_metadata_and_manifest_metadata_are_redacted",
+      "file": "backend/tests/test_project_redaction.py",
+      "file_sha256": "38a369995d8f3ca6f45c102ff378845ed95b08b61b4a4e6b137a4aaf2fb77863",
+      "occurrences": [
+        {
+          "context_sha256": "bc6795df8d5ad2bf98f21182e3d3e853ef16d3239ec14c32b7d1f7df87e4058a",
+          "line": 581
+        },
+        {
+          "context_sha256": "edfd881dd71e791337f549214b6f4eded732e99a0aa6fe80ffceed18c53cbfa1",
+          "line": 600
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0061",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "dfe7ed3dca6c04829b439d6eef708640eb84e7618700f5663f089926b1fb99fe"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "test_usage_is_allowlisted_before_proposal_validation",
+      "file": "backend/tests/test_provider_accounting.py",
+      "file_sha256": "9ed39e63d54b07da5f4f3e53bdc308333a0243877bb975878ff90c7cd2e6345d",
+      "occurrences": [
+        {
+          "context_sha256": "6212fddc64e1a77aca55c7290349715b66637e0f128188ebab55fdab256d5a81",
+          "line": 50
+        }
+      ],
+      "reason": "Auth test user password, deliberately rejected test password, or injected redaction/non-persistence canary in a test-only fixture.",
+      "review_id": "candidate-0062",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "1d8278642a886949190b81aeed2269d34298ca36671c3b95e4add448b8305ff5"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "test_migration_roundtrip_matches_ledger_models",
+      "file": "backend/tests/test_provider_ledger.py",
+      "file_sha256": "7129c4cde0f986a7a7e4ca1a73a2adc80ac10629c90e1aa418c3be58a2d0d6ea",
+      "occurrences": [
+        {
+          "context_sha256": "29deb08ac4e6112d946d2e906a0c89a64f7a175c78ef03973f41d800f77e70e5",
+          "line": 682
+        }
+      ],
+      "reason": "Alembic revision/down_revision identifier or explicit migration-roundtrip target; not authentication material.",
+      "review_id": "candidate-0064",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "b619255bd91d652369dfa89e681dbc70549fb408f90d5fb69a9e1589803bcd5f"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Hex High Entropy String",
+      "evidence": "test_rejected_response_preserves_allowlisted_usage_and_pricing_without_secrets",
+      "file": "backend/tests/test_provider_ledger.py",
+      "file_sha256": "7129c4cde0f986a7a7e4ca1a73a2adc80ac10629c90e1aa418c3be58a2d0d6ea",
+      "occurrences": [
+        {
+          "context_sha256": "e9ebb053b20a0cddef35febaa4a882cd89d00bb8b61eeefc5fd81abab1954d91",
+          "line": 382
+        }
+      ],
+      "reason": "Literal canary used by an explicit redaction/non-persistence assertion; not an externally obtained credential.",
+      "review_id": "candidate-0063",
+      "review_reference": "docs/quality-security.md#review-record-2026-09-30",
+      "reviewed_by": "repository agent review with independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "da4ec3358a10c9b0872eb877953cc7b07af5f4d75e4c1cb0597cbbf41e5dbe35"
+    }
+  ],
+  "schema_version": 1
+}

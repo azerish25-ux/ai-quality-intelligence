@@ -15,7 +15,13 @@ def test_job_claim_completion_and_retry(session) -> None:
     complete(session, claimed)
     assert claimed.state is JobState.succeeded
 
-    second = Job(project_id=project.id, kind="unsupported", payload={}, max_attempts=1, available_at=datetime.now(UTC) - timedelta(seconds=1))
+    second = Job(
+        project_id=project.id,
+        kind="unsupported",
+        payload={},
+        max_attempts=1,
+        available_at=datetime.now(UTC) - timedelta(seconds=1),
+    )
     session.add(second)
     session.commit()
     claimed = claim_next(session, "worker-2", 30)
