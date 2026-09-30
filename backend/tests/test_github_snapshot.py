@@ -66,3 +66,18 @@ def test_preview_requires_project_role(client, session):
     assert response.status_code == 200
     response = client.get(f"/api/v1/runs/{seeded['run_id']}/github-report-preview")
     assert response.status_code == 404
+
+
+def test_preview_rechecks_post_analysis_evidence_restriction(session):
+    from failurelens.models import Evidence
+    seeded = seed_demo(session)
+    run = session.get(Run, seeded['run_id'])
+    analysis = session.scalar(select(Analysis).where(Analysis.category == 'product_defect'))
+    evidence = session.get(Evidence, analysis.supporting_evidence_ids[0])
+    evidence.derivative.restricted = True
+    session.commit()
+    report = report_snapshot(session, run)
+    row = next(x for x in report['analyses'] if x['analysis_id'] == analysis.id)
+    assert row['category'] == 'insufficient_evidence'
+    assert row['supporting_evidence_ids'] == []
+    assert row['summary'] == 'Evidence unavailable or publication validation incomplete; review required.'

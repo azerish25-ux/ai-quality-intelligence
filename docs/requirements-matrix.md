@@ -154,3 +154,16 @@ above. Delivery and exact tested revisions are recorded in `PROGRESS.md`.
 | R-M63-BENCHMARK-FULL | Full M6 acceptance | PARTIAL | No blinded expert study, no new LedgerGuard executions in this campaign; broad adversarial, temporal, quality and final packaging scope remains. |
 
 Retained M6.3 measurement source: `f1269c3ce52d4bf64f8614aacd34d99903a99b5f`. The compact snapshot and metrics rescore identically with `python evaluation/verify_benchmark_snapshot.py`. This verifies historical local bytes, not fresh PostgreSQL/browser execution.
+
+## 2026-09-30 continued full-project implementation
+
+| ID | Requirement | Status | Evidence and remaining boundary |
+|---|---|---|---|
+| R-M7-TRANSPORT | Concrete optional HTTP adapter and safe evidence bridge | PARTIAL | `providers.py`, `provider_service.py`, 33 passing local transport/DB tests; deterministic category preserved, no real model invoked. Persistent budget/invocation/configuration/UI integration remains. |
+| R-M8-PUBLISH | Bot-owned idempotent comments and stale SHA reconciliation | PARTIAL | `github_publication.py`, actual HTTP-client contract tests including lost acknowledgement. Live target and trusted consuming publisher workflow still unverified. |
+| R-M8-PREVIEW | Authorized shared JSON/Markdown report preview | PASS | `github_snapshot.py`, API/CLI integration and scope/retry/expiry tests; exact-source ordinary CI `36653389182` at `9d8a5b9` passed. Newer restriction-revalidation regression needs its own CI. |
+| R-M8-UI | Inert preview/download and current product branding | PARTIAL | Local type/build and 48 frontend tests pass; actual API/browser journey added, execution pending delivery. |
+| R-M9-CAPABILITY | Network/process/GitHub mutation boundary regressions | PARTIAL | Forty local passing normalized-input attack combinations with capability spies; not complete OS/binary/adversarial acceptance. |
+
+The original benchmark quality failure is still FAIL. These additions neither
+change acceptance thresholds nor complete M6, M7, M8, M9 or the full master project.

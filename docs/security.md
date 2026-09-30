@@ -98,3 +98,15 @@ recorded outcomes/identities/decisions, metadata and independently retained hist
 remain. Retention is therefore not a claim of universal personal-data erasure or
 cryptographic immutability. Global security-audit data, backups and exported files
 require a separate operator retention process.
+
+## Executed in-process capability boundary regressions
+
+`test_adversarial_boundaries.py` exercises 40 combinations of ten hostile payloads
+and four normalized-input carriers (message, identity, path and structured details)
+through actual ingestion, storage, evidence validation and repeated analysis.
+Network connection, process creation, shell and GitHub publisher spies assert that
+no external capability is invoked; a protected test-source sentinel is unchanged.
+A measured product-risk control cannot be downgraded by injected instructions.
+These are 40 regression combinations, not 40 independent benchmark families, an OS
+sandbox attestation or exhaustive trace/image attack coverage. Actual storage writes
+remain permitted inside the disposable artifact root.

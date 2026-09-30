@@ -3,14 +3,16 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from hashlib import sha256
 import json
+from types import SimpleNamespace
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .evidence_validation import persisted_analysis_is_publication_validated
+from .evidence_validation import persisted_analysis_is_publication_validated, validate_evidence_records
 from .github_report import _safe, _publication_category, render_markdown
 from .models import Analysis, Failure, Run, TestExecution
 from .redaction import redact_text
+from .service import select_failure_evidence
 
 
 def latest_analyses(session: Session, run: Run) -> list[Analysis]:
@@ -36,10 +38,24 @@ def report_snapshot(session: Session, run: Run) -> dict:
                     retry_recovered=sum(len(items) > 1 and items[-1].outcome.value == "passed" and
                                         any(item.outcome.value == "failed" for item in items[:-1]) for items in groups.values()))
     expired = run.evidence_expired_at is not None
+    current_validity = {}
+    safe_analyses = []
+    for analysis in analyses:
+        accepted = set()
+        if not expired and persisted_analysis_is_publication_validated(analysis):
+            rows = select_failure_evidence(session, analysis.failure)
+            accepted = set(validate_evidence_records(analysis.failure, rows).accepted_ids)
+        cited = set(analysis.supporting_evidence_ids + analysis.contradictory_evidence_ids)
+        valid = not expired and persisted_analysis_is_publication_validated(analysis) and cited.issubset(accepted)
+        if analysis.category.value != "insufficient_evidence" and not analysis.supporting_evidence_ids:
+            valid = False
+        current_validity[analysis.id] = valid
+        safe_analyses.append(analysis if valid else SimpleNamespace(
+            category=analysis.category, validation_version=None, validation_results=None))
     details = []
     for analysis in analyses[:50]:
-        category = "insufficient_evidence" if expired else _publication_category(analysis)
-        validated = persisted_analysis_is_publication_validated(analysis)
+        validated = current_validity[analysis.id]
+        category = _publication_category(analysis) if validated else "insufficient_evidence"
         details.append({
             "analysis_id": analysis.id, "failure_id": analysis.failure_id, "revision": analysis.revision,
             "category": category,
@@ -49,7 +65,7 @@ def report_snapshot(session: Session, run: Run) -> dict:
             "missing_evidence": [redact_text(str(x)).text[:400] for x in analysis.missing_evidence[:10]] if not expired else ["Evidence expired"],
             "next_investigation": [{"action": redact_text(str(x.get("action", ""))).text[:400]} for x in analysis.next_investigation[:5]] if validated and not expired else [],
         })
-    markdown = render_markdown(run, analyses)
+    markdown = render_markdown(run, safe_analyses)
     markdown += "\n### Execution outcomes\n\n"
     markdown += (f"Logical tests: {outcomes['logical_tests']}; attempts: {outcomes['attempts']}; "
                  f"retried logical tests: {outcomes['retried']}; retry-recovered: {outcomes['retry_recovered']}.\n")

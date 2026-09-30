@@ -175,3 +175,12 @@ compatibility interfaces retain `failurelens`. Local type/build passes and **48
 frontend unit tests pass**. A real API/browser report/download regression is added;
 its execution is pending publication/CI. The cloud browser rejected local-loopback
 navigation (`ERR_BLOCKED_BY_CLIENT`); no browser restriction was bypassed.
+
+### Additional safety regressions
+
+Forty normalized-input injection combinations passed through the real ingestion and
+analysis path with network/process/shell/GitHub mutation spies and a protected source
+sentinel. They are regression combinations, not newly independent evaluation cases.
+Report preview now independently rechecks current derivative scope/digests/restriction
+before exposing a previously validated analysis; a new post-analysis restriction test
+passes. Full adversarial and production isolation claims remain intentionally absent.
