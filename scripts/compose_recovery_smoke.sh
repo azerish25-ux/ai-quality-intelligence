@@ -8,7 +8,12 @@ PROJECT="loose_thread_smoke_${GITHUB_RUN_ID:-local}_$$"
 OUT="$(mktemp -d "${TMPDIR:-/tmp}/loose-thread-recovery.XXXXXXXX")"
 chmod 700 "$OUT"
 compose() { docker compose -p "$PROJECT" "$@"; }
-cleanup() { compose logs --no-color > "$OUT/compose.log" 2>&1 || true; compose down --volumes --remove-orphans >/dev/null 2>&1 || true; }
+cleanup() {
+  local result=$?
+  compose logs --no-color > "$OUT/compose.log" 2>&1 || true
+  if [[ "$result" != 0 ]]; then tail -200 "$OUT/compose.log" >&2; fi
+  compose down --volumes --remove-orphans >/dev/null 2>&1 || true
+}
 trap cleanup EXIT
 compose up --build --wait --wait-timeout 180
 # The API and durable worker share only an internal network with PostgreSQL.

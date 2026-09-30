@@ -182,3 +182,7 @@ These archives are not encrypted by the script. Their directory/file modes are
 restricted; encryption, offsite destination, retention and key management remain
 operator responsibilities. Never feed an untrusted SQL/archive into restore tools.
 CI execution of the new smoke gate is pending publication at this checkpoint.
+
+The loopback API port is served by the fixed-route Nginx gateway. Only that gateway
+joins the edge bridge; API/worker/PostgreSQL stay internal-only. This preserves host
+access without granting the deterministic analysis processes Internet egress.

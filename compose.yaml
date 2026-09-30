@@ -26,8 +26,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "127.0.0.1:8000:8000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)"]
       interval: 5s
@@ -59,10 +57,11 @@ services:
       dockerfile: frontend/Dockerfile
     ports:
       - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8000:8000"
     depends_on:
       api:
         condition: service_healthy
-    networks: [failurelens]
+    networks: [failurelens, edge]
 
 volumes:
   failurelens-db:
@@ -72,3 +71,5 @@ networks:
   failurelens:
     driver: bridge
     internal: true
+  edge:
+    driver: bridge

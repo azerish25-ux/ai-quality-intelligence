@@ -263,3 +263,21 @@ The client now enforces the limit while streaming and validates the returned bot
 identity. Two new regressions plus the existing publisher/report-snapshot tests pass
 (**36 tests**). A receipt-author mismatch requires inspecting the written comment;
 the publisher never blindly retries it.
+
+### Delivered backlog and first real recovery-gate result
+
+All eight pending commits were delivered to main at
+`d1226b509c629d35a26c0d498a7e791c8b0b7bad`, exact tree
+`c06c2e2833b7c5551603e1777000fdcde41049a7`, following explicit owner approval.
+Remote reread and local reconciliation match; none of that implementation remains
+local-only. Its seven workflows actually started. Latest prepublication local suite:
+989 passed, four PostgreSQL-only skips, 83.88% coverage.
+
+The new Docker recovery job exposed a genuine network-topology defect: the internal
+network blocked runtime Internet as intended but also prevented the host from
+reaching directly published service ports. The job correctly failed (exit 7); it
+was not waived. The repair puts only the fixed-route Nginx gateway on a separate
+edge network, publishing both loopback entry points through it. API, worker and DB
+remain internal-only, and the original outbound-denial assertion remains mandatory.
+Failure cleanup now prints bounded logs for diagnosis. Restore execution remains
+pending until this repaired source passes its actual Docker job.
