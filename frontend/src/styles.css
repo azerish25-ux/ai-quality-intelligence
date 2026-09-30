@@ -842,3 +842,5 @@ tbody tr:last-child td { border-bottom: 0; }
 .evaluation .evaluation-checks table { min-width: 0; table-layout: fixed; }
 .evaluation .evaluation-checks th:last-child { width: 6rem; }
 .evaluation .evaluation-checks td, .evaluation caption { overflow-wrap: anywhere; }
+
+.github-report-preview { max-height: 32rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }

@@ -149,3 +149,29 @@ invocation/budget/UI scope remains open; see [provider contract](optional-provid
 Previous report-preview batch delivered to main as `9d8a5b93326fdeb8569554e73ea3b080ac0e7fd8`.
 All ten ordinary CI jobs at preceding `c3d9898` passed in run `36652899198`.
 This statement does not certify later source, and frozen benchmark failure is retained.
+
+### Executed M7 foundation and M8 dashboard work
+
+At local provider commit `fb4e09d`, the full backend suite using checksum-verified
+real producer exports from CI `36653389182` completed: **944 passed, four
+PostgreSQL-only skips**, 83.78% branch-aware coverage against the unchanged 75%
+existing gate. This was a SQLite run with real exported artifacts, not a local
+PostgreSQL or fresh producer execution. Thirty-three provider/bridge tests pass;
+no real model ran. Publishing this batch encountered an authorization-evidence
+review block after the preceding two accepted publications; no bypass attempted.
+
+The remotely delivered `9d8a5b9` passed all ten ordinary CI jobs in run
+[36653389182](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36653389182).
+The frozen benchmark workflow still fails its unchanged quality targets. Desktop
+browser artifact `11071502407` was downloaded and SHA-256 checked as
+`d40eefb8777d382daca0ad4de5f8e3c7f5fefb6b2082d600cc9b39998b10bc1d`;
+the actual full-dashboard capture was inspected. These screenshots predate the
+new report panel and must not be used to certify it.
+
+The dashboard now exposes the selected run's read-only advisory report with explicit
+completeness/digest, inert sanitized text, cancellation when changing runs and a
+Markdown download. Visible branding is Loose Thread; package names, MIME types and
+compatibility interfaces retain `failurelens`. Local type/build passes and **48
+frontend unit tests pass**. A real API/browser report/download regression is added;
+its execution is pending publication/CI. The cloud browser rejected local-loopback
+navigation (`ERR_BLOCKED_BY_CLIENT`); no browser restriction was bypassed.

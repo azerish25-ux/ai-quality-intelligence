@@ -98,7 +98,7 @@ export function EvaluationPanel({ metrics, id = "evaluation", title = "Determini
       </>}
       {legacy ? <p className="limitation">Legacy rule regression: numbered family identifiers do not establish independent mechanisms or a leakage-free held-out benchmark. These historical scores are not full-pipeline or deployment performance.</p>
         : <p className="limitation">This report covers the declared execution scope only. Passing artifact-integrity checks is not full-project acceptance or a guarantee of deployment reliability.</p>}
-      {typeof metrics.source_revision === 'string' && <p>Tested FailureLens source: <code>{metrics.source_revision}</code>. Database: <strong>{String(metrics.database_dialect ?? 'Not established')}</strong>.</p>}
+      {typeof metrics.source_revision === 'string' && <p>Tested Loose Thread source: <code>{metrics.source_revision}</code>. Database: <strong>{String(metrics.database_dialect ?? 'Not established')}</strong>.</p>}
       {typeof metrics.ledgerguard_revision === 'string' && <p>LedgerGuard source: <code>{metrics.ledgerguard_revision}</code>.</p>}
       {Object.keys(targets).length > 0 && <div className="table-wrap evaluation-checks"><table><caption>Measured quality targets — failed targets remain visible</caption><thead><tr><th scope="col">Target</th><th scope="col">Status</th></tr></thead>
         <tbody>{Object.entries(targets).map(([name, passed]) => <tr key={name}><td>{name.replaceAll('_', ' ')}</td><td><strong>{passed === true ? 'PASS' : passed === false ? 'FAIL' : 'NOT RUN'}</strong></td></tr>)}</tbody></table></div>}

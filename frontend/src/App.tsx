@@ -34,6 +34,7 @@ import {
 import { AccountPanel, RecoveryForm, RetentionPanel } from './Operations';
 import { BinaryEvidencePanel } from './BinaryEvidence';
 import { EvaluationPanel } from './EvaluationPanel';
+import { GitHubReportPanel } from './GitHubReport';
 
 const categoryLabel: Record<string, string> = {
   product_defect: 'Probable product defect',
@@ -345,6 +346,7 @@ function App() {
     { href: '#account', label: 'Account security' },
     ...(canAdminister ? [{ href: '#settings', label: 'Settings' }] : []),
     ...(canReview ? [{ href: '#audit', label: 'Audit' }] : []),
+    { href: '#github-report', label: 'GitHub report' },
     { href: '#evaluation', label: 'Evaluation' }
   ], [canAdminister, canReview]);
 
@@ -952,7 +954,7 @@ function App() {
       return;
     }
     if (!selectedFile) {
-      setError('Choose a supported report or FailureLens manifest v2 ZIP bundle.');
+      setError('Choose a supported report or Loose Thread manifest v2 ZIP bundle.');
       return;
     }
     setBusy(true);
@@ -1528,16 +1530,16 @@ function App() {
   };
 
   if (authLoading) {
-    return <div className="auth-shell"><div className="auth-card" role="status"><p className="eyebrow">FAILURELENS</p><h1>Verifying session</h1><p>Loading the authenticated project scope…</p></div></div>;
+    return <div className="auth-shell"><div className="auth-card" role="status"><p className="eyebrow">LOOSE THREAD</p><h1>Verifying session</h1><p>Loading the authenticated project scope…</p></div></div>;
   }
 
   if (!principal) {
     return (
       <div className="auth-shell">
         <form className="auth-card" onSubmit={submitLogin}>
-          <p className="eyebrow">FAILURELENS</p>
+          <p className="eyebrow">LOOSE THREAD</p>
           <h1>Sign in</h1>
-          <p>Use a self-hosted FailureLens account. Project permissions are applied after authentication.</p>
+          <p>Use a self-hosted Loose Thread account. Project permissions are applied after authentication.</p>
           {error && <div className="alert" role="alert">{error}</div>}
         {runError && <div className="alert" role="alert">{runError}</div>}
           <label>Username<input autoComplete="username" value={loginUsername} onChange={(event: ChangeEvent<HTMLInputElement>) => setLoginUsername(event.target.value)} required /></label>
@@ -1569,7 +1571,7 @@ function App() {
       </a>
       <div className="app-shell">
       <aside className="sidebar" aria-label="Application sidebar">
-        <div className="brand"><span className="brand-mark">FL</span><div><strong>FailureLens</strong><small>Evidence-grounded triage</small></div></div>
+        <div className="brand"><span className="brand-mark">LT</span><div><strong>Loose Thread</strong><small>Evidence-grounded triage</small></div></div>
         <nav aria-label="Primary navigation">
           {navigationItems.map((item) => <a href={item.href} key={item.href} onClick={navigateSection}>{item.label}</a>)}
         </nav>
@@ -2309,6 +2311,7 @@ function App() {
           </section>
         )}
 
+        <GitHubReportPanel runId={runId} />
         <EvaluationPanel metrics={evaluation} />
         {campaignEvaluation && <EvaluationPanel metrics={campaignEvaluation} id="campaign-evaluation" title="Frozen five-category evaluation" />}
         {benchmarkEvaluation && <EvaluationPanel metrics={benchmarkEvaluation} id="benchmark-evaluation" title="Frozen authored benchmark" />}
