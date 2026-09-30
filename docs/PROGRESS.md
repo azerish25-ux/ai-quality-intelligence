@@ -217,3 +217,34 @@ Locked-graph targeted verification: 64 source-provenance, report and provider te
 pass with `PYTHONPATH=backend/src:.`. An initial focused invocation omitted the repo
 root from PYTHONPATH and could not import the existing `evaluation` package; fixing
 the invocation resolved collection without altering any test assertion.
+
+## Recoverable execution checkpoint — 2026-09-30
+
+Measured local implementation source: `546ecf8b48f57ab4e7adf2943282e1a9760681c4`.
+On the hash-locked Python graph, the full local backend run completed with **987
+passed, four PostgreSQL-only skips, one deprecation warning and 83.85% branch-aware
+coverage**, preserving the 75% existing gate. Command:
+
+```sh
+FAILURELENS_PRODUCER_FIXTURES=/tmp/loose-ci-producers PYTHONPATH=backend/src:. \
+  python -m pytest backend/tests --cov=failurelens --cov-branch --cov-report=term --cov-fail-under=75
+```
+
+Producer bytes came from checksum-verified actual CI exports at `9d8a5b9`; this run
+is not fresh local producer/PostgreSQL execution. Local frontend type/build and 48
+unit tests passed. New report browser journey and Docker recovery gate remain NOT RUN
+until publication/CI. The last remotely verified source is `9d8a5b9`, ordinary CI
+`36653389182` with all ten jobs passing; its frozen benchmark remains FAIL.
+
+Source publication of the provider batch was rejected for missing visible
+repo-specific user authorization evidence. It was not bypassed or blindly retried.
+Subsequent implementation is committed locally, awaiting the exact authorization
+transcript needed for a single permitted retry. The working tree is clean at this
+checkpoint. No live PR exists in the target repository, so live bot publication was
+not attempted and no artificial PR was created.
+
+Full master-prompt acceptance remains incomplete: failed frozen quality targets and
+new held-out validation, wider producer/adversarial/temporal breadth, complete rich
+GitHub publication/workflow/live target, durable model invocation/budget/UI integration,
+full telemetry/load/operational acceptance and final portfolio verification remain.
+The new regression counts and synthetic history do not increase evaluation denominators.
