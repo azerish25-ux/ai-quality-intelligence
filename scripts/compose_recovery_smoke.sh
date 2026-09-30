@@ -60,10 +60,6 @@ compose run --rm --no-deps \
   --entrypoint python api -c '
 import io,sys,tarfile
 from pathlib import Path
-from sqlalchemy import select
-from failurelens.db import SessionLocal
-from failurelens.models import Analysis,Run
-from failurelens.github_snapshot import report_snapshot
 raw=sys.stdin.buffer.read(50_000_001)
 assert len(raw)<=50_000_000
 root=Path("/tmp/restored-artifacts");root.mkdir()
@@ -72,6 +68,12 @@ with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
     assert entries and sum(x.size for x in entries)<50_000_000
     assert all(not x.name.startswith("/") and ".." not in x.name.split("/") and not x.issym() and not x.islnk() for x in entries)
     archive.extractall(root,filter="data")
+# Application imports initialize the configured artifact directories. Import only
+# after the archive has been restored into the intentionally fresh destination.
+from sqlalchemy import select
+from failurelens.db import SessionLocal
+from failurelens.models import Run
+from failurelens.github_snapshot import report_snapshot
 with SessionLocal() as session:
     runs=session.scalars(select(Run)).all()
     assert len(runs)==1

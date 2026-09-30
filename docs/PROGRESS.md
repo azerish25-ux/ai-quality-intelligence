@@ -290,3 +290,10 @@ outside its wrapped preview region. Applied scoped wrapping to report metadata a
 flexible panel controls, and added a dedicated real narrow-browser regression for
 both collapsed and expanded report text. Original viewport assertions remain intact;
 no test was skipped or weakened. Fresh browser execution is required for this repair.
+
+The repaired Docker topology at `60020f9` passed actual gateway ingress, blocked
+backend Internet, restart persistence and PostgreSQL dump/restore. It then exposed
+an import-order error in the artifact restore verifier: application imports created
+the destination before its deliberate fresh-directory assertion. Moved application
+imports after bounded extraction, preserving refusal to overwrite an existing
+destination. Added an ordering regression; the full restore gate must run again.

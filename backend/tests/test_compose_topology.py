@@ -27,3 +27,12 @@ def test_recovery_gate_keeps_real_failure_assertions_and_disposable_scope():
     assert "Runtime external-network isolation failed" in script
     assert 'pg_restore' in script and '--single-transaction --exit-on-error' in script
     assert 'report_snapshot(session,runs[0])' in script
+
+
+def test_restore_extracts_before_application_import_initializes_storage():
+    script = (ROOT / 'scripts/compose_recovery_smoke.sh').read_text()
+    restore = script.split('--entrypoint python api -c', 1)[1]
+    assert restore.index('root.mkdir()') < restore.index('archive.extractall(')
+    assert restore.index('archive.extractall(') < restore.index('from failurelens.')
+    # Existing destinations must still be rejected, never overwritten silently.
+    assert 'root.mkdir(exist_ok=True)' not in restore
