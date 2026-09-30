@@ -288,6 +288,25 @@
       "reviewed_by": "repository agent independent source-context adjudication",
       "reviewed_on": "2026-09-30",
       "value_sha256": "bc33cc3f6d4cbd840d3b69f7dfef3f805ae4dea95a983bef8e146a94c76a94de"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/source_revision exactly matches the published local Git commit and verified original artifact metadata. Both retained members match the original bytes, byte counts and adjacent README digests; no API log or credential verification was used.",
+      "file": "evaluation/reports/operational-d6925a2-passed/metrics.json",
+      "file_sha256": "b623acd419bae7252287042556274296d76e0ddb5a35836ee9742063e1875154",
+      "occurrences": [
+        {
+          "context_sha256": "0fbfd0a747cc15a68879a3000a2f8783f1ca37d5fd59606f639b2f26ab68425f",
+          "line": 3
+        }
+      ],
+      "reason": "Public 40-hex Git source revision identifying the original synthetic operational benchmark measurement; not authentication material.",
+      "review_id": "m9-operational-retention-0008",
+      "review_reference": "evaluation/reports/operational-d6925a2-passed/README.md",
+      "reviewed_by": "repository agent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "2b116183fc7358b7e223cfcba5db4e4be273c2346b8c5a4d4f743428bb1e5b9a"
     }
   ],
   "schema_version": 1

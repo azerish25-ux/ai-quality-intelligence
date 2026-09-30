@@ -25,6 +25,15 @@ readiness and seed time are outside the warm-read timing denominator and named
 separately. Actual acceptance awaits the workflow result; no performance is promised
 from the presence of the harness.
 
+The launcher explicitly selects one Uvicorn worker and excludes inherited
+`WEB_CONCURRENCY` and `UVICORN_*` options from its copied child environment.
+Application/database settings and unrelated environment values are preserved.
+This prevents ambient reload, worker, env-file and logging options from silently
+changing the measured server. The report retains declared launch configuration
+even when startup fails; it does not claim an observed process census. Earlier
+reports lack that metadata and remain unchanged. The fixed read workload, timing
+boundaries, failure handling and 500 ms target are unchanged.
+
 The first executed measurement failed: [retained original result](../evaluation/reports/operational-4385f69-failed/README.md).
 Subsequent optimization must preserve the workload and original 500 ms target.
 
@@ -107,3 +116,11 @@ benchmark code and workflow are byte-identical to `be7eede`. The original bytes
 and recomputed percentiles are retained alongside that AMD failure. The passing
 observation is not evidence of a code speedup or stable/reference-resource
 acceptance; the 500 ms target and fixed workload remain unchanged.
+
+The following `d6925a2` observation
+[passed at 352.66 ms](../evaluation/reports/operational-d6925a2-passed/README.md)
+on AMD EPYC 9V45 with all 204 requests successful. That model differs from prior
+failed AMD 7763/9V74 runs, so CPU brand is not an acceptance discriminator. Original
+metrics and requests are retained. This measurement also predates explicit launch
+metadata; no historical worker/reload configuration is invented retroactively.
+Stable and reference-resource acceptance remain open.

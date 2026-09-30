@@ -69,6 +69,152 @@ def test_hardware_diagnostics_are_bounded_and_do_not_contain_machine_identity():
 
 
 @pytest.fixture
+def benchmark_launch(benchmark_main, monkeypatch):
+    import os
+
+    benchmark, state, output = benchmark_main
+    original = benchmark.subprocess.Popen
+    captured = {}
+
+    def capture(command, **kwargs):
+        captured["command"] = list(command)
+        captured["environment"] = dict(kwargs.get("env", os.environ))
+        return original(command, **kwargs)
+
+    monkeypatch.setattr(benchmark.subprocess, "Popen", capture)
+    return benchmark, state, output, captured
+
+
+def test_benchmark_launch_filters_server_overrides_without_changing_parent(
+    benchmark_launch, monkeypatch
+):
+    import os
+
+    benchmark, _state, _output, captured = benchmark_launch
+    for name, value in {
+        "WEB_CONCURRENCY": "3",
+        "UVICORN_WORKERS": "4",
+        "UVICORN_RELOAD": "true",
+        "UVICORN_FUTURE_OPTION": "must-not-be-interpreted",
+        "FAILURELENS_DATABASE_URL": "postgresql+psycopg://synthetic",
+        "UNRELATED_OPTION": "preserve-this",
+    }.items():
+        monkeypatch.setenv(name, value)
+    before = dict(os.environ)
+    with pytest.raises(SystemExit) as stopped:
+        benchmark.main()
+    assert stopped.value.code == 0
+    environment = captured["environment"]
+    assert environment == {
+        name: value
+        for name, value in before.items()
+        if name != "WEB_CONCURRENCY" and not name.startswith("UVICORN_")
+    }
+    assert dict(os.environ) == before
+    command = captured["command"]
+    assert command[command.index("--workers") + 1] == "1"
+
+
+@pytest.mark.parametrize("ambient", ["workers_and_reload", "hidden_configuration"])
+def test_installed_uvicorn_resolves_the_declared_benchmark_process_model(
+    benchmark_launch, monkeypatch, tmp_path, ambient
+):
+    import importlib
+    import os
+    from unittest.mock import patch
+
+    from click.testing import CliRunner
+
+    benchmark, _state, _output, captured = benchmark_launch
+    overrides = {
+        "WEB_CONCURRENCY": "3",
+        "UVICORN_RELOAD": "true",
+    }
+    if ambient == "hidden_configuration":
+        overrides.update(
+            {
+                "UVICORN_WORKERS": "4",
+                "UVICORN_ENV_FILE": str(tmp_path / "must-not-load.env"),
+                "UVICORN_LOG_CONFIG": str(tmp_path / "must-not-load.json"),
+                "UVICORN_APP": "must_not_import:app",
+                "UVICORN_FACTORY": "true",
+                "UVICORN_FD": "99",
+                "UVICORN_UDS": str(tmp_path / "must-not-bind.sock"),
+                "UVICORN_LIMIT_MAX_REQUESTS": "1",
+            }
+        )
+    for name, value in overrides.items():
+        monkeypatch.setenv(name, value)
+    with pytest.raises(SystemExit) as stopped:
+        benchmark.main()
+    assert stopped.value.code == 0
+    module = importlib.import_module("uvicorn.main")
+    original_config = module.Config
+    resolved = {}
+
+    class ConfigurationCaptured(Exception):
+        pass
+
+    class RecordingConfig(original_config):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            resolved.update(
+                app=self.app,
+                workers=self.workers,
+                reload=self.reload,
+                should_reload=self.should_reload,
+                use_subprocess=self.use_subprocess,
+                factory=self.factory,
+                fd=self.fd,
+                uds=self.uds,
+                env_file=kwargs.get("env_file"),
+                log_config=kwargs.get("log_config"),
+                limit_max_requests=self.limit_max_requests,
+            )
+            # Exercise real Click parsing and Config, but never load the app or
+            # construct a Server, bind a socket or start a supervisor/process.
+            raise ConfigurationCaptured
+
+    monkeypatch.setattr(module, "Config", RecordingConfig)
+    # CliRunner's env argument only overlays its parent. Real Popen.env replaces
+    # the environment, so reproduce that contract explicitly here.
+    with patch.dict(os.environ, captured["environment"], clear=True):
+        result = CliRunner().invoke(module.main, captured["command"][3:])
+    assert isinstance(result.exception, ConfigurationCaptured)
+    assert resolved == {
+        "app": "failurelens.api:app",
+        "workers": 1,
+        "reload": False,
+        "should_reload": False,
+        "use_subprocess": False,
+        "factory": False,
+        "fd": None,
+        "uds": None,
+        "env_file": None,
+        "log_config": module.LOGGING_CONFIG,
+        "limit_max_requests": None,
+    }
+
+
+@pytest.mark.parametrize("failure_stage", [None, "api_startup"])
+def test_declared_process_model_survives_startup_failure(benchmark_main, failure_stage):
+    import json
+
+    benchmark, state, output = benchmark_main
+    state["failure_stage"] = failure_stage
+    with pytest.raises(SystemExit) as stopped:
+        benchmark.main()
+    assert stopped.value.code == (2 if failure_stage else 0)
+    metrics = json.loads((output / "metrics.json").read_text())
+    assert metrics["api_process"] == {
+        "scope": "declared_launch_configuration_not_process_census",
+        "workers": 1,
+        "reload": False,
+        "environment_exclusions": ["WEB_CONCURRENCY", "UVICORN_*"],
+    }
+
+
+@pytest.fixture
 def benchmark_main(tmp_path, monkeypatch):
     from contextlib import nullcontext
     from types import SimpleNamespace

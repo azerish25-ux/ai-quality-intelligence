@@ -194,7 +194,7 @@ still requires separate threat-boundary and live-target verification.
 | R-M9-IMAGE-CHILD | Reduce decoder process inheritance | PASS | Isolated direct worker launch, minimal environment and closed descriptors; 46 image cases include actual child canaries, and the full hosted suite passes at `44988f5`. This is the declared process/import boundary, not an OS filesystem/network sandbox. |
 | R-M9-POLICY-RACE | Immutable performance-policy concurrency | PASS | Shared duplicate/recovery content validation fixes seven reproduced mismatches; all eight actual PostgreSQL race cases pass within the 2,159-test hosted suite at `48e6336`, with zero skips. |
 | R-M9-BRANCH-MEASUREMENT | Source-bound subprocess branch evidence | PASS | Fresh collector, canonical executed-arcs data, committed source/installed-package parity and isolated image harness verified at `48e6336`. The separate hosted checker downloads and recomputes the exact artifact, then fails on unmet numeric targets rather than missing/invalid evidence. |
-| R-M9-BRANCH-TARGET | 90% overall and 95% critical-file coverage | FAIL | Actual hosted `8eb264d` measurement is 3,176/3,928 = 80.8554% branch-only; six of its 35 declared critical files meet 95%. The current-validity boundary added `publication_validity.py` before measurement. The independent checker recomputes the exact artifact and fails the unchanged numeric targets. |
+| R-M9-BRANCH-TARGET | 90% overall and 95% critical-file coverage | FAIL | Actual hosted `d6925a2` measurement is 3,182/3,934 = 80.8846% branch-only; six of its 35 declared critical files meet 95%. The current-validity boundary added `publication_validity.py` before measurement. The independent checker recomputes the exact artifact and fails the unchanged numeric targets. |
 | R-M9-LOCAL-VERIFY | Preserve source and distinguish incomplete acceptance | PASS | Clean local `b3ac250` passes 2,214 backend tests with 51 PostgreSQL-only skips, frontend build/200 tests, all legacy harnesses, migration roundtrip and six offline gates. Source remains unchanged. Both local audits remain NOT RUN and branch/security acceptance correctly fails; this does not certify the full project. |
 | R-M9-AUTH-TRANSACTION | Persist credential use without committing handler writes | PASS | Published `caee9e3` passes all 30 focused transaction cases and three actual PostgreSQL connection/persistence/rollback cases within the 2,265-test zero-skip backend run. Standard independent-connection storage is enforced; custom connection hooks remain outside the documented contract. |
 | R-M9-MEMBERSHIP-LOCK | Preserve last administrator and current mutation authority | PASS | Shared PostgreSQL project lock plus SQLite writer reservation, actor/session/membership refresh and deliberate 422 normalization failures. All three reproduced real-file SQLite races and all 21 actual PostgreSQL cases pass at `caee9e3`. Existing inactive-member counting and declared isolation assumptions are unchanged. |
@@ -220,5 +220,12 @@ verified. Recorded analyses/reviews remain immutable. These results supersede th
 preceding pending implementation statement for that delivered scope. Optional
 provider snapshots required the same full current-support validation. Their
 follow-on repair passes 21 focused cases after 20 reproduced failures and one
-passing control. Broader and exact-source verification are separate and do not
-inherit the preceding checkpoint's acceptance.
+passing control. Published `d6925a2` subsequently passes its own complete 2,386-test
+backend run with zero skips, all twelve ordinary jobs and seven independent
+quality jobs. Required npm audit remains NOT RUN and aggregate acceptance red.
+
+The operational benchmark's next launch correction fixes one API worker and
+excludes ambient `WEB_CONCURRENCY`/`UVICORN_*` overrides, with declared process
+metadata retained on startup failure. Five reproduced regressions pass within
+26 local benchmark cases. Fresh exact-source execution remains required; this
+configuration correction does not establish a speedup or stable latency.

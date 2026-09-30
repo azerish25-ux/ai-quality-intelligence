@@ -33,18 +33,18 @@ all failures. No thresholds are weakened. See [reproduction and limits](docs/cam
 
 ## Verified operational and report workflows
 
-At source `8eb264d`, [all twelve ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36775868918)
+At source `d6925a2`, [all twelve ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36781849543)
 passed, including real PostgreSQL, producer fixtures, four browser lanes, non-root
 application containers, isolated runtime networking and actual database/artifact
-backup restore with citation validation. The backend passed 2,365 tests with no
-skips and 89.44% combined statement/branch coverage. Actual branch-only coverage is
-80.86%; the separate 90%/95% acceptance job correctly fails, keeping the workflow
+backup restore with citation validation. The backend passed 2,386 tests with no
+skips and 89.47% combined statement/branch coverage. Actual branch-only coverage is
+80.88%; the separate 90%/95% acceptance job correctly fails, keeping the workflow
 red. This certifies the named ordinary regression scope, not an
 unmeasured later commit. Frozen classifier quality targets still fail as described
 above; operational correctness is not a replacement for diagnostic acceptance.
-This checkpoint repairs current API/report and human-review evidence validation,
-expired historical support, upload cleanup and trace rejection. Further provider
-boundary review is recorded in the [delivery ledger](docs/PROGRESS.md); passing
+This checkpoint repairs current API/report, human-review and provider evidence
+validation, expired historical support, upload cleanup and trace rejection.
+Measured scope is recorded in the [delivery ledger](docs/PROGRESS.md); passing
 ordinary tests do not establish complete security or current-evidence coverage.
 
 The [bounded telemetry contract](docs/telemetry.md) covers durable trace context,
@@ -52,9 +52,9 @@ fixed-cardinality metrics and default-disabled export. Its optional local-only
 collector/viewer profile passed real Docker verification at repair `8daa5c7` in
 [36687923599](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36687923599).
 The strict 50,000-execution read benchmark has both passing and failing shared-runner
-measurements; `8eb264d` passed at 457.72 ms p95 on an Intel runner after the
-runtime-identical `be7eede` failed at 607.66 ms on AMD. All four cold and 200 warm
-requests succeeded in both measurements. Stable compliance with the
+measurements; `d6925a2` passed at 352.66 ms p95 on AMD EPYC 9V45 after an Intel
+pass and earlier failures on different AMD models. All four cold and 200 warm
+requests succeeded in the latest run. Stable compliance with the
 unchanged 500 ms target remains open. [Measurements and limits](docs/operational-benchmark.md).
 
 New workflows include an [authorized read-only GitHub report preview](docs/github-publication.md),

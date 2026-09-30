@@ -37,6 +37,17 @@ from failurelens.models import (
 )
 from failurelens.service import create_project
 
+API_WORKERS = 1
+
+
+def api_environment():
+    """Keep application settings while excluding undeclared server CLI options."""
+    return {
+        name: value
+        for name, value in os.environ.items()
+        if name != "WEB_CONCURRENCY" and not name.startswith("UVICORN_")
+    }
+
 
 def percentile(values, quantile):
     if not values:
@@ -260,7 +271,10 @@ def main():
                     "127.0.0.1",
                     "--port",
                     str(port),
+                    "--workers",
+                    str(API_WORKERS),
                 ],
+                env=api_environment(),
                 stdout=log,
                 stderr=subprocess.STDOUT,
             )
@@ -350,6 +364,12 @@ def main():
         "database_pool": {
             "size": settings.database_pool_size,
             "max_overflow": settings.database_max_overflow,
+        },
+        "api_process": {
+            "scope": "declared_launch_configuration_not_process_census",
+            "workers": API_WORKERS,
+            "reload": False,
+            "environment_exclusions": ["WEB_CONCURRENCY", "UVICORN_*"],
         },
         "hardware_before": hardware_before,
         "hardware_after": hardware_after,

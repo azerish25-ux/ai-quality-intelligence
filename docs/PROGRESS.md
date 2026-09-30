@@ -1316,3 +1316,52 @@ scan pass. One independently reviewed public measurement-source Git identifier
 was added to the policy; all 933 earlier entries and guards remain unchanged.
 The new source must use its own full hosted type, PostgreSQL and regression runs;
 the 21 focused passes and prior `8eb264d` suite are not substitutes for them.
+
+### Provider current-support exact-source verification
+
+Published `d6925a2be12750d384c80065e8f22179987ead7d` has the exact local
+`1222609c3860be2c90a1edd2a916e8615ff27b36` tree
+`78991715e85ee279cc08df3f53911b43810f588d`. All twelve ordinary jobs pass in
+[run 36781849543](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36781849543),
+including all six browser lanes. Backend job `110114293628` passed **2,386 tests,
+zero failures or skips**, in 720.00 seconds. Its source-bound process diagnostic
+records exit 0, no signal, valid outcomes and host OOM counter 0 before/after.
+The full hosted type check and all six other independent quality jobs pass, resolving
+the locally incomplete verification for this exact source. The local guard stops
+remain preserved as incomplete measurements.
+
+Backend artifact `11128239394` is 462,448 bytes, SHA-256
+`2a6ea48e8a55cd686e20829d6ff0b4d757dcd344e56eaf2ccccdc7c904e195c7`.
+The exact three-member ZIP, CRC, source binding and data digest were verified.
+Independent checking in CI and locally recomputes **3,182/3,934 = 80.8846%**
+branch coverage and 89.4701% combined coverage. Six of 35 critical files meet
+95%; the unchanged strict branch targets fail. Required npm audit remains NOT RUN
+with its aggregate red, and the frozen benchmark fails only its unchanged
+quality-target step after execution/integrity checks succeed.
+
+Operational run `36781849688`
+[passes at 352.658658 ms on AMD EPYC 9V45](../evaluation/reports/operational-d6925a2-passed/README.md),
+with all 204 requests successful. Original metrics/request bytes and recomputed
+percentiles are retained alongside every earlier failure. CPU model and source
+differences are explicit; stable/reference-resource acceptance remains open.
+Full M6/M7/M8/M9 and the complete project remain PARTIAL.
+
+### Explicit operational launch configuration
+
+Pinned Uvicorn configuration probes reproduced inherited `WEB_CONCURRENCY` and
+`UVICORN_*` options changing the benchmark's assumed process model, enabling
+reload or loading undeclared configuration. The launcher now supplies one explicit
+worker and a copied environment excluding exactly those names/prefixes. Application
+settings, database configuration and unrelated environment values are preserved;
+the parent environment is untouched. Metadata records the declared launch model
+on both success and startup failure, without claiming an observed process census.
+
+Five new regression scenarios fail on the preceding harness and pass after repair
+within **26 local benchmark tests**. The configuration tests use installed Click,
+real Uvicorn argument handling and real Config initialization, then stop before
+application loading or any server/process/socket starts. Existing workload,
+timing, failure-denominator, percentile, cleanup and privacy regressions still pass.
+Local peak RSS stayed near 102 MiB and host OOM remained 55. Independent review
+found no material defect and narrowed the metadata wording to the exact excluded
+environment names. Workload, timing boundaries and the 500 ms target are unchanged.
+No speedup is claimed; this new source still requires its own hosted verification.
