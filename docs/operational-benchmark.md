@@ -99,3 +99,11 @@ The subsequent published `be7eede` measurement
 on AMD EPYC 7763, with all 204 requests successful and complete cleanup. Original
 bytes and recomputed percentiles are retained. This additional result leaves the
 unchanged target failed and does not establish stable or causal improvement.
+
+The runtime-identical `8eb264d` source then
+[passed at 457.72 ms](../evaluation/reports/operational-8eb264d-passed/README.md)
+on Intel Xeon Platinum 8573C, with all 204 requests successful. Its runtime,
+benchmark code and workflow are byte-identical to `be7eede`. The original bytes
+and recomputed percentiles are retained alongside that AMD failure. The passing
+observation is not evidence of a code speedup or stable/reference-resource
+acceptance; the 500 ms target and fixed workload remain unchanged.

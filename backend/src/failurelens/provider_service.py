@@ -9,13 +9,10 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, inspect, select, update
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from . import models as m
-from .evidence_validation import (
-    persisted_analysis_is_publication_validated,
-    validate_evidence_records,
-)
+from .evidence_validation import persisted_analysis_is_publication_validated
 from .models import Analysis
 from .providers import (
     PROMPT_VERSION,
@@ -26,6 +23,7 @@ from .providers import (
     prepare_request,
     validate_proposal,
 )
+from .publication_validity import PublicationContext
 from .service import select_failure_evidence
 
 
@@ -39,29 +37,44 @@ def propose_for_analysis(
 ) -> dict:
     """Compatibility helper with in-process accounting; use durable_propose_for_analysis for workers."""
     category = analysis.category.value
-    if not persisted_analysis_is_publication_validated(analysis):
+    if not session.autoflush:
         return asdict(
             ProviderResult(
-                "fallback", category, reason="unvalidated_deterministic_analysis"
+                "fallback", category, reason="unsupported_session_configuration"
             )
         )
     failure = analysis.failure
-    if failure.run.evidence_expired_at is not None:
-        return asdict(ProviderResult("fallback", category, reason="evidence_expired"))
-    rows = select_failure_evidence(session, failure)
-    checks = validate_evidence_records(failure, rows)
-    accepted = set(checks.accepted_ids)
-    permitted = set(
-        analysis.supporting_evidence_ids + analysis.contradictory_evidence_ids
+    scope = {
+        "project_id": failure.project_id,
+        "run_id": failure.run_id,
+        "analysis_id": analysis.id,
+    }
+    try:
+        snapshot = _snapshot(session, **scope)
+    except (ProviderBoundaryError, ProviderScopeError) as exc:
+        return asdict(
+            ProviderResult(
+                "fallback",
+                category,
+                reason=str(exc)
+                if isinstance(exc, ProviderBoundaryError)
+                else "scope_changed",
+            )
+        )
+    checked_budget = _LegacySnapshotBudget(
+        session=session, expected=snapshot, budget=budget, **scope
     )
-    evidence = [
-        {"id": row.id, "excerpt": row.excerpt, "approved": True}
-        for row in rows
-        if row.id in accepted and row.id in permitted
-    ]
     result = provider.propose(
-        deterministic_category=category, evidence=evidence, budget=budget, cancel=cancel
+        deterministic_category=snapshot.category,
+        evidence=snapshot.evidence,
+        budget=checked_budget,
+        cancel=cancel,
     )
+    if result.status == "proposed":
+        try:
+            checked_budget.validate()
+        except ProviderBoundaryError as exc:
+            result = replace(result, status="fallback", proposal=None, reason=str(exc))
     # The deterministic row is intentionally never overwritten or reclassified.
     return asdict(result)
 
@@ -140,6 +153,11 @@ def _analysis(session, project_id, run_id, analysis_id):
             m.Failure.project_id == project_id,
             m.Failure.run_id == run_id,
         )
+        .options(
+            selectinload(m.Analysis.failure).selectinload(m.Failure.run),
+            selectinload(m.Analysis.failure).selectinload(m.Failure.execution),
+        )
+        .execution_options(populate_existing=True)
     )
     if analysis is None or analysis.failure.run.project_id != project_id:
         raise ProviderScopeError("requested provider scope not found")
@@ -157,6 +175,45 @@ class _Snapshot:
     evidence: list[dict]
 
 
+@dataclass
+class _LegacySnapshotBudget:
+    """Revalidate on the owning thread; late accounting never touches its Session."""
+
+    session: Session
+    expected: _Snapshot
+    budget: RunBudget
+    project_id: str
+    run_id: str
+    analysis_id: str
+
+    def validate(self):
+        # populate_existing relies on normal autoflush to preserve pending writes.
+        # Never change caller configuration or discard its unflushed attributes.
+        if not self.session.autoflush:
+            raise ProviderBoundaryError("unsupported_session_configuration")
+        try:
+            current = _snapshot(
+                self.session, self.project_id, self.run_id, self.analysis_id
+            )
+        except ProviderScopeError:
+            raise ProviderBoundaryError("scope_changed") from None
+        if current != self.expected:
+            raise ProviderBoundaryError("immutable_input_changed")
+
+    def reserve(self, config, reserved_tokens):
+        self.validate()
+        return self.budget.reserve(config, reserved_tokens)
+
+    def complete(self, number, result, *, sent, http_status, transport_terminated=True):
+        self.budget.complete(
+            number,
+            result,
+            sent=sent,
+            http_status=http_status,
+            transport_terminated=transport_terminated,
+        )
+
+
 def _snapshot(session, project_id, run_id, analysis_id):
     analysis = _analysis(session, project_id, run_id, analysis_id)
     if analysis.failure.run.evidence_expired_at is not None:
@@ -165,13 +222,21 @@ def _snapshot(session, project_id, run_id, analysis_id):
         raise ProviderBoundaryError("unvalidated_deterministic_analysis")
     if not analysis.input_digest:
         raise ProviderBoundaryError("missing_analysis_digest")
+    context = PublicationContext(session)
     rows = select_failure_evidence(session, analysis.failure)
-    accepted = set(validate_evidence_records(analysis.failure, rows).accepted_ids)
+    accepted = set(context.failure_evidence(analysis.failure, rows).accepted_ids)
     permitted = set(
         analysis.supporting_evidence_ids + analysis.contradictory_evidence_ids
     )
     if not permitted or not permitted.issubset(accepted):
         raise ProviderBoundaryError("evidence_not_available")
+    validity = context.analysis(analysis)
+    if not validity.valid:
+        raise ProviderBoundaryError(
+            "historical_support_unavailable"
+            if "historical_support_unavailable" in validity.reasons
+            else "evidence_not_available"
+        )
     rows = [row for row in rows if row.id in permitted]
     evidence = [
         {"id": row.id, "excerpt": row.excerpt, "approved": True} for row in rows

@@ -1250,3 +1250,69 @@ still fails because npm audit is NOT RUN. The operational run completed all 204
 requests and [failed at 607.658224 ms](../evaluation/reports/operational-be7eede-failed/README.md).
 Its original bytes are retained. Fresh hosted backend acceptance is required after
 the exact artifact-contract correction.
+
+### Current-validity exact-source verification
+
+Published `8eb264d459ee0e16ed27b1c0a6c4cc33a32e5b32` has the exact local
+`689d5c91cec7c8b09bad718b3a5c48e754ded6f7` tree
+`49b0487eba81d1ea190c9b34be23693d86a194ef`. All twelve ordinary jobs pass in
+[run 36775868918](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36775868918),
+including four general and two provider browser lanes. Backend job `110096127565`
+passed **2,365 tests, zero failures or skips**, in 698.70 seconds. The process
+diagnostic records exit 0, no termination signal, valid outcomes and host OOM
+counter 0 before/after. Transaction-finality, provider topology, full-stack,
+read-only Action, mutation, diagnostic, campaign, source-export and telemetry
+workflows also pass on this exact source.
+
+Backend artifact `11126711055` is 462,889 bytes, SHA-256
+`eb71fa24e57287e8c270b7998a0e5c9ea40d57ba363d3d22568cfec472b2d46c`.
+Its exact three-member ZIP, CRC, report source binding and coverage-data digest
+were verified. The independent checker recomputed the retained executed arcs
+both in CI and locally. Actual branch coverage is **3,176/3,928 = 80.8554%**;
+combined statement/branch coverage is 89.4418%. Six of 35 critical files meet
+95%. The separate acceptance job correctly fails the unchanged numeric targets.
+
+All seven independent hosted quality/security jobs pass. The denied npm metadata
+audit remains NOT RUN and required security acceptance remains red. Frozen
+classifier quality still fails. The operational observation
+[passes at 457.72 ms on Intel](../evaluation/reports/operational-8eb264d-passed/README.md)
+after the runtime-identical AMD failure at 607.66 ms. Both original measurements
+are retained; no speedup or stable/reference-hardware compliance is claimed.
+Full M6/M7/M8/M9 and the complete project remain PARTIAL.
+
+Follow-on review reproduced an optional-provider gap at `8eb264d`: its older
+recorded-validation/cited-evidence check omits original uncited inputs and prior
+known-flake support. Provider previews, stale approvals, queued/retry sends and
+stored proposals remained available after ordinary analysis projections withheld
+the same result. The legacy helper also retained stale run state and lacked
+support checks between retries and before returning a proposal.
+
+The shared snapshot now uses a fresh current-publication context at each boundary,
+while transmitting only the original cited subset. Its bounded ORM refresh uses
+normal autoflush without committing or rolling back caller work. The legacy helper
+forwards its original shared budget through a validating reservation wrapper and
+revalidates successful results after transport. Late numeric accounting remains
+independent of support validity. Disabled-autoflush callers receive a fixed fallback
+before refreshing pending state. Database transaction isolation still determines
+visibility of external commits.
+
+Twenty-one focused synthetic cases produced **20 expected failures and one passing
+transaction-control case before repair**, then **21 passes after repair**. They
+verify unavailable original uncited inputs and historical citations, all request
+and read stages, preserved receipts/budgets/usage, external run expiry, pending
+caller work and disabled autoflush. Each case ran in a fresh process around
+121 MiB RSS; the host OOM counter remained 55 throughout. An earlier combined
+failing-test run hit its 150 MiB resource guard and remains recorded as incomplete;
+it is not a completed failure count. Independent code review found no material
+defect. Broader affected verification, offline gates and exact-source CI remain
+required for this follow-on repair. No real provider was invoked.
+
+The surrounding workflow test process then reached the same 150 MiB guard before
+writing a complete pytest summary; the broader local run is INCOMPLETE. A separate
+full type-check process group reached its 350 MiB guard and is likewise INCOMPLETE.
+Both guards terminated only their owned processes, with host OOM still 55.
+Lint, formatting, lock/export parity, workflow validation and the offline secret
+scan pass. One independently reviewed public measurement-source Git identifier
+was added to the policy; all 933 earlier entries and guards remain unchanged.
+The new source must use its own full hosted type, PostgreSQL and regression runs;
+the 21 focused passes and prior `8eb264d` suite are not substitutes for them.

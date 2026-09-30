@@ -60,11 +60,27 @@ reservation, not a statement of actual billed tokens or an absolute currency cap
 Reported usage above the reservation is recorded and blocks further work as needed.
 
 Invocations bind immutable analysis/evidence digests, provider configuration and
-prompt version. Every attempt revalidates current scope and derivative availability.
+prompt version. Preview, approval, each attempt, settlement and stored-proposal
+reads revalidate current scope, original accepted analysis inputs and derivative
+availability. Known-flake proposals also require the original prior-only history
+and its explicit human citations to remain valid. Uncited accepted inputs affect
+eligibility without becoming additional transmitted evidence. Missing support
+withholds the proposal while preserving the recorded invocation and accounting.
 Only safe proposals are stored, with an explicitly unverified-hypothesis status;
 the original deterministic analysis and its contradictions remain unchanged.
 Reading a stored proposal rechecks current evidence. Retention physically clears
 proposal text while preserving bounded usage/accounting fields.
+
+The in-process compatibility helper uses the same current-support checks before
+each request and before returning a successful proposal. It forwards reservations
+and completions to the caller's original shared `RunBudget`; losing support does
+not refund reservations or discard returned numeric usage/pricing. This helper
+requires normal Session autoflush and returns an explicit fallback under
+`no_autoflush`, preserving pending caller changes. It refreshes only the relevant
+analysis/failure/run/execution graph and never commits or rolls back caller work.
+Visibility of another transaction's changes remains subject to the caller's
+database isolation. Persisted application work uses fresh factory-owned
+transactions and PostgreSQL READ COMMITTED, rather than this compatibility helper.
 
 Attempts retain allowlisted numeric usage even when proposal validation rejects
 the output. Pricing includes both rates, source, date and currency, and remains
