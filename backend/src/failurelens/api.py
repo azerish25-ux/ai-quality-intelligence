@@ -2380,3 +2380,17 @@ def evidence_get(
 # Keep binary handling separate from test-outcome analysis and never expose source storage.
 from .binary_api import router as binary_router
 app.include_router(binary_router)
+
+
+@app.get("/api/v1/runs/{run_id}/github-report-preview")
+def github_report_preview(
+    run_id: str,
+    principal: Principal = Depends(current_principal),
+    session: Session = Depends(get_session),
+) -> dict:
+    from .github_snapshot import report_snapshot
+    run = session.get(Run, run_id)
+    if not run:
+        raise HTTPException(404, "run not found")
+    require_project_role(session, principal, run.project_id)
+    return report_snapshot(session, run)

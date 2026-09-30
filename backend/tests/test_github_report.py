@@ -39,3 +39,13 @@ def test_report_publishes_only_validated_categories() -> None:
     assert "not_validated=1" in report
     assert "HOLD_FOR_REVIEW" in report
     assert "stored category is not published" in report
+
+
+def test_markdown_metadata_cannot_create_links_mentions_or_leak_declared_secrets():
+    run = _run()
+    run.external_id = '![tracking](https://evil.example) @everyone token=abcdef123456'
+    report = render_markdown(run, [])
+    assert '![tracking]' not in report
+    assert '@everyone' not in report
+    assert 'abcdef123456' not in report
+    assert 'HOLD_FOR_REVIEW' in report

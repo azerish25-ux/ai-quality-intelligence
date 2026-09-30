@@ -18,6 +18,7 @@ from .config import get_settings
 from .db import SessionLocal, initialize_database
 from .demo import seed_demo
 from .github_report import render_markdown
+from .github_snapshot import report_snapshot
 from .github_publication import GitHubPublisher, PublicationError
 from .impact import create_impact_recommendation, impact_recommendation_to_schema
 from .infrastructure import (
@@ -418,7 +419,7 @@ def main() -> None:
             try:
                 publisher = GitHubPublisher(os.environ.get("FAILURELENS_GITHUB_TOKEN", ""), bot_login=args.bot_login)
                 receipt = publisher.publish(repository=args.repository, pull_number=args.pull_number,
-                    project=project.slug, tested_head=run.commit_sha, report=render_markdown(run, analyses))
+                    project=project.slug, tested_head=run.commit_sha, report=report_snapshot(session, run)["markdown"])
                 print(json.dumps(asdict(receipt)))
             except PublicationError as exc:
                 raise SystemExit(str(exc)) from None
@@ -429,26 +430,11 @@ def main() -> None:
             run = session.get(Run, args.run)
             if not run:
                 raise SystemExit("run not found")
-            analyses = session.scalars(select(Analysis).join(Failure).where(Failure.run_id == run.id)).all()
+            snapshot = report_snapshot(session, run)
             if args.format == "markdown":
-                print(render_markdown(run, list(analyses)), end="")
+                print(snapshot["markdown"], end="")
             else:
-                print(
-                    json.dumps(
-                        {
-                            "run_id": run.id,
-                            "analyses": [
-                                {
-                                    "id": analysis.id,
-                                    "category": analysis.category.value,
-                                    "summary": analysis.summary,
-                                }
-                                for analysis in analyses
-                            ],
-                        },
-                        indent=2,
-                    )
-                )
+                print(json.dumps(snapshot, indent=2))
 
 
 if __name__ == "__main__":

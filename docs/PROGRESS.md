@@ -124,3 +124,16 @@ Empty analysis reports now require review, and untrusted Markdown metadata is es
 See [publication contract](github-publication.md) for tests and remaining scope.
 Frozen evaluation files, labels and thresholds are unchanged. This is not M8 or
 full-project completion; live publication and complete report/workflow scope remain.
+
+### M8 read-only projection
+
+Added project-authorized API preview and a shared versioned JSON/Markdown projection.
+Outcome denominators collapse retries; only the latest analysis per failure is
+reported. Unvalidated legacy summaries and expired evidence are withheld; links,
+images, mentions and declared secrets in metadata are neutralized. Five new API/data
+regressions and a Markdown injection regression pass locally. The preceding publisher
+batch is remotely delivered as `c3d98983c4e69fe66a3b640c5602bcce7df6489d` (tree
+`884308c01c606e78c0d1db6674255c3361d74087`), with all seven workflows actually triggered.
+A local complete suite attempt cannot substitute for CI: real producer fixtures were
+not generated locally (16 explicit failures), and four PostgreSQL cases skipped.
+No gate was removed. Exact-source CI results remain pending at this checkpoint.

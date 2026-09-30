@@ -49,3 +49,15 @@ publication persistence/API views and the full rich report contract remain open.
 References checked 2026-09-30:
 [GitHub comment API](https://docs.github.com/en/rest/issues/comments) and
 [Actions secure use](https://docs.github.com/en/actions/reference/security/secure-use).
+
+## Read-only report preview
+
+`GET /api/v1/runs/{run_id}/github-report-preview` uses the usual project-role
+boundary and performs no external write. CLI `report --format json` and Markdown
+share the same versioned projection and digest. It uses the latest analysis revision
+per failure, collapses test/browser/parameterization attempts for outcome denominators,
+retains retry counts, and exposes explicitly unknown baseline status. Investigations
+include safe summaries, supporting/counterevidence IDs and missing-evidence notices.
+Legacy unvalidated summaries and expired evidence bodies are withheld. Preview detail
+is capped at 50 analyses and 50 KB; omissions are explicit. This does not yet replace
+the dashboard's complete impact/performance/history views.

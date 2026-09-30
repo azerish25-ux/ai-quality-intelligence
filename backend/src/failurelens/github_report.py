@@ -6,6 +6,7 @@ import re
 
 from .evidence_validation import persisted_analysis_is_publication_validated
 from .models import Analysis, Run
+from .redaction import redact_text
 
 MARKER = "<!-- failurelens-report:v1 -->"
 def _publication_category(analysis: Analysis) -> str:
@@ -16,9 +17,11 @@ def _publication_category(analysis: Analysis) -> str:
 
 def _safe(value) -> str:
     # Metadata is attacker-controlled report input, never executable Markdown.
-    text = html.escape(str(value), quote=True)
+    text = html.escape(redact_text(str(value)).text, quote=True)
     text = re.sub(r"[\r\n\x00-\x1f\x7f]", " ", text)
-    return text.replace("`", "&#96;").replace("@", "&#64;")[:512]
+    for character in "`@[]()!\\":
+        text = text.replace(character, f"&#{ord(character)};")
+    return text[:512]
 
 
 def render_markdown(run: Run, analyses: list[Analysis]) -> str:
