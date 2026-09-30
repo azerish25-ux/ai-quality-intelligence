@@ -19,7 +19,13 @@ BUILD_ROOT=$(mktemp -d /tmp/failurelens-build.XXXXXXXX)
 trap 'rm -rf -- "$BUILD_ROOT"' EXIT
 # No worktree copy or ignored-file overlay: only the recorded commit is built.
 git archive --format=tar "$SOURCE_REVISION" backend | tar -x -C "$BUILD_ROOT"
-"${PYTHON:-python}" -m pip install "$BUILD_ROOT/backend[dev]" "$@"
+if [[ -f "$BUILD_ROOT/backend/requirements.lock" ]]; then
+  "${PYTHON:-python}" -m pip install --require-hashes -r "$BUILD_ROOT/backend/requirements.lock" "$@"
+  "${PYTHON:-python}" -m pip install --no-deps "$BUILD_ROOT/backend[dev]" "$@"
+else
+  # Small package-build fixtures and pre-lock historical source remain supported.
+  "${PYTHON:-python}" -m pip install "$BUILD_ROOT/backend[dev]" "$@"
+fi
 require_clean
 if [[ "$(git rev-parse HEAD)" != "$SOURCE_REVISION" ]]; then
   echo 'Source revision changed while building the backend.' >&2

@@ -204,3 +204,16 @@ product defect, qualifying reviewed known flake and honest abstention. Two tests
 including rerun idempotence and production rejection. An initial fixture failed its
 known-flake expectation because worker cohorts differed; corrected the synthetic
 fixture rather than weakening the history gate. This is not new benchmark evidence.
+
+### Reproducible dependency graph
+
+Generated a PyPI-backed uv lock and hash-checked pip export using actual installed
+uv 0.12.19; the export installed successfully. Bootstrap and the committed-source
+backend installer now consume the locked graph while retaining source-cleanliness
+checks. A full test rerun on the resolved graph is pending below; producer-specific
+versions and frozen evaluation bytes remain unchanged.
+
+Locked-graph targeted verification: 64 source-provenance, report and provider tests
+pass with `PYTHONPATH=backend/src:.`. An initial focused invocation omitted the repo
+root from PYTHONPATH and could not import the existing `evaluation` package; fixing
+the invocation resolved collection without altering any test assertion.

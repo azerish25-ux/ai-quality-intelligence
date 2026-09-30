@@ -4,7 +4,8 @@ PYTHON ?= python
 .PHONY: bootstrap demo test test-e2e evaluate security-test verify up down
 
 bootstrap:
-	$(PYTHON) -m pip install -e './backend[dev]'
+	$(PYTHON) -m pip install --require-hashes -r backend/requirements.lock
+	$(PYTHON) -m pip install --no-deps -e './backend[dev]'
 	cd frontend && npm install --no-audit --no-fund
 
 demo:
