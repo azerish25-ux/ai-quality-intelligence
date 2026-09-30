@@ -405,3 +405,15 @@ canary absence, viewer ingress, denied runtime Internet and collector outage.
 Local shell/YAML/topology checks pass; actual collector execution is pending CI.
 Performance diagnostics preserve completed load evidence even if the separate
 metrics endpoint is unavailable. Frozen evaluation labels and thresholds are unchanged.
+
+Telemetry source `8dbce9b327d943d85a1fce7d77d190853b8f2951` is published and its
+remote tree matches `6fff5a599213786e64777b58e1bdcc6906f3b6c2`. Clean local
+verification passed **1,049 tests, four PostgreSQL-only skips, 84.65% branch-aware
+coverage**; the skips are not PostgreSQL acceptance. All nine workflows started.
+
+The first actual local-collector CI run, `36687238268`, successfully executed the
+PostgreSQL/API/worker trace and verified canary absence. It then failed the viewer
+service-list probe because Jaeger 2.21 removed the internal `/api/services` route.
+Updated the probe to the documented stable `/api/v3/services` contract and added a
+regression. The failed job remains visible; viewer and collector-outage acceptance
+still require a fresh successful exact-source execution.

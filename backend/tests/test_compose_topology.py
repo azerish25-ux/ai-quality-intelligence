@@ -85,3 +85,5 @@ def test_telemetry_smoke_requires_actual_durable_trace_and_collector_failure_che
     assert "assert state == 'succeeded'" in script
     assert 'compose stop otel-collector' in script
     assert 'collector-down-readiness.json' in script
+    assert 'http://127.0.0.1:16686/api/v3/services' in script
+    assert "json.load(open(sys.argv[1]))['services']" in script

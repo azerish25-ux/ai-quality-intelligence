@@ -70,10 +70,10 @@ with httpx.Client(timeout=5, trust_env=False) as client:
         'runtime_external_network_blocked': True}))
 PY
 curl --fail --silent http://127.0.0.1:16686/ > "$OUT/viewer.html"
-curl --fail --silent http://127.0.0.1:16686/api/services > "$OUT/services.json"
+curl --fail --silent http://127.0.0.1:16686/api/v3/services > "$OUT/services.json"
 python - "$OUT/services.json" <<'PY'
 import json, sys
-assert 'loose-thread' in json.load(open(sys.argv[1]))['data']
+assert 'loose-thread' in json.load(open(sys.argv[1]))['services']
 PY
 # Collector loss must never disable core requests or worker operation.
 compose stop otel-collector
