@@ -62,3 +62,16 @@ on AMD EPYC 7763. The gateway-only correction `9414d91`
 on Intel Xeon 6973P-C. Both have zero request failures and preserve the exact
 workload/target. Every measurement remains; no single passing run establishes
 stable target compliance or fixes the previously identified history-route tail.
+
+The later published checkpoints preserve additional failures:
+[`efa9a13`](../evaluation/reports/operational-efa9a13-failed/README.md) measured
+710.69 ms, [`d6f2b72`](../evaluation/reports/operational-d6f2b72-failed/README.md)
+measured 586.89 ms, and the strengthened measurement at
+[`44988f5`](../evaluation/reports/operational-44988f5-failed/README.md) measured
+**664.57 ms** on AMD EPYC 7763 in
+[run 36748154891](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36748154891).
+The latest run completed all four cold and 200 warm samples with zero failures in
+either set. Stage/failure diagnostics now also record unsuccessful initialization,
+seeding, startup, readiness and measurement, with bounded process cleanup. The
+successful-warm timing denominator, workload and 500 ms target are unchanged;
+none of these results establishes stable or reference-hardware acceptance.

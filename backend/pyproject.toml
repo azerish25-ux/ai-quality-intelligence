@@ -49,6 +49,10 @@ addopts = "-q --strict-markers"
 [tool.coverage.run]
 branch = true
 source = ["failurelens"]
+# pytest-cov 7 delegates child collection to the locked coverage.py runtime.
+# Explicitly isolated/minimal-environment image children remain uninstrumented;
+# dedicated tests cover the real worker through a test-only isolated harness.
+patch = ["subprocess"]
 
 [tool.coverage.report]
 show_missing = true

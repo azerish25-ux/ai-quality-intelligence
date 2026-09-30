@@ -942,3 +942,74 @@ review entries for the changed files. Six offline gates pass with the unchanged
 3,101-candidate resolved scan. Full clean-source regression and exact-source hosted
 verification are required after this new checkpoint. No performance acceptance or
 full-master completion is inferred from these local regressions.
+
+### M9 hardening delivered and verified
+
+Published source `44988f581f9330502c030651c2c24e8978a67687` has exactly the tested
+local `b863541` tree, `6900fb2849d03512e4c22e7ef1516c8588baf506`. The clean local run
+passed **2,012 tests with nineteen PostgreSQL-only skips**, 87.4706% combined
+coverage and **2,998/3,840 = 78.0729% branch-only**. Six offline gates and the strict
+seven-baseline/seven-kill mutation run pass. PostgreSQL skips are not acceptance.
+
+At the published source, [all twelve ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36748154707)
+pass. The actual PostgreSQL backend passed **2,031 tests with zero skips**, eight
+warnings and **87.56% combined coverage**. All four general browser lanes, both
+provider browser lanes, synthetic provider deployment, producer fixtures, Docker
+and evaluation integrations pass. The separate read-only Action, telemetry,
+provider boundary, mutation, full-stack, diagnostic, finality, campaign and source
+export workflows pass too. These results belong to this exact source.
+
+The strict frozen classifier still fails. The operational run fails at
+**664.567469 ms p95** on AMD EPYC 7763, with zero cold or warm failures and the full
+4/200 samples. The [original metrics and requests](../evaluation/reports/operational-44988f5-failed/README.md)
+are retained byte-for-byte with their verified archive digest, alongside the
+`efa9a13` and `d6f2b72` failures. All seven independent quality/security jobs pass, while the npm
+audit is **NOT RUN** and the required aggregate correctly fails. No gate is waived
+and no real provider, live PR publication or external collector was activated.
+
+### M9 immutable policy and verifiable coverage work
+
+A reproduced concurrency defect allowed an immutable performance-policy version
+conflict to return the winning row after an integrity-error rollback without
+checking its content. Ordinary duplicate lookup and race recovery now share the
+same content validation. Seven different-content recovery cases failed before
+the repair; the focused local suite passes 26 cases. Eight real PostgreSQL races
+are present but skipped locally, pending exact-source hosted execution.
+
+New coverage tooling keeps the original 75% combined regression gate and declares
+separate 90% overall/95% per-critical-file branch targets. It binds committed source
+bytes and runtime/test inventories to fresh process data, collects ordinary Python
+children, and exercises the unchanged isolated image worker through a trusted
+test-only harness. A source-free report and canonical executed-arcs database are
+checked together; failed numeric targets remain failures. See
+[coverage scope and trust limits](backend-branch-coverage.md). Focused collector
+tests do not establish whole-project coverage acceptance.
+
+The local verification wrapper now uses fresh external outputs and owned temporary
+storage, preserves existing frozen inputs/reports, and disables inherited provider,
+production-database and telemetry activation. Six offline quality gates use the
+existing source-bound review policy; both online audits are explicitly NOT RUN
+and required acceptance fails. Twenty-one focused wrapper regressions and an actual
+temporary SQLite migration roundtrip pass. This new combined source still requires
+clean committed collection and hosted verification; full master acceptance remains
+open.
+
+### First complete local verifier execution and repair
+
+The clean `1ab3fcb` integration run is retained as a **failed** measurement:
+**2,125 backend passes, seven failures and 27 PostgreSQL-only skips**. Six failures
+came from the new verifier's blanket `OTEL_SDK_DISABLED=true`, which also disabled
+the tests' intentionally local in-memory/loopback spans. The seventh was an old
+workflow-contract assertion that still required the replaced pytest-cov command.
+No failed test or assertion was suppressed. The delegated coverage contract now
+checks the actual collector invocation, real PostgreSQL service, clean archive
+installation, subprocess/branch configuration and unchanged 75% combined gate.
+
+That run preserved clean source and frozen inputs/reports. The real SQLite
+migration, all five legacy harnesses, frontend build, **200 frontend tests**, and
+all six offline gates passed, including **3,120 resolved secret candidates with
+zero unresolved**. Both audits remained NOT RUN and required security acceptance
+failed. Its branch counts were **3,045/3,840**, but failed regression execution
+cannot grant branch acceptance. The original report/data pair and logs remain
+separate from the next repaired-source run; no publication was made from this
+failed checkpoint.

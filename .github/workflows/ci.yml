@@ -100,7 +100,40 @@ jobs:
         run: alembic upgrade head
       - name: Test and coverage
         working-directory: backend
-        run: pytest --cov=failurelens --cov-branch --cov-report=term-missing --cov-fail-under=75
+        run: python ../scripts/backend_coverage.py collect --output /tmp/loose-backend-coverage
+      - name: Preserve exact-source branch measurement
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-branch-coverage-${{ github.sha }}
+          path: |
+            /tmp/loose-backend-coverage/report.json
+            /tmp/loose-backend-coverage/coverage-data.sqlite
+          if-no-files-found: error
+          retention-days: 30
+
+  backend-branch-acceptance:
+    name: Backend branch acceptance
+    needs: backend
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: Install the exact committed coverage runtime
+        run: bash scripts/install_committed_backend.sh
+      - name: Download this revision's branch measurement
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: backend-branch-coverage-${{ github.sha }}
+          path: /tmp/loose-backend-coverage
+      - name: Enforce overall and critical-file branch targets
+        run: python scripts/backend_coverage.py check --report /tmp/loose-backend-coverage/report.json
 
   evaluation:
     name: Evaluation

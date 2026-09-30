@@ -282,8 +282,25 @@ def register_performance_observation(
     return row
 
 
-def _policy_payload(request: PerformancePolicyCreate) -> dict[str, Any]:
-    return request.model_dump(mode="json")
+def _validate_policy_content(
+    existing: PerformancePolicy, request: PerformancePolicyCreate
+) -> None:
+    existing_payload = {
+        "version": existing.version,
+        "relative_tolerance": existing.relative_tolerance,
+        "absolute_tolerance": existing.absolute_tolerance,
+        "min_baseline_runs": existing.min_baseline_runs,
+        "max_baseline_age_days": existing.max_baseline_age_days,
+        "require_trusted": existing.require_trusted,
+        "required_dimensions": existing.required_dimensions,
+        "direction_overrides": existing.direction_overrides,
+    }
+    if _canonical_digest(existing_payload) != _canonical_digest(
+        request.model_dump(mode="json")
+    ):
+        raise ValueError(
+            "performance policy version already exists with different immutable content"
+        )
 
 
 def create_performance_policy(
@@ -298,22 +315,7 @@ def create_performance_policy(
         )
     )
     if existing is not None:
-        existing_payload = {
-            "version": existing.version,
-            "relative_tolerance": existing.relative_tolerance,
-            "absolute_tolerance": existing.absolute_tolerance,
-            "min_baseline_runs": existing.min_baseline_runs,
-            "max_baseline_age_days": existing.max_baseline_age_days,
-            "require_trusted": existing.require_trusted,
-            "required_dimensions": existing.required_dimensions,
-            "direction_overrides": existing.direction_overrides,
-        }
-        if _canonical_digest(existing_payload) != _canonical_digest(
-            _policy_payload(request)
-        ):
-            raise ValueError(
-                "performance policy version already exists with different immutable content"
-            )
+        _validate_policy_content(existing, request)
         return existing
     row = PerformancePolicy(
         project_id=project.id,
@@ -338,6 +340,7 @@ def create_performance_policy(
             )
         )
         if existing is not None:
+            _validate_policy_content(existing, request)
             return existing
         raise
     session.refresh(row)

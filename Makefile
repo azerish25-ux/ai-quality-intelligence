@@ -17,17 +17,9 @@ test:
 test-e2e:
 	cd frontend && npm run test:e2e
 
+# Fresh external reports; consume frozen inputs without regenerating them.
 evaluate:
-	$(PYTHON) evaluation/generate_corpus.py
-	$(PYTHON) evaluation/generate_clustering_corpus.py
-	$(PYTHON) evaluation/generate_impact_corpus.py
-	$(PYTHON) evaluation/generate_performance_corpus.py
-	$(PYTHON) evaluation/generate_infrastructure_corpus.py
-	PYTHONPATH=backend/src $(PYTHON) evaluation/harness.py --split test --output evaluation/reports/latest
-	PYTHONPATH=backend/src $(PYTHON) evaluation/clustering_harness.py --output evaluation/reports/latest
-	PYTHONPATH=backend/src $(PYTHON) evaluation/impact_harness.py --output evaluation/reports/latest
-	PYTHONPATH=backend/src $(PYTHON) evaluation/performance_harness.py --output evaluation/reports/latest
-	PYTHONPATH=backend/src $(PYTHON) evaluation/infrastructure_harness.py --output evaluation/reports/latest
+	"$(PYTHON)" scripts/local_verify.py evaluate $(VERIFY_ARGS)
 
 # Current authorization, evidence, capability and publication trust boundaries.
 # Synthetic/SQLite and mock transports only; real producers/PostgreSQL remain in CI.
@@ -36,10 +28,16 @@ SECURITY_TESTS := auth redaction ingestion ingestion_m2_adapters durable_ingesti
 	adversarial_boundaries history history_reuse clustering infrastructure impact \
 	performance contract_evidence domain_evidence transaction_evidence \
 	transaction_finality github_report github_snapshot github_publication \
-	providers operations telemetry mutation_safeguards
+	providers provider_config provider_accounting provider_credential_echo \
+	provider_deployment_fixture provider_ledger provider_output_bounds provider_proxy \
+	provider_retention provider_workflow project_redaction image_process_boundary \
+	binary_impact_boundaries runtime_boundary_diagnostics publication_predicate_types \
+	github_action github_action_config github_evidence github_publication_api \
+	github_publication_revisions github_publication_service github_report_sections \
+	workflow_contexts compose_topology operations telemetry mutation_safeguards
 
 security-test:
-	PYTHONPATH=backend/src:. $(PYTHON) -m pytest -q $(addprefix backend/tests/test_,$(addsuffix .py,$(SECURITY_TESTS)))
+	"$(PYTHON)" scripts/local_verify.py security $(VERIFY_ARGS) --tests $(addprefix backend/tests/test_,$(addsuffix .py,$(SECURITY_TESTS)))
 
 # Opt-in and an explicit fresh destination remain required even through Make.
 # Example: make safeguard-mutations MUTATION_ARGS='--confirm-synthetic-mutations --output /tmp/safeguards.json'
@@ -47,7 +45,7 @@ safeguard-mutations:
 	PYTHONPATH=backend/src:. $(PYTHON) -m evaluation.mutation_runner $(MUTATION_ARGS)
 
 verify:
-	./scripts/verify.sh
+	PYTHON="$(PYTHON)" ./scripts/verify.sh $(VERIFY_ARGS)
 
 up:
 	docker compose up --build

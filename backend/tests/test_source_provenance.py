@@ -181,9 +181,24 @@ def test_installer_propagates_build_failure_and_cleans_temporary_source(
 
 
 def test_backend_ci_keeps_real_postgresql_coverage_and_clean_build():
+    import tomllib
+
+    from scripts import backend_coverage
+
     workflow = (ROOT / ".github/workflows/ci.yml").read_text()
-    backend = workflow.split("\n  backend:\n", 1)[1].split("\n  evaluation:", 1)[0]
+    backend = workflow.split("\n  backend:\n", 1)[1].split(
+        "\n  backend-branch-acceptance:", 1
+    )[0]
     assert "bash scripts/install_committed_backend.sh" in backend
     assert "postgres:17-alpine" in backend
-    assert "--cov-branch --cov-report=term-missing --cov-fail-under=75" in backend
+    assert (
+        "python ../scripts/backend_coverage.py collect --output /tmp/loose-backend-coverage"
+        in backend
+    )
+    coverage = tomllib.loads((ROOT / "backend/pyproject.toml").read_text())["tool"][
+        "coverage"
+    ]
+    assert coverage["run"]["branch"] is True
+    assert "subprocess" in coverage["run"]["patch"]
+    assert coverage["report"]["fail_under"] == backend_coverage.COMBINED_TARGET == 75
     assert "continue-on-error" not in backend

@@ -181,7 +181,7 @@ The original benchmark quality failure is still FAIL. These additions neither
 change acceptance thresholds nor complete M6, M7, M8, M9 or the full master project.
 
 The read-only two-shard GitHub consumer is implemented with explicit completeness and
-sanitized outputs; hosted Action execution is pending. Trusted write publication
+sanitized outputs; hosted Action execution passes at `44988f5`. Trusted write publication
 still requires separate threat-boundary and live-target verification.
 
 
@@ -189,6 +189,9 @@ still requires separate threat-boundary and live-target verification.
 
 | ID | Requirement | Status | Evidence and boundary |
 |---|---|---|---|
-| R-M9-HISTORY-CAP | Correct filtered history denominators | PARTIAL | Cohort predicates precede the comparable-run cap; shared scope normalization retains legacy observations/reviews and unknown-scope rejection. 61 history/reuse cases pass locally; new hosted verification pending. |
-| R-M9-MEASUREMENT | Preserve unsuccessful read measurements | PARTIAL | Cold/warm failures, exact 4/200 samples, stage failures and bounded cleanup are retained. 21 local regressions pass; the 500 ms gate and original workload are unchanged. This does not prove stable performance. |
-| R-M9-IMAGE-CHILD | Reduce decoder process inheritance | PARTIAL | Isolated direct worker launch, minimal environment and closed descriptors; 46 image cases include actual child canaries. Not an OS filesystem/network sandbox; full/hosted verification pending. |
+| R-M9-HISTORY-CAP | Correct filtered history denominators | PASS | Cohort predicates precede the comparable-run cap; shared scope normalization retains legacy observations/reviews and unknown-scope rejection. 61 focused cases and the full 2,031-test PostgreSQL suite pass at published `44988f5`. |
+| R-M9-MEASUREMENT | Preserve unsuccessful read measurements | PASS | Cold/warm failures, exact 4/200 samples, stage failures and bounded cleanup are retained. 21 local regressions and hosted regression pass at `44988f5`; the real run preserves its 664.57 ms failure. The 500 ms gate and original workload are unchanged; stable performance remains unaccepted. |
+| R-M9-IMAGE-CHILD | Reduce decoder process inheritance | PASS | Isolated direct worker launch, minimal environment and closed descriptors; 46 image cases include actual child canaries, and the full hosted suite passes at `44988f5`. This is the declared process/import boundary, not an OS filesystem/network sandbox. |
+| R-M9-POLICY-RACE | Immutable performance-policy concurrency | PARTIAL | Shared duplicate/recovery content validation fixes seven reproduced mismatches; 26 focused local tests pass. Eight real PostgreSQL race cases remain locally skipped until the new source runs in hosted CI. |
+| R-M9-BRANCH-MEASUREMENT | Source-bound subprocess branch evidence | PARTIAL | Fresh collector, canonical executed-arcs data, committed source/installed-package parity and isolated image test harness implemented. Independent 90% overall/95% critical-file job added; clean full collection and hosted acceptance pending. Historical 78.0729% branch-only result remains below target. |
+| R-M9-LOCAL-VERIFY | Preserve source and distinguish incomplete acceptance | PARTIAL | Fresh external outputs, owned SQLite migration storage, scrubbed child environments and six offline gates; 21 local regressions and an actual migration roundtrip pass. Both audits stay NOT RUN and required acceptance fails; full integrated verification pending. |

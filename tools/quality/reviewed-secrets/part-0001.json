@@ -81,7 +81,7 @@
       "detector": "Basic Auth Credentials",
       "evidence": "workflow-local postgres service and matching disposable database configuration",
       "file": ".github/workflows/ci.yml",
-      "file_sha256": "1590b1ff25069bdb85d723821d61f0463c05dbc740bc8c852835a345b5539710",
+      "file_sha256": "99390321f54b5be9d2150a80c3cea222770ed42394bbd25a6018b8b0a2b92a83",
       "occurrences": [
         {
           "context_sha256": "af78dcf338f5990df3c413e011170f56369165f8f9e1d4cd0439113bac4e130b",
@@ -89,15 +89,15 @@
         },
         {
           "context_sha256": "58fc7d25262b481a5eddb79b0c53c5a94ae7f3467b661508d1d98de6ff575d7b",
-          "line": 150
+          "line": 183
         },
         {
           "context_sha256": "3e29aa15335b9aafd59e57ccdeb4953dd66c9afac0d84530d6027ee40dd14aa2",
-          "line": 255
+          "line": 288
         },
         {
           "context_sha256": "8938ae284ae9cf96eecb86ce5fa96cc66cdb078bdd25a953c7eb7f8551cbd4c3",
-          "line": 351
+          "line": 384
         }
       ],
       "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",
@@ -112,11 +112,11 @@
       "detector": "Hex High Entropy String",
       "evidence": "pinned Git reference or COMMAND_BLOB constant",
       "file": ".github/workflows/ci.yml",
-      "file_sha256": "1590b1ff25069bdb85d723821d61f0463c05dbc740bc8c852835a345b5539710",
+      "file_sha256": "99390321f54b5be9d2150a80c3cea222770ed42394bbd25a6018b8b0a2b92a83",
       "occurrences": [
         {
           "context_sha256": "98bafbf81b39190122ee3d5212f488b05c4faeea7ea0b942f6d2f076de97383b",
-          "line": 161
+          "line": 194
         }
       ],
       "reason": "Exact 40-hex Git revision/tree/blob identifier in provenance, a pinned checkout, or an assertion of the recorded source.",
@@ -131,7 +131,7 @@
       "detector": "Secret Keyword",
       "evidence": "workflow-local postgres service and matching disposable database configuration",
       "file": ".github/workflows/ci.yml",
-      "file_sha256": "1590b1ff25069bdb85d723821d61f0463c05dbc740bc8c852835a345b5539710",
+      "file_sha256": "99390321f54b5be9d2150a80c3cea222770ed42394bbd25a6018b8b0a2b92a83",
       "occurrences": [
         {
           "context_sha256": "0aea663a44c3ea89a8169d65ab04fd84acd98e3fe6bad4d7e2a2b332fba730ba",
@@ -139,15 +139,15 @@
         },
         {
           "context_sha256": "c3163b575ba27f802e45f3db4d48fb921e6ce4e467bc259febce1858e9cb1a5d",
-          "line": 141
+          "line": 174
         },
         {
           "context_sha256": "18850b3be888c2acbffd10c13ae45bc35066c5ae06310eacde0d994b3a714073",
-          "line": 246
+          "line": 279
         },
         {
           "context_sha256": "9e14c769bc03eca7b05f639310d38af119a51296db2f16e936fbc097b4bcdd98",
-          "line": 342
+          "line": 375
         }
       ],
       "reason": "Public PostgreSQL default used for repository-owned disposable CI/demo databases. This authenticates those demo databases and is not a private production credential. Exception must remain limited to the documented demo/test usage.",

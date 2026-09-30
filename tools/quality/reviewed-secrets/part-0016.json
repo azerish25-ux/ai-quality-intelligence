@@ -37,6 +37,101 @@
       "reviewed_by": "repository agent review with independent source-context adjudication",
       "reviewed_on": "2026-09-30",
       "value_sha256": "715dc8493c36579a5b116995100f635e3572fdf8703e708ef1a08d943b36774e"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "Runner.migration downgrade argument matches backend/migrations/versions/c7a9e2f4b610_infrastructure_event_correlation.py revision and the predecessor shell verifier target.",
+      "file": "scripts/local_verify.py",
+      "file_sha256": "8acb3b560bcb9cdc0d5541dc9fb504e0035789c7efbf12dd1a357def5198a45e",
+      "occurrences": [
+        {
+          "context_sha256": "60065282f745faa2a98d9ebb93082e258e438f717105cb235eaa8e1d29c36fea",
+          "line": 298
+        }
+      ],
+      "reason": "Existing public Alembic revision used as the downgrade target in an owned temporary SQLite migration roundtrip; not authentication material.",
+      "review_id": "m9-local-verification-0001",
+      "review_reference": "docs/local-verification.md",
+      "reviewed_by": "repository agent independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "9b786ca21de6df0b4bbe9250a4d7ab45dae613fd283d0175f785221d18c16216"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "test_migration_owns_its_database_and_stops_on_failure expected call list matches the runner downgrade argument and the committed migration revision.",
+      "file": "backend/tests/test_local_verification.py",
+      "file_sha256": "73c29e5baf3c5155015d3d1425566f4af276df1ed6a9a80097928f3539ac328e",
+      "occurrences": [
+        {
+          "context_sha256": "f3dd5f90bd3a5f8cd4e2c19a03d7eec62c9eb32e648fa9371a0f1f7c4066f43e",
+          "line": 152
+        }
+      ],
+      "reason": "Existing public Alembic revision asserted as the expected downgrade target of a disposable migration executable; not authentication material.",
+      "review_id": "m9-local-verification-0002",
+      "review_reference": "docs/local-verification.md",
+      "reviewed_by": "repository agent independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "9b786ca21de6df0b4bbe9250a4d7ab45dae613fd283d0175f785221d18c16216"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/source_revision; workflow 36748154891 artifact 11112769402 source binding, verified original ZIP digest and independently recomputed metrics member digest.",
+      "file": "evaluation/reports/operational-44988f5-failed/metrics.json",
+      "file_sha256": "3c31b33df214735623406d526688202510dc6756f206ac3ddf63482445d26d22",
+      "occurrences": [
+        {
+          "context_sha256": "3ba94052a6a509f13578e29f2782aca2dce17c0d5c61c49056ecf954b192ede1",
+          "line": 3
+        }
+      ],
+      "reason": "Public 40-hex Git source revision in the exact original synthetic operational benchmark metrics; not authentication material.",
+      "review_id": "m9-operational-retention-0001",
+      "review_reference": "evaluation/reports/operational-44988f5-failed/README.md",
+      "reviewed_by": "repository agent independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "b9b14212aa6e232877a7ea6347f0dba5d87abdd7cfaead65887028ebb1a536c8"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/source_revision; workflow 36735786619 artifact 11106892644 source binding, local Git commit object, verified original ZIP digest and independently recomputed metrics member digest.",
+      "file": "evaluation/reports/operational-d6f2b72-failed/metrics.json",
+      "file_sha256": "012e880177e117d13755830d28133238b4aa3abc032ea05f2793ba29804045a2",
+      "occurrences": [
+        {
+          "context_sha256": "d3ec580879147ea6b21be9098cb0da126c7d98ffe523920ae7116b4603dbc042",
+          "line": 3
+        }
+      ],
+      "reason": "Public 40-hex Git source revision in the exact original synthetic operational benchmark metrics; not authentication material.",
+      "review_id": "m9-operational-retention-0002",
+      "review_reference": "evaluation/reports/operational-d6f2b72-failed/README.md",
+      "reviewed_by": "repository agent independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "e7262c1468b18c4237e4fd34b743f813ddba3e6d09be26b587e290352c36c5dd"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/source_revision; workflow 36725945608 artifact 11102945631 source binding, local Git commit object, verified original ZIP digest and independently recomputed metrics member digest.",
+      "file": "evaluation/reports/operational-efa9a13-failed/metrics.json",
+      "file_sha256": "5c00202f13d198b65a45960e0e7d2a99327e16c5f3e2f1aa6298864f922eade7",
+      "occurrences": [
+        {
+          "context_sha256": "cb5c55e472ba094cc2af633e64c88ac7adb663989e9781861976d8dea1ffde2d",
+          "line": 3
+        }
+      ],
+      "reason": "Public 40-hex Git source revision in the exact original synthetic operational benchmark metrics; not authentication material.",
+      "review_id": "m9-operational-retention-0003",
+      "review_reference": "evaluation/reports/operational-efa9a13-failed/README.md",
+      "reviewed_by": "repository agent independent source-context adjudication",
+      "reviewed_on": "2026-09-30",
+      "value_sha256": "bbef85e9b85f791dfa86709f1664de81955ad11ec0692d1888adfa95b9b0b3aa"
     }
   ],
   "schema_version": 1

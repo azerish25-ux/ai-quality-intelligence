@@ -33,10 +33,11 @@ all failures. No thresholds are weakened. See [reproduction and limits](docs/cam
 
 ## Verified operational and report workflows
 
-At source `9414d91`, [all ten ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36691730960)
+At source `44988f5`, [all twelve ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36748154707)
 passed, including real PostgreSQL, producer fixtures, four browser lanes, non-root
 application containers, isolated runtime networking and actual database/artifact
-backup restore with citation validation. This certifies that named source, not an
+backup restore with citation validation. The backend passed 2,031 tests with no
+skips and 87.56% combined statement/branch coverage. This certifies that named source, not an
 unmeasured later commit. Frozen classifier quality targets still fail as described
 above; operational correctness is not a replacement for diagnostic acceptance.
 
@@ -45,8 +46,9 @@ fixed-cardinality metrics and default-disabled export. Its optional local-only
 collector/viewer profile passed real Docker verification at repair `8daa5c7` in
 [36687923599](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36687923599).
 The strict 50,000-execution read benchmark has both passing and failing shared-runner
-measurements, most recently 601.29 ms on an AMD runner and 389.46 ms on an Intel runner; the
-intervening correction concerns gateway logging, not the measured API read path. [All measurements and limits](docs/operational-benchmark.md).
+measurements; the latest `44988f5` run failed at 664.57 ms p95 on an AMD runner,
+with all four cold and 200 warm requests successful. Stable compliance with the
+unchanged 500 ms target remains open. [Measurements and limits](docs/operational-benchmark.md).
 
 New workflows include an [authorized read-only GitHub report preview](docs/github-publication.md),
 [a bounded optional-provider proposal boundary](docs/optional-provider.md), and
@@ -55,9 +57,9 @@ New workflows include an [authorized read-only GitHub report preview](docs/githu
 
 The optional provider workflow now includes scoped evidence previews, explicit
 administrator approval, durable job status/cancellation and a separate isolated
-worker deployment. It is disabled by default and rejects demo deployments. Local
-synthetic contract tests pass; PostgreSQL, browser and Docker acceptance for this
-new implementation is still pending. No real model or paid-provider quality result
+worker deployment. It is disabled by default and rejects demo deployments. Synthetic
+PostgreSQL, desktop/narrow browser and Docker topology tests pass at `44988f5`.
+No real model or paid-provider quality result
 is claimed. [Configuration, trust boundaries and verification limits](docs/optional-provider.md).
 
 Actual API-backed report captures at earlier verified source `3a9a89a`, using synthetic demo data:
@@ -117,8 +119,8 @@ The reusable composite Action uses the same ingestion and report path, with boun
 sanitized evidence exports that can survive its temporary database. Rich reports
 include stored skip, impact, cluster, performance and conservative baseline details.
 The separate publisher now records durable intents/receipts, verifies bot identity
-before writing, and fences uncertain or stale outcomes. These additions have local
-contract tests; new hosted verification and authorized live PR publication remain
+before writing, and fences uncertain or stale outcomes. Synthetic contract and hosted
+PostgreSQL/browser tests pass at `44988f5`; authorized live PR publication remains
 unverified. The analyzer never deletes tests, merges PRs, approves releases or
 executes quarantine decisions. [Integration and current limits](docs/github-publication.md).
 
