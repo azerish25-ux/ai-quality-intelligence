@@ -6,7 +6,7 @@ import math
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
 from statistics import median
-from typing import Any
+from typing import Any, NamedTuple
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import func, select
@@ -30,13 +30,52 @@ MAX_HISTORY_RUNS = 20_000
 MAX_HISTORY_REVIEWS = 10_000
 
 
+class _HistoryAttempt(NamedTuple):
+    id: str
+    browser: str | None
+    attempt: int
+    outcome: Outcome
+    duration_ms: float | None
+
+
+class _HistoryRun(NamedTuple):
+    id: str
+    external_id: str
+    commit_sha: str | None
+    branch: str | None
+    environment: str | None
+    run_scope: str
+    completeness: str
+    evidence_expired_at: datetime | None
+    timezone: str | None
+    worker_count: int | None
+    shard_count: int | None
+    started_at: datetime | None
+    created_at: datetime
+    repository: str | None
+    framework: str
+
+
+class _ComparableRun(NamedTuple):
+    id: str
+    started_at: datetime | None
+    created_at: datetime
+    repository: str | None
+    framework: str
+    branch: str | None
+    environment: str | None
+    run_scope: str
+    worker_count: int | None
+    shard_count: int | None
+
+
 def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
 
 
-def _run_timestamp(run: Run) -> datetime:
+def _run_timestamp(run: Run | _HistoryRun | _ComparableRun) -> datetime:
     return _as_utc(run.started_at or run.created_at)
 
 
@@ -431,7 +470,15 @@ def build_test_history(
         conditions.append(_nullable_equal(TestExecution.browser, browser))
 
     statement = (
-        select(TestExecution, Run)
+        select(
+            TestExecution.id, TestExecution.browser, TestExecution.attempt,
+            TestExecution.outcome, TestExecution.duration_ms,
+            Run.id, Run.external_id, Run.commit_sha, Run.branch,
+            Run.environment, Run.run_scope, Run.completeness, Run.evidence_expired_at,
+            Run.timezone, Run.worker_count, Run.shard_count, Run.started_at,
+            Run.created_at, Run.repository, Run.framework,
+        )
+        .select_from(TestExecution)
         .join(Run, TestExecution.run_id == Run.id)
         .where(*conditions)
         .order_by(
@@ -442,12 +489,13 @@ def build_test_history(
         )
         .limit(MAX_HISTORY_EXECUTIONS + 1)
     )
-    raw_rows = list(session.execute(statement).all())
+    raw_rows = [(_HistoryAttempt(*row[:5]), _HistoryRun(*row[5:])) for row in session.execute(statement)]
     truncated = len(raw_rows) > MAX_HISTORY_EXECUTIONS
     raw_rows = raw_rows[:MAX_HISTORY_EXECUTIONS]
 
-    grouped: dict[tuple[str, str], list[TestExecution]] = defaultdict(list)
-    runs_by_id: dict[str, Run] = {}
+    # Scalar row projections avoid hydrating unused JSON bodies and ORM entities.
+    grouped: dict[tuple[str, str], list[_HistoryAttempt]] = defaultdict(list)
+    runs_by_id: dict[str, _HistoryRun] = {}
     for execution, run in raw_rows:
         observed_at = _run_timestamp(run)
         if exclude_run_id and run.id == exclude_run_id:
@@ -597,7 +645,8 @@ def build_test_history(
     retry_recovered_count = sum(bool(item["retry_recovered"]) for item in retry_eligible)
 
     comparable_runs_statement = (
-        select(Run)
+        select(Run.id, Run.started_at, Run.created_at, Run.repository, Run.framework,
+               Run.branch, Run.environment, Run.run_scope, Run.worker_count, Run.shard_count)
         .where(
             Run.project_id == selected_run.project_id,
             _nullable_equal(Run.repository, selected_run.repository),
@@ -608,7 +657,7 @@ def build_test_history(
         .order_by(func.coalesce(Run.started_at, Run.created_at), Run.id)
         .limit(MAX_HISTORY_RUNS + 1)
     )
-    comparable_rows = list(session.scalars(comparable_runs_statement))
+    comparable_rows = [_ComparableRun(*row) for row in session.execute(comparable_runs_statement)]
     comparable_truncated = len(comparable_rows) > MAX_HISTORY_RUNS
     candidate_run_ids: set[str] = set()
     for run in comparable_rows[:MAX_HISTORY_RUNS]:

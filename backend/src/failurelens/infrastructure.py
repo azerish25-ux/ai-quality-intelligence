@@ -511,10 +511,6 @@ def build_infrastructure_correlation(
         )
     history_members = _collapse_history_observations(history["observations"])
     run_ids = [str(item["run_id"]) for item in history_members]
-    runs = {
-        run.id: run
-        for run in session.scalars(select(Run).where(Run.id.in_(run_ids))).all()
-    } if run_ids else {}
 
     events_query = select(InfrastructureEvent).where(
         InfrastructureEvent.project_id == selected_run.project_id,
@@ -537,6 +533,14 @@ def build_infrastructure_correlation(
     )
     truncated = len(raw_events) > MAX_CORRELATION_EVENTS
     events = raw_events[:MAX_CORRELATION_EVENTS]
+    # Event-free histories need only existence checks, not every run's metadata.
+    runs = {
+        run.id: run
+        for run in session.scalars(select(Run).where(Run.id.in_(run_ids), Run.project_id == selected_run.project_id)).all()
+    } if run_ids and events else {}
+    present_run_ids = set(runs) if events else set(
+        session.scalars(select(Run.id).where(Run.id.in_(run_ids), Run.project_id == selected_run.project_id)).all()
+    ) if run_ids else set()
 
     accepted_event_ids: set[str] = set()
     rejection_reasons: dict[str, set[str]] = defaultdict(set)
@@ -545,7 +549,7 @@ def build_infrastructure_correlation(
 
     for member in history_members:
         run = runs.get(str(member["run_id"]))
-        if run is None:
+        if str(member["run_id"]) not in present_run_ids:
             continue
         matched: list[InfrastructureEvent] = []
         for event in events:

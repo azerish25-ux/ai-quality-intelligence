@@ -336,3 +336,12 @@ unchanged; actual performance improvement still requires the next measured run.
 Real desktop and narrow report-panel screenshots at verified source `3a9a89a` were
 checksum-verified and visually inspected, then added to README with exact capture
 provenance. They contain only the controlled synthetic demo.
+
+The next actual PostgreSQL run at `e3fbd05` measured p95 **1,022.13 ms**, still failing
+500 ms despite zero request failures. Its original metrics/requests are retained,
+checksum-verified, beside the first failure. The harness, concurrency, workload and
+threshold are unchanged. Profiling identified remaining hydration of unused ORM/JSON
+fields. History now uses typed scalar projections; event-free correlation checks only
+run existence rather than fetching unused run metadata. Existing cohort/cutoff limits
+and all statistical denominators remain unchanged, with a query regression guarding
+against reintroducing large unused JSON reads. Actual acceptance requires remeasurement.

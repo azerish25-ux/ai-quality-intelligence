@@ -63,3 +63,21 @@ def test_api_reuses_full_request_history_and_paginates_only_returned_observation
     assert report['sample_sizes']['independent_runs'] == 209
     assert report['infrastructure_correlations']['sample_sizes']['independent_runs'] == 209
     assert spy.call_count == 1
+
+
+def test_large_history_queries_do_not_load_unused_json_bodies(session):
+    from sqlalchemy import event
+    args = history_arguments(session)
+    statements = []
+    def record(_, __, statement, ___, ____, _____):
+        statements.append(statement)
+    event.listen(session.bind, 'before_cursor_execute', record)
+    try:
+        report = build_test_history(session, **args, observation_limit=MAX_CORRELATION_RUNS)
+        build_infrastructure_correlation(session, **args, request_history=report)
+    finally:
+        event.remove(session.bind, 'before_cursor_execute', record)
+    selected_columns = [statement.split('FROM', 1)[0] for statement in statements if statement.lstrip().startswith('SELECT')]
+    assert selected_columns
+    assert all('test_executions.details' not in columns and 'runs.source_metadata' not in columns for columns in selected_columns)
+    assert report['sample_sizes']['independent_runs'] == 7
