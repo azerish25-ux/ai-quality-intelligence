@@ -572,6 +572,7 @@ def test_configure_logging_replaces_unsafe_handlers_without_duplicate_output(con
     for name in names:
         logger = logging.getLogger(name)
         logger.handlers[:] = [logging.StreamHandler(unsafe_stream)]
+        logger.disabled = True
         logger.propagate = True
         logger.setLevel(logging.INFO)
     # Repeat initialization, including preexisting child handlers, without adding

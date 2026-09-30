@@ -490,3 +490,10 @@ loaded for analysis counts. New multi-project, current-state, membership-revocat
 token and SQL-projection regressions preserve the response contract. This reduces
 known query work; improvement of the strict history-dominated target still requires
 actual remeasurement on the new source.
+
+The first clean combined source `3876720` passed the strict seven-baseline/seven-kill
+mutation run, but its full backend suite exposed logger-disable state left by
+in-process Alembic configuration: **1,182 passed, one failed, nine PostgreSQL-only
+skips**, 85.34% coverage. Safe handler installation now explicitly re-enables its
+owned logger trees, and the regression starts from disabled unsafe loggers. The
+failure was preserved; a new clean full run is required before branch publication.

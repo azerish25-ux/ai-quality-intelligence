@@ -120,6 +120,9 @@ def configure_logging() -> None:
             if name not in roots and not name.startswith(('failurelens.', 'uvicorn.')):
                 continue
             logger.handlers[:] = []
+            # Other logging configurations (including in-process Alembic) may
+            # disable preexisting loggers. Restore our explicit safe log policy.
+            logger.disabled = False
             logger.propagate = name not in roots
             if name in roots:
                 handler = logging.StreamHandler()
