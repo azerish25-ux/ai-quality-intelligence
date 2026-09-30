@@ -113,3 +113,14 @@ final audit remain unfinished. Continue from the actual failures using the exist
 diagnostic-gap audit; do not reimplement the delivered finality relation or overwrite
 historical reports. See [requirements-matrix.md](requirements-matrix.md) and
 [transaction-finality.md](transaction-finality.md).
+
+## M8 publication foundation — 2026-09-30
+
+Starting source `af7a041`. Added an opt-in CLI GitHub publisher with exact-SHA,
+trusted PR lookup, bot-owned project markers, bounded pagination, idempotent
+reconciliation, safe stale-head replacement and sanitized operational failures.
+The ingestion path remains secret-free and does not automatically publish.
+Empty analysis reports now require review, and untrusted Markdown metadata is escaped.
+See [publication contract](github-publication.md) for tests and remaining scope.
+Frozen evaluation files, labels and thresholds are unchanged. This is not M8 or
+full-project completion; live publication and complete report/workflow scope remain.

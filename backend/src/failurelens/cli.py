@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+from dataclasses import asdict
 import hashlib
 import re
 import json
@@ -16,6 +18,7 @@ from .config import get_settings
 from .db import SessionLocal, initialize_database
 from .demo import seed_demo
 from .github_report import render_markdown
+from .github_publication import GitHubPublisher, PublicationError
 from .impact import create_impact_recommendation, impact_recommendation_to_schema
 from .infrastructure import (
     build_infrastructure_correlation,
@@ -93,6 +96,12 @@ def main() -> None:
     report = sub.add_parser("report")
     report.add_argument("--run", required=True)
     report.add_argument("--format", choices=["markdown", "json"], default="markdown")
+
+    publish = sub.add_parser("publish-github", help="opt-in advisory PR comment; serialize per PR/project")
+    publish.add_argument("--run", required=True)
+    publish.add_argument("--repository", required=True)
+    publish.add_argument("--pull-number", required=True, type=int)
+    publish.add_argument("--bot-login", default="github-actions[bot]")
 
     impact = sub.add_parser(
         "impact",
@@ -399,6 +408,23 @@ def main() -> None:
                     default=str,
                 )
             )
+        elif args.command == "publish-github":
+            run = session.get(Run, args.run)
+            if not run or run.repository != args.repository:
+                raise SystemExit("run not found or repository does not match trusted destination")
+            project = session.get(Project, run.project_id)
+            analyses = list(session.scalars(select(Analysis).join(Failure).where(Failure.run_id == run.id)).all())
+            publisher = None
+            try:
+                publisher = GitHubPublisher(os.environ.get("FAILURELENS_GITHUB_TOKEN", ""), bot_login=args.bot_login)
+                receipt = publisher.publish(repository=args.repository, pull_number=args.pull_number,
+                    project=project.slug, tested_head=run.commit_sha, report=render_markdown(run, analyses))
+                print(json.dumps(asdict(receipt)))
+            except PublicationError as exc:
+                raise SystemExit(str(exc)) from None
+            finally:
+                if publisher:
+                    publisher.close()
         elif args.command == "report":
             run = session.get(Run, args.run)
             if not run:

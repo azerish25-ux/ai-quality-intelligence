@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections import Counter
+import html
+import re
 
 from .evidence_validation import persisted_analysis_is_publication_validated
 from .models import Analysis, Run
@@ -10,6 +12,13 @@ def _publication_category(analysis: Analysis) -> str:
     if persisted_analysis_is_publication_validated(analysis):
         return analysis.category.value
     return "insufficient_evidence"
+
+
+def _safe(value) -> str:
+    # Metadata is attacker-controlled report input, never executable Markdown.
+    text = html.escape(str(value), quote=True)
+    text = re.sub(r"[\r\n\x00-\x1f\x7f]", " ", text)
+    return text.replace("`", "&#96;").replace("@", "&#64;")[:512]
 
 
 def render_markdown(run: Run, analyses: list[Analysis]) -> str:
@@ -23,11 +32,11 @@ def render_markdown(run: Run, analyses: list[Analysis]) -> str:
     expected = run.expected_inputs if run.expected_inputs is not None else "unspecified"
     lines = [
         MARKER,
-        "## FailureLens evidence-grounded triage",
+        "## Loose Thread evidence-grounded triage",
         "",
-        f"- Tested head: `{run.commit_sha or 'unknown'}`",
-        f"- Base: `{run.base_sha or 'unknown'}`",
-        f"- Run: `{run.external_id}` attempt `{run.attempt}`",
+        f"- Tested head: `{_safe(run.commit_sha or 'unknown')}`",
+        f"- Base: `{_safe(run.base_sha or 'unknown')}`",
+        f"- Run: `{_safe(run.external_id)}` attempt `{_safe(run.attempt)}`",
         (
             f"- Scope completeness: **{completeness}** "
             f"({run.received_inputs}/{expected} inputs)"
@@ -55,6 +64,8 @@ def render_markdown(run: Run, analyses: list[Analysis]) -> str:
         )
 
     hold = (
+        not analyses
+        or
         getattr(run, "evidence_expired_at", None) is not None
         or
         any(
