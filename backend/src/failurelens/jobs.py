@@ -9,12 +9,22 @@ import time
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.orm import Session
 
 from .config import Settings, get_settings
 from .db import SessionLocal, initialize_database
 from .ingestion import IngestionError
+from .job_leases import (
+    ClaimGuard,
+    ClaimScopeInvalid,
+    LeaseLost,
+    active_guard,
+    bind_claim,
+    bound_claim,
+    capture_claim,
+    claimed_identity,
+)
 from .models import Ingestion, IngestionState, Job, JobState
 from .service import INGEST_JOB_KIND, process_artifact_ingestion
 from .storage import StorageError
@@ -53,8 +63,79 @@ PERMANENT_INGESTION_ERRORS = {
 }
 
 
+def _expire_exhausted_ingestion(session: Session, now: datetime) -> None:
+    """Close at most one abandoned final ingestion attempt without replaying it."""
+    job = session.scalar(
+        select(Job)
+        .where(
+            Job.kind == INGEST_JOB_KIND,
+            Job.state == JobState.running,
+            Job.lease_expires_at <= now,
+            Job.attempts >= Job.max_attempts,
+        )
+        .order_by(Job.lease_expires_at, Job.id)
+        .limit(1)
+        .with_for_update(skip_locked=True)
+    )
+    if job is None:
+        return
+    changed = (
+        session.connection()
+        .execute(
+            update(Job)
+            .where(
+                Job.id == job.id,
+                Job.project_id == job.project_id,
+                Job.kind == INGEST_JOB_KIND,
+                Job.state == JobState.running,
+                Job.attempts == job.attempts,
+                Job.attempts >= Job.max_attempts,
+                Job.lease_owner == job.lease_owner,
+                Job.lease_expires_at <= now,
+            )
+            .values(lease_owner=Job.lease_owner, updated_at=Job.updated_at)
+        )
+        .rowcount
+    )
+    if changed != 1:
+        session.rollback()
+        return
+    # Read completion only after the conditional lock. A worker can have
+    # committed its final owned transaction while this acquisition was waiting.
+    session.refresh(job)
+    ingestion = _linked_ingestion(session, job)
+    if ingestion is not None:
+        session.refresh(ingestion)
+    completed = {
+        IngestionState.succeeded: JobState.succeeded,
+        IngestionState.partial: JobState.partial,
+        IngestionState.cancelled: JobState.cancelled,
+    }
+    state = completed.get(ingestion.state) if ingestion is not None else None
+    job.state = state or JobState.dead_lettered
+    job.lease_owner = None
+    job.lease_expires_at = None
+    job.last_error = None if state else "ingestion final attempt lease expired"
+    if ingestion is not None and state is None:
+        ingestion.state = IngestionState.dead_lettered
+        ingestion.error_code = "lease_exhausted"
+        ingestion.error_message = "ingestion final attempt lease expired"
+        ingestion.completed_at = now
+        ingestion.diagnostics = [
+            *ingestion.diagnostics,
+            {
+                "phase": "worker",
+                "status": "failed",
+                "code": "lease_exhausted",
+                "attempt": job.attempts,
+            },
+        ]
+    session.commit()
+
+
 def claim_next(session: Session, worker_id: str, lease_seconds: int) -> Job | None:
     now = datetime.now(UTC)
+    _expire_exhausted_ingestion(session, now)
     query = (
         select(Job)
         .where(
@@ -76,12 +157,43 @@ def claim_next(session: Session, worker_id: str, lease_seconds: int) -> Job | No
     if not job:
         return None
     recovered_lease = job.state is JobState.running
-    job.state = JobState.running
-    job.lease_owner = worker_id
-    job.lease_expires_at = now + timedelta(seconds=lease_seconds)
-    job.attempts += 1
+    # SQLite ignores SELECT FOR UPDATE. Repeat admission atomically so a stale
+    # queued/expired read cannot steal a claim or reuse its attempt generation.
+    generation = (
+        session.connection()
+        .execute(
+            update(Job)
+            .where(
+                Job.id == job.id,
+                Job.project_id == job.project_id,
+                Job.kind == job.kind,
+                Job.attempts == job.attempts,
+                Job.attempts < Job.max_attempts,
+                Job.available_at <= now,
+                or_(
+                    Job.state == JobState.queued,
+                    (Job.state == JobState.running) & (Job.lease_expires_at < now),
+                ),
+            )
+            .values(
+                state=JobState.running,
+                lease_owner=worker_id,
+                lease_expires_at=now + timedelta(seconds=lease_seconds),
+                attempts=Job.attempts + 1,
+            )
+            .returning(Job.attempts)
+        )
+        .scalar_one_or_none()
+    )
+    if generation is None:
+        session.rollback()
+        return None
+    session.refresh(job)
+    # Preserve this generation before commit/refresh can expose a newer claim.
+    claim = capture_claim(job, worker_id)
     session.commit()
     session.refresh(job)
+    bind_claim(job, claim)
     if recovered_lease:
         with stage("job") as span:
             span.set_attribute("job.event", "recovered_lease")
@@ -90,6 +202,17 @@ def claim_next(session: Session, worker_id: str, lease_seconds: int) -> Job | No
 
 
 def heartbeat(session: Session, job: Job, worker_id: str, lease_seconds: int) -> None:
+    guard = active_guard(session)
+    if guard is not None:
+        guard.renew(job, worker_id, lease_seconds)
+        session.commit()
+        return
+    claim = bound_claim(job)
+    if (claim and claim.kind == INGEST_JOB_KIND) or job.kind == INGEST_JOB_KIND:
+        claim = claimed_identity(job, worker_id)
+        with ClaimGuard(session, claim):
+            heartbeat(session, job, worker_id, lease_seconds)
+        return
     session.refresh(job)
     if job.state is not JobState.running or job.lease_owner != worker_id:
         raise RuntimeError("job lease is no longer owned by this worker")
@@ -98,6 +221,24 @@ def heartbeat(session: Session, job: Job, worker_id: str, lease_seconds: int) ->
 
 
 def complete(session: Session, job: Job, *, partial: bool = False) -> None:
+    guard = active_guard(session)
+    if guard is not None:
+        guard.check_target(job)
+    claim = bound_claim(job)
+    if active_guard(session) is None and (
+        (claim and claim.kind == INGEST_JOB_KIND) or job.kind == INGEST_JOB_KIND
+    ):
+        if claim is None:
+            raise LeaseLost()
+        try:
+            with ClaimGuard(session, claim):
+                complete(session, job, partial=partial)
+        except LeaseLost:
+            session.rollback()
+            session.refresh(job)
+            if job.state is not JobState.cancelled:
+                raise
+        return
     session.refresh(job)
     if job.state is JobState.cancelled:
         job.lease_owner = None
@@ -117,7 +258,19 @@ def _linked_ingestion(session: Session, job: Job) -> Ingestion | None:
     )
     if not isinstance(ingestion_id, str):
         return None
-    return session.get(Ingestion, ingestion_id)
+    claim = bound_claim(job)
+    if (
+        claim is not None
+        and claim.kind == INGEST_JOB_KIND
+        and (claim.ingestion_id != ingestion_id)
+    ):
+        return None
+    ingestion = session.get(Ingestion, ingestion_id)
+    if ingestion is not None and (
+        ingestion.project_id != job.project_id or ingestion.job_id != job.id
+    ):
+        return None
+    return ingestion
 
 
 def fail(
@@ -128,6 +281,24 @@ def fail(
     error_code: str = "worker_error",
     permanent: bool = False,
 ) -> None:
+    guard = active_guard(session)
+    if guard is not None:
+        guard.check_target(job)
+    claim = bound_claim(job)
+    if active_guard(session) is None and (
+        (claim and claim.kind == INGEST_JOB_KIND) or job.kind == INGEST_JOB_KIND
+    ):
+        if claim is None:
+            raise LeaseLost()
+        try:
+            with ClaimGuard(session, claim, require_scope=False):
+                fail(session, job, error, error_code=error_code, permanent=permanent)
+        except LeaseLost:
+            session.rollback()
+            session.refresh(job)
+            if job.state is not JobState.cancelled:
+                raise
+        return
     # A cancellation may race with worker failure handling. Never resurrect a
     # cancelled job or ingestion as queued merely because the worker observed
     # that it lost its lease.
@@ -175,15 +346,15 @@ def _process_claimed(
     job: Job,
     worker_id: str,
     settings: Settings,
-) -> None:
+) -> str | None:
     from .retention import RETENTION_JOB_KIND, process_cleanup
 
     if job.kind == RETENTION_JOB_KIND:
         process_cleanup(session, job, worker_id, settings)
-        return
+        return None
     if job.kind == "noop":
         complete(session, job)
-        return
+        return None
     if job.kind != INGEST_JOB_KIND:
         raise RuntimeError(f"Unsupported job kind: {job.kind}")
 
@@ -195,7 +366,7 @@ def _process_claimed(
         job.lease_owner = None
         job.lease_expires_at = None
         session.commit()
-        return
+        return None
 
     ingestion.state = IngestionState.running
     ingestion.started_at = ingestion.started_at or datetime.now(UTC)
@@ -225,16 +396,19 @@ def _process_claimed(
         ingestion.state = IngestionState.cancelled
         ingestion.completed_at = ingestion.completed_at or datetime.now(UTC)
         session.commit()
-        return
+        return None
     complete(session, job, partial=run.completeness != "complete")
-    from .retention import flush_deletions
-
-    flush_deletions(session, ingestion.project_id, settings)
+    return ingestion.project_id
 
 
 def process_claimed(
     session: Session, job: Job, worker_id: str, settings: Settings
 ) -> None:
+    try:
+        claim = claimed_identity(job, worker_id)
+    except LeaseLost:
+        session.rollback()
+        return
     parent = job.payload.get("traceparent") if isinstance(job.payload, dict) else None
     with stage("job", parent=parent, kind=SpanKind.CONSUMER) as span:
         span.set_attribute(
@@ -253,7 +427,29 @@ def process_claimed(
             "job.queue_delay_ms",
             max(0, (datetime.now(UTC) - created).total_seconds() * 1000),
         )
-        _process_claimed(session, job, worker_id, settings)
+        if claim.kind == INGEST_JOB_KIND:
+            try:
+                with ClaimGuard(session, claim) as guard:
+                    guard.check()
+                    cleanup_project = _process_claimed(
+                        session, job, worker_id, settings
+                    )
+            except ClaimScopeInvalid as exc:
+                raise IngestionError(
+                    "missing_ingestion",
+                    "Job references a missing or mismatched ingestion",
+                ) from exc
+            except LeaseLost:
+                session.rollback()
+                return
+            # Deletion outbox processing has its own project/live-reference
+            # locks. A completed job no longer has a running ingestion claim.
+            if cleanup_project is not None:
+                from .retention import flush_deletions
+
+                flush_deletions(session, cleanup_project, settings)
+        else:
+            _process_claimed(session, job, worker_id, settings)
 
 
 def process_next(
@@ -266,6 +462,20 @@ def process_next(
     job = claim_next(session, worker_id, settings.job_lease_seconds)
     if not job:
         return False
+    claim = claimed_identity(job, worker_id)
+
+    def record_failure(current, message, **kwargs):
+        if claim.kind != INGEST_JOB_KIND:
+            fail(session, current, message, **kwargs)
+            return
+        try:
+            # Only the claimed generation may record an error. In particular,
+            # worker IDs can be reused by a successor and are not a fence.
+            with ClaimGuard(session, claim, require_scope=False):
+                fail(session, current, message, **kwargs)
+        except LeaseLost:
+            session.rollback()
+
     try:
         process_claimed(session, job, worker_id, settings)
     except (IngestionError, StorageError) as exc:
@@ -274,8 +484,7 @@ def process_next(
         if current is not None and (
             current.lease_owner == worker_id or current.state == JobState.cancelled
         ):
-            fail(
-                session,
+            record_failure(
                 current,
                 exc.code if current.kind == "retention_cleanup_v1" else str(exc),
                 error_code=exc.code,
@@ -294,7 +503,7 @@ def process_next(
                 if current.kind == "retention_cleanup_v1"
                 else str(exc)
             )
-            fail(session, current, message)
+            record_failure(current, message)
     return True
 
 

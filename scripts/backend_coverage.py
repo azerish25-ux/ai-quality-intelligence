@@ -73,6 +73,8 @@ CRITICAL_GROUPS = {
     ),
     "publication_and_provider_execution": (
         "service",
+        "jobs",
+        "job_leases",
         "provider_service",
         "provider_jobs",
         "provider_proxy",

@@ -200,3 +200,13 @@ ratios are 1.331 and 0.914 CPU seconds per wall second; they exclude database an
 descendant CPU and do not prove a latency cause. Original metrics/request bytes
 are retained. The separate backend regression job was cancelled without a final
 measurement, and this operational pass does not certify that missing scope.
+
+
+With identical runtime and benchmark instrumentation, `5356ac6`
+[fails at 589.16 ms](../evaluation/reports/operational-5356ac6-failed/README.md)
+on AMD EPYC 7763, with all 204 requests successful. The warm interval records
+7.28 client and 5.86 API CPU seconds over about 6.15 wall seconds. These process
+observations exclude PostgreSQL/descendants; they do not establish a sole latency
+cause or a hardware-normalized comparison. The preceding 317.68 ms observation
+and all earlier failures remain unchanged. Stable/reference-resource acceptance
+remains open.

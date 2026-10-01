@@ -33,17 +33,16 @@ all failures. No thresholds are weakened. See [reproduction and limits](docs/cam
 
 ## Verified operational and report workflows
 
-The later diagnostic source `d869361` has eleven passing ordinary jobs, while its
-backend test job was cancelled at the finite time limit without a complete count
-or coverage artifact. Its successful CPU/read observation does not replace that
-missing verification. The complete earlier checkpoint below remains source-specific.
+The retained diagnostic source `d869361` was cancelled during backend testing,
+without a complete count or coverage artifact. That incomplete result remains
+preserved separately from the completed checkpoint below.
 
-At source `829101a`, [all twelve ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36805858159)
+At source `5356ac6`, [all twelve ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36812879268)
 passed, including real PostgreSQL, producer fixtures, six browser lanes, non-root
 application containers, isolated runtime networking and actual database/artifact
-backup restore with citation validation. The backend passed 2,582 tests with no
-skips and 91.08% combined statement/branch coverage. Actual branch-only coverage is
-83.98%; the separate 90%/95% acceptance job correctly fails, keeping the workflow
+backup restore with citation validation. The backend passed 2,642 tests with no
+skips and 91.10% combined statement/branch coverage. Actual branch-only coverage is
+84.00%; the separate 90%/95% acceptance job correctly fails, keeping the workflow
 red. This certifies the named ordinary regression scope, not an
 unmeasured later commit. Frozen classifier quality targets still fail as described
 above; operational correctness is not a replacement for diagnostic acceptance.
@@ -58,8 +57,8 @@ fixed-cardinality metrics and default-disabled export. Its optional local-only
 collector/viewer profile passed real Docker verification at repair `8daa5c7` in
 [36687923599](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36687923599).
 The strict 50,000-execution read benchmark has both passing and failing shared-runner
-measurements; unchanged runtime measured 536.40 ms at `ef9f366` on AMD EPYC 7763
-and 371.29 ms at `829101a` on AMD EPYC 9V45, with explicit single-worker launch
+measurements; unchanged runtime measured 317.68 ms at `d869361` on AMD EPYC 9V45
+and 589.16 ms at `5356ac6` on AMD EPYC 7763, with explicit single-worker launch
 configuration. Both and every earlier observation remain retained, including
 passes and failures on the same reported CPU model. No code speedup or sole cause
 of variation is inferred. All four cold and 200 warm

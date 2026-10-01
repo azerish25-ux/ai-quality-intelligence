@@ -157,6 +157,10 @@ The cluster tables record the algorithm and feature versions, representative fai
 
 The `jobs` table supports queued/running/succeeded/partial/failed/cancelled/dead-lettered states, lease ownership, heartbeat/expiry, bounded attempts, stale-lease recovery and backoff. The ingestion worker reads stored bytes, parses all declared inputs, transactionally publishes a run, automatically analyzes failures, and safely replays after crash points without duplicating the run.
 
+Ingestion transactions are fenced by the captured job, project, kind, owner and
+attempt generation. A refreshed worker name alone cannot authorize an old attempt
+to complete a reclaimed job. [Claim ownership, recovery and verification limits](ingestion-claims.md).
+
 ## Deployment
 
 `compose.yaml` defines PostgreSQL, API, worker and dashboard services. PostgreSQL is not published to the host; the demo API and dashboard bind to loopback. API and worker run as an unprivileged user. Nginx supplies CSP, `nosniff` and same-origin API proxying. Production mode fails closed without a bootstrap administrator and secure session-cookie configuration.

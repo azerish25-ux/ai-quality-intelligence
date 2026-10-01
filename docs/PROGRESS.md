@@ -1794,3 +1794,89 @@ is added. All 939 other prior entries remain byte-identical; total review entrie
 are 943, and fourteen part files are unchanged. The initial stale-source scan and
 an earlier rejected in-tree report-path invocation remain retained. No detector,
 filter or gate changes; final clean-source verification is still required.
+
+### Bounded collection: complete exact-source verification
+
+Published `5356ac642781cd2ef7c0b97589bf735d5be22e10` has tree
+`2052f046eb407e03ff0528b3a672170a84f13b11`. All twelve ordinary jobs pass in
+[run 36812879268](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36812879268).
+Backend job `110211893595` passes **2,642 tests with zero skips/failures/errors**
+in 841.25 seconds. Its schema-2 process record reports exited 0, no signal and OOM
+0 to 0 over 861.772 seconds. That record is observational and deliberately does
+not grant measurement acceptance; the separate canonical coverage report is complete.
+The preceding `d869361` cancelled run remains incomplete with no backend count.
+
+Backend artifact `11140903081` is 470,962 bytes, SHA-256
+`9574cf37adb86dd3683da3c2e4d4095934681dad76c5a5bbdf6bc00f0cd24d41`.
+All three original members, CRC, coverage database schema/integrity, source/data
+hashes and 167 source-file identities match the isolated restore. Independent
+recomputation gives **3,350/3,988 = 84.0020%** branches and 91.0958% combined
+coverage; fourteen of 38 critical files meet 95%. Strict acceptance still FAILS.
+
+All five clean offline gates passed at equivalent-tree `2ae776c`; the full scan
+reconciles 3,188 candidates with zero unresolved findings or policy errors.
+All seven independent hosted quality jobs pass. Required npm audit remains
+NOT RUN and its aggregate red; frozen classifier quality fails. The unchanged
+[operational workload fails at 589.155964 ms](../evaluation/reports/operational-5356ac6-failed/README.md)
+on AMD EPYC 7763, with every one of 204 requests successful. Client/API CPU
+observations are retained without a hardware-normalized or sole-cause claim.
+
+### Durable ingestion claim fencing
+
+A separate two-session SQLite reproduction found a stale-worker defect in that
+published runtime: after the actual Run commit, a successor reclaimed the expired
+job, but the predecessor still marked the successor's job succeeded. Resuming the
+successor then left the job succeeded and ingestion running. The same failure
+occurs when worker names are reused. Three legitimate controls passed and two
+stale-attempt cases failed. Their original failure log and runtime bytes remain
+retained; the initial pre-alias test-file hash was not saved and is explicitly
+unknown. The retained alias-only cleanup preserves the five cases' ASTs.
+
+The repair captures immutable claim identity and fences transaction flushes,
+commits, direct ORM DML and public ingestion completion/failure/heartbeat helpers.
+Admission is conditional on the observed generation, including SQLite's absent
+selection lock. Scope checks bind ingestion/project/current job; malformed owned
+jobs retain permanent diagnostics. A bounded abandoned-final-attempt transition
+avoids leaving exhausted jobs running forever. A valid lock permits its owned
+transaction to finish, while later transactions and heartbeats recheck expiry.
+Savepoint invalidation remains conservative. Deletion flushing retains its own
+project/reference checks after owned completion. Provider and retention execution
+remain separate. [Contract and limits](ingestion-claims.md).
+
+Independent review caught and closed stale direct-helper access, expiry while a
+lock acquisition waits, and a foreign target passed under another job's active
+guard. **58 distinct local cases pass with zero skips**, including 30 new controls
+and 28 existing ingestion/service/cleanup cases. Two intermediate assertions were
+corrected to require zero derivative files rather than absence of a precreated
+empty directory; those failed runs remain retained. Twelve separately authored
+PostgreSQL cases collect successfully but are NOT EXECUTED locally. They require
+the new published source's real PostgreSQL CI.
+
+The author’s local memory guard measures pytest-process RSS only, and its OOM
+counters were unavailable; no stronger resource claim is assigned to those runs.
+A full typing attempt stopped at its 384 MiB process-group guard, then a bounded
+retry completed with seven type errors at 523,388 KiB and unchanged observed OOM
+55. These outcomes remain preserved while the type corrections are verified.
+
+The worker module and new claim guard are declared critical before measurement,
+expanding that file set from 38 to 40. No exclusion, classification corpus, label,
+threshold or acceptance condition is weakened. Full project acceptance remains
+incomplete and the new source still requires clean-source and hosted verification.
+
+
+The seven typing corrections preserve generated SQLite/PostgreSQL UPDATE SQL and
+replace implicit returns with explicit `None`. The full type check now passes
+with zero findings in 13.496 seconds, at 522,472 KiB process-group peak and observed
+OOM 55 unchanged. All 41 directly affected ownership/ingestion/job cases pass
+again at the final runtime, zero skips, with 134,864 KiB process-group peak.
+The seventeen additional service/cleanup cases passed before those type-only
+corrections. Real PostgreSQL execution remains pending. Both unsuccessful type
+attempts remain recorded rather than overwritten.
+
+
+All 63 existing coverage/source-integrity regressions also pass with zero skips
+after the critical-scope declaration. The initial secret scan found only the new
+public `5356ac6` source identifier, with no policy errors. Its contextual review
+adds one integrity identifier: all 943 prior entries and guards are unchanged,
+for 944 entries total; fifteen part files remain byte-identical. Detector/filter
+scope is unchanged. A final clean-source scan remains required before publication.
