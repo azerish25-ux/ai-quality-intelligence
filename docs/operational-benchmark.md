@@ -132,3 +132,11 @@ declares one API worker and no reload after excluding ambient Uvicorn settings;
 it does not claim a process census. Original metrics and request bytes are
 retained. The same workload and 500 ms threshold apply; this passing observation
 does not establish a speedup or stable/reference-resource acceptance.
+
+The subsequent `891f1e9` source
+[fails at 570.77 ms](../evaluation/reports/operational-891f1e9-failed/README.md)
+on AMD EPYC 7763 despite all 204 requests succeeding with the same declared
+single-worker launch. Original metrics/request bytes and independently recomputed
+percentiles are retained. All 20 warm requests over 500 ms belong to history;
+the available telemetry does not isolate a database or Python cause. The unchanged
+target fails, and stable/reference-resource acceptance remains open.

@@ -33,17 +33,18 @@ all failures. No thresholds are weakened. See [reproduction and limits](docs/cam
 
 ## Verified operational and report workflows
 
-At source `c27e2e5`, [all twelve ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36785637486)
-passed, including real PostgreSQL, producer fixtures, four browser lanes, non-root
+At source `891f1e9`, [all twelve ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36792456154)
+passed, including real PostgreSQL, producer fixtures, six browser lanes, non-root
 application containers, isolated runtime networking and actual database/artifact
-backup restore with citation validation. The backend passed 2,391 tests with no
-skips and 89.47% combined statement/branch coverage. Actual branch-only coverage is
-80.88%; the separate 90%/95% acceptance job correctly fails, keeping the workflow
+backup restore with citation validation. The backend passed 2,418 tests with no
+skips and 89.71% combined statement/branch coverage. Actual branch-only coverage is
+81.22%; the separate 90%/95% acceptance job correctly fails, keeping the workflow
 red. This certifies the named ordinary regression scope, not an
 unmeasured later commit. Frozen classifier quality targets still fail as described
 above; operational correctness is not a replacement for diagnostic acceptance.
 This checkpoint repairs current API/report, human-review and provider evidence
-validation, expired historical support, upload cleanup and trace rejection.
+validation, expired historical support, upload cleanup, trace rejection and finite
+performance arithmetic with immutable historical projections.
 Measured scope is recorded in the [delivery ledger](docs/PROGRESS.md); passing
 ordinary tests do not establish complete security or current-evidence coverage.
 
@@ -52,9 +53,9 @@ fixed-cardinality metrics and default-disabled export. Its optional local-only
 collector/viewer profile passed real Docker verification at repair `8daa5c7` in
 [36687923599](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36687923599).
 The strict 50,000-execution read benchmark has both passing and failing shared-runner
-measurements; `c27e2e5` passed at 386.74 ms p95 on Intel Xeon 6973P-C with explicit
-single-worker launch configuration. Earlier Intel and AMD passes and failures
-remain retained. All four cold and 200 warm
+measurements; `891f1e9` failed at 570.77 ms p95 on AMD EPYC 7763 with explicit
+single-worker launch configuration. The earlier 386.74 ms Intel pass and every
+other observation remain retained. All four cold and 200 warm
 requests succeeded in the latest run. Stable compliance with the
 unchanged 500 ms target remains open. [Measurements and limits](docs/operational-benchmark.md).
 

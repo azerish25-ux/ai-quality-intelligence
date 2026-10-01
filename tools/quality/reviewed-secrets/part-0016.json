@@ -326,6 +326,44 @@
       "reviewed_by": "repository agent independent source-context adjudication",
       "reviewed_on": "2026-09-30",
       "value_sha256": "0a905ec3a878f00ae96c20c28ff5ca5367f16b3a49ca767d678e5beb1ec136cb"
+    },
+    {
+      "classification": "intentional_fake_credential",
+      "detector": "Secret Keyword",
+      "evidence": "The module-level AST literal and its SHA-256 match the candidate. Every use seeds or checks temporary account fixtures through the isolated test environment. The entire new test file was reviewed; no runtime secret was loaded or verified.",
+      "file": "backend/tests/test_auth_boundary_guards.py",
+      "file_sha256": "fd40d161f6e103ff07ff3a4324588542b7d007809e9daaa995a9c7c017febc35",
+      "occurrences": [
+        {
+          "context_sha256": "3082c3a7a705f07a464b6c25a694adde09837e768943987de2b8cd2f0d6920e1",
+          "line": 29
+        }
+      ],
+      "reason": "Explicit synthetic password for isolated temporary account fixtures and rejection/control regressions; not an operational credential.",
+      "review_id": "m9-auth-boundary-0001",
+      "review_reference": "backend/tests/test_auth_boundary_guards.py",
+      "reviewed_by": "repository agent independent source-context adjudication",
+      "reviewed_on": "2026-10-01",
+      "value_sha256": "ab004db81c07ecc70b16b9ffa8283200228c16f6fef9f330e7a722010a703270"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "/source_revision matches the published and locally verified Git head. Both retained members match their original hosted bytes, counts and adjacent README hashes; the separate recovery validation also recomputed original percentiles. No API log or credential verification was used.",
+      "file": "evaluation/reports/operational-891f1e9-failed/metrics.json",
+      "file_sha256": "e2821ae411bc0434cc98d2282ee8a60d727e58fbf11c85d6af5c1a7799c4f0e1",
+      "occurrences": [
+        {
+          "context_sha256": "037d32194a4f87f3bb4f66191a04b83f8d2c5262df7b85ba9a9abf6ff19f7baa",
+          "line": 3
+        }
+      ],
+      "reason": "Public Git source revision identifying the retained original synthetic operational measurement; not authentication material.",
+      "review_id": "m9-operational-retention-0010",
+      "review_reference": "evaluation/reports/operational-891f1e9-failed/README.md",
+      "reviewed_by": "repository agent source-context adjudication",
+      "reviewed_on": "2026-10-01",
+      "value_sha256": "8a7a96c6006e828effeb54485519e1b3bab39ebe441970cec488a16205e52d11"
     }
   ],
   "schema_version": 1

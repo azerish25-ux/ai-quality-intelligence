@@ -1469,3 +1469,64 @@ their surrounding contexts are unchanged. Only full-file/location guards were
 refreshed for the two edited Python files; 931 other review entries are unchanged.
 The policy still has 936 entries. This execution-bound correction requires its
 own clean-source scan and exact published-source CI.
+
+### Numeric repair and scanner bound: exact-source verification
+
+Published `891f1e9cbe3109e68ecd5ad996f78b57066daafc` has the exact local
+`c471c426358704c95f81fa75c72f1e51d252ab31` tree
+`9aa1c4f255e2cc531122c578ce16aed54d771c84`. All twelve ordinary jobs pass in
+[run 36792456154](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36792456154),
+including all six browser lanes. Backend job `110148631064` passed **2,418 tests,
+zero failures or skips**, in 782.25 seconds. The three new PostgreSQL cases execute
+in this full run. Its source-bound process diagnostic records exit 0, no signal,
+valid outcomes and host OOM counter 0 before/after. Full hosted types and all
+seven independent quality jobs pass. These results resolve the local current-
+publication/type guard gaps for this exact source; their incomplete measurements
+remain preserved separately.
+
+Backend artifact `11132288844` is 467,446 bytes, SHA-256
+`08ff6718e6182f9408fff6ab3ae533f286b47d9e9dab10cb3580cb53cf12d61d`.
+The exact three-member ZIP, CRC, source binding and data digest were verified.
+Independent checking in CI and locally recomputes **3,239/3,988 = 81.2187%**
+branch coverage and 89.7076% combined coverage. Six of the 38 critical files meet
+95%; the separate strict acceptance job correctly fails the unchanged targets.
+
+All five clean-source offline gates also pass at local `c471c42`. The complete
+single-core secret scan reconciles **3,160 raw candidates: 936 reviewed source and
+2,224 validated policy-metadata candidates**, with zero unresolved findings or
+policy errors. Its process-group peak is 76,468 KiB; no guard stop or OOM change
+occurs. The original CPU-count scan's incomplete outcome remains retained.
+
+Operational run `36792456210`
+[fails at 570.767209 ms on AMD EPYC 7763](../evaluation/reports/operational-891f1e9-failed/README.md),
+with all 204 requests successful and the explicit one-worker launch recorded.
+Original metrics/request bytes and recomputed percentiles are retained alongside
+every earlier observation. No stable/reference-resource acceptance or causal
+speedup is claimed. Required npm audit remains NOT RUN and its aggregate red;
+the frozen benchmark fails only its unchanged quality-target step. Full
+M6/M7/M8/M9 and the complete master project remain PARTIAL.
+
+### Authorization and account boundary regressions
+
+Forty-five new synthetic boundary cases pass locally with zero skips. They verify
+malformed-header precedence over a valid cookie, supported legacy credentials,
+password/name limits, rejected creation without partial database state, current
+human-session requirements, a strongly retained cached administrator after
+concurrent demotion, stale account/recovery versions, activation/revocation state,
+unsupported authentication storage and missing-project publication reads.
+Successful controls and fresh-session durable-state comparisons accompany the
+rejection checks. A suspected oversized stored scrypt parameter already produces
+the expected denied login on the installed runtime; no production defect or
+authentication bypass was reproduced, and no runtime code was changed.
+
+The final focused run completed in 8.466 seconds, with 129,508 KiB observed peak
+RSS, no guard stop and host OOM unchanged at 55. Lint and formatting pass. The
+test file's source and assertions were reviewed separately from its authoring.
+This is local SQLite/guard verification; the new exact source still requires its
+own complete hosted regression and branch measurement. No new coverage percentage
+or PostgreSQL execution is inferred from these 45 passes.
+
+The policy adds one explicitly synthetic test password and the original public
+`891f1e9` measurement-source Git identifier. All 936 earlier entries and their
+guards remain unchanged; there are 938 entries after this scoped adjudication.
+Frozen quality thresholds, corpus labels and required audit semantics are unchanged.

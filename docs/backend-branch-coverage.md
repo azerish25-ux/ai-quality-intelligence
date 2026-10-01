@@ -217,3 +217,9 @@ validate the canonical report/data/source pair. The exact backend run passes
 and six of 35 critical files meeting 95%. The original collector-only statement
 above describes its earlier checkpoint. Subsequent changes still require their
 own clean source, full test execution and independent strict check.
+
+The expanded 38-file policy is measured at published `891f1e9`: **2,418 tests
+pass without skips**, and independently recomputed branch coverage is
+**3,239/3,988 = 81.2187%**, with six critical files meeting 95%. Combined coverage
+is 89.7076%. The separate strict gate correctly fails numeric targets; valid
+coverage evidence and ordinary regression success do not make it a passing gate.
