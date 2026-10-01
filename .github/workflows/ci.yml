@@ -61,7 +61,7 @@ jobs:
     name: Backend
     needs: producer-fixtures
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     services:
       postgres:
         image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
@@ -100,7 +100,7 @@ jobs:
         run: alembic upgrade head
       - name: Test and coverage
         working-directory: backend
-        run: python ../scripts/backend_coverage.py collect --output /tmp/loose-backend-coverage
+        run: exec python ../scripts/backend_coverage.py collect --output /tmp/loose-backend-coverage
       - name: Preserve exact-source branch measurement
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

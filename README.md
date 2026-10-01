@@ -33,6 +33,11 @@ all failures. No thresholds are weakened. See [reproduction and limits](docs/cam
 
 ## Verified operational and report workflows
 
+The later diagnostic source `d869361` has eleven passing ordinary jobs, while its
+backend test job was cancelled at the finite time limit without a complete count
+or coverage artifact. Its successful CPU/read observation does not replace that
+missing verification. The complete earlier checkpoint below remains source-specific.
+
 At source `829101a`, [all twelve ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36805858159)
 passed, including real PostgreSQL, producer fixtures, six browser lanes, non-root
 application containers, isolated runtime networking and actual database/artifact

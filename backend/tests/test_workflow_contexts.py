@@ -66,6 +66,10 @@ def test_branch_acceptance_uses_exact_source_evidence_and_cannot_skip_failure() 
     )
     backend = workflow["jobs"]["backend"]
     acceptance = workflow["jobs"]["backend-branch-acceptance"]
+    from scripts.backend_coverage import TEST_TIMEOUT_SECONDS
+
+    assert 0 < TEST_TIMEOUT_SECONDS < int(backend["timeout-minutes"]) * 60
+    assert int(backend["timeout-minutes"]) <= 35
     assert acceptance["needs"] == "backend"
     assert acceptance["if"] == "always()"
     assert "continue-on-error" not in acceptance
@@ -73,7 +77,7 @@ def test_branch_acceptance_uses_exact_source_evidence_and_cannot_skip_failure() 
         step for step in backend["steps"] if step.get("name") == "Test and coverage"
     )
     assert collect["run"] == (
-        "python ../scripts/backend_coverage.py collect --output /tmp/loose-backend-coverage"
+        "exec python ../scripts/backend_coverage.py collect --output /tmp/loose-backend-coverage"
     )
     assert "continue-on-error" not in collect
     upload = next(

@@ -81,7 +81,7 @@
       "detector": "Basic Auth Credentials",
       "evidence": "workflow-local postgres service and matching disposable database configuration",
       "file": ".github/workflows/ci.yml",
-      "file_sha256": "5a2c80b66d26a55b01d5d09dfffc3c9655cbf5186382104589e727b7a409bf84",
+      "file_sha256": "e86e7d7b3684a3f335c1a83e24cf240d71f9f3d76c63c902996c4323a31bbe36",
       "occurrences": [
         {
           "context_sha256": "af78dcf338f5990df3c413e011170f56369165f8f9e1d4cd0439113bac4e130b",
@@ -112,7 +112,7 @@
       "detector": "Hex High Entropy String",
       "evidence": "pinned Git reference or COMMAND_BLOB constant",
       "file": ".github/workflows/ci.yml",
-      "file_sha256": "5a2c80b66d26a55b01d5d09dfffc3c9655cbf5186382104589e727b7a409bf84",
+      "file_sha256": "e86e7d7b3684a3f335c1a83e24cf240d71f9f3d76c63c902996c4323a31bbe36",
       "occurrences": [
         {
           "context_sha256": "98bafbf81b39190122ee3d5212f488b05c4faeea7ea0b942f6d2f076de97383b",
@@ -131,7 +131,7 @@
       "detector": "Secret Keyword",
       "evidence": "workflow-local postgres service and matching disposable database configuration",
       "file": ".github/workflows/ci.yml",
-      "file_sha256": "5a2c80b66d26a55b01d5d09dfffc3c9655cbf5186382104589e727b7a409bf84",
+      "file_sha256": "e86e7d7b3684a3f335c1a83e24cf240d71f9f3d76c63c902996c4323a31bbe36",
       "occurrences": [
         {
           "context_sha256": "0aea663a44c3ea89a8169d65ab04fd84acd98e3fe6bad4d7e2a2b332fba730ba",

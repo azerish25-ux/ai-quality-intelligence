@@ -1740,3 +1740,57 @@ All 941 prior review entries and guards are unchanged; the policy now contains
 942 entries, with fifteen part files byte-identical. The initial unresolved-
 identifier scan is retained. No detector, filter or scan scope changes, and a
 clean-source scan remains required before publication.
+
+
+### CPU diagnostics: executed result and incomplete backend verification
+
+Published `d86936168bfb96490bfb06c09f7276518f14902c` has tree
+`bc5a1ac6d53c661cdccbe88e086b730db766e789`. All five clean local gates pass at
+its equivalent local source `796544e`, including the full scan with no unresolved
+findings or policy errors. The 74 focused cases and isolated CLI check pass.
+Eleven ordinary jobs pass in [run 36809227418](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36809227418),
+but Backend job `110200807065` is **CANCELLED** after 20m19s. Its log reports
+continuous passing-dot progress through 71%, followed by cancellation; no final
+test count, exit observation or canonical coverage artifact exists. The artifact
+upload fails and the separate branch job fails for missing evidence. No assertion
+failure or cause of slower execution is established. The earlier `829101a`
+2,582-test result remains historical evidence and is not assigned to this source.
+
+All seven independent hosted quality jobs pass; required npm audit remains
+NOT RUN and its aggregate red. Frozen classifier targets still fail. The actual
+[operational observation](../evaluation/reports/operational-d869361-passed/README.md)
+passes at 317.680817 ms on AMD EPYC 9V45 with all 204 requests successful.
+The new counters report 4.50 client and 3.09 API CPU seconds over about 3.38 wall
+seconds, excluding PostgreSQL and descendants. They do not establish whole-stack
+resource use, a latency cause, a speedup or stable/reference-resource acceptance.
+
+The cancellation exposes a collection diagnostic gap: the execution record is
+written only after pytest exits. The next correction records an incomplete state
+before launch, keeps the owned process leader unreaped through bounded descendant
+cleanup, and treats timeout/cancellation as incomplete even when the child exits
+zero. A finite 30-minute test deadline sits inside a 35-minute job allowance for
+setup, coverage processing and upload. The step uses `exec` so cancellation reaches
+the collector directly. A hard kill or runner loss can still prevent upload; the
+initial record remains incomplete. The collector requires Linux/POSIX non-reaping
+exit observation; it is not a sandbox for descendants that deliberately create
+new sessions. Tests, source binding, branch thresholds,
+artifact allowlist and independent acceptance commands remain unchanged. This
+correction needs its own focused and exact-source verification.
+
+
+The correction passes **79 focused checks, zero skips**, including twelve new
+process-lifecycle cases, the existing collector/source/coverage controls and four
+workflow regressions. Real controlled processes cover SIGINT/SIGTERM, hard-kill
+initial evidence, a TERM-handling leader that exits zero, an ignoring descendant,
+and normal-exit cleanup. OOM remains 55. The observed 96,664 KiB guard peak covers
+the pytest process group; separate-session synthetic probes are outside that RSS
+sum, and shared available memory stays above 2.2 GiB. No whole-tree peak is claimed.
+
+A parsed workflow comparison permits only the finite allowance and direct `exec`;
+all other configuration and independent acceptance remain identical. Source-context
+review refreshes three unchanged public fixture literals' full-file guards, with
+identical values, positions and context. One public `d869361` metric source revision
+is added. All 939 other prior entries remain byte-identical; total review entries
+are 943, and fourteen part files are unchanged. The initial stale-source scan and
+an earlier rejected in-tree report-path invocation remain retained. No detector,
+filter or gate changes; final clean-source verification is still required.

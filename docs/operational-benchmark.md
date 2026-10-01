@@ -172,7 +172,7 @@ establish a speedup or stable/reference-resource acceptance.
 
 ## Optional warm-process CPU diagnostics
 
-The next measurement adds bounded snapshots around the warm-load call. They read
+The measurement adds bounded snapshots around the warm-load call. They read
 only numeric fields from the benchmark client and its launched API process.
 User/kernel CPU ticks are converted using the operating system's clock rate;
 process identity and start time are checked between samples. Raw stat records,
@@ -191,5 +191,12 @@ not whole-stack resource measurements, a process census or per-route timings, an
 they cannot establish a latency cause on their own. Snapshot overhead falls outside
 the per-request clock. The request generator, cold/warm counts, concurrency, nearest-
 rank percentile, failure denominators and 500 ms target are unchanged. The local
-functional checks do not constitute an actual PostgreSQL CPU measurement; that
-requires the new published source's hosted execution.
+functional checks alone do not constitute an actual PostgreSQL CPU measurement.
+
+At published `d869361`, [the first executed CPU observation](../evaluation/reports/operational-d869361-passed/README.md)
+reports 4.50 client CPU seconds and 3.09 API CPU seconds over about 3.38 wall
+seconds, with warm p95 317.680817 ms and all 204 requests successful. The observed
+ratios are 1.331 and 0.914 CPU seconds per wall second; they exclude database and
+descendant CPU and do not prove a latency cause. Original metrics/request bytes
+are retained. The separate backend regression job was cancelled without a final
+measurement, and this operational pass does not certify that missing scope.

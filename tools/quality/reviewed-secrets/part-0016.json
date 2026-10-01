@@ -440,6 +440,25 @@
       "reviewed_by": "repository agent source-context adjudication",
       "reviewed_on": "2026-10-01",
       "value_sha256": "bd98626c8a33a9d4637e0813a5725b387f95ef905e3de74f8e69b587f5d30c5d"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "The source_revision equals the public, locally and remotely verified source. Original metrics/request bytes match their hosted member hashes and the adjacent README. The cancelled enclosing regression job is separately preserved; the operational pass does not replace incomplete backend verification.",
+      "file": "evaluation/reports/operational-d869361-passed/metrics.json",
+      "file_sha256": "06298d302959a3c00242909274264d9c00dc399b955a1be5ff22573912398bb2",
+      "occurrences": [
+        {
+          "context_sha256": "c6e83cd91313542bfff00a7aa85f62a697b7575d4ca109da26c8f345acc90dcb",
+          "line": 3
+        }
+      ],
+      "reason": "Public Git revision identifying the retained original synthetic operational measurement; not authentication material.",
+      "review_id": "m9-operational-retention-0015",
+      "review_reference": "evaluation/reports/operational-d869361-passed/README.md",
+      "reviewed_by": "repository agent source-context adjudication",
+      "reviewed_on": "2026-10-01",
+      "value_sha256": "fddd64423814e174db994a771d7d3f02d29c7616fc2e61e583be42dd93230115"
     }
   ],
   "schema_version": 1

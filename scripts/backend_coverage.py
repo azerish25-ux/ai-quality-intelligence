@@ -12,6 +12,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -28,6 +29,8 @@ OVERALL_TARGET = 90
 CRITICAL_TARGET = 95
 COMBINED_TARGET = 75
 MAX_REPORT_BYTES = 1024 * 1024
+TEST_TIMEOUT_SECONDS = 30 * 60
+TERMINATION_GRACE_SECONDS = 2
 # Declared before measurement. Mixed API/service boundaries belong in this scope,
 # even when a module also implements ordinary CRUD or display behavior.
 CRITICAL_GROUPS = {
@@ -497,6 +500,143 @@ def host_oom_kills() -> int | None:
     return None
 
 
+def stop_test_group(process: subprocess.Popen) -> None:
+    """Stop only the session created for this collector's test process."""
+    if process.returncode is not None:
+        return
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    # Do not reap the leader during this grace period. Its PID remains reserved
+    # even when it exits before a descendant that ignores TERM.
+    time.sleep(TERMINATION_GRACE_SECONDS)
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    process.wait(timeout=TERMINATION_GRACE_SECONDS)
+
+
+def run_test_process(
+    command: list[str],
+    working: Path,
+    environment: dict[str, str],
+    output: Path,
+    identity: dict[str, Any],
+    snapshot: dict[str, str],
+) -> int:
+    """Retain incomplete evidence before launch; never turn cancellation green."""
+    started = time.monotonic()
+    execution = {
+        "schema_version": 2,
+        "scope": "pytest_process_observation_not_acceptance",
+        "source_revision_at_start": identity["revision"],
+        "source_digest_at_start": snapshot_digest(snapshot),
+        "status": "running",
+        "measurement_complete": False,
+        "deadline_seconds": TEST_TIMEOUT_SECONDS,
+        "pytest_exit_code": None,
+        "termination_signal": None,
+        "collector_signal": None,
+        "elapsed_seconds": 0.0,
+        "outcome_file_present": False,
+        "host_oom_kills_before": host_oom_kills(),
+        "host_oom_kills_after": None,
+    }
+    record = output / "test-execution.json"
+    write_json(record, execution)
+    process = None
+    previous_handlers = {}
+    received_signal = None
+
+    def interrupted(signum, _frame):
+        nonlocal received_signal
+        received_signal = signum
+
+    try:
+        for signum in (signal.SIGINT, signal.SIGTERM):
+            previous_handlers[signum] = signal.signal(signum, interrupted)
+        process = subprocess.Popen(
+            command, cwd=working, env=environment, start_new_session=True
+        )
+        deadline = started + TEST_TIMEOUT_SECONDS
+        while True:
+            if received_signal is not None:
+                execution["status"] = "interrupted"
+                break
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                execution["status"] = "timed_out"
+                break
+            # Observe exit without reaping. Keep the leader's PID reserved until
+            # cancellation handling and descendant cleanup have finished.
+            observed = os.waitid(
+                os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT
+            )
+            if observed is None:
+                time.sleep(min(0.05, remaining))
+                continue
+            execution["status"] = (
+                "interrupted" if received_signal is not None else "exited"
+            )
+            break
+    except BaseException:
+        execution["status"] = "collector_error"
+        raise
+    finally:
+        try:
+            if received_signal is not None:
+                execution["status"] = "interrupted"
+            if process is not None:
+                if execution["status"] != "exited":
+                    stop_test_group(process)
+                else:
+                    # A normally exited test leader must not leave descendants.
+                    # It is still unreaped, so this group cannot be a reused PID.
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    process.wait(timeout=TERMINATION_GRACE_SECONDS)
+            if received_signal is not None:
+                execution["status"] = "interrupted"
+        finally:
+            code = process.returncode if process is not None else None
+            execution.update(
+                collector_signal=received_signal,
+                pytest_exit_code=code,
+                termination_signal=-code if code is not None and code < 0 else None,
+                elapsed_seconds=time.monotonic() - started,
+                outcome_file_present=(output / "test-outcomes.xml").is_file(),
+                host_oom_kills_after=host_oom_kills(),
+            )
+            # The initial record survives hard kills; only this owned file is
+            # replaced after cleanup, never a partial coverage/acceptance report.
+            final_record = output / "test-execution-final.json"
+            try:
+                write_json(final_record, execution)
+                final_record.replace(record)
+                if received_signal is not None and execution["status"] != "interrupted":
+                    execution.update(
+                        status="interrupted", collector_signal=received_signal
+                    )
+                    write_json(final_record, execution)
+                    final_record.replace(record)
+                print(
+                    json.dumps({"test_process": execution}, sort_keys=True), flush=True
+                )
+            finally:
+                for signum, handler in previous_handlers.items():
+                    signal.signal(signum, handler)
+    if received_signal is not None:
+        raise CoverageError("test-process-interrupted")
+    if execution["status"] != "exited":
+        raise CoverageError("test-process-" + execution["status"])
+    assert process is not None and process.returncode is not None
+    return process.returncode
+
+
 def collect(
     output: Path,
     pytest_args: list[str],
@@ -574,27 +714,9 @@ def collect(
         *test_args,
         f"--junitxml={outcomes}",
     ]
-    oom_before = host_oom_kills()
-    test_started = time.monotonic()
-    completed = subprocess.run(command, cwd=working, env=environment, check=False)
-    execution = {
-        "schema_version": 1,
-        "scope": "pytest_process_observation_not_acceptance",
-        "source_revision_at_start": identity["revision"],
-        "source_digest_at_start": snapshot_digest(snapshot),
-        "pytest_exit_code": completed.returncode,
-        "termination_signal": -completed.returncode
-        if completed.returncode < 0
-        else None,
-        "elapsed_seconds": time.monotonic() - test_started,
-        "outcome_file_present": outcomes.is_file(),
-        "host_oom_kills_before": oom_before,
-        "host_oom_kills_after": host_oom_kills(),
-    }
-    # Preserve the child exit even when it could not write JUnit or coverage.
-    # A signal or host-wide OOM delta alone cannot identify the cause of death.
-    print(json.dumps({"test_process": execution}, sort_keys=True), flush=True)
-    write_json(output / "test-execution.json", execution)
+    test_exit_code = run_test_process(
+        command, working, environment, output, identity, snapshot
+    )
     try:
         outcomes_summary = test_summary(outcomes)
     finally:
@@ -623,14 +745,14 @@ def collect(
         "coverage_data_sha256": data_digest,
         "measurement_kind": "development" if development else "committed",
         "source": {**identity, "files": snapshot, "sha256": snapshot_digest(snapshot)},
-        "pytest_exit_code": completed.returncode,
+        "pytest_exit_code": test_exit_code,
         "test_summary": outcomes_summary,
         "files": files,
         **gates(files),
     }
     if (
         development
-        or completed.returncode != 0
+        or test_exit_code != 0
         or outcomes_summary["failures"]
         or outcomes_summary["errors"]
     ):
@@ -639,7 +761,7 @@ def collect(
     print(
         json.dumps(
             {
-                "pytest_exit_code": completed.returncode,
+                "pytest_exit_code": test_exit_code,
                 "test_summary": outcomes_summary,
                 "overall": report["overall"],
                 "ordinary_combined_gate": report["ordinary_combined_gate"],
@@ -649,9 +771,7 @@ def collect(
         )
     )
     return (
-        0
-        if completed.returncode == 0 and report["ordinary_combined_gate"]["passed"]
-        else 1
+        0 if test_exit_code == 0 and report["ordinary_combined_gate"]["passed"] else 1
     )
 
 
