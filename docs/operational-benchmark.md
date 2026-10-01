@@ -148,3 +148,11 @@ declaration. Original metrics/request bytes and independently recomputed
 percentiles are retained alongside the preceding 570.77 ms failure. This is
 another variable shared-runner observation, not a code speedup or stable/reference-
 resource acceptance. The workload and 500 ms target remain unchanged.
+
+The subsequent runtime-identical `fa8cb02`
+[fails at 647.51 ms](../evaluation/reports/operational-fa8cb02-failed/README.md)
+on the same reported AMD EPYC 9V74 model as the preceding 448.57 ms pass. All 204
+requests succeed, with the same one-worker launch declaration. Both original
+measurements remain retained. CPU model alone does not separate passes from
+failures, and the cause of variation remains unisolated. Stable and reference-
+resource acceptance remain open.

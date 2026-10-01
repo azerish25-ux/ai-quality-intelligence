@@ -33,12 +33,12 @@ all failures. No thresholds are weakened. See [reproduction and limits](docs/cam
 
 ## Verified operational and report workflows
 
-At source `177eb49`, [all twelve ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36795872675)
+At source `fa8cb02`, [all twelve ordinary CI jobs](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36800144065)
 passed, including real PostgreSQL, producer fixtures, six browser lanes, non-root
 application containers, isolated runtime networking and actual database/artifact
-backup restore with citation validation. The backend passed 2,463 tests with no
-skips and 89.96% combined statement/branch coverage. Actual branch-only coverage is
-81.80%; the separate 90%/95% acceptance job correctly fails, keeping the workflow
+backup restore with citation validation. The backend passed 2,539 tests with no
+skips and 90.92% combined statement/branch coverage. Actual branch-only coverage is
+83.63%; the separate 90%/95% acceptance job correctly fails, keeping the workflow
 red. This certifies the named ordinary regression scope, not an
 unmeasured later commit. Frozen classifier quality targets still fail as described
 above; operational correctness is not a replacement for diagnostic acceptance.
@@ -53,10 +53,10 @@ fixed-cardinality metrics and default-disabled export. Its optional local-only
 collector/viewer profile passed real Docker verification at repair `8daa5c7` in
 [36687923599](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36687923599).
 The strict 50,000-execution read benchmark has both passing and failing shared-runner
-measurements; runtime-identical `891f1e9` and `177eb49` measured 570.77 ms on AMD
-EPYC 7763 and 448.57 ms on AMD EPYC 9V74 respectively, with explicit single-worker
-launch configuration. Both and every earlier observation remain retained.
-No code speedup is inferred. All four cold and 200 warm
+measurements; runtime-identical `177eb49` and `fa8cb02` measured 448.57 ms and
+647.51 ms respectively on the same reported AMD EPYC 9V74 model, with explicit
+single-worker launch configuration. Both and every earlier observation remain
+retained. No code speedup or sole cause of variation is inferred. All four cold and 200 warm
 requests succeeded in the latest run. Stable compliance with the
 unchanged 500 ms target remains open. [Measurements and limits](docs/operational-benchmark.md).
 

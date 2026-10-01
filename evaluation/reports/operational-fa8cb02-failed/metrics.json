@@ -1,0 +1,180 @@
+{
+  "schema_version": "operational-benchmark-v1",
+  "source_revision": "fa8cb02ff6cbe468c64b93d812f86f75cb95549e",
+  "scope": "synthetic_indexed_api_reads",
+  "database": "postgresql",
+  "database_version": "17.11",
+  "workload": {
+    "runs": 1000,
+    "logical_executions": 50000,
+    "concurrency": 10,
+    "warm_samples": 200,
+    "cold_samples": 4
+  },
+  "hardware": {
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "logical_cpus": 4,
+    "python": "3.13.15",
+    "reference_hardware_normalized": false
+  },
+  "database_pool": {
+    "size": 10,
+    "max_overflow": 10
+  },
+  "api_process": {
+    "scope": "declared_launch_configuration_not_process_census",
+    "workers": 1,
+    "reload": false,
+    "environment_exclusions": [
+      "WEB_CONCURRENCY",
+      "UVICORN_*"
+    ]
+  },
+  "hardware_before": {
+    "cpu_quota": null,
+    "memory_limit": null,
+    "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+    "load_average": [
+      0.7607421875,
+      0.22802734375,
+      0.080078125
+    ]
+  },
+  "hardware_after": {
+    "cpu_quota": null,
+    "memory_limit": null,
+    "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+    "load_average": [
+      1.1806640625,
+      0.32421875,
+      0.1123046875
+    ]
+  },
+  "api_stage_metrics": {
+    "status": "available",
+    "metrics": {
+      "schema_version": "bounded-telemetry-v1",
+      "scope": "current_process_completed_calls",
+      "export_enabled": false,
+      "stage_counts": {
+        "http": {
+          "completed_calls": 205,
+          "exception_calls": 0,
+          "duration_ms_sum": 47319.79433399994,
+          "duration_ms_max": 703.0754809999991,
+          "buckets": [
+            0,
+            4,
+            28,
+            156,
+            17,
+            0,
+            0
+          ]
+        },
+        "history": {
+          "completed_calls": 51,
+          "exception_calls": 0,
+          "duration_ms_sum": 11027.07638199998,
+          "duration_ms_max": 480.8832450000011,
+          "buckets": [
+            0,
+            0,
+            1,
+            50,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "histogram_upper_bounds_ms": [
+        5,
+        25,
+        100,
+        500,
+        2000,
+        10000,
+        "infinity"
+      ],
+      "analysis_call_categories": {},
+      "http_response_classes": {
+        "2xx": 205
+      },
+      "provider_call_outcomes": {},
+      "result_counts": {},
+      "limitations": [
+        "Process-local counters reset on restart and are not unique analysis counts",
+        "No raw artifacts, prompts, test names, credentials or user identifiers are recorded"
+      ],
+      "queue": {
+        "states": {
+          "queued": 0,
+          "running": 0,
+          "succeeded": 0,
+          "partial": 0,
+          "failed": 0,
+          "cancelled": 0,
+          "dead_lettered": 0
+        },
+        "oldest_queued_age_seconds": null
+      }
+    }
+  },
+  "seed_seconds": 4.323869999999992,
+  "cold_reads": [
+    {
+      "route": "runs",
+      "elapsed_ms": 259.94642199999873,
+      "ok": true
+    },
+    {
+      "route": "00000000-0000-0000-0000-0000000003e8",
+      "elapsed_ms": 29.744940000000497,
+      "ok": true
+    },
+    {
+      "route": "history",
+      "elapsed_ms": 134.79541499999925,
+      "ok": true
+    },
+    {
+      "route": "overview",
+      "elapsed_ms": 42.747231999996416,
+      "ok": true
+    }
+  ],
+  "recorded_requests": {
+    "cold": 4,
+    "warm": 200
+  },
+  "warm_p95_ms": 647.5105960000036,
+  "warm_p50_ms": 256.56474400000207,
+  "warm_latency_scope": "successful_warm_requests",
+  "cold_failed_requests": 0,
+  "warm_failed_requests": 0,
+  "failed_requests": 0,
+  "failed_requests_scope": "cold_and_warm",
+  "targets": {
+    "zero_failed_requests": true,
+    "complete_read_samples": true,
+    "api_read_p95_under_500ms": false,
+    "measurement_completed": true
+  },
+  "execution": {
+    "status": "completed",
+    "failure": null,
+    "cleanup_error_type": null,
+    "cleanup_forced": false,
+    "cleanup_fallback_error_type": null
+  },
+  "client_max_rss_kib": 146492,
+  "api_child_max_rss_kib": 169560,
+  "database_memory_measured": false,
+  "whole_stack_memory_measured": false,
+  "limitations": [
+    "Synthetic read workload, not classification evaluation or ingestion throughput",
+    "Actual CI hardware is reported, not normalized to the 2-vCPU reference",
+    "Client timings include HTTP connection overhead; DB and whole-stack memory are not measured"
+  ]
+}

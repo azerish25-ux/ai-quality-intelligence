@@ -1581,3 +1581,65 @@ policy. All 938 earlier entries and their guards remain unchanged; the policy
 contains 939 entries. The initial scan correctly rejected that unreviewed
 identifier before source-context adjudication. No detector, scope, filter or
 acceptance rule changes. A final clean-source scan is still required.
+
+### Performance contracts: exact-source verification
+
+Published `fa8cb02ff6cbe468c64b93d812f86f75cb95549e` has tree
+`d156a010c48c37af99afc519f1244213b8f630f2`. All twelve ordinary jobs pass in
+[run 36800144065](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36800144065).
+Backend job `110172902209` passed **2,539 tests, zero failures or skips**, in
+767.16 seconds. Full hosted types and all seven independent quality jobs pass.
+Its source-bound process observation records exit 0, no signal and OOM 0 to 0.
+
+Backend artifact `11136151020` is 472,537 bytes, SHA-256
+`20f9ebaa8513d52d4996bf70343ca97ae41e3c2d57a0ecea50a0ec5a2acf6f6a`.
+The exact three-member ZIP, CRC, data/source digests and counts were verified.
+CI and a separate bundle-restored source check recompute **3,335/3,988 = 83.6259%**
+branch-only coverage and 90.9194% combined coverage. Twelve of 38 critical files
+meet 95%; strict acceptance correctly fails the unchanged numeric targets.
+Collecting the 20 unchanged development fixtures is not new held-out evidence.
+
+All five clean local offline gates pass at equivalent-tree `f41413e`. Its full
+scan reconciles 3,172 candidates with zero unresolved findings or policy errors,
+at 76,580 KiB process-group peak and unchanged OOM 55. The earlier unreviewed
+public revision remains recorded as an initial failed scan.
+
+The unchanged runtime then
+[fails at 647.510596 ms](../evaluation/reports/operational-fa8cb02-failed/README.md)
+on the same reported AMD EPYC 9V74 model as the prior 448.57 ms pass. All 204
+requests succeed; both observations remain retained. No speedup, CPU-model-only
+cause or stable/reference-resource acceptance is established. Required npm audit
+remains NOT RUN and its aggregate red; frozen classifier targets still fail.
+
+### Private-key and report-export boundary verification
+
+Twenty new synthetic key-storage cases pass, with 35 affected checks in their
+focused run. They verify malformed local schemas/values, invalid or unavailable
+pins, explicit operator rotation with preserved local pins, a real grow-after-stat
+read boundary and duplicate atomic publication. Existing bytes and directory
+state remain unchanged on rejection; valid controls restore the original key.
+The descriptor used in the growth probe is confirmed closed. No operational
+credentials are read or transmitted and no production defect is claimed.
+
+Twenty-three new export/review cases separately pass. They reject malformed or
+oversized export requests without writes, preserve valid control exports, bind
+snapshots to their project/run, retain invalid-reference counts, and recheck
+inherited analysis citations for accepted prior reviews. A row claiming the
+current project cannot export evidence from a foreign run. Fresh-session record
+comparisons and original evidence bytes accompany the scope assertions.
+
+The combined affected run reached the 150 MiB local guard at 153,696 KiB and was
+terminated after 9.022 seconds without a complete outcome file. It remains
+**INCOMPLETE**, with OOM unchanged at 55. The two smaller new-test runs and key
+control run remain separate successful observations; this is not a combined pass.
+No runtime, benchmark, frozen corpus, threshold or exclusion is changed. The new
+exact source requires its own complete hosted verification before acceptance.
+
+The surrounding exporter module's 17 cases and both prior-review citation cases
+subsequently pass in separate fresh processes under the unchanged 150 MiB guard.
+Together with the 35-case key run and 23-case new exporter run, the partitioned
+checks cover all 77 distinct selected cases, with zero failures or skips. This
+does not relabel the original combined process as successful. The secret policy
+adds only the original public `fa8cb02` measurement revision; all 939 prior entries
+and guards are unchanged, for 940 entries total. Its initial unresolved-identifier
+scan is retained and a new clean-source scan remains required.
