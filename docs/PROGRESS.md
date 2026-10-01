@@ -1530,3 +1530,54 @@ The policy adds one explicitly synthetic test password and the original public
 `891f1e9` measurement-source Git identifier. All 936 earlier entries and their
 guards remain unchanged; there are 938 entries after this scoped adjudication.
 Frozen quality thresholds, corpus labels and required audit semantics are unchanged.
+
+### Authorization boundary: exact-source verification
+
+Published `177eb49e3b2195c54662c545db3ee375d9814ee5` has tree
+`4067175346f942c207143ff5a5179c895bcbb940`. All twelve ordinary jobs pass in
+[run 36795872675](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36795872675).
+Backend job `110159451602` passed **2,463 tests, zero failures or skips**, in
+741.00 seconds. Full hosted types and all seven independent quality jobs pass.
+The source-bound process diagnostic records exit 0, no signal and OOM counter
+0 before/after. No new production authentication defect was reproduced.
+
+Backend artifact `11133539814` is 467,302 bytes, SHA-256
+`e4ddfa1ae21b3447423dc2333ec256ecece64ddcd24dfd39cc85df7048dd5c26`.
+Its exact three-member ZIP, CRC, source binding and data digest were verified.
+Independent checking in CI, locally and from a restored source archive recomputes
+**3,262/3,988 = 81.7954%** branch coverage and 89.9579% combined coverage. Ten of
+the 38 critical files meet 95%. The separate strict job correctly fails the
+unchanged numeric targets; combined coverage is not branch-only acceptance.
+
+The same runtime and benchmark as `891f1e9` subsequently
+[passes at 448.566492 ms on AMD EPYC 9V74](../evaluation/reports/operational-177eb49-passed/README.md).
+All 204 requests succeed with explicit single-worker launch metadata. Both this
+observation and the preceding 570.77 ms failure remain retained; no code speedup
+or stable/reference-resource acceptance is inferred. Required npm audit remains
+NOT RUN and its aggregate red. Frozen classifier quality still fails.
+
+### Performance cohort and immutable-result contracts
+
+The next local synthetic batch passes **102 focused tests, zero skips**, in
+12.788 seconds, at 139,268 KiB observed peak RSS with OOM unchanged at 55. It adds
+56 contract cases and collects 20 unchanged, already existing development
+performance fixtures alongside 26 surrounding regressions. Measuring those
+existing fixtures in the backend collector is not new held-out quality evidence.
+No runtime, frozen diagnostic corpus, threshold, critical scope or exclusion is
+changed, and no new production defect is claimed.
+
+The cases verify incompatible units/statistics/scopes/directions, project and
+prior-only candidate filtering, explicit trust policy, duplicate-run rejection,
+bounded rejection detail with complete counts, immutable earlier snapshots,
+idempotence, malformed policy dimensions and finite arithmetic inputs. Successful
+controls and fresh-session durable-state comparisons accompany write rejections.
+The first run had 67 passes and six fixture-setup failures from a missing mandatory
+run digest; those outcomes are retained. The empty-run fixture now uses actual
+normalized ingestion without a duration, and all six contract assertions execute.
+The new exact source still requires full hosted regression and branch measurement.
+
+The retained original metrics add one reviewed public Git revision to the secret
+policy. All 938 earlier entries and their guards remain unchanged; the policy
+contains 939 entries. The initial scan correctly rejected that unreviewed
+identifier before source-context adjudication. No detector, scope, filter or
+acceptance rule changes. A final clean-source scan is still required.

@@ -140,3 +140,11 @@ single-worker launch. Original metrics/request bytes and independently recompute
 percentiles are retained. All 20 warm requests over 500 ms belong to history;
 the available telemetry does not isolate a database or Python cause. The unchanged
 target fails, and stable/reference-resource acceptance remains open.
+
+At the runtime-identical `177eb49`, the same workload
+[passes at 448.57 ms](../evaluation/reports/operational-177eb49-passed/README.md)
+on AMD EPYC 9V74, with all 204 requests successful and the same single-worker
+declaration. Original metrics/request bytes and independently recomputed
+percentiles are retained alongside the preceding 570.77 ms failure. This is
+another variable shared-runner observation, not a code speedup or stable/reference-
+resource acceptance. The workload and 500 ms target remain unchanged.
