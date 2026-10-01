@@ -23,6 +23,7 @@ from sqlalchemy import func, insert, select, text
 from sqlalchemy.exc import SQLAlchemyError
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "backend/src"))
 from failurelens.config import get_settings
 from failurelens.db import SessionLocal, initialize_database
@@ -36,6 +37,8 @@ from failurelens.models import (
     TestExecution as Execution,
 )
 from failurelens.service import create_project
+
+from evaluation.operational_cpu import warm_cpu_metrics, warm_cpu_snapshot
 
 API_WORKERS = 1
 
@@ -235,6 +238,7 @@ def main():
     db_version = seed_seconds = hardware_before = hardware_after = None
     cold, warm = [], []
     stage_metrics = {"status": "not_run", "metrics": None}
+    process_cpu = {"status": "not_run", "client": None, "api": None}
     failure = cleanup_error_type = cleanup_fallback_error_type = None
     cleanup_forced = False
     stage = "database_initialization"
@@ -302,8 +306,12 @@ def main():
                 cold = measure(base, routes, concurrency=1, samples=4)
                 stage = "hardware_before_warm"
                 hardware_before = hardware_details()
+                cpu_before = warm_cpu_snapshot(proc)
+                process_cpu = {"status": "incomplete", "client": None, "api": None}
                 stage = "warm_reads"
                 warm = measure(base, routes, concurrency=10, samples=200)
+                cpu_after = warm_cpu_snapshot(proc)
+                process_cpu = warm_cpu_metrics(cpu_before, cpu_after)
                 stage = "hardware_after_warm"
                 hardware_after = hardware_details()
                 stage = "telemetry"
@@ -374,6 +382,7 @@ def main():
         "hardware_before": hardware_before,
         "hardware_after": hardware_after,
         "api_stage_metrics": stage_metrics,
+        "warm_process_cpu": process_cpu,
         "seed_seconds": seed_seconds,
         **summary,
         "execution": {

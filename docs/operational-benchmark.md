@@ -163,3 +163,33 @@ on AMD EPYC 7763 with all 204 requests successful. The original metrics and
 request bytes, complete phase counts and recomputed percentiles are retained.
 This remains above the same 500 ms target; no result is selected away and no
 stable/reference-resource acceptance is claimed.
+
+The runtime-identical `829101a`
+[passes at 371.29 ms](../evaluation/reports/operational-829101a-passed/README.md)
+on AMD EPYC 9V45 with all 204 requests successful. Its original bytes and
+independently recomputed percentiles are retained. This observation does not
+establish a speedup or stable/reference-resource acceptance.
+
+## Optional warm-process CPU diagnostics
+
+The next measurement adds bounded snapshots around the warm-load call. They read
+only numeric fields from the benchmark client and its launched API process.
+User/kernel CPU ticks are converted using the operating system's clock rate;
+process identity and start time are checked between samples. Raw stat records,
+process labels, PIDs and absolute counter/timestamp values are not retained.
+[Linux counter definitions](https://man7.org/linux/man-pages/man5/proc_pid_stat.5.html).
+
+The retained fields report user, system and total CPU seconds, sampled wall time,
+CPU seconds per wall second, clock resolution and observed thread counts. Missing
+or invalid samples and exited/replaced processes are explicitly unavailable;
+partial data for one process does not invent a result for the other. An interrupted
+warm measurement records incomplete CPU data. Unsupported diagnostics do not
+discard completed request measurements or bypass any original target.
+
+These observations exclude PostgreSQL, descendants and other processes. They are
+not whole-stack resource measurements, a process census or per-route timings, and
+they cannot establish a latency cause on their own. Snapshot overhead falls outside
+the per-request clock. The request generator, cold/warm counts, concurrency, nearest-
+rank percentile, failure denominators and 500 ms target are unchanged. The local
+functional checks do not constitute an actual PostgreSQL CPU measurement; that
+requires the new published source's hosted execution.

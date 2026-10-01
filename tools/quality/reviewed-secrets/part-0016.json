@@ -421,6 +421,25 @@
       "reviewed_by": "repository agent source-context adjudication",
       "reviewed_on": "2026-10-01",
       "value_sha256": "3186cd2a175c344acb1520864ee2c16263fa690b0ac4eb41abc730acee598316"
+    },
+    {
+      "classification": "integrity_identifier",
+      "detector": "Hex High Entropy String",
+      "evidence": "The source_revision JSON value is the locally and remotely verified public main revision. Both retained members match their original hosted bytes and adjacent README hashes. The prior failed measurement is preserved. No API log or credential verification was used.",
+      "file": "evaluation/reports/operational-829101a-passed/metrics.json",
+      "file_sha256": "51fbd3fca9215a08ab1d67ba44d9f3c5382bddfe74d78c35f01b25de49adbefa",
+      "occurrences": [
+        {
+          "context_sha256": "6abf3038f03f71477714dafc4bacbe17cc8a961c7bee57a4ad7946c511e4f9c9",
+          "line": 3
+        }
+      ],
+      "reason": "Public Git revision identifying the retained original synthetic operational measurement; not authentication material.",
+      "review_id": "m9-operational-retention-0014",
+      "review_reference": "evaluation/reports/operational-829101a-passed/README.md",
+      "reviewed_by": "repository agent source-context adjudication",
+      "reviewed_on": "2026-10-01",
+      "value_sha256": "bd98626c8a33a9d4637e0813a5725b387f95ef905e3de74f8e69b587f5d30c5d"
     }
   ],
   "schema_version": 1

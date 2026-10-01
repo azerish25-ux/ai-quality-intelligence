@@ -1689,3 +1689,54 @@ three have guard-only changes. Fourteen of the sixteen part files are unchanged.
 The original stale-source scan failure remains retained. Scanner settings,
 review classifications and all acceptance rules are unchanged; a final clean-
 source scan is required for the corrected workflow.
+
+### Bounded CI correction: exact-source verification
+
+Published `829101a686acda52b6c498939ef54666bed373d8` has tree
+`c427deed63f79065e483450dd57028d380473630`. All twelve ordinary jobs pass in
+[run 36805858159](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36805858159).
+Backend job `110190269329` passed **2,582 tests, zero failures or skips**, in
+675.24 seconds with exit 0, no signal and OOM 0 to 0. The finite allowance is now
+20 minutes. The earlier cancelled job remains CANCELLED with its completed test
+evidence preserved. Runtime/test bytes are unchanged; the faster observed duration
+is not claimed as a code optimization.
+
+Backend artifact `11138181512` is 473,058 bytes, SHA-256
+`290125374f1c07807ed2fc38ec9bd4e3a566082badfdfad8c0beba18d99d1b8f`.
+Original members, CRC, SQLite schema/integrity, source/data hashes and independent
+recomputation are verified. Actual branch coverage is **3,349/3,988 = 83.9769%**;
+combined coverage is 91.0844%. Fourteen of 38 critical files meet 95%. The earlier
+report covered one additional provider completion-race branch; both actual
+measurements remain retained. Strict branch acceptance still fails.
+
+All five clean local gates pass at equivalent-tree `c115f64`, including 3,180 scan
+candidates with zero unresolved findings or policy errors. All seven independent
+hosted quality jobs pass, while required npm audit remains NOT RUN and its aggregate
+red. Frozen classifier targets fail. The unchanged read benchmark
+[passes at 371.285115 ms](../evaluation/reports/operational-829101a-passed/README.md)
+on AMD EPYC 9V45 with all 204 requests successful; all earlier failures remain
+retained and stable/reference-resource acceptance is not established.
+
+### Bounded process CPU observations
+
+The next benchmark instrumentation records client/API CPU deltas around the warm
+load, outside per-request timing. It validates bounded Linux counter records,
+clock units, process identity/start time, monotonic intervals and finite results.
+Only bounded numeric deltas and fixed status/reason fields are exported; raw
+records, names, PIDs and absolute counters are discarded. Exited children are not
+read through a reused PID, and unavailable diagnostics preserve request outcomes.
+
+All **74 focused cases pass with zero skips** in 2.073 seconds, at 105,184 KiB
+process-group peak and unchanged OOM 55. They include 48 new cases, a real owned-
+process read, closed-file/bounded-read checks, incomplete-load controls and all 26
+existing benchmark cases. An isolated-interpreter CLI startup check also passes.
+AST comparison confirms that the request generator, seed, launch environment,
+percentile, failure denominators and existing measurement helpers are unchanged.
+These are local functional checks, not actual PostgreSQL CPU measurements or a
+latency improvement; the new source requires its own hosted measurement.
+
+The retained original metrics add one reviewed public `829101a` source identifier.
+All 941 prior review entries and guards are unchanged; the policy now contains
+942 entries, with fifteen part files byte-identical. The initial unresolved-
+identifier scan is retained. No detector, filter or scan scope changes, and a
+clean-source scan remains required before publication.
