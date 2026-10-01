@@ -156,3 +156,10 @@ requests succeed, with the same one-worker launch declaration. Both original
 measurements remain retained. CPU model alone does not separate passes from
 failures, and the cause of variation remains unisolated. Stable and reference-
 resource acceptance remain open.
+
+At unchanged runtime `ef9f366`, the next observation
+[fails at 536.40 ms](../evaluation/reports/operational-ef9f366-failed/README.md)
+on AMD EPYC 7763 with all 204 requests successful. The original metrics and
+request bytes, complete phase counts and recomputed percentiles are retained.
+This remains above the same 500 ms target; no result is selected away and no
+stable/reference-resource acceptance is claimed.

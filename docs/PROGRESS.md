@@ -1643,3 +1643,49 @@ does not relabel the original combined process as successful. The secret policy
 adds only the original public `fa8cb02` measurement revision; all 939 prior entries
 and guards are unchanged, for 940 entries total. Its initial unresolved-identifier
 scan is retained and a new clean-source scan remains required.
+
+### Key/export contracts: completed tests and cancelled enclosing job
+
+Published `ef9f3667bacd1cfd6947062065ef0bc88b4cf52a` has tree
+`74f8c31c8a134dedff9d50fa330e633d05a7798c`. In
+[run 36803188792](https://github.com/azerish25-ux/ai-quality-intelligence/actions/runs/36803188792),
+eleven ordinary jobs passed. Backend job `110182174054` has terminal conclusion
+**CANCELLED**, although every step is marked successful. Its complete test step
+passed **2,582 tests, zero failures or skips**, in 834.99 seconds; the source-bound
+process observation records exit 0, no signal and OOM 0 to 0. Artifact upload and
+container cleanup also completed. These facts do not make the enclosing job a pass.
+
+The job ran from 01:54:21 to 02:09:23 UTC, or 15m02s, against a 15-minute allowance.
+This is consistent with that time limit; no explicit timeout annotation was
+retrieved, and no superseding source/run was found. The next correction raises
+only this finite backend job allowance to 20 minutes so the grown suite can
+complete reporting and cleanup. A parsed workflow comparison verifies that all
+other configuration, tests, exact-source collection, artifacts and acceptance
+commands are unchanged. All four existing workflow regressions pass. The actual
+cancelled outcome is preserved and the correction needs fresh exact-source CI.
+
+Backend artifact `11137335972` is 474,069 bytes, SHA-256
+`73bd9503b189d8d6e790a5c5da4866eb837265b0d5679527d7acd4cec177af2c`.
+The exact three-member ZIP, CRC, SQLite schema/integrity and data/source hashes
+are verified. CI and an independent restored-source check recompute
+**3,350/3,988 = 84.0020%** branch-only and 91.0958% combined coverage. Fourteen of
+38 critical files meet 95%; private-key storage and current-publication validation
+each reach 100% of measured lines/branches. These are scoped regression results,
+not a general security guarantee. Strict branch acceptance remains FAIL.
+
+All five clean local gates passed at equivalent-tree `a6e2e61`, including a full
+3,176-candidate scan with zero unresolved findings or policy errors. All seven
+independent hosted quality jobs pass; required npm audit remains NOT RUN and its
+aggregate red. Frozen classifier quality targets still fail. The unchanged read
+benchmark [fails at 536.395402 ms](../evaluation/reports/operational-ef9f366-failed/README.md)
+with all 204 requests successful. Its original bytes remain retained alongside
+every earlier observation. Full project acceptance remains incomplete.
+
+Source-context review updates only the full-file guards of three unchanged
+public CI fixture literals; their values, line positions and surrounding-context
+hashes are identical. One public `ef9f366` metric source identifier is added.
+The policy contains 941 entries: 937 earlier entries are byte-identical and
+three have guard-only changes. Fourteen of the sixteen part files are unchanged.
+The original stale-source scan failure remains retained. Scanner settings,
+review classifications and all acceptance rules are unchanged; a final clean-
+source scan is required for the corrected workflow.
