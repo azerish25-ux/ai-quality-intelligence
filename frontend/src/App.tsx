@@ -1,3 +1,4 @@
+import { WorkbenchOverview } from './WorkbenchOverview';
 import { AnalysisEvidenceNotice, DiagnosticState } from './DiagnosticState';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type MouseEvent } from 'react';
 import {
@@ -154,6 +155,7 @@ function App() {
   const projectRequest = useRef(0);
   const selectionIntent = useRef({ projectId: searchParam('project'), runId: searchParam('run') });
   const [navigationRevision, setNavigationRevision] = useState(0);
+  const [activeSection, setActiveSection] = useState(() => window.location.hash || '#overview');
   const [runLoading, setRunLoading] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
   const [principal, setPrincipal] = useState<Principal | null>(null);
@@ -309,6 +311,7 @@ function App() {
     event.currentTarget.closest('details')?.removeAttribute('open');
     const url = new URL(window.location.href);
     url.hash = event.currentTarget.hash;
+    setActiveSection(url.hash);
     // An in-page anchor is not a project/run navigation. Native hash history
     // would invoke popstate while asynchronous panels are still settling.
     window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
@@ -329,20 +332,20 @@ function App() {
     [failures, selectedFailureId]
   );
   const navigationItems = useMemo(() => [
-    { href: '#overview', label: 'Overview' },
-    { href: '#ingestion', label: 'Ingestion' },
-    { href: '#runs', label: 'Runs' },
-    { href: '#impact', label: 'Change impact' },
-    { href: '#performance', label: 'Performance' },
-    { href: '#clusters', label: 'Clusters' },
-    { href: '#workspace', label: 'Failure workspace' },
-    { href: '#history', label: 'Test history' },
-    ...(canReview ? [{ href: '#reviews', label: 'Review queue' }] : []),
-    { href: '#account', label: 'Account security' },
-    ...(canAdminister ? [{ href: '#settings', label: 'Settings' }] : []),
-    ...(canReview ? [{ href: '#audit', label: 'Audit' }] : []),
-    { href: '#github-report', label: 'GitHub report' },
-    { href: '#evaluation', label: 'Evaluation' }
+    { href: '#overview', label: 'Overview', group: 'Investigate' },
+    { href: '#runs', label: 'Runs', group: 'Investigate' },
+    { href: '#workspace', label: 'Failure workspace', group: 'Investigate' },
+    { href: '#clusters', label: 'Clusters', group: 'Investigate' },
+    { href: '#history', label: 'Test history', group: 'Investigate' },
+    { href: '#ingestion', label: 'Ingestion', group: 'Analyze' },
+    { href: '#impact', label: 'Change impact', group: 'Analyze' },
+    { href: '#performance', label: 'Performance', group: 'Analyze' },
+    ...(canReview ? [{ href: '#reviews', label: 'Review queue', group: 'Decide' }] : []),
+    { href: '#github-report', label: 'GitHub report', group: 'Decide' },
+    { href: '#evaluation', label: 'Evaluation', group: 'Decide' },
+    ...(canReview ? [{ href: '#audit', label: 'Audit', group: 'Manage' }] : []),
+    ...(canAdminister ? [{ href: '#settings', label: 'Settings', group: 'Manage' }] : []),
+    { href: '#account', label: 'Account security', group: 'Manage' }
   ], [canAdminister, canReview]);
 
   const reviewPageCount = Math.max(1, Math.ceil((reviewTotal ?? 0) / tablePageSize));
@@ -1566,17 +1569,17 @@ function App() {
       </a>
       <div className="app-shell">
       <aside className="sidebar" aria-label="Application sidebar">
-        <div className="brand"><span className="brand-mark">LT</span><div><strong>Loose Thread</strong><small>Evidence-grounded triage</small></div></div>
+        <div className="brand"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M7 5v15a7 7 0 0 0 14 0v-8a4 4 0 0 0-8 0v14" stroke="currentColor" strokeWidth="2.5"/><circle cx="7" cy="5" r="3" fill="currentColor"/><circle cx="13" cy="26" r="3" fill="currentColor"/></svg></span><div><strong>Loose Thread</strong><small>Evidence-grounded triage</small></div></div>
         <nav aria-label="Primary navigation">
-          {navigationItems.map((item) => <a href={item.href} key={item.href} onClick={navigateSection}>{item.label}</a>)}
+          {navigationItems.map((item, index) => <div className="nav-entry" key={item.href}>{navigationItems[index - 1]?.group !== item.group && <span className="nav-group">{item.group}</span>}<a href={item.href} aria-current={activeSection === item.href ? 'location' : undefined} onClick={navigateSection}>{item.label}<span aria-hidden="true">↗</span></a></div>)}
         </nav>
-        <div className="sidebar-note">Durable deterministic mode<br/><span>No model API required</span></div>
+        <div className="sidebar-note"><span className="mode-indicator" aria-hidden="true" />Deterministic by default<small>Evidence first. No model API required.</small></div>
       </aside>
 
       <main id="main-content" tabIndex={-1}>
         <header className="topbar">
           <div>
-            <p className="eyebrow">QUALITY INTELLIGENCE</p><h1>Failure investigation console</h1>
+            <p className="eyebrow">THE EVIDENCE WORKBENCH</p><h1>Investigation desk<span className="heading-period">.</span></h1><p className="desk-intro">Find what broke. Keep the proof. Make the call.</p>
             <details className="mobile-navigation">
               <summary>Navigate</summary>
               <nav aria-label="Compact navigation">
@@ -1593,33 +1596,109 @@ function App() {
           </div>
         </header>
 
-        {principal.demo_mode && <div className="demo-banner" role="status"><strong>Synthetic demo identity.</strong> This loopback-oriented mode bypasses normal login for a visibly labeled administrator and must not be exposed as production authentication.</div>}
+        {principal.demo_mode && <div className="demo-banner" role="status"><strong>Synthetic demo workspace</strong><span>Administrator access · login bypassed · local demonstration only</span><span className="demo-boundary">Never expose as production authentication</span></div>}
 
         {error && <div className="alert" role="alert">{error}</div>}
         {runError && <div className="alert" role="alert">{runError}</div>}
         <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{statusMessage}</div>
 
-        <section id="overview" className="metric-grid" aria-label="Overview metrics">
-          {[
-            ['Projects', overview?.projects ?? '—'],
-            ['Ingestions', overview?.ingestions ?? '—'],
-            ['Active jobs', overview?.active_ingestions ?? '—'],
-            ['Runs', overview?.runs ?? '—'],
-            ['Failures', overview?.failures ?? '—'],
-            ['Clusters', overview?.clusters ?? '—'],
-            ['Impact plans', overview?.impact_recommendations ?? '—'],
-            ['Performance findings', overview?.performance_comparisons ?? '—'],
-            ['Infrastructure events', overview?.infrastructure_events ?? '—'],
-            ['Correlation snapshots', overview?.infrastructure_correlations ?? '—'],
-            ['Analyses', overview?.analyses ?? '—']
-          ].map(([label, value]) => <article className="metric" key={label}><span>{label}</span><strong>{value}</strong></article>)}
+        <WorkbenchOverview overview={overview} navigate={navigateSection} />
+
+        <div className="desk-section-heading investigation-heading"><div><p className="eyebrow">01 / INVESTIGATE</p><h2>Start with the failure</h2></div><a href="#ingestion" onClick={navigateSection}>Bring your own report <span aria-hidden="true">↗</span></a></div>
+        <section id="runs" className="panel filters">
+          <label>Project<select value={projectId} onChange={(event: ChangeEvent<HTMLSelectElement>) => changeProject(event.target.value)}><option value="">Select project</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+          <label>Run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => changeRun(event.target.value)}><option value="">Select run</option>{runId && !runs.some(run => run.id === runId) && <option value={runId}>{runLoading ? 'Loading requested run…' : 'Requested run unavailable'}</option>}{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.status}</option>)}</select></label>
+          <div className="scope"><span>Input scope</span><strong>{selectedRun ? `${selectedRun.received_inputs}/${selectedRun.expected_inputs ?? 'unspecified'}` : '—'}</strong><small>{selectedRun?.evidence_expired_at ? 'evidence expired' : selectedRun?.completeness ?? 'no run selected'}</small></div>
+          <div className="scope"><span>Execution cohort</span><strong>{selectedRun ? readableValue(selectedRun.run_scope) : '—'}</strong><small>{selectedRun?.environment ?? 'environment unknown'}</small></div>
+          <div className="scope"><span>Revision</span><strong className="mono">{selectedRun?.commit_sha?.slice(0, 10) ?? 'unknown'}</strong><small>{selectedRun?.branch ?? 'branch unknown'}</small></div>
         </section>
 
-        <p className="limitation">Recorded analysis categories across revisions. Open an investigation to check its current evidence.</p>
-        <section className="category-strip" aria-label="Recorded classification totals">
-          {Object.entries(overview?.categories ?? {}).map(([category, count]) => (
-            <div key={category}><i className={`dot ${statusClass(category)}`} aria-hidden="true"/><span>{categoryLabel[category]}</span><strong>{count}</strong></div>
-          ))}
+        <section id="workspace" className="workspace" tabIndex={-1}>
+          <article className="panel failure-list">
+            <div className="panel-heading"><div><p className="eyebrow">CURRENT RUN</p><h2>Failures</h2></div><span className="count">{failures.length}</span></div>
+            {failures.length === 0 && <div className="empty desk-empty"><span className="empty-trail" aria-hidden="true">○ ── ○ ── ○</span><strong>{runId ? 'No failures in this view' : 'Your next investigation starts here'}</strong><p>{runId ? 'This view does not establish a clean release. Check run completeness and input diagnostics.' : 'Choose a run above or load the synthetic demo to follow a failure from observation to evidence.'}</p><a href={runId ? '#inputs' : '#ingestion'} onClick={navigateSection}>{runId ? 'Inspect run inputs' : 'Upload a test report'} <span aria-hidden="true">↗</span></a></div>}
+            {failures.map((failure) => (
+              <button className={`failure-row ${selectedFailure?.id === failure.id ? 'active' : ''}`} aria-pressed={selectedFailure?.id === failure.id} key={failure.id} onClick={() => setSelectedFailureId(failure.id)}>
+                <span className={`severity ${failure.latest_analysis?.severity ?? 'unknown'}`}/>
+                <span><strong>{failure.test_identity}</strong><small>{failure.message.slice(0, 110)}</small></span>
+                <em>{failure.latest_analysis ? categoryLabel[failure.latest_analysis.category] : 'Not analyzed'}</em>
+              </button>
+            ))}
+          </article>
+
+          <article className="panel detail">
+            {!selectedFailure ? <div className="empty desk-empty"><span className="empty-trail" aria-hidden="true">[ ··· ]</span><strong>Evidence before conclusions</strong><p>Select a failure to inspect the observation, supporting citations, missing inputs and next investigation.</p></div> : (
+              <>
+                <div className="panel-heading"><div><p className="eyebrow">FAILURE WORKSPACE</p><h2>{selectedFailure.test_identity}</h2></div><span className="mono fingerprint">{selectedFailure.fingerprint.slice(0, 12)}</span></div>
+                <div className="message-block"><span>Observed failure</span><p>{selectedFailure.message}</p></div>
+                {!selectedFailure.latest_analysis ? (
+                  <div className="empty action-empty"><p>Automatic analysis was not persisted. A manual re-analysis remains available to project reviewers.</p><button className="primary" onClick={() => analyze(selectedFailure)} disabled={busy || !canReview}>Analyze failure</button></div>
+                ) : (
+                  <>
+                    <div className="analysis-grid">
+                      <div className="analysis-summary">
+                        <span className={`pill ${statusClass(selectedFailure.latest_analysis.category)}`}>{categoryLabel[selectedFailure.latest_analysis.category]}</span>
+                        <AnalysisEvidenceNotice analysis={selectedFailure.latest_analysis} />
+                        <h3>{selectedFailure.latest_analysis.summary}</h3>
+                        <p>{selectedFailure.latest_analysis.confidence.explanation}</p>
+                        <dl><div><dt>Score kind</dt><dd>{selectedFailure.latest_analysis.confidence.kind}</dd></div><div><dt>Score</dt><dd>{selectedFailure.latest_analysis.confidence.value ?? 'unavailable'}</dd></div><div><dt>Evidence completeness</dt><dd>{selectedFailure.latest_analysis.evidence_completeness}</dd></div></dl>
+                      </div>
+                      <div className="evidence-card">
+                        <h3>Evidence state</h3>
+                        <p><strong>{selectedFailure.latest_analysis.supporting_evidence_ids.length}</strong> supporting citations</p>
+                        <p><strong>{selectedFailure.latest_analysis.contradictory_evidence_ids.length}</strong> contradictory citations</p>
+                        <p><strong>{selectedFailure.latest_analysis.missing_evidence.length}</strong> missing inputs</p>
+                        <p><strong>{selectedFailure.latest_analysis.validation_results?.accepted_evidence_ids?.length ?? 0}</strong> integrity-verified records</p>
+                        <p><strong>{selectedFailure.latest_analysis.validation_results?.rejected_evidence_ids?.length ?? 0}</strong> rejected records</p>
+                        <p><strong>{selectedFailure.latest_analysis.validation_results?.status ?? 'not validated'}</strong> publication validation</p>
+                      </div>
+                      <div className="next-step"><h3>Next investigation</h3>{selectedFailure.latest_analysis.next_investigation.map((step) => <div key={step.action}><strong>{step.action}</strong><p>{step.rationale}</p></div>)}</div>
+                      {selectedFailure.latest_analysis.policy_flags.length > 0 && <div className="flags"><h3>Policy flags</h3>{selectedFailure.latest_analysis.policy_flags.map((flag) => <code key={flag}>{flag}</code>)}</div>}
+                    </div>
+
+                    <DiagnosticState validation={selectedFailure.latest_analysis.validation_results} />
+
+                    <OptionalProviderPanel
+                      key={`${principal.kind}:${principal.user_id ?? ''}:${projectId}:${runId}:${selectedFailure.latest_analysis.analysis_id}`}
+                      scope={{ projectId, runId, analysisId: selectedFailure.latest_analysis.analysis_id }}
+                      principal={principal}
+                      analysis={selectedFailure.latest_analysis}
+                    />
+
+                    <section className="review-panel" aria-label="Human analysis review">
+                      <div className="panel-heading compact-title-row"><div><p className="eyebrow">HUMAN DECISION</p><h3>Review history</h3></div><span className="count">{analysisReviews.length}</span></div>
+                      {analysisReviews.length === 0 ? <div className="empty">No human decision has been recorded for this analysis.</div> : (
+                        <ol className="review-history">
+                          {analysisReviews.map((review) => (
+                            <li key={review.id}>
+                              <strong>{readableValue(review.decision)}</strong>
+                              {review.proposed_category && <span> · {categoryLabel[review.proposed_category as Category] ?? readableValue(review.proposed_category)}</span>}
+                              <p>{review.reason}</p>
+                              {review.investigation_outcome && <p><strong>Outcome:</strong> {review.investigation_outcome}</p>}
+                              <small>{review.actor} · version {review.version} · {new Date(review.created_at).toLocaleString()}{review.release_advice ? ` · ${readableValue(review.release_advice)}` : ''}</small>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                      {canReview ? (
+                        <form className="review-form" onSubmit={submitAnalysisReview}>
+                          <p className="identity-note">Verified reviewer: <strong>{principal.display_name}</strong>. Recorded categories and review attribution are preserved; retention can expire evidence and quoted free text.</p>
+                          <div className="review-form-grid">
+                            <label>Decision<select value={reviewDecision} onChange={(event: ChangeEvent<HTMLSelectElement>) => setReviewDecision(event.target.value as typeof reviewDecision)}><option value="accept">Accept analysis</option><option value="reject">Reject analysis</option><option value="needs_more_evidence">Needs more evidence</option><option value="category_correction">Correct category</option></select></label>
+                            <label>Proposed category<select value={reviewCategory} onChange={(event: ChangeEvent<HTMLSelectElement>) => setReviewCategory(event.target.value as Category)} disabled={reviewDecision !== 'category_correction'}>{Object.keys(categoryLabel).map((category) => <option key={category} value={category}>{categoryLabel[category]}</option>)}</select></label>
+                            <label>Advisory state<select value={reviewReleaseAdvice} onChange={(event: ChangeEvent<HTMLSelectElement>) => setReviewReleaseAdvice(event.target.value as typeof reviewReleaseAdvice)}><option value="HOLD_FOR_REVIEW">Hold for review</option><option value="INVESTIGATE">Investigate</option><option value="NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE">No blocker identified in observed scope</option></select></label>
+                          </div>
+                          <label>Engineering reason<textarea value={reviewReason} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setReviewReason(event.target.value)} placeholder="State the evidence and reasoning for this decision." required /></label>
+                          <label>Investigation outcome<textarea value={reviewOutcome} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setReviewOutcome(event.target.value)} placeholder="Optional follow-up, owner, or unresolved question." /></label>
+                          <button className="primary" type="submit" disabled={busy}>Record append-only decision</button>
+                        </form>
+                      ) : <p className="identity-note">Viewer access is read-only. A reviewer or administrator must record a decision.</p>}
+                    </section>
+                  </>
+                )}
+              </>
+            )}
+          </article>
         </section>
 
         <section id="ingestion" className="panel ingestion-panel">
@@ -1659,14 +1738,6 @@ function App() {
               );
             })}
           </div>
-        </section>
-
-        <section id="runs" className="panel filters">
-          <label>Project<select value={projectId} onChange={(event: ChangeEvent<HTMLSelectElement>) => changeProject(event.target.value)}><option value="">Select project</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
-          <label>Run<select value={runId} onChange={(event: ChangeEvent<HTMLSelectElement>) => changeRun(event.target.value)}><option value="">Select run</option>{runId && !runs.some(run => run.id === runId) && <option value={runId}>{runLoading ? 'Loading requested run…' : 'Requested run unavailable'}</option>}{runs.map((run) => <option key={run.id} value={run.id}>{run.external_id} · {run.status}</option>)}</select></label>
-          <div className="scope"><span>Input scope</span><strong>{selectedRun ? `${selectedRun.received_inputs}/${selectedRun.expected_inputs ?? 'unspecified'}` : '—'}</strong><small>{selectedRun?.evidence_expired_at ? 'evidence expired' : selectedRun?.completeness ?? 'no run selected'}</small></div>
-          <div className="scope"><span>Execution cohort</span><strong>{selectedRun ? readableValue(selectedRun.run_scope) : '—'}</strong><small>{selectedRun?.environment ?? 'environment unknown'}</small></div>
-          <div className="scope"><span>Revision</span><strong className="mono">{selectedRun?.commit_sha?.slice(0, 10) ?? 'unknown'}</strong><small>{selectedRun?.branch ?? 'branch unknown'}</small></div>
         </section>
 
         <section id="inputs" className="panel input-panel">
@@ -1959,94 +2030,6 @@ function App() {
                     </div>
                   </section>
                 </div>
-              </>
-            )}
-          </article>
-        </section>
-
-        <section id="workspace" className="workspace" tabIndex={-1}>
-          <article className="panel failure-list">
-            <div className="panel-heading"><div><p className="eyebrow">CURRENT RUN</p><h2>Failures</h2></div><span className="count">{failures.length}</span></div>
-            {failures.length === 0 && <div className="empty">No failures are available for the selected run.</div>}
-            {failures.map((failure) => (
-              <button className={`failure-row ${selectedFailure?.id === failure.id ? 'active' : ''}`} key={failure.id} onClick={() => setSelectedFailureId(failure.id)}>
-                <span className={`severity ${failure.latest_analysis?.severity ?? 'unknown'}`}/>
-                <span><strong>{failure.test_identity}</strong><small>{failure.message.slice(0, 110)}</small></span>
-                <em>{failure.latest_analysis ? categoryLabel[failure.latest_analysis.category] : 'Not analyzed'}</em>
-              </button>
-            ))}
-          </article>
-
-          <article className="panel detail">
-            {!selectedFailure ? <div className="empty">Select a failure to inspect evidence and analysis.</div> : (
-              <>
-                <div className="panel-heading"><div><p className="eyebrow">FAILURE WORKSPACE</p><h2>{selectedFailure.test_identity}</h2></div><span className="mono fingerprint">{selectedFailure.fingerprint.slice(0, 12)}</span></div>
-                <div className="message-block"><span>Observed failure</span><p>{selectedFailure.message}</p></div>
-                {!selectedFailure.latest_analysis ? (
-                  <div className="empty action-empty"><p>Automatic analysis was not persisted. A manual re-analysis remains available to project reviewers.</p><button className="primary" onClick={() => analyze(selectedFailure)} disabled={busy || !canReview}>Analyze failure</button></div>
-                ) : (
-                  <>
-                    <div className="analysis-grid">
-                      <div className="analysis-summary">
-                        <span className={`pill ${statusClass(selectedFailure.latest_analysis.category)}`}>{categoryLabel[selectedFailure.latest_analysis.category]}</span>
-                        <AnalysisEvidenceNotice analysis={selectedFailure.latest_analysis} />
-                        <h3>{selectedFailure.latest_analysis.summary}</h3>
-                        <p>{selectedFailure.latest_analysis.confidence.explanation}</p>
-                        <dl><div><dt>Score kind</dt><dd>{selectedFailure.latest_analysis.confidence.kind}</dd></div><div><dt>Score</dt><dd>{selectedFailure.latest_analysis.confidence.value ?? 'unavailable'}</dd></div><div><dt>Evidence completeness</dt><dd>{selectedFailure.latest_analysis.evidence_completeness}</dd></div></dl>
-                      </div>
-                      <div className="evidence-card">
-                        <h3>Evidence state</h3>
-                        <p><strong>{selectedFailure.latest_analysis.supporting_evidence_ids.length}</strong> supporting citations</p>
-                        <p><strong>{selectedFailure.latest_analysis.contradictory_evidence_ids.length}</strong> contradictory citations</p>
-                        <p><strong>{selectedFailure.latest_analysis.missing_evidence.length}</strong> missing inputs</p>
-                        <p><strong>{selectedFailure.latest_analysis.validation_results?.accepted_evidence_ids?.length ?? 0}</strong> integrity-verified records</p>
-                        <p><strong>{selectedFailure.latest_analysis.validation_results?.rejected_evidence_ids?.length ?? 0}</strong> rejected records</p>
-                        <p><strong>{selectedFailure.latest_analysis.validation_results?.status ?? 'not validated'}</strong> publication validation</p>
-                      </div>
-                      <div className="next-step"><h3>Next investigation</h3>{selectedFailure.latest_analysis.next_investigation.map((step) => <div key={step.action}><strong>{step.action}</strong><p>{step.rationale}</p></div>)}</div>
-                      {selectedFailure.latest_analysis.policy_flags.length > 0 && <div className="flags"><h3>Policy flags</h3>{selectedFailure.latest_analysis.policy_flags.map((flag) => <code key={flag}>{flag}</code>)}</div>}
-                    </div>
-
-                    <DiagnosticState validation={selectedFailure.latest_analysis.validation_results} />
-
-                    <OptionalProviderPanel
-                      key={`${principal.kind}:${principal.user_id ?? ''}:${projectId}:${runId}:${selectedFailure.latest_analysis.analysis_id}`}
-                      scope={{ projectId, runId, analysisId: selectedFailure.latest_analysis.analysis_id }}
-                      principal={principal}
-                      analysis={selectedFailure.latest_analysis}
-                    />
-
-                    <section className="review-panel" aria-label="Human analysis review">
-                      <div className="panel-heading compact-title-row"><div><p className="eyebrow">HUMAN DECISION</p><h3>Review history</h3></div><span className="count">{analysisReviews.length}</span></div>
-                      {analysisReviews.length === 0 ? <div className="empty">No human decision has been recorded for this analysis.</div> : (
-                        <ol className="review-history">
-                          {analysisReviews.map((review) => (
-                            <li key={review.id}>
-                              <strong>{readableValue(review.decision)}</strong>
-                              {review.proposed_category && <span> · {categoryLabel[review.proposed_category as Category] ?? readableValue(review.proposed_category)}</span>}
-                              <p>{review.reason}</p>
-                              {review.investigation_outcome && <p><strong>Outcome:</strong> {review.investigation_outcome}</p>}
-                              <small>{review.actor} · version {review.version} · {new Date(review.created_at).toLocaleString()}{review.release_advice ? ` · ${readableValue(review.release_advice)}` : ''}</small>
-                            </li>
-                          ))}
-                        </ol>
-                      )}
-                      {canReview ? (
-                        <form className="review-form" onSubmit={submitAnalysisReview}>
-                          <p className="identity-note">Verified reviewer: <strong>{principal.display_name}</strong>. Recorded categories and review attribution are preserved; retention can expire evidence and quoted free text.</p>
-                          <div className="review-form-grid">
-                            <label>Decision<select value={reviewDecision} onChange={(event: ChangeEvent<HTMLSelectElement>) => setReviewDecision(event.target.value as typeof reviewDecision)}><option value="accept">Accept analysis</option><option value="reject">Reject analysis</option><option value="needs_more_evidence">Needs more evidence</option><option value="category_correction">Correct category</option></select></label>
-                            <label>Proposed category<select value={reviewCategory} onChange={(event: ChangeEvent<HTMLSelectElement>) => setReviewCategory(event.target.value as Category)} disabled={reviewDecision !== 'category_correction'}>{Object.keys(categoryLabel).map((category) => <option key={category} value={category}>{categoryLabel[category]}</option>)}</select></label>
-                            <label>Advisory state<select value={reviewReleaseAdvice} onChange={(event: ChangeEvent<HTMLSelectElement>) => setReviewReleaseAdvice(event.target.value as typeof reviewReleaseAdvice)}><option value="HOLD_FOR_REVIEW">Hold for review</option><option value="INVESTIGATE">Investigate</option><option value="NO_BLOCKER_IDENTIFIED_IN_OBSERVED_SCOPE">No blocker identified in observed scope</option></select></label>
-                          </div>
-                          <label>Engineering reason<textarea value={reviewReason} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setReviewReason(event.target.value)} placeholder="State the evidence and reasoning for this decision." required /></label>
-                          <label>Investigation outcome<textarea value={reviewOutcome} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setReviewOutcome(event.target.value)} placeholder="Optional follow-up, owner, or unresolved question." /></label>
-                          <button className="primary" type="submit" disabled={busy}>Record append-only decision</button>
-                        </form>
-                      ) : <p className="identity-note">Viewer access is read-only. A reviewer or administrator must record a decision.</p>}
-                    </section>
-                  </>
-                )}
               </>
             )}
           </article>

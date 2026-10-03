@@ -1880,3 +1880,24 @@ public `5356ac6` source identifier, with no policy errors. Its contextual review
 adds one integrity identifier: all 943 prior entries and guards are unchanged,
 for 944 entries total; fifteen part files remain byte-identical. Detector/filter
 scope is unchanged. A final clean-source scan remains required before publication.
+
+## 2026-10-03 resumed portfolio audit
+
+Resumed from exact remote `d5396e0` on a fresh cloud workspace. The prior recovery
+archive explicitly excludes the later cancelled reference-benchmark edits, so
+those are not represented as recovered. See the bounded [readiness checklist](PORTFOLIO-READINESS.md).
+
+First batch moves failure investigation before administrative setup, replaces the
+competing headline cards with actionable scoped totals and an honest historical
+classification distribution, and introduces a purposeful copper/graphite workbench.
+All prior workflow sections remain available. Selected failure buttons expose
+pressed state; empty states retain incomplete-evidence/release limitations.
+
+Production TypeScript/Vite build and all 214 client unit tests pass locally.
+Approved npm registry audit with the unchanged pinned 11.17.0 mechanism reports
+zero vulnerabilities across 80 dependencies on the development tree. An initial
+unmatched npm runtime produced an error and is not counted as a passed check.
+Browser socket restrictions prevent local visual acceptance; the real API-backed
+workbench journey adds desktop/narrow screenshots for exact-source hosted CI.
+Full project acceptance, classifier quality, branch thresholds, stable latency,
+and exact-commit aggregate verification remain open.

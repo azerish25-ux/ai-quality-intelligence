@@ -69,3 +69,8 @@ test('report digest and expanded evidence text stay inside the narrow viewport',
   await expect.poll(withinViewport).toBe(true);
   await panel.screenshot({ path: info.outputPath('github-report-narrow.png') });
 });
+
+import { workbenchJourney } from './workbench-journey';
+test('evidence workbench remains usable on a narrow viewport', async ({ page }, info) => {
+  await workbenchJourney(page, info);
+});
